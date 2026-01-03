@@ -274,15 +274,31 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
     ${benchmarkingInstruction}
     진료과: ${request.category}, 주제: ${request.topic}
-    목표 장수: 총 ${targetSlides}장
+    총 ${targetSlides}장의 카드뉴스
     
-    [카드뉴스 디자인 가이드]
-    인스타그램/네이버 포스트용 카드뉴스를 만드세요.
+    [🚨 가장 중요: 스토리 연결성]
+    카드뉴스는 반드시 **하나의 이야기**로 연결되어야 합니다.
+    각 슬라이드가 "그래서 → 왜냐하면 → 따라서" 논리로 자연스럽게 이어져야 합니다.
     
-    ${request.referenceUrl ? '★중요: 벤치마킹 URL의 구성 방식을 분석하여 유사하게 구성하세요.' : ''}
+    **스토리 구조 (${targetSlides}장):**
+    1장: 🎯 후킹 - 독자의 관심을 끄는 질문/충격적 사실
+    2장: ❓ 문제 제기 - "왜 이게 문제인가?"
+    3장: 💡 원인/배경 - "이런 이유 때문입니다"
+    4장: ✅ 해결책 1 - 첫 번째 실천 방법
+    5장: ✅ 해결책 2 - 두 번째 실천 방법  
+    ${targetSlides}장: 📌 마무리 - 핵심 요약 + 행동 유도
     
-    [필수 HTML 구조 - 반드시 이 형식 준수]
+    **예시 (겨울철 심근경색):**
+    1장: "겨울에 심장마비가 3배 증가한다는 사실, 알고 계셨나요?"
+    2장: "왜 유독 겨울에 위험할까요?"
+    3장: "추위에 혈관이 수축하면서 혈압이 급상승합니다"
+    4장: "예방법 1: 외출 시 목도리로 목 보호하기"
+    5장: "예방법 2: 아침 운동보다 오후 운동이 안전해요"
+    6장: "겨울철 심장 건강, 작은 습관이 생명을 지킵니다"
     
+    ${request.referenceUrl ? '★벤치마킹 URL의 구성 방식도 참고하세요.' : ''}
+    
+    [HTML 구조]
     <div class="card-slide">
       <div class="card-border-box">
         <div class="card-header-row">
@@ -290,11 +306,11 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
           <span class="arrow-icon">→</span>
         </div>
         <div class="card-content-area">
-          <p class="card-subtitle">서브타이틀 (질문형 또는 키워드)</p>
+          <p class="card-subtitle">슬라이드 번호나 키워드</p>
           <div class="card-divider-dotted"></div>
-          <h1 class="card-main-title">메인 제목<br/><span class="card-highlight">강조 부분</span></h1>
+          <h1 class="card-main-title">핵심 메시지<br/><span class="card-highlight">강조어</span></h1>
           <div class="card-img-container">[IMG_N]</div>
-          <p class="card-desc">설명 텍스트 (1~2문장)</p>
+          <p class="card-desc">부연 설명 1~2문장</p>
         </div>
         <div class="card-footer-row">
           <span class="pill-tag">${request.category}</span>
@@ -303,17 +319,11 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
       </div>
     </div>
     
-    [슬라이드별 구성 가이드]
-    1장(표지): 주제를 흥미롭게 소개, 질문형 서브타이틀 권장
-    2~${targetSlides - 1}장(본문): 핵심 정보를 카드당 1개씩 전달
-    ${targetSlides}장(마무리): 요약 또는 행동 유도 (안전한 표현)
-    
     [작성 규칙]
-    1. 각 슬라이드마다 [IMG_1] ~ [IMG_${targetSlides}] 마커 필수
-    2. card-main-title은 짧게 (15자 이내), 줄바꿈은 <br/> 사용
-    3. card-highlight로 핵심 단어 강조
-    4. card-desc는 1~2문장으로 간결하게
-    5. 마크다운(##, **, -) 절대 금지, HTML 태그만 사용
+    1. 각 슬라이드에 [IMG_1]~[IMG_${targetSlides}] 마커 필수
+    2. 이전 슬라이드와 내용이 자연스럽게 연결되어야 함
+    3. card-main-title은 20자 이내, 줄바꿈은 <br/> 사용
+    4. 마크다운 금지, HTML만 사용
   `;
 
   try {
