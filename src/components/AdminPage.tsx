@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Admin 비밀번호 - 실제로는 환경변수나 Supabase로 관리해야 함
-const ADMIN_PASSWORD = 'hospitalai2025';
+const ADMIN_PASSWORD = 'rosmrtl718';
 
 interface UserData {
   id: string;
