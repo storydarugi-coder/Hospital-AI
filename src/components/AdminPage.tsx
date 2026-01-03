@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
+// Admin 비밀번호 - 실제로는 환경변수나 Supabase로 관리해야 함
+const ADMIN_PASSWORD = 'hospitalai2025';
+
 const AdminPage: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  
   const [configValues, setConfigValues] = useState({
     geminiKey: '',
     naverClientId: '',
@@ -8,19 +15,53 @@ const AdminPage: React.FC = () => {
   });
   const [saved, setSaved] = useState(false);
 
+  // 관리자 인증 확인
   useEffect(() => {
-    const localGemini = localStorage.getItem('GEMINI_API_KEY');
-    const localNaverId = localStorage.getItem('NAVER_CLIENT_ID');
-    const localNaverSecret = localStorage.getItem('NAVER_CLIENT_SECRET');
-
-    setConfigValues({
-      geminiKey: localGemini || '',
-      naverClientId: localNaverId || '',
-      naverClientSecret: localNaverSecret || ''
-    });
+    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
+    if (adminAuth === 'true') {
+      setIsAuthenticated(true);
+    }
   }, []);
 
+  // API 키 로드
+  useEffect(() => {
+    if (isAuthenticated) {
+      // GLOBAL_ 접두사로 전역 API 키 관리
+      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
+      const globalNaverId = localStorage.getItem('GLOBAL_NAVER_CLIENT_ID');
+      const globalNaverSecret = localStorage.getItem('GLOBAL_NAVER_CLIENT_SECRET');
+
+      setConfigValues({
+        geminiKey: globalGemini || '',
+        naverClientId: globalNaverId || '',
+        naverClientSecret: globalNaverSecret || ''
+      });
+    }
+  }, [isAuthenticated]);
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      localStorage.setItem('ADMIN_AUTHENTICATED', 'true');
+      setLoginError('');
+    } else {
+      setLoginError('비밀번호가 올바르지 않습니다.');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('ADMIN_AUTHENTICATED');
+  };
+
   const handleSaveConfig = () => {
+    // GLOBAL_ 접두사로 저장하여 모든 사용자가 이용하도록 함
+    localStorage.setItem('GLOBAL_GEMINI_API_KEY', configValues.geminiKey);
+    localStorage.setItem('GLOBAL_NAVER_CLIENT_ID', configValues.naverClientId);
+    localStorage.setItem('GLOBAL_NAVER_CLIENT_SECRET', configValues.naverClientSecret);
+    
+    // 기존 개인용 키도 업데이트 (호환성)
     localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
     localStorage.setItem('NAVER_CLIENT_ID', configValues.naverClientId);
     localStorage.setItem('NAVER_CLIENT_SECRET', configValues.naverClientSecret);
@@ -31,6 +72,9 @@ const AdminPage: React.FC = () => {
 
   const handleClearConfig = () => {
     if (confirm('모든 API 키를 삭제하시겠습니까?')) {
+      localStorage.removeItem('GLOBAL_GEMINI_API_KEY');
+      localStorage.removeItem('GLOBAL_NAVER_CLIENT_ID');
+      localStorage.removeItem('GLOBAL_NAVER_CLIENT_SECRET');
       localStorage.removeItem('GEMINI_API_KEY');
       localStorage.removeItem('NAVER_CLIENT_ID');
       localStorage.removeItem('NAVER_CLIENT_SECRET');
@@ -48,6 +92,62 @@ const AdminPage: React.FC = () => {
     return key.substring(0, 4) + '••••••••' + key.substring(key.length - 4);
   };
 
+  // 로그인 화면
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-500 to-orange-600 rounded-3xl shadow-2xl shadow-red-500/30 mb-6">
+              <span className="text-4xl">🔐</span>
+            </div>
+            <h1 className="text-3xl font-black text-white mb-2">Admin Access</h1>
+            <p className="text-slate-400 font-medium">관리자 비밀번호를 입력하세요</p>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="bg-white/10 backdrop-blur-xl rounded-[32px] p-8 shadow-2xl border border-white/10">
+            {loginError && (
+              <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm font-medium">
+                {loginError}
+              </div>
+            )}
+            
+            <div className="mb-6">
+              <label className="text-xs font-black text-slate-300 uppercase tracking-widest mb-3 block">
+                비밀번호
+              </label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="관리자 비밀번호"
+                className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-emerald-500 outline-none transition-colors"
+                autoFocus
+              />
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+            >
+              로그인
+            </button>
+
+            <div className="mt-6 text-center">
+              <a 
+                href="#" 
+                className="text-sm text-slate-400 hover:text-white transition-colors"
+              >
+                ← 홈으로 돌아가기
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 관리자 설정 화면
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
       <div className="w-full max-w-2xl">
@@ -57,7 +157,7 @@ const AdminPage: React.FC = () => {
             <span className="text-4xl">⚙️</span>
           </div>
           <h1 className="text-3xl font-black text-white mb-2">Admin Settings</h1>
-          <p className="text-slate-400 font-medium">HospitalAI API 설정</p>
+          <p className="text-slate-400 font-medium">서비스 전체 API 설정</p>
         </div>
 
         {/* Main Card */}
@@ -68,15 +168,31 @@ const AdminPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className={`w-3 h-3 rounded-full ${configValues.geminiKey ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
               <span className="text-sm font-bold text-slate-300">
-                {configValues.geminiKey ? 'API 연결됨' : 'API 미연결'}
+                {configValues.geminiKey ? '서비스 활성화됨' : '서비스 비활성화'}
               </span>
             </div>
-            <a 
-              href="#app" 
-              className="text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-2"
-            >
-              앱으로 이동 →
-            </a>
+            <div className="flex items-center gap-4">
+              <a 
+                href="#app" 
+                className="text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                앱으로 이동 →
+              </a>
+              <button
+                onClick={handleAdminLogout}
+                className="text-sm font-bold text-red-400 hover:text-red-300 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          </div>
+
+          {/* Info Banner */}
+          <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl">
+            <p className="text-blue-300 text-sm font-medium">
+              ℹ️ 여기서 설정한 API 키는 <strong>모든 사용자</strong>가 공유합니다.<br/>
+              사용자들은 API 키 없이도 서비스를 이용할 수 있습니다.
+            </p>
           </div>
 
           <div className="space-y-6">
@@ -164,10 +280,10 @@ const AdminPage: React.FC = () => {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-slate-500 text-sm font-medium">
-            API 키는 브라우저의 LocalStorage에 저장됩니다.
+            ⚠️ API 키는 브라우저의 LocalStorage에 저장됩니다.
           </p>
           <p className="text-slate-600 text-xs mt-1">
-            서버에 전송되지 않으며, 브라우저에서만 사용됩니다.
+            Cloudflare 배포 시 환경변수로 설정하는 것을 권장합니다.
           </p>
         </div>
       </div>

@@ -355,8 +355,8 @@ const LandingPage: React.FC = () => {
             <a href="#app" className="w-full sm:w-auto px-10 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-lg rounded-2xl hover:shadow-2xl hover:shadow-emerald-500/30 transition-all">
               🚀 무료로 시작하기
             </a>
-            <a href="#admin" className="w-full sm:w-auto px-10 py-4 bg-white/10 text-white font-bold text-lg rounded-2xl hover:bg-white/20 transition-all border border-white/20">
-              ⚙️ API 키 설정하기
+            <a href="#pricing" className="w-full sm:w-auto px-10 py-4 bg-white/10 text-white font-bold text-lg rounded-2xl hover:bg-white/20 transition-all border border-white/20">
+              💎 요금제 보기
             </a>
           </div>
         </div>
@@ -376,7 +376,6 @@ const LandingPage: React.FC = () => {
               <a href="#features" className="hover:text-white transition-colors">기능</a>
               <a href="#pricing" className="hover:text-white transition-colors">요금제</a>
               <a href="#auth" className="hover:text-white transition-colors">로그인</a>
-              <a href="#admin" className="hover:text-white transition-colors">Admin</a>
               <a href="#app" className="hover:text-white transition-colors">앱 실행</a>
             </div>
           </div>

@@ -84,8 +84,20 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const checkApiKey = () => {
+      // GLOBAL (Admin 설정) 또는 개인 API 키 확인
+      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
       const localGemini = localStorage.getItem('GEMINI_API_KEY');
-      setApiKeyReady(!!localGemini);
+      
+      // GLOBAL 키가 있으면 개인 키에도 설정 (호환성)
+      if (globalGemini && !localGemini) {
+        localStorage.setItem('GEMINI_API_KEY', globalGemini);
+        const globalNaverId = localStorage.getItem('GLOBAL_NAVER_CLIENT_ID');
+        const globalNaverSecret = localStorage.getItem('GLOBAL_NAVER_CLIENT_SECRET');
+        if (globalNaverId) localStorage.setItem('NAVER_CLIENT_ID', globalNaverId);
+        if (globalNaverSecret) localStorage.setItem('NAVER_CLIENT_SECRET', globalNaverSecret);
+      }
+      
+      setApiKeyReady(!!(globalGemini || localGemini));
     };
     
     checkApiKey();
@@ -158,26 +170,20 @@ const App: React.FC = () => {
     return <AdminPage />;
   }
 
-  // API Key 미설정 시 안내 화면
+  // API Key 미설정 시 안내 화면 (관리자에게만 표시 - 일반 사용자는 서비스 준비중 표시)
   if (!apiKeyReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 relative overflow-hidden">
-          <div className="text-6xl mb-6">🏥</div>
+          <div className="text-6xl mb-6">🛠️</div>
           <h1 className="text-2xl font-black mb-3 text-slate-900">HospitalAI</h1>
-          <h2 className="text-lg font-bold text-emerald-600 mb-6">API 키 설정이 필요합니다</h2>
-          <p className="text-slate-500 mb-8 font-medium">서비스 이용을 위해 Gemini API Key를 먼저 설정해주세요.</p>
-          <a 
-            href="#admin" 
-            className="block w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-100 hover:shadow-2xl transition-all active:scale-95 mb-4"
-          >
-             ⚙️ API 키 설정하기
-          </a>
+          <h2 className="text-lg font-bold text-amber-600 mb-6">서비스 준비 중</h2>
+          <p className="text-slate-500 mb-8 font-medium">서비스가 곧 오픈될 예정입니다.<br/>잠시만 기다려주세요!</p>
           <a 
             href="#" 
-            className="block w-full bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
+            className="block w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-100 hover:shadow-2xl transition-all active:scale-95"
           >
-             ← 홈으로 돌아가기
+             🏠 홈으로 돌아가기
           </a>
         </div>
       </div>
