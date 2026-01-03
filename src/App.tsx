@@ -470,7 +470,7 @@ const App: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
               <h2 className="text-2xl font-black text-slate-800 mb-4">{state.progress}</h2>
-              <p className="text-slate-400 max-w-xs font-medium">네이버 스마트블록 노출을 위한 최적의 의료 콘텐츠를 생성하고 있습니다.</p>
+              <p className="text-slate-400 max-w-xs font-medium text-center">네이버 스마트블록 노출을 위한<br/>최적의 의료 콘텐츠를 생성하고 있습니다.</p>
             </div>
           ) : state.data ? (
             <ResultPreview content={state.data} />

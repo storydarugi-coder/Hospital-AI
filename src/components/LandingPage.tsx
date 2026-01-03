@@ -428,9 +428,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>무제한</b></li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 5장</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 무제한</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 레퍼런스 URL 분석</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 우선 이메일 지원</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 신규 기능 우선 제공</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">
                 구독하기
