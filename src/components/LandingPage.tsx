@@ -460,16 +460,17 @@ const LandingPage: React.FC = () => {
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm text-slate-400 mb-8">
               <div>
                 <h4 className="font-bold text-white mb-2">사업자 정보</h4>
-                <p>상호명: 호스피탈AI</p>
-                <p>대표자: (대표자명 입력)</p>
-                <p>사업자등록번호: (000-00-00000)</p>
-                <p>통신판매업신고: (제0000-서울강남-0000호)</p>
+                <p>상호명: 미쁘다</p>
+                <p>대표자: 이지안</p>
+                <p>사업자등록번호: 677-45-01149</p>
+                <p>업태: 도매 및 소매업 (전자상거래 소매업)</p>
+                <p>간이과세자</p>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">연락처</h4>
                 <p>이메일: support@hospitalai.kr</p>
-                <p>전화: 02-0000-0000</p>
-                <p>사업장주소: 서울특별시 (상세주소)</p>
+                <p>전화: 02-2224-9232</p>
+                <p>사업장주소: 서울특별시 송파구 거마로 56, 116동 1709호 (거여동, 송파시그니처롯데캐슬)</p>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">서비스 안내</h4>
