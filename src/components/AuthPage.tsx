@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  signUpWithEmail, 
+  signInWithEmail, 
+  signInWithOAuth, 
+  resetPassword,
+  supabase 
+} from '../lib/supabase';
 
 interface AuthPageProps {
   onNavigate: (page: 'landing' | 'app' | 'admin' | 'auth' | 'pricing') => void;
@@ -16,28 +23,49 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Supabase 연동 시 사용할 함수들
+  // 이미 로그인된 경우 앱으로 이동
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        onNavigate('app');
+      }
+    };
+    checkSession();
+  }, [onNavigate]);
+
+  // 이메일 로그인
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     
     try {
-      // TODO: Supabase 연동
-      // const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log('Email login:', email);
+      const { data, error } = await signInWithEmail(email, password);
       
-      // 임시: 성공 시뮬레이션
-      setTimeout(() => {
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        } else if (error.message.includes('Email not confirmed')) {
+          setError('이메일 인증이 필요합니다. 메일함을 확인해주세요.');
+        } else {
+          setError(error.message);
+        }
         setIsLoading(false);
+        return;
+      }
+      
+      if (data.user) {
+        // 로그인 성공
         onNavigate('app');
-      }, 1000);
-    } catch (err) {
+      }
+    } catch (err: any) {
       setError('로그인에 실패했습니다. 다시 시도해주세요.');
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
+  // 이메일 회원가입
   const handleEmailRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -55,55 +83,76 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
     setIsLoading(true);
     
     try {
-      // TODO: Supabase 연동
-      // const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
-      console.log('Email register:', email, name);
+      const { data, error } = await signUpWithEmail(email, password, name);
       
-      // 임시: 성공 시뮬레이션
-      setTimeout(() => {
+      if (error) {
+        if (error.message.includes('already registered')) {
+          setError('이미 가입된 이메일입니다.');
+        } else {
+          setError(error.message);
+        }
         setIsLoading(false);
-        setMessage('회원가입이 완료되었습니다! 이메일을 확인해주세요.');
-        setMode('login');
-      }, 1000);
-    } catch (err) {
+        return;
+      }
+      
+      if (data.user) {
+        // 이메일 인증이 필요한 경우
+        if (data.user.identities?.length === 0) {
+          setError('이미 가입된 이메일입니다.');
+        } else {
+          setMessage('회원가입이 완료되었습니다! 이메일을 확인해주세요.');
+          setMode('login');
+          setEmail('');
+          setPassword('');
+          setConfirmPassword('');
+          setName('');
+        }
+      }
+    } catch (err: any) {
       setError('회원가입에 실패했습니다. 다시 시도해주세요.');
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
+  // 비밀번호 재설정
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
     
     try {
-      // TODO: Supabase 연동
-      // const { error } = await supabase.auth.resetPasswordForEmail(email);
-      console.log('Password reset:', email);
+      const { error } = await resetPassword(email);
       
-      setTimeout(() => {
+      if (error) {
+        setError(error.message);
         setIsLoading(false);
-        setMessage('비밀번호 재설정 링크가 이메일로 전송되었습니다.');
-      }, 1000);
-    } catch (err) {
+        return;
+      }
+      
+      setMessage('비밀번호 재설정 링크가 이메일로 전송되었습니다.');
+    } catch (err: any) {
       setError('이메일 전송에 실패했습니다.');
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
+  // OAuth 로그인
   const handleOAuthLogin = async (provider: 'google' | 'kakao' | 'naver') => {
     setError(null);
     setIsLoading(true);
     
     try {
-      // TODO: Supabase OAuth 연동
-      // const { data, error } = await supabase.auth.signInWithOAuth({ provider });
-      console.log('OAuth login:', provider);
+      const { error } = await signInWithOAuth(provider);
       
-      // 임시: 안내 메시지
-      setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} 로그인은 Supabase 설정 후 사용 가능합니다.`);
-      setIsLoading(false);
-    } catch (err) {
+      if (error) {
+        if (provider === 'google') {
+          setError('Google 로그인 설정이 필요합니다. Supabase 대시보드에서 Google OAuth를 활성화해주세요.');
+        } else {
+          setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} 로그인은 추가 설정이 필요합니다.`);
+        }
+      }
+      // OAuth는 리다이렉트되므로 여기서 로딩 해제 안함
+    } catch (err: any) {
       setError('소셜 로그인에 실패했습니다.');
       setIsLoading(false);
     }

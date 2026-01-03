@@ -7,17 +7,18 @@ import AdminPage from './components/AdminPage';
 import LandingPage from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
 import { PricingPage } from './components/PricingPage';
+import { supabase, signOut } from './lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 type PageType = 'landing' | 'app' | 'admin' | 'auth' | 'pricing';
 
 // 사용자 정보 타입
-interface UserInfo {
+interface UserProfile {
   id: string;
   email: string;
   name: string;
   plan: 'free' | 'basic' | 'standard' | 'premium';
   remainingCredits: number;
-  ipHash: string;
 }
 
 const App: React.FC = () => {
@@ -30,11 +31,67 @@ const App: React.FC = () => {
     progress: '',
   });
   
-  // 사용자 인증 상태 (임시 - Supabase 연동 시 교체)
-  const [user, setUser] = useState<UserInfo | null>(null);
+  // Supabase 인증 상태
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
+
+  // Supabase 인증 상태 감시
+  useEffect(() => {
+    // 현재 세션 확인
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        setIsLoggedIn(true);
+        // 프로필 정보 설정
+        setUserProfile({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
+          plan: 'free', // TODO: DB에서 가져오기
+          remainingCredits: 3 // TODO: DB에서 가져오기
+        });
+      }
+      setAuthLoading(false);
+    };
+    
+    checkSession();
+
+    // 인증 상태 변경 감시
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event);
+      
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        setIsLoggedIn(true);
+        setUserProfile({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
+          plan: 'free',
+          remainingCredits: 3
+        });
+        
+        // 로그인 성공 시 앱으로 이동
+        if (event === 'SIGNED_IN' && currentPage === 'auth') {
+          window.location.hash = 'app';
+          setCurrentPage('app');
+        }
+      } else {
+        setSupabaseUser(null);
+        setUserProfile(null);
+        setIsLoggedIn(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // URL hash 기반 라우팅
   useEffect(() => {
@@ -68,19 +125,15 @@ const App: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // 임시 로그인 상태 확인 (Supabase 연동 시 교체)
-  useEffect(() => {
-    const savedUser = localStorage.getItem('hospitalai_user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setIsLoggedIn(true);
-      } catch (e) {
-        console.error('Failed to parse user data');
-      }
-    }
-  }, []);
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    await signOut();
+    setSupabaseUser(null);
+    setUserProfile(null);
+    setIsLoggedIn(false);
+    window.location.hash = '';
+    setCurrentPage('landing');
+  };
 
   useEffect(() => {
     const checkApiKey = () => {
@@ -116,7 +169,7 @@ const App: React.FC = () => {
 
   const handleGenerate = async (request: GenerationRequest) => {
     // 크레딧 체크 (로그인 시에만)
-    if (isLoggedIn && user && user.remainingCredits <= 0 && user.plan !== 'premium') {
+    if (isLoggedIn && userProfile && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
       setState(prev => ({ 
         ...prev, 
         error: '크레딧이 부족합니다. 요금제를 업그레이드해주세요.' 
@@ -131,17 +184,28 @@ const App: React.FC = () => {
       setState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 크레딧 차감 (로그인 시에만, 프리미엄 제외)
-      if (isLoggedIn && user && user.plan !== 'premium') {
-        const updatedUser = { ...user, remainingCredits: user.remainingCredits - 1 };
-        setUser(updatedUser);
-        localStorage.setItem('hospitalai_user', JSON.stringify(updatedUser));
-        // TODO: Supabase에 사용량 기록
+      if (isLoggedIn && userProfile && userProfile.plan !== 'premium') {
+        const updatedProfile = { ...userProfile, remainingCredits: userProfile.remainingCredits - 1 };
+        setUserProfile(updatedProfile);
+        // TODO: Supabase DB에 사용량 기록
       }
     } catch (err: any) {
        setState(prev => ({ ...prev, isLoading: false, error: err.message }));
        setMobileTab('input');
     }
   };
+
+  // 로딩 중
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Auth 페이지 렌더링
   if (currentPage === 'auth') {
@@ -154,8 +218,8 @@ const App: React.FC = () => {
       <PricingPage 
         onNavigate={handleNavigate}
         isLoggedIn={isLoggedIn}
-        currentPlan={user?.plan || 'free'}
-        remainingCredits={user?.remainingCredits || 0}
+        currentPlan={userProfile?.plan || 'free'}
+        remainingCredits={userProfile?.remainingCredits || 0}
       />
     );
   }
@@ -170,7 +234,7 @@ const App: React.FC = () => {
     return <AdminPage />;
   }
 
-  // API Key 미설정 시 안내 화면 (관리자에게만 표시 - 일반 사용자는 서비스 준비중 표시)
+  // API Key 미설정 시 안내 화면
   if (!apiKeyReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
@@ -204,11 +268,11 @@ const App: React.FC = () => {
           
           <div className="flex items-center gap-3">
              {/* 크레딧 표시 */}
-             {isLoggedIn && user && (
+             {isLoggedIn && userProfile && (
                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-xl">
                  <span className="text-sm text-slate-500">크레딧:</span>
                  <span className="text-sm font-bold text-emerald-600">
-                   {user.plan === 'premium' ? '∞' : user.remainingCredits}
+                   {userProfile.plan === 'premium' ? '∞' : userProfile.remainingCredits}
                  </span>
                </div>
              )}
@@ -225,30 +289,24 @@ const App: React.FC = () => {
              >
                 💎 요금제
              </a>
-             <a 
-               href="#admin" 
-               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2"
-             >
-                <span className="text-xl">⚙️</span>
-                <span className="text-sm font-bold text-slate-500 hidden sm:inline">설정</span>
-             </a>
              
              {/* 로그인/사용자 버튼 */}
-             {isLoggedIn && user ? (
-               <button 
-                 onClick={() => {
-                   localStorage.removeItem('hospitalai_user');
-                   setUser(null);
-                   setIsLoggedIn(false);
-                 }}
-                 className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all hidden sm:block"
-               >
-                 {user.name || user.email.split('@')[0]} 님
-               </button>
+             {isLoggedIn && userProfile ? (
+               <div className="flex items-center gap-2">
+                 <span className="text-sm text-slate-600 hidden sm:block">
+                   {userProfile.name} 님
+                 </span>
+                 <button 
+                   onClick={handleLogout}
+                   className="px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all"
+                 >
+                   로그아웃
+                 </button>
+               </div>
              ) : (
                <a 
                  href="#auth" 
-                 className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all hidden sm:block"
+                 className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all"
                >
                  로그인
                </a>

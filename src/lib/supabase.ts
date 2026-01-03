@@ -1,27 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-// Supabase 클라이언트 생성
-const supabaseUrl = localStorage.getItem('SUPABASE_URL') || '';
-const supabaseAnonKey = localStorage.getItem('SUPABASE_ANON_KEY') || '';
+// Supabase 설정 - 하드코딩 (Cloudflare Pages 배포 시 환경변수로 교체 권장)
+const SUPABASE_URL = 'https://giiatpxkhponcbduyzci.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpaWF0cHhraHBvbmNiZHV5emNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MzA0MzksImV4cCI6MjA4MzAwNjQzOX0.YsjqdemCH18UcK_fIa6yTulQkw00AemZeROhTaFIpBg';
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+// Supabase 클라이언트 생성
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Supabase 설정 여부 확인
 export const isSupabaseConfigured = () => {
-  const url = localStorage.getItem('SUPABASE_URL');
-  const key = localStorage.getItem('SUPABASE_ANON_KEY');
-  return !!(url && key);
+  return !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 };
 
-// Supabase 클라이언트 재생성 (설정 변경 시)
-export const reinitializeSupabase = () => {
-  const url = localStorage.getItem('SUPABASE_URL') || '';
-  const key = localStorage.getItem('SUPABASE_ANON_KEY') || '';
-  return createClient<Database>(url, key);
-};
-
-// 사용자 IP 가져오기 (간단한 방법)
+// 사용자 IP 가져오기
 export const getUserIP = async (): Promise<string> => {
   try {
     const response = await fetch('https://api.ipify.org?format=json');
@@ -40,4 +32,61 @@ export const hashIP = async (ip: string): Promise<string> => {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+};
+
+// 인증 헬퍼 함수들
+export const signUpWithEmail = async (email: string, password: string, name: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name }
+    }
+  });
+  return { data, error };
+};
+
+export const signInWithEmail = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  return { data, error };
+};
+
+export const signInWithOAuth = async (provider: 'google' | 'kakao' | 'naver') => {
+  // Kakao와 Naver는 Supabase에서 기본 지원하지 않으므로 별도 설정 필요
+  if (provider === 'google') {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/#app'
+      }
+    });
+    return { data, error };
+  }
+  
+  // Kakao, Naver는 추후 구현
+  return { data: null, error: new Error(`${provider} OAuth는 추가 설정이 필요합니다.`) };
+};
+
+export const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  return { error };
+};
+
+export const resetPassword = async (email: string) => {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/#auth'
+  });
+  return { data, error };
+};
+
+export const getCurrentUser = async () => {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return { user, error };
+};
+
+export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+  return supabase.auth.onAuthStateChange(callback);
 };
