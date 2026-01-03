@@ -403,30 +403,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
                   </svg>
                   Google로 계속하기
                 </button>
-
-                {/* Kakao */}
-                <button
-                  onClick={() => handleOAuthLogin('kakao')}
-                  disabled={isLoading}
-                  className="w-full py-3 bg-[#FEE500] text-[#191919] font-medium rounded-xl hover:bg-[#FADA0A] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#191919" d="M12 3C6.477 3 2 6.477 2 10.5c0 2.47 1.607 4.647 4.03 5.938-.127.46-.818 2.96-.846 3.155 0 0-.016.134.07.185.086.052.186.012.186.012.245-.034 2.842-1.86 3.293-2.175.417.06.846.09 1.267.09 5.523 0 10-3.477 10-7.5S17.523 3 12 3z"/>
-                  </svg>
-                  카카오로 계속하기
-                </button>
-
-                {/* Naver */}
-                <button
-                  onClick={() => handleOAuthLogin('naver')}
-                  disabled={isLoading}
-                  className="w-full py-3 bg-[#03C75A] text-white font-medium rounded-xl hover:bg-[#02B150] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="white" d="M16.273 12.845L7.376 0H0v24h7.726V11.155L16.624 24H24V0h-7.727z"/>
-                  </svg>
-                  네이버로 계속하기
-                </button>
               </div>
             </>
           )}
