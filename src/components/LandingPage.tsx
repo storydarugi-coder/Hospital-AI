@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 
 const LandingPage: React.FC = () => {
   const [scrollY, setScrollY] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+  
+  // 모바일 메뉴 열릴 때 스크롤 방지
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [mobileMenuOpen]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
@@ -20,16 +31,102 @@ const LandingPage: React.FC = () => {
             </div>
             <span className="font-black text-xl text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
           </div>
-          <div className="flex items-center gap-4">
-            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">결제하기</a>
-            <a href="#app" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">블로그 AI</a>
-            <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">로그인</a>
+          {/* Desktop Menu */}
+          <div className="hidden sm:flex items-center gap-4">
+            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">결제하기</a>
+            <a href="#app" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">블로그 AI</a>
+            <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">로그인</a>
             <a href="#auth" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
               회원가입
             </a>
           </div>
+          
+          {/* Mobile Hamburger Button */}
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="sm:hidden w-10 h-10 flex flex-col items-center justify-center gap-1.5"
+          >
+            <span className="w-6 h-0.5 bg-slate-700 rounded-full"></span>
+            <span className="w-6 h-0.5 bg-slate-700 rounded-full"></span>
+            <span className="w-6 h-0.5 bg-slate-700 rounded-full"></span>
+          </button>
         </div>
       </nav>
+      
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] sm:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setMobileMenuOpen(false)}
+          ></div>
+          
+          {/* Menu Panel */}
+          <div className="absolute top-0 left-0 right-0 bg-white shadow-2xl animate-slideDown">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 h-20 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white font-black text-xl">H</span>
+                </div>
+                <span className="font-black text-xl text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
+              </div>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-800"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Menu Items */}
+            <div className="px-6 py-4">
+              <a 
+                href="#" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
+              >
+                홈
+              </a>
+              <a 
+                href="#pricing" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
+              >
+                결제하기
+              </a>
+              <a 
+                href="#app" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
+              >
+                블로그 AI
+              </a>
+              <a 
+                href="#auth" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
+              >
+                로그인
+              </a>
+            </div>
+            
+            {/* CTA Button */}
+            <div className="px-6 pb-6">
+              <a 
+                href="#auth" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full py-4 text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold text-lg rounded-xl"
+              >
+                회원가입
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden">
