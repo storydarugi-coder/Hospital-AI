@@ -372,18 +372,8 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       </div>
       `.trim();
   } else {
-      finalHtml = `
-        <div class="naver-post-container">
-          <div class="post-header"><h3>${textData.title}</h3></div>
-          <div class="post-divider"></div>
-          <article class="post-content">${body}</article>
-          <div class="post-divider"></div>
-          <footer>
-            <div class="legal-box">
-              <div class="legal-content">${disclaimer}</div>
-            </div>
-          </footer>
-        </div>`.trim();
+      // 이미 naver-post-container가 있으면 그대로 사용
+      finalHtml = body;
   }
 
   return {
