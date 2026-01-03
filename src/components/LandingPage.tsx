@@ -22,7 +22,8 @@ const LandingPage: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
             <a href="#features" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">기능</a>
-            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">가격</a>
+            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">요금제</a>
+            <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">로그인</a>
             <a href="#app" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
               시작하기
             </a>
@@ -244,47 +245,83 @@ const LandingPage: React.FC = () => {
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100 mb-6">
               <span className="text-sm font-bold text-emerald-700">💰 심플한 가격</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">합리적인 비용으로 시작하세요</h2>
-            <p className="text-slate-500 font-medium">지금은 무료! API 키만 있으면 바로 사용 가능</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">합리적인 요금제</h2>
+            <p className="text-slate-500 font-medium">필요한 만큼만 선택하세요</p>
           </div>
 
-          <div className="max-w-lg mx-auto">
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-1 rounded-3xl shadow-2xl shadow-emerald-200">
-              <div className="bg-white rounded-[22px] p-8 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-bold mb-6">
-                  ⭐ 현재 무료 제공
-                </div>
-                <div className="text-5xl font-black text-slate-900 mb-2">무료</div>
-                <p className="text-slate-500 font-medium mb-8">Google Gemini API 키만 있으면 OK</p>
-                
-                <ul className="text-left space-y-4 mb-8">
-                  <li className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">✓</span>
-                    <span className="font-medium text-slate-700">무제한 블로그 원고 생성</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">✓</span>
-                    <span className="font-medium text-slate-700">AI 이미지 생성</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">✓</span>
-                    <span className="font-medium text-slate-700">18개 진료과 지원</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">✓</span>
-                    <span className="font-medium text-slate-700">5가지 디자인 테마</span>
-                  </li>
-                  <li className="flex items-center gap-3">
-                    <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">✓</span>
-                    <span className="font-medium text-slate-700">네이버 트렌드 분석</span>
-                  </li>
-                </ul>
-
-                <a href="#app" className="block w-full py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-lg rounded-2xl hover:shadow-lg transition-all">
-                  지금 바로 시작하기 →
-                </a>
-              </div>
+          {/* Pricing Cards */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            {/* Free Plan */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
+              <h3 className="text-xl font-black text-slate-800 mb-1">맛보기</h3>
+              <p className="text-sm text-slate-400 mb-4">서비스 체험용</p>
+              <div className="text-3xl font-black text-slate-900 mb-1">무료</div>
+              <p className="text-sm text-emerald-600 font-medium mb-6">원고 3회 | 계정당 1회</p>
+              <ul className="space-y-2 text-sm text-slate-600 mb-6">
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 5가지 테마</li>
+              </ul>
+              <a href="#auth" className="block w-full py-3 text-center bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all">
+                무료 체험
+              </a>
             </div>
+
+            {/* Basic Plan */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
+              <h3 className="text-xl font-black text-slate-800 mb-1">베이직</h3>
+              <p className="text-sm text-slate-400 mb-4">개인 블로거용</p>
+              <div className="text-3xl font-black text-slate-900 mb-1">₩10,000</div>
+              <p className="text-sm text-emerald-600 font-medium mb-6">원고 10회 | 3개월</p>
+              <ul className="space-y-2 text-sm text-slate-600 mb-6">
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 무료 기능</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 이메일 지원</li>
+              </ul>
+              <a href="#pricing" className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">
+                구매하기
+              </a>
+            </div>
+
+            {/* Standard Plan - Popular */}
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-2xl shadow-xl shadow-emerald-200 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-black rounded-full">인기</div>
+              <h3 className="text-xl font-black text-white mb-1">스탠다드</h3>
+              <p className="text-sm text-emerald-100 mb-4">소규모 병원용</p>
+              <div className="text-3xl font-black text-white mb-1">₩19,900</div>
+              <p className="text-sm text-emerald-200 font-medium mb-6">원고 20회 | 3개월</p>
+              <ul className="space-y-2 text-sm text-white/90 mb-6">
+                <li className="flex items-center gap-2"><span>✓</span> 모든 베이직 기능</li>
+                <li className="flex items-center gap-2"><span>✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span>✓</span> 이메일 지원</li>
+              </ul>
+              <a href="#pricing" className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">
+                구매하기
+              </a>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
+              <h3 className="text-xl font-black text-slate-800 mb-1">프리미엄</h3>
+              <p className="text-sm text-slate-400 mb-4">대형 병원/대행사용</p>
+              <div className="text-3xl font-black text-slate-900 mb-1">₩59,900</div>
+              <p className="text-sm text-emerald-600 font-medium mb-6">무제한 | 월 구독</p>
+              <ul className="space-y-2 text-sm text-slate-600 mb-6">
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 무제한</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 우선 이메일 지원</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 전용 상담</li>
+              </ul>
+              <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">
+                구독하기
+              </a>
+            </div>
+          </div>
+
+          {/* View Full Pricing */}
+          <div className="text-center">
+            <a href="#pricing" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all">
+              전체 요금제 보기 →
+            </a>
           </div>
 
           {/* Cost Comparison */}
@@ -337,7 +374,8 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="flex items-center gap-6 text-sm text-slate-400">
               <a href="#features" className="hover:text-white transition-colors">기능</a>
-              <a href="#pricing" className="hover:text-white transition-colors">가격</a>
+              <a href="#pricing" className="hover:text-white transition-colors">요금제</a>
+              <a href="#auth" className="hover:text-white transition-colors">로그인</a>
               <a href="#admin" className="hover:text-white transition-colors">Admin</a>
               <a href="#app" className="hover:text-white transition-colors">앱 실행</a>
             </div>

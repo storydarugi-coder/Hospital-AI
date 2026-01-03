@@ -1,0 +1,221 @@
+-- HospitalAI Supabase Database Schema
+-- 이 SQL을 Supabase 대시보드의 SQL Editor에서 실행하세요.
+
+-- ============================================
+-- 1. Users Profile Table (auth.users 확장)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  name TEXT,
+  avatar_url TEXT,
+  plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'basic', 'standard', 'premium')),
+  remaining_credits INTEGER DEFAULT 3,
+  plan_expires_at TIMESTAMPTZ,
+  ip_hash TEXT, -- 첫 가입 시 IP 해시 저장 (맛보기 중복 방지용)
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- profiles 테이블 RLS 활성화
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- 본인 프로필만 조회/수정 가능
+CREATE POLICY "Users can view own profile" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
+  
+CREATE POLICY "Users can update own profile" ON public.profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+-- ============================================
+-- 2. IP Usage Table (IP 기반 맛보기 제한)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.ip_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ip_hash TEXT UNIQUE NOT NULL, -- SHA256 해시된 IP
+  free_credits_used INTEGER DEFAULT 0,
+  first_used_at TIMESTAMPTZ DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ip_usage 테이블 RLS 활성화
+ALTER TABLE public.ip_usage ENABLE ROW LEVEL SECURITY;
+
+-- Service role만 접근 가능 (클라이언트에서 직접 접근 불가)
+CREATE POLICY "Service role can access ip_usage" ON public.ip_usage
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- ============================================
+-- 3. Usage History Table (사용량 기록)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.usage_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action_type TEXT NOT NULL CHECK (action_type IN ('generate_blog', 'generate_cardnews', 'generate_image')),
+  credits_used INTEGER DEFAULT 1,
+  ip_hash TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- usage_history 테이블 RLS 활성화
+ALTER TABLE public.usage_history ENABLE ROW LEVEL SECURITY;
+
+-- 본인 사용 기록만 조회 가능
+CREATE POLICY "Users can view own usage history" ON public.usage_history
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own usage" ON public.usage_history
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- ============================================
+-- 4. Payments Table (결제 기록)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  plan TEXT NOT NULL CHECK (plan IN ('basic', 'standard', 'premium')),
+  amount INTEGER NOT NULL, -- 원화 금액
+  credits_added INTEGER, -- 추가된 크레딧 수 (프리미엄은 NULL)
+  payment_method TEXT,
+  payment_provider TEXT, -- 'toss', 'kakaopay', 'naverpay' 등
+  transaction_id TEXT UNIQUE,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'refunded')),
+  expires_at TIMESTAMPTZ, -- 크레딧/구독 만료일
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- payments 테이블 RLS 활성화
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+
+-- 본인 결제 기록만 조회 가능
+CREATE POLICY "Users can view own payments" ON public.payments
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- ============================================
+-- 5. Triggers & Functions
+-- ============================================
+
+-- 새 사용자 가입 시 프로필 자동 생성
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    NEW.raw_user_meta_data->>'avatar_url'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- auth.users에 트리거 연결
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- updated_at 자동 업데이트 함수
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- profiles 테이블에 updated_at 트리거 연결
+DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
+CREATE TRIGGER update_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ============================================
+-- 6. Helper Functions (Edge Functions에서 호출)
+-- ============================================
+
+-- IP 해시로 무료 크레딧 사용량 확인 함수
+CREATE OR REPLACE FUNCTION public.check_ip_usage(p_ip_hash TEXT)
+RETURNS INTEGER AS $$
+DECLARE
+  usage_count INTEGER;
+BEGIN
+  SELECT free_credits_used INTO usage_count
+  FROM public.ip_usage
+  WHERE ip_hash = p_ip_hash;
+  
+  IF usage_count IS NULL THEN
+    RETURN 0;
+  END IF;
+  
+  RETURN usage_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- IP 무료 크레딧 사용 기록 함수
+CREATE OR REPLACE FUNCTION public.record_ip_usage(p_ip_hash TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+  INSERT INTO public.ip_usage (ip_hash, free_credits_used)
+  VALUES (p_ip_hash, 1)
+  ON CONFLICT (ip_hash) 
+  DO UPDATE SET 
+    free_credits_used = public.ip_usage.free_credits_used + 1,
+    last_used_at = NOW();
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 사용자 크레딧 차감 함수
+CREATE OR REPLACE FUNCTION public.use_credit(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+DECLARE
+  current_credits INTEGER;
+  current_plan TEXT;
+BEGIN
+  SELECT remaining_credits, plan INTO current_credits, current_plan
+  FROM public.profiles
+  WHERE id = p_user_id;
+  
+  -- 프리미엄은 무제한
+  IF current_plan = 'premium' THEN
+    RETURN TRUE;
+  END IF;
+  
+  -- 크레딧 부족
+  IF current_credits <= 0 THEN
+    RETURN FALSE;
+  END IF;
+  
+  -- 크레딧 차감
+  UPDATE public.profiles
+  SET remaining_credits = remaining_credits - 1,
+      updated_at = NOW()
+  WHERE id = p_user_id;
+  
+  RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- 7. Indexes for Performance
+-- ============================================
+CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+CREATE INDEX IF NOT EXISTS idx_profiles_plan ON public.profiles(plan);
+CREATE INDEX IF NOT EXISTS idx_ip_usage_ip_hash ON public.ip_usage(ip_hash);
+CREATE INDEX IF NOT EXISTS idx_usage_history_user_id ON public.usage_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_history_created_at ON public.usage_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
+
+-- ============================================
+-- 완료! 
+-- ============================================
+-- 다음 단계:
+-- 1. Supabase Dashboard > Authentication > Providers에서 Google, Kakao, Naver OAuth 설정
+-- 2. Edge Function 배포하여 결제 웹훅 처리
+-- 3. 환경변수 설정: SUPABASE_URL, SUPABASE_ANON_KEY

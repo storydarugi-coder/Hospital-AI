@@ -5,8 +5,20 @@ import InputForm from './components/InputForm';
 import ResultPreview from './components/ResultPreview';
 import AdminPage from './components/AdminPage';
 import LandingPage from './components/LandingPage';
+import { AuthPage } from './components/AuthPage';
+import { PricingPage } from './components/PricingPage';
 
-type PageType = 'landing' | 'app' | 'admin';
+type PageType = 'landing' | 'app' | 'admin' | 'auth' | 'pricing';
+
+// 사용자 정보 타입
+interface UserInfo {
+  id: string;
+  email: string;
+  name: string;
+  plan: 'free' | 'basic' | 'standard' | 'premium';
+  remainingCredits: number;
+  ipHash: string;
+}
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageType>('landing');
@@ -17,6 +29,10 @@ const App: React.FC = () => {
     data: null,
     progress: '',
   });
+  
+  // 사용자 인증 상태 (임시 - Supabase 연동 시 교체)
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
 
@@ -28,6 +44,10 @@ const App: React.FC = () => {
         setCurrentPage('admin');
       } else if (hash === '#app') {
         setCurrentPage('app');
+      } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
+        setCurrentPage('auth');
+      } else if (hash === '#pricing') {
+        setCurrentPage('pricing');
       } else {
         setCurrentPage('landing');
       }
@@ -36,6 +56,30 @@ const App: React.FC = () => {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // 페이지 네비게이션 헬퍼
+  const handleNavigate = (page: PageType) => {
+    if (page === 'landing') {
+      window.location.hash = '';
+    } else {
+      window.location.hash = page;
+    }
+    setCurrentPage(page);
+  };
+
+  // 임시 로그인 상태 확인 (Supabase 연동 시 교체)
+  useEffect(() => {
+    const savedUser = localStorage.getItem('hospitalai_user');
+    if (savedUser) {
+      try {
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        setIsLoggedIn(true);
+      } catch (e) {
+        console.error('Failed to parse user data');
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -59,16 +103,50 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
+    // 크레딧 체크 (로그인 시에만)
+    if (isLoggedIn && user && user.remainingCredits <= 0 && user.plan !== 'premium') {
+      setState(prev => ({ 
+        ...prev, 
+        error: '크레딧이 부족합니다. 요금제를 업그레이드해주세요.' 
+      }));
+      return;
+    }
+
     setState(prev => ({ ...prev, isLoading: true, error: null, progress: '네이버 로직 기반 키워드 분석 및 이미지 생성 중...' }));
     setMobileTab('result');
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
+      
+      // 크레딧 차감 (로그인 시에만, 프리미엄 제외)
+      if (isLoggedIn && user && user.plan !== 'premium') {
+        const updatedUser = { ...user, remainingCredits: user.remainingCredits - 1 };
+        setUser(updatedUser);
+        localStorage.setItem('hospitalai_user', JSON.stringify(updatedUser));
+        // TODO: Supabase에 사용량 기록
+      }
     } catch (err: any) {
        setState(prev => ({ ...prev, isLoading: false, error: err.message }));
        setMobileTab('input');
     }
   };
+
+  // Auth 페이지 렌더링
+  if (currentPage === 'auth') {
+    return <AuthPage onNavigate={handleNavigate} />;
+  }
+
+  // Pricing 페이지 렌더링
+  if (currentPage === 'pricing') {
+    return (
+      <PricingPage 
+        onNavigate={handleNavigate}
+        isLoggedIn={isLoggedIn}
+        currentPlan={user?.plan || 'free'}
+        remainingCredits={user?.remainingCredits || 0}
+      />
+    );
+  }
 
   // Landing 페이지 렌더링
   if (currentPage === 'landing') {
@@ -119,11 +197,27 @@ const App: React.FC = () => {
           </a>
           
           <div className="flex items-center gap-3">
+             {/* 크레딧 표시 */}
+             {isLoggedIn && user && (
+               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-xl">
+                 <span className="text-sm text-slate-500">크레딧:</span>
+                 <span className="text-sm font-bold text-emerald-600">
+                   {user.plan === 'premium' ? '∞' : user.remainingCredits}
+                 </span>
+               </div>
+             )}
+             
              <a 
                href="#" 
                className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
              >
                 🏠 홈
+             </a>
+             <a 
+               href="#pricing" 
+               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
+             >
+                💎 요금제
              </a>
              <a 
                href="#admin" 
@@ -132,6 +226,27 @@ const App: React.FC = () => {
                 <span className="text-xl">⚙️</span>
                 <span className="text-sm font-bold text-slate-500 hidden sm:inline">설정</span>
              </a>
+             
+             {/* 로그인/사용자 버튼 */}
+             {isLoggedIn && user ? (
+               <button 
+                 onClick={() => {
+                   localStorage.removeItem('hospitalai_user');
+                   setUser(null);
+                   setIsLoggedIn(false);
+                 }}
+                 className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold hover:bg-slate-200 transition-all hidden sm:block"
+               >
+                 {user.name || user.email.split('@')[0]} 님
+               </button>
+             ) : (
+               <a 
+                 href="#auth" 
+                 className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all hidden sm:block"
+               >
+                 로그인
+               </a>
+             )}
           </div>
         </div>
       </header>
