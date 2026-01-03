@@ -19,6 +19,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenIndex, setRegenIndex] = useState<number>(1);
   const [regenPrompt, setRegenPrompt] = useState<string>('');
+  const [regenRefDataUrl, setRegenRefDataUrl] = useState<string | undefined>(undefined);
+  const [regenRefName, setRegenRefName] = useState<string>('');
   const [isRecommendingPrompt, setIsRecommendingPrompt] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
@@ -36,7 +38,24 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const openRegenModal = (imgIndex: number, currentPrompt: string) => {
     setRegenIndex(imgIndex);
     setRegenPrompt(currentPrompt || 'professional illustration');
+    setRegenRefDataUrl(undefined);
+    setRegenRefName('');
     setRegenOpen(true);
+  };
+
+  const handleRegenFileChange = (file: File | null) => {
+    if (!file) {
+      setRegenRefDataUrl(undefined);
+      setRegenRefName('');
+      return;
+    }
+    setRegenRefName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const v = (reader.result || '').toString();
+      if (v.startsWith('data:')) setRegenRefDataUrl(v);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRecommendPrompt = async () => {
@@ -409,6 +428,29 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                 <div className="text-[11px] text-slate-500 mt-2">
                   💡 팁: "프롬프트 추천" 버튼을 누르면 AI가 글 내용을 분석해서 최적의 이미지 프롬프트를 자동으로 생성해줍니다!
                 </div>
+              </div>
+
+              <div>
+                <div className="text-xs font-black text-slate-700 mb-2">참고 이미지 (선택)</div>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleRegenFileChange(e.target.files?.[0] || null)}
+                    className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  />
+                  {regenRefName && (
+                    <div className="text-xs font-bold text-slate-600 truncate max-w-[180px]">📎 {regenRefName}</div>
+                  )}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2">
+                  참고 이미지는 "무드/실루엣/배색" 참고용으로만 사용됩니다.
+                </div>
+                {regenRefDataUrl && (
+                  <div className="mt-3">
+                    <img src={regenRefDataUrl} alt="참고 이미지" className="max-h-32 rounded-xl border border-slate-200" />
+                  </div>
+                )}
               </div>
             </div>
 
