@@ -42,7 +42,7 @@ export const recommendImagePrompt = async (blogContent: string, currentImageAlt:
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-05-20',
+      model: 'gemini-3-flash-preview',
       contents: `다음은 병원 블로그 글 내용입니다:
 
 ${blogContent.substring(0, 3000)}
@@ -86,12 +86,9 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-preview-image-generation",
+        model: "gemini-3-pro-image-preview",
         contents: { parts: [{ text: finalPrompt }] },
-        config: { 
-          responseModalities: ["image", "text"],
-          imageConfig: { aspectRatio: aspectRatio, imageSize: "1K" } 
-        }
+        config: { imageConfig: { aspectRatio: aspectRatio, imageSize: "1K" } }
       });
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
@@ -108,7 +105,7 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
   const today = new Date().toISOString().split('T')[0];
   
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-3-flash-preview',
     contents: `오늘 날짜: ${today}. 대한민국 '${category}' 분야와 관련하여 현재 주요 언론사 뉴스나 기사에서 보도되는 최신 건강/의료 이슈 5가지를 분석해줘.
     
     [점수 산정 및 정렬 기준]
@@ -143,7 +140,7 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
 export const recommendSeoTitles = async (topic: string, keywords: string): Promise<SeoTitleItem[]> => {
   const ai = getAiClient();
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-preview-05-20',
+    model: 'gemini-3-flash-preview',
     contents: `주제: ${topic}, 키워드: ${keywords}. 네이버 스마트블록 상위 노출을 위한 클릭률(CTR) 높은 제목 4개를 생성해줘.`,
     config: {
       responseMimeType: "application/json",
@@ -289,7 +286,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro-preview-05-06",
+      model: "gemini-3-pro-preview",
       contents: isCardNews ? cardNewsPrompt : blogPrompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -341,6 +338,12 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   ));
 
   let body = textData.content;
+  
+  // AI가 class를 빼먹었을 경우 강제로 감싸기
+  if (request.postType !== 'card_news' && !body.includes('class="naver-post-container"')) {
+    body = `<div class="naver-post-container">${body}</div>`;
+  }
+  
   images.forEach(img => {
     if (img.data) {
       let imgHtml = "";
@@ -404,7 +407,7 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
     const ai = getAiClient();
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-pro-preview-05-06",
+        model: "gemini-3-pro-preview",
         contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${currentHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수.`,
         config: { 
           tools: [{ googleSearch: {} }],
