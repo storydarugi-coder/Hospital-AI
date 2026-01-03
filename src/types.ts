@@ -36,6 +36,7 @@ export interface GenerationRequest {
   postType: PostType;
   textLength?: number;
   slideCount?: number;
+  imageCount?: number; // 블로그 포스트 이미지 장수
   cssTheme?: CssTheme;
 }
 

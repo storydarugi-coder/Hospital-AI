@@ -22,6 +22,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
+  const [imageCount, setImageCount] = useState<number>(3);
   
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
@@ -43,7 +44,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       referenceUrl, 
       postType,
       textLength,
-      slideCount
+      slideCount,
+      imageCount
     });
   };
 
@@ -131,23 +133,44 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
 
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
            {postType === 'blog' ? (
-               <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">글자 수 목표</label>
-                    <span className="text-xs font-bold text-emerald-600">{textLength}자</span>
+               <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">글자 수 목표</label>
+                      <span className="text-xs font-bold text-emerald-600">{textLength}자</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="1500" 
+                      max="2500" 
+                      step="100" 
+                      value={textLength} 
+                      onChange={(e) => setTextLength(parseInt(e.target.value))}
+                      className="w-full accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
+                       <span>1500자</span>
+                       <span>2500자</span>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="1500" 
-                    max="2500" 
-                    step="100" 
-                    value={textLength} 
-                    onChange={(e) => setTextLength(parseInt(e.target.value))}
-                    className="w-full accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
-                     <span>1500자</span>
-                     <span>2500자</span>
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">🖼️ AI 이미지 장수</label>
+                      <span className="text-xs font-bold text-emerald-600">{imageCount}장</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="5" 
+                      step="1" 
+                      value={imageCount} 
+                      onChange={(e) => setImageCount(parseInt(e.target.value))}
+                      className="w-full accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
+                       <span>1장</span>
+                       <span>5장</span>
+                    </div>
                   </div>
                </div>
            ) : (

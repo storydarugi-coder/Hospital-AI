@@ -222,16 +222,20 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     `;
   }
 
+  const targetImageCount = request.imageCount || 3;
+  const imageMarkers = Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ');
+  
   const blogPrompt = `
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
     ${benchmarkingInstruction}
     진료과: ${request.category}, 페르소나: ${request.persona}, 주제: ${request.topic}
     목표 글자 수: 공백 포함 약 ${targetLength}자 (너무 짧지 않게 풍부한 내용 작성)
+    이미지 개수: ${targetImageCount}장 (${imageMarkers} 마커 사용)
     
     [네이버 블로그 HTML 형식 작성 필수]
     **중요: 반드시 HTML 태그로 작성하세요. 마크다운(###, **, -) 절대 사용 금지!**
     
-    HTML 구조:
+    HTML 구조 (이미지 ${targetImageCount}장 배치):
     <div class="naver-post-container">
       <h3>제목 (서론 제목)</h3>
       <p>서론 문단... (친근하게 인사, 공감, 계절 이야기)</p>
@@ -245,12 +249,16 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
         <li>증상 2 - 도움이 될 수 있다고 표현</li>
       </ul>
       
-      [IMG_2]
+      ${targetImageCount >= 2 ? '[IMG_2]' : ''}
       
       <h3>본론 소제목 2</h3>
       <p>검사/치료 방법 설명... (안전한 표현 사용)</p>
       
-      [IMG_3]
+      ${targetImageCount >= 3 ? '[IMG_3]' : ''}
+      
+      ${targetImageCount >= 4 ? '<h3>추가 정보</h3><p>더 자세한 내용...</p>[IMG_4]' : ''}
+      
+      ${targetImageCount >= 5 ? '<h3>전문가 조언</h3><p>전문적인 내용...</p>[IMG_5]' : ''}
       
       <h3>건강 관리 팁</h3>
       <p>마무리: "증상이 지속될 경우 전문의와의 상담을 고려해 보시기 바랍니다" 식으로 안전하게 마무리</p>
@@ -261,7 +269,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     1. 모든 제목은 <h3> 태그 사용
     2. 모든 문단은 <p> 태그 사용
     3. 리스트는 <ul><li> 태그 사용
-    4. [IMG_1], [IMG_2], [IMG_3] 마커는 그대로 유지
+    4. 이미지 마커 ${imageMarkers}를 글 중간에 적절히 배치
     5. 해시태그는 마지막에 <p> 안에 작성
     
     **마무리 문단 필수 규칙:**
@@ -393,7 +401,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   onProgress(`${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
   
-  const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : 3;
+  const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount || 3);
   
   const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => 
      generateSingleImage(p, request.imageStyle, imgRatio).then(img => ({ index: i + 1, data: img, prompt: p }))
