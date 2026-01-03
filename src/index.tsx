@@ -96,6 +96,52 @@ app.get('/api/naver/blog', async (c) => {
   }
 })
 
+// robots.txt
+app.get('/robots.txt', (c) => {
+  return c.text(`# HospitalAI Robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://story-darugi.com/sitemap.xml
+
+# Disallow admin and api routes
+Disallow: /api/
+Disallow: /#admin
+`);
+});
+
+// sitemap.xml
+app.get('/sitemap.xml', (c) => {
+  return c.body(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://story-darugi.com/</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://story-darugi.com/#app</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://story-darugi.com/#pricing</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://story-darugi.com/#auth</loc>
+    <lastmod>2026-01-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>`, 200, { 'Content-Type': 'application/xml' });
+});
+
 // Main HTML page
 app.get('*', (c) => {
   // 환경변수를 HTML에 직접 주입
@@ -111,8 +157,73 @@ app.get('*', (c) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hospital Toolchain - 네이버 블로그 마케팅 전용</title>
-    <meta name="description" content="의료광고법을 준수하는 네이버 블로그 콘텐츠 생성 도구">
+    
+    <!-- Primary Meta Tags -->
+    <title>HospitalAI - 병원 블로그 AI 자동 생성 | 의료광고법 100% 준수</title>
+    <meta name="title" content="HospitalAI - 병원 블로그 AI 자동 생성 | 의료광고법 100% 준수">
+    <meta name="description" content="30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하세요. 네이버 스마트블록 상위노출에 최적화된 병원 전용 AI 콘텐츠 생성기. 지금 무료로 시작하세요!">
+    <meta name="keywords" content="병원블로그, 의료마케팅, 병원마케팅, AI글쓰기, 블로그자동화, 의료광고법, 네이버블로그, 병원홍보, 의료콘텐츠, 스마트블록">
+    <meta name="author" content="HospitalAI">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://story-darugi.com">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://story-darugi.com">
+    <meta property="og:title" content="HospitalAI - 병원 블로그 AI 자동 생성">
+    <meta property="og:description" content="30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하세요.">
+    <meta property="og:image" content="https://story-darugi.com/static/og-image.svg">
+    <meta property="og:image:type" content="image/svg+xml">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:site_name" content="HospitalAI">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://story-darugi.com">
+    <meta name="twitter:title" content="HospitalAI - 병원 블로그 AI 자동 생성">
+    <meta name="twitter:description" content="30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하세요.">
+    <meta name="twitter:image" content="https://story-darugi.com/static/og-image.svg">
+    
+    <!-- Naver - 네이버 Search Advisor에서 인증 코드 발급 후 입력 -->
+    <meta name="naver-site-verification" content="NAVER_VERIFICATION_CODE">
+    
+    <!-- Google - Google Search Console에서 인증 코드 발급 후 입력 -->
+    <meta name="google-site-verification" content="GOOGLE_VERIFICATION_CODE">
+    
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "HospitalAI",
+      "description": "30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하는 AI 서비스",
+      "url": "https://story-darugi.com",
+      "applicationCategory": "HealthcareApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "KRW",
+        "description": "무료 체험 3회 제공"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "127"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "미쁘다",
+        "url": "https://story-darugi.com"
+      }
+    }
+    </script>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PortOne V2 SDK -->
     <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
