@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { GenerationRequest, GenerationState, GeneratedContent } from './types';
+import { GenerationRequest, GenerationState } from './types';
 import { generateFullPost } from './services/geminiService';
 import InputForm from './components/InputForm';
 import ResultPreview from './components/ResultPreview';
+import AdminPage from './components/AdminPage';
 
 const App: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<'main' | 'admin'>('main');
   const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
   const [state, setState] = useState<GenerationState>({
     isLoading: false,
@@ -14,48 +16,44 @@ const App: React.FC = () => {
   });
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
-  
-  const [showConfig, setShowConfig] = useState(false);
-  const [configValues, setConfigValues] = useState({
-     geminiKey: '',
-     naverClientId: '',
-     naverClientSecret: ''
-  });
 
+  // URL hash 기반 라우팅
   useEffect(() => {
-    const checkApiKey = async () => {
-      const localGemini = localStorage.getItem('GEMINI_API_KEY');
-      const localNaverId = localStorage.getItem('NAVER_CLIENT_ID');
-      const localNaverSecret = localStorage.getItem('NAVER_CLIENT_SECRET');
-
-      if (localGemini) {
-        setApiKeyReady(true);
-        setConfigValues({
-            geminiKey: localGemini,
-            naverClientId: localNaverId || '',
-            naverClientSecret: localNaverSecret || ''
-        });
-        return;
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash === '#admin') {
+        setCurrentPage('admin');
+      } else {
+        setCurrentPage('main');
       }
     };
-    checkApiKey();
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const handleConnectKey = async () => {
-    setShowConfig(true);
-  };
-
-  const handleSaveConfig = () => {
-      localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
-      localStorage.setItem('NAVER_CLIENT_ID', configValues.naverClientId);
-      localStorage.setItem('NAVER_CLIENT_SECRET', configValues.naverClientSecret);
-      
-      if (configValues.geminiKey) {
-          setApiKeyReady(true);
-      }
-      setShowConfig(false);
-      alert('설정이 저장되었습니다.');
-  };
+  useEffect(() => {
+    const checkApiKey = () => {
+      const localGemini = localStorage.getItem('GEMINI_API_KEY');
+      setApiKeyReady(!!localGemini);
+    };
+    
+    checkApiKey();
+    
+    // LocalStorage 변경 감지
+    const handleStorageChange = () => checkApiKey();
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 포커스 시 재확인 (같은 탭에서 admin 페이지 다녀온 경우)
+    const handleFocus = () => checkApiKey();
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
     setState(prev => ({ ...prev, isLoading: true, error: null, progress: '네이버 로직 기반 키워드 분석 및 이미지 생성 중...' }));
@@ -69,21 +67,32 @@ const App: React.FC = () => {
     }
   };
 
-  if (!apiKeyReady && !showConfig) {
+  // Admin 페이지 렌더링
+  if (currentPage === 'admin') {
+    return <AdminPage />;
+  }
+
+  // API Key 미설정 시 안내 화면
+  if (!apiKeyReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4">
-             <button onClick={() => setShowConfig(true)} className="text-slate-300 hover:text-slate-500 transition-colors">⚙️ 설정</button>
-          </div>
           <div className="text-6xl mb-6">🏥</div>
           <h1 className="text-2xl font-black mb-3 text-slate-900">Hospital Toolchain</h1>
           <h2 className="text-lg font-bold text-green-600 mb-6">네이버 블로그 마케팅 전용</h2>
           <p className="text-slate-500 mb-8 font-medium">서비스 이용을 위해 Gemini API Key 연결이 필요합니다.</p>
-          <button onClick={handleConnectKey} className="w-full bg-green-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-green-100 hover:bg-green-600 transition-all active:scale-95 mb-4">
-             API Key 입력하기
-          </button>
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="block w-full bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-95">
+          <a 
+            href="#admin" 
+            className="block w-full bg-green-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-green-100 hover:bg-green-600 transition-all active:scale-95 mb-4"
+          >
+             ⚙️ Admin 설정 페이지로 이동
+          </a>
+          <a 
+            href="https://aistudio.google.com/app/apikey" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="block w-full bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
+          >
              Google AI Studio에서 키 발급받기 →
           </a>
         </div>
@@ -91,59 +100,9 @@ const App: React.FC = () => {
     );
   }
 
+  // 메인 앱 렌더링
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans relative">
-      
-      {showConfig && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-              <div className="bg-white w-full max-w-lg rounded-[32px] p-8 shadow-2xl relative">
-                  <h3 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
-                      <span>⚙️</span> 환경 설정
-                  </h3>
-                  
-                  <div className="space-y-6">
-                      <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                          <label className="block text-xs font-black text-blue-800 uppercase tracking-widest mb-3">Google Gemini API (필수)</label>
-                          <input 
-                              type="password" 
-                              value={configValues.geminiKey}
-                              onChange={(e) => setConfigValues({...configValues, geminiKey: e.target.value})}
-                              placeholder="AI Studio API Key 입력"
-                              className="w-full p-4 bg-white border border-blue-200 rounded-xl font-mono text-sm focus:border-blue-500 outline-none shadow-sm"
-                          />
-                          <p className="text-[10px] text-blue-500 mt-2 font-medium">※ Google AI Studio에서 발급받은 키를 입력하세요.</p>
-                      </div>
-
-                      <div className="bg-green-50 p-6 rounded-2xl border border-green-100 opacity-80 hover:opacity-100 transition-opacity">
-                          <label className="block text-xs font-black text-green-800 uppercase tracking-widest mb-3">Naver Developers API (선택)</label>
-                          <div className="space-y-3">
-                              <input 
-                                  type="text" 
-                                  value={configValues.naverClientId}
-                                  onChange={(e) => setConfigValues({...configValues, naverClientId: e.target.value})}
-                                  placeholder="Client ID (검색광고/데이터랩)"
-                                  className="w-full p-4 bg-white border border-green-200 rounded-xl font-mono text-sm focus:border-green-500 outline-none shadow-sm"
-                              />
-                              <input 
-                                  type="password" 
-                                  value={configValues.naverClientSecret}
-                                  onChange={(e) => setConfigValues({...configValues, naverClientSecret: e.target.value})}
-                                  placeholder="Client Secret"
-                                  className="w-full p-4 bg-white border border-green-200 rounded-xl font-mono text-sm focus:border-green-500 outline-none shadow-sm"
-                              />
-                          </div>
-                          <p className="text-[10px] text-green-600 mt-2 font-medium">※ 추후 정확한 검색량 조회를 위해 사용됩니다.</p>
-                      </div>
-                  </div>
-
-                  <div className="flex gap-3 mt-8">
-                      <button onClick={() => setShowConfig(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">취소</button>
-                      <button onClick={handleSaveConfig} className="flex-1 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg">저장하기</button>
-                  </div>
-              </div>
-          </div>
-      )}
-
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-30 h-16 flex items-center shadow-sm flex-none">
         <div className="max-w-[1600px] w-full mx-auto px-6 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -154,10 +113,13 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
-             <button onClick={() => setShowConfig(true)} className="p-2.5 hover:bg-slate-100 rounded-xl transition-all group relative">
+             <a 
+               href="#admin" 
+               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all group relative flex items-center gap-2"
+             >
                 <span className="text-xl">⚙️</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white hidden group-hover:block"></span>
-             </button>
+                <span className="text-sm font-bold text-slate-500 hidden sm:inline">Admin</span>
+             </a>
           </div>
         </div>
       </header>
