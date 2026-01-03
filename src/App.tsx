@@ -201,36 +201,40 @@ const App: React.FC = () => {
     setCurrentPage('landing');
   };
 
+  // 서버에서 API 키 불러오기 (Cloudflare 환경변수)
   useEffect(() => {
-    const checkApiKey = () => {
-      // GLOBAL (Admin 설정) 또는 개인 API 키 확인
-      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
-      const localGemini = localStorage.getItem('GEMINI_API_KEY');
-      
-      // GLOBAL 키가 있으면 개인 키에도 설정 (호환성)
-      if (globalGemini && !localGemini) {
-        localStorage.setItem('GEMINI_API_KEY', globalGemini);
-        const globalNaverId = localStorage.getItem('GLOBAL_NAVER_CLIENT_ID');
-        const globalNaverSecret = localStorage.getItem('GLOBAL_NAVER_CLIENT_SECRET');
-        if (globalNaverId) localStorage.setItem('NAVER_CLIENT_ID', globalNaverId);
-        if (globalNaverSecret) localStorage.setItem('NAVER_CLIENT_SECRET', globalNaverSecret);
+    const loadConfigFromServer = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const config = await res.json();
+          // 서버에서 받은 키를 localStorage에 저장
+          if (config.geminiKey) {
+            localStorage.setItem('GEMINI_API_KEY', config.geminiKey);
+            localStorage.setItem('GLOBAL_GEMINI_API_KEY', config.geminiKey);
+          }
+          if (config.naverClientId) {
+            localStorage.setItem('NAVER_CLIENT_ID', config.naverClientId);
+            localStorage.setItem('GLOBAL_NAVER_CLIENT_ID', config.naverClientId);
+          }
+          if (config.naverClientSecret) {
+            localStorage.setItem('NAVER_CLIENT_SECRET', config.naverClientSecret);
+            localStorage.setItem('GLOBAL_NAVER_CLIENT_SECRET', config.naverClientSecret);
+          }
+          setApiKeyReady(!!config.geminiKey);
+        }
+      } catch (err) {
+        console.log('서버 config 로드 실패, localStorage 사용');
       }
       
-      setApiKeyReady(!!(globalGemini || localGemini));
+      // 서버에서 못 받으면 localStorage 확인
+      const localGemini = localStorage.getItem('GEMINI_API_KEY');
+      if (localGemini) {
+        setApiKeyReady(true);
+      }
     };
     
-    checkApiKey();
-    
-    const handleStorageChange = () => checkApiKey();
-    window.addEventListener('storage', handleStorageChange);
-    
-    const handleFocus = () => checkApiKey();
-    window.addEventListener('focus', handleFocus);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleFocus);
-    };
+    loadConfigFromServer();
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {

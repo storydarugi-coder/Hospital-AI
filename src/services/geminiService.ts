@@ -102,22 +102,51 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 
 export const getTrendingTopics = async (category: string): Promise<TrendingItem[]> => {
   const ai = getAiClient();
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const year = koreaTime.getFullYear();
+  const month = koreaTime.getMonth() + 1;
+  const day = koreaTime.getDate();
+  const hour = koreaTime.getHours();
+  const dateStr = `${year}년 ${month}월 ${day}일 ${hour}시`;
+  
+  // 1단계: 네이버 뉴스 API로 실시간 뉴스 수집
+  let newsData: any = null;
+  try {
+    const newsResponse = await fetch(`/api/naver/news?query=${encodeURIComponent(category + ' 건강')}&display=30&sort=date`);
+    if (newsResponse.ok) {
+      newsData = await newsResponse.json();
+    }
+  } catch (e) {
+    console.warn('네이버 뉴스 API 호출 실패, Gemini 분석으로 대체:', e);
+  }
+  
+  // 2단계: 뉴스 데이터를 Gemini로 분석
+  let newsContext = '';
+  if (newsData?.items?.length > 0) {
+    newsContext = `[네이버 뉴스 실시간 검색 결과 - ${dateStr} 기준]
+${newsData.items.slice(0, 20).map((item: any, i: number) => 
+  `${i+1}. ${item.title.replace(/<[^>]*>/g, '')} (${item.pubDate})`
+).join('\n')}
+
+위 실시간 뉴스를 기반으로 `;
+  }
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `오늘 날짜: ${today}. 대한민국 '${category}' 분야와 관련하여 현재 주요 언론사 뉴스나 기사에서 보도되는 최신 건강/의료 이슈 5가지를 분석해줘.
-    
-    [점수 산정 및 정렬 기준]
-    1. 각 이슈에 대해 'SEO 적합도 점수'(0~100)를 산정할 것.
-       - 점수 기준: (뉴스 보도량 + 대중적 관심도)가 높을수록, (기존 블로그 문서 수/경쟁도)가 낮을수록 높은 점수.
-    2. 반드시 점수가 높은 순서대로(내림차순) 정렬하여 배열로 반환할 것.
+    contents: `[현재 시각: ${dateStr} (한국 표준시)]
 
-    [제약조건]
-    1. '블로그 포스팅이 활발함' 같은 메타적인 설명은 제외하고, 실제 '질병명', '증상', '건강 뉴스' 내용만 추출.
-    2. seasonal_factor에는 점수를 매긴 구체적인 근거를 짧게 요약.`,
+${newsContext}'${category}' 진료과와 관련된 건강/의료 트렌드 5가지를 분석해주세요.
+
+[점수 산정 기준]
+1. SEO 적합도 점수(0~100): 뉴스 보도량 + 대중적 관심도가 높을수록, 블로그 경쟁도가 낮을수록 높은 점수
+2. 점수 높은 순서대로 정렬
+
+[제약조건]
+1. 실제 '질병명', '증상', '치료법', '건강 뉴스' 내용만 추출
+2. seasonal_factor에는 "왜 지금 이 주제가 뜨는지" 근거를 짧게 작성
+3. ${month}월 계절적 특성 반영 (예: 1월=독감/동상, 7월=열사병/식중독 등)`,
     config: {
-      tools: [{ googleSearch: {} }],
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.ARRAY,

@@ -174,14 +174,16 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-4 bg-emerald-50 p-4 rounded-2xl border border-emerald-100">
-             <div className="flex flex-col">
-                <label className="text-xs font-black text-emerald-800 uppercase tracking-widest mb-1">Naver Data Analysis</label>
-                <span className="text-[10px] text-emerald-600 font-bold">네이버 뉴스/기사 기반 트렌드 분석</span>
+          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 mb-4">
+             <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                   <label className="text-xs font-black text-emerald-800 uppercase tracking-widest block mb-1">Naver Data Analysis</label>
+                   <span className="text-[11px] text-emerald-600 font-bold block">네이버 뉴스/기사 기반 트렌드 분석</span>
+                </div>
+                <button type="button" onClick={handleRecommendTrends} disabled={isLoadingTrends} className="text-xs font-black text-white bg-emerald-600 px-5 py-3 rounded-xl hover:bg-emerald-700 shadow-md transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                  {isLoadingTrends ? '분석 중...' : '🔍 인기 키워드 찾기'}
+                </button>
              </div>
-             <button type="button" onClick={handleRecommendTrends} disabled={isLoadingTrends} className="text-xs font-black text-white bg-emerald-600 px-4 py-2 rounded-xl hover:bg-emerald-700 shadow-md transition-all active:scale-95 flex items-center gap-2">
-               {isLoadingTrends ? '데이터 분석 중...' : '🔍 실시간 인기 키워드 찾기'}
-             </button>
           </div>
           {trendingItems.length > 0 && (
             <div className="grid grid-cols-1 gap-2 mb-4 animate-fadeIn">

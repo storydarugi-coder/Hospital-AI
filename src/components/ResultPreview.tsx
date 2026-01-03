@@ -513,7 +513,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
               <button onClick={() => setActiveTab('html')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'html' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>HTML</button>
           </div>
           <button onClick={handleCopy} className={`px-10 py-3 rounded-xl text-md font-bold text-white shadow-xl transition-all active:scale-95 ${copied ? 'bg-emerald-500' : 'bg-green-500 hover:bg-green-600'}`}>
-              {copied ? '✅ 복사 완료' : '티스토리 블로그로 복사'}
+              {copied ? '✅ 복사 완료' : '블로그로 복사'}
           </button>
         </div>
         
@@ -560,7 +560,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                       openRegenModal(index, (target as HTMLImageElement).alt || 'professional illustration');
                    }
                 }}
-                dangerouslySetInnerHTML={{ __html: localHtml }}
+                dangerouslySetInnerHTML={{ __html: applyInlineStylesForNaver(localHtml, currentTheme) }}
                 className="focus:outline-none"
               />
           </div>
