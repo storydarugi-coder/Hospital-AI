@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
@@ -166,6 +167,12 @@ const App: React.FC = () => {
       if (hash === '#admin') {
         setCurrentPage('admin');
       } else if (hash === '#app') {
+        // 비로그인 시 #app 접근 차단
+        if (!isLoggedIn && !authLoading) {
+          window.location.hash = 'auth';
+          setCurrentPage('auth');
+          return;
+        }
         setCurrentPage('app');
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
         setCurrentPage('auth');
@@ -179,7 +186,7 @@ const App: React.FC = () => {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [isLoggedIn, authLoading]);
 
   // 페이지 네비게이션 헬퍼
   const handleNavigate = (page: PageType) => {
@@ -238,8 +245,8 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
-    // 크레딧 체크 (로그인 시에만)
-    if (isLoggedIn && userProfile && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
+    // 크레딧 체크 (로그인 시에만, 관리자 제외)
+    if (isLoggedIn && userProfile && !isAdmin && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
       setState(prev => ({ 
         ...prev, 
         error: '크레딧이 부족합니다. 요금제를 업그레이드해주세요.' 
@@ -253,8 +260,8 @@ const App: React.FC = () => {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
       
-      // 크레딧 차감 (로그인 시에만, 프리미엄 제외)
-      if (isLoggedIn && userProfile && userProfile.plan !== 'premium') {
+      // 크레딧 차감 (로그인 시에만, 프리미엄/관리자 제외)
+      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && !isAdmin) {
         const updatedProfile = { ...userProfile, remainingCredits: userProfile.remainingCredits - 1 };
         setUserProfile(updatedProfile);
         // TODO: Supabase DB에 사용량 기록
@@ -346,7 +353,7 @@ const App: React.FC = () => {
 
   // Admin 페이지 렌더링
   if (currentPage === 'admin') {
-    return <AdminPage />;
+    return <AdminPage onAdminVerified={() => setIsAdmin(true)} />;
   }
 
   // API Key 미설정 시 안내 화면
@@ -412,6 +419,11 @@ const App: React.FC = () => {
              {/* 로그인/사용자 버튼 */}
              {isLoggedIn && userProfile ? (
                <div className="flex items-center gap-2">
+                 {isAdmin && (
+                   <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">
+                     👑 관리자
+                   </span>
+                 )}
                  <span className="text-sm text-slate-600 hidden sm:block">
                    {userProfile.name} 님
                  </span>

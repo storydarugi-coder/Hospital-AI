@@ -23,7 +23,11 @@ interface PaymentData {
   created_at: string;
 }
 
-const AdminPage: React.FC = () => {
+interface AdminPageProps {
+  onAdminVerified?: () => void;
+}
+
+const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -52,8 +56,10 @@ const AdminPage: React.FC = () => {
     const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
     if (adminAuth === 'true') {
       setIsAuthenticated(true);
+      // 이미 인증된 경우도 콜백 호출
+      onAdminVerified?.();
     }
-  }, []);
+  }, [onAdminVerified]);
 
   // API 키 로드
   useEffect(() => {
@@ -138,6 +144,8 @@ const AdminPage: React.FC = () => {
       setIsAuthenticated(true);
       localStorage.setItem('ADMIN_AUTHENTICATED', 'true');
       setLoginError('');
+      // 관리자 인증 완료 콜백
+      onAdminVerified?.();
     } else {
       setLoginError('비밀번호가 올바르지 않습니다.');
     }
