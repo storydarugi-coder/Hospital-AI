@@ -54,29 +54,14 @@ export const signInWithEmail = async (email: string, password: string) => {
   return { data, error };
 };
 
-export const signInWithOAuth = async (provider: 'google' | 'kakao' | 'naver') => {
-  if (provider === 'google') {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/#app'
-      }
-    });
-    return { data, error };
-  }
-  
-  if (provider === 'kakao') {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: window.location.origin + '/#app'
-      }
-    });
-    return { data, error };
-  }
-  
-  // Naver는 추후 구현
-  return { data: null, error: new Error(`${provider} OAuth는 추가 설정이 필요합니다.`) };
+export const signInWithOAuth = async (provider: 'google') => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + '/#app'
+    }
+  });
+  return { data, error };
 };
 
 export const signOut = async () => {
