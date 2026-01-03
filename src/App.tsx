@@ -117,7 +117,9 @@ const App: React.FC = () => {
     // 현재 세션 확인
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session check result:', session?.user?.email);
       if (session?.user) {
+        console.log('User found, setting isLoggedIn to true');
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
         // 프로필 정보 설정
@@ -134,6 +136,8 @@ const App: React.FC = () => {
     
     checkSession();
 
+    console.log('Initial auth check started');
+    
     // 인증 상태 변경 감시
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
@@ -358,6 +362,7 @@ const App: React.FC = () => {
 
   // Landing 페이지 렌더링
   if (currentPage === 'landing') {
+    console.log('Landing page - isLoggedIn:', isLoggedIn, 'userName:', userProfile?.name);
     return <LandingPage isLoggedIn={isLoggedIn} userName={userProfile?.name} onLogout={handleLogout} />;
   }
 
