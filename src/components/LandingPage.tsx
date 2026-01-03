@@ -61,9 +61,8 @@ const LandingPage: React.FC = () => {
               <a href="#app" className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-lg rounded-2xl hover:shadow-2xl hover:shadow-emerald-200 transition-all hover:-translate-y-1">
                 🚀 무료로 시작하기
               </a>
-              <a href="#demo" className="w-full sm:w-auto px-8 py-4 bg-slate-100 text-slate-700 font-bold text-lg rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
-                <span className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow">▶</span>
-                데모 영상 보기
+              <a href="#pricing" className="w-full sm:w-auto px-8 py-4 bg-slate-100 text-slate-700 font-bold text-lg rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+                💎 요금제 보기
               </a>
             </div>
 
@@ -86,16 +85,16 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Demo Preview Section */}
-      <section id="demo" className="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
+      {/* Process Section */}
+      <section id="process" className="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">실제 작동 과정</h2>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">간단한 3단계</h2>
             <p className="text-slate-500 font-medium">키워드 입력부터 완성까지, 단 30초</p>
           </div>
 
           {/* Process Steps */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all group">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-6 group-hover:scale-110 transition-transform">1</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">키워드 입력</h3>
@@ -110,29 +109,6 @@ const LandingPage: React.FC = () => {
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-6 group-hover:scale-110 transition-transform">3</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">이미지 자동 생성</h3>
               <p className="text-slate-500 font-medium leading-relaxed">글에 맞는 AI 이미지까지 자동 생성. 바로 블로그에 복사하세요.</p>
-            </div>
-          </div>
-
-          {/* Preview Image Placeholder */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-4 sm:p-8 shadow-2xl">
-            <div className="bg-slate-800 rounded-2xl overflow-hidden border border-slate-700">
-              <div className="flex items-center gap-2 px-4 py-3 bg-slate-900/50 border-b border-slate-700">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-slate-500 text-sm ml-4 font-mono">hospitalai.app</span>
-              </div>
-              <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                    <span className="text-5xl">🏥</span>
-                  </div>
-                  <p className="text-slate-400 font-medium">앱 실행하면 여기서 실제 화면을 볼 수 있어요</p>
-                  <a href="#app" className="inline-block mt-4 px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors">
-                    앱 실행하기 →
-                  </a>
-                </div>
-              </div>
             </div>
           </div>
         </div>
