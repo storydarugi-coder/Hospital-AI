@@ -468,7 +468,7 @@ const LandingPage: React.FC = () => {
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">연락처</h4>
-                <p>이메일: support@hospitalai.kr</p>
+                <p>이메일: story.darugi@gmail.com</p>
                 <p>전화: 02-2224-9232</p>
                 <p>사업장주소: 서울특별시 송파구 거마로 56, 116동 1709호 (거여동, 송파시그니처롯데캐슬)</p>
               </div>
@@ -484,7 +484,7 @@ const LandingPage: React.FC = () => {
                 <p>• 미사용 시: 결제 후 7일 이내 전액 환불</p>
                 <p>• 사용 시: 잔여 이용권 수에 비례하여 환불</p>
                 <p>• 프리미엄: 잔여 일수 비례 환불</p>
-                <p>환불 문의: support@hospitalai.kr</p>
+                <p>환불 문의: story.darugi@gmail.com</p>
               </div>
             </div>
             
@@ -495,7 +495,7 @@ const LandingPage: React.FC = () => {
               <p>2. 결제 후 7일 이내, 서비스 미사용 시 전액 환불 가능합니다.</p>
               <p>3. 서비스 사용(원고 생성 1회 이상) 후에는 잔여 이용권 수에 비례하여 부분 환불됩니다.</p>
               <p>4. 프리미엄(월간/연간) 구독 상품은 잔여 일수에 비례하여 환불 금액이 산정됩니다.</p>
-              <p>5. 환불 신청: support@hospitalai.kr로 [환불신청] 제목으로 메일 발송 (처리기간: 영업일 기준 3~5일)</p>
+              <p>5. 환불 신청: story.darugi@gmail.com으로 [환불신청] 제목으로 메일 발송 (처리기간: 영업일 기준 3~5일)</p>
               <p>6. 쿠폰/프로모션으로 충전된 무료 이용권은 환불 대상에서 제외됩니다.</p>
             </div>
           </div>
