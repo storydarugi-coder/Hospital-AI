@@ -1,20 +1,29 @@
 import React, { useState } from 'react';
+import { requestPayment, PLANS, isPaymentConfigured } from '../services/paymentService';
 
 interface PricingPageProps {
   onNavigate: (page: 'landing' | 'app' | 'admin' | 'auth' | 'pricing') => void;
   isLoggedIn?: boolean;
   currentPlan?: string;
   remainingCredits?: number;
+  onPaymentComplete?: (planId: string, credits: number) => void;
+  userEmail?: string;
+  userName?: string;
 }
 
 export const PricingPage: React.FC<PricingPageProps> = ({ 
   onNavigate, 
   isLoggedIn = false,
   currentPlan = 'free',
-  remainingCredits = 3
+  remainingCredits = 3,
+  onPaymentComplete,
+  userEmail,
+  userName
 }) => {
   const [selectedBasic, setSelectedBasic] = useState<10 | 20>(10);
   const [selectedPremium, setSelectedPremium] = useState<'monthly' | 'yearly'>('monthly');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMessage, setPaymentMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // 가격 계산
   const basicPrices = {
@@ -27,12 +36,83 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     yearly: { price: 499000, original: 718800, monthly: 41583 }
   };
 
-  const handlePurchase = (planId: string) => {
+  const handlePurchase = async (planType: 'basic' | 'premium') => {
     if (!isLoggedIn) {
       onNavigate('auth');
       return;
     }
-    alert(`${planId} 결제 기능은 Toss Payments 연동 후 활성화됩니다.`);
+
+    // 요금제 ID 결정
+    let planId: string;
+    if (planType === 'basic') {
+      planId = selectedBasic === 10 ? 'basic-10' : 'basic-20';
+    } else {
+      planId = selectedPremium === 'monthly' ? 'premium-monthly' : 'premium-yearly';
+    }
+
+    const plan = PLANS[planId];
+    if (!plan) {
+      setPaymentMessage({ type: 'error', text: '유효하지 않은 요금제입니다.' });
+      return;
+    }
+
+    setIsProcessing(true);
+    setPaymentMessage(null);
+
+    try {
+      // 테스트 모드 안내
+      if (!isPaymentConfigured()) {
+        const confirmed = confirm(
+          `[테스트 모드]\n\n` +
+          `요금제: ${plan.name}\n` +
+          `금액: ₩${plan.price.toLocaleString()}\n\n` +
+          `실제 결제 없이 크레딧이 충전됩니다.\n계속하시겠습니까?`
+        );
+        
+        if (!confirmed) {
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      // 결제 요청
+      const result = await requestPayment(planId, {
+        name: userName,
+        email: userEmail
+      });
+
+      if (result.success) {
+        // 결제 성공
+        setPaymentMessage({ 
+          type: 'success', 
+          text: `🎉 결제가 완료되었습니다! ${plan.credits === -1 ? '프리미엄' : `+${plan.credits}회`} 충전 완료!` 
+        });
+
+        // 부모 컴포넌트에 알림
+        if (onPaymentComplete) {
+          onPaymentComplete(planId, plan.credits);
+        }
+
+        // 3초 후 앱으로 이동
+        setTimeout(() => {
+          onNavigate('app');
+        }, 2500);
+      } else {
+        // 결제 실패
+        setPaymentMessage({ 
+          type: 'error', 
+          text: result.error || '결제에 실패했습니다.' 
+        });
+      }
+    } catch (error: any) {
+      console.error('결제 오류:', error);
+      setPaymentMessage({ 
+        type: 'error', 
+        text: error.message || '결제 처리 중 오류가 발생했습니다.' 
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -276,9 +356,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
               <button
                 onClick={() => handlePurchase('basic')}
-                className="w-full py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-all"
+                disabled={isProcessing}
+                className={`w-full py-4 font-bold rounded-2xl transition-all ${
+                  isProcessing 
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
+                    : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                }`}
               >
-                구매하기
+                {isProcessing ? '처리 중...' : '구매하기'}
               </button>
             </div>
 
@@ -357,9 +442,14 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
               <button
                 onClick={() => handlePurchase('premium')}
-                className="w-full py-4 bg-white text-emerald-600 font-bold rounded-2xl hover:bg-emerald-50 transition-all"
+                disabled={isProcessing}
+                className={`w-full py-4 font-bold rounded-2xl transition-all ${
+                  isProcessing 
+                    ? 'bg-white/50 text-emerald-400 cursor-not-allowed' 
+                    : 'bg-white text-emerald-600 hover:bg-emerald-50'
+                }`}
               >
-                구독하기
+                {isProcessing ? '처리 중...' : '구독하기'}
               </button>
             </div>
           </div>
@@ -450,6 +540,38 @@ export const PricingPage: React.FC<PricingPageProps> = ({
           <p>© 2025 HospitalAI. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* 결제 결과 모달 */}
+      {paymentMessage && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 ${
+            paymentMessage.type === 'success' ? 'border-emerald-200' : 'border-red-200'
+          }`}>
+            <div className="text-center">
+              <div className="text-6xl mb-4">
+                {paymentMessage.type === 'success' ? '🎉' : '😢'}
+              </div>
+              <h3 className={`text-xl font-black mb-2 ${
+                paymentMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'
+              }`}>
+                {paymentMessage.type === 'success' ? '결제 완료!' : '결제 실패'}
+              </h3>
+              <p className="text-slate-600 mb-6">{paymentMessage.text}</p>
+              
+              {paymentMessage.type === 'success' ? (
+                <p className="text-sm text-slate-400">잠시 후 앱으로 이동합니다...</p>
+              ) : (
+                <button
+                  onClick={() => setPaymentMessage(null)}
+                  className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                >
+                  닫기
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

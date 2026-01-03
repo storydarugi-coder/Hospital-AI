@@ -18,6 +18,8 @@ app.get('*', (c) => {
     <title>Hospital Toolchain - 네이버 블로그 마케팅 전용</title>
     <meta name="description" content="의료광고법을 준수하는 네이버 블로그 콘텐츠 생성 도구">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PortOne V2 SDK -->
+    <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -9,6 +9,7 @@ import { AuthPage } from './components/AuthPage';
 import { PricingPage } from './components/PricingPage';
 import { supabase, signOut } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
+import { PLANS, savePaymentRecord, generatePaymentId } from './services/paymentService';
 
 type PageType = 'landing' | 'app' | 'admin' | 'auth' | 'pricing';
 
@@ -277,6 +278,48 @@ const App: React.FC = () => {
     return <AuthPage onNavigate={handleNavigate} />;
   }
 
+  // 결제 완료 콜백
+  const handlePaymentComplete = (planId: string, credits: number) => {
+    if (!userProfile) return;
+    
+    const plan = PLANS[planId];
+    if (!plan) return;
+    
+    // 결제 기록 저장
+    savePaymentRecord({
+      paymentId: generatePaymentId(),
+      planId,
+      planName: plan.name,
+      credits: plan.credits,
+      amount: plan.price,
+      status: 'completed',
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      userId: userProfile.id
+    });
+    
+    // 크레딧 업데이트
+    if (credits === -1) {
+      // 프리미엄 (무제한)
+      setUserProfile({
+        ...userProfile,
+        plan: 'premium',
+        remainingCredits: -1
+      });
+    } else {
+      // 베이직 (크레딧 추가)
+      const newCredits = userProfile.remainingCredits + credits;
+      setUserProfile({
+        ...userProfile,
+        plan: 'basic',
+        remainingCredits: newCredits
+      });
+    }
+    
+    // TODO: Supabase DB에 결제 기록 및 크레딧 업데이트
+    console.log(`결제 완료: ${plan.name}, 크레딧: ${credits === -1 ? '무제한' : `+${credits}회`}`);
+  };
+
   // Pricing 페이지 렌더링
   if (currentPage === 'pricing') {
     return (
@@ -285,6 +328,9 @@ const App: React.FC = () => {
         isLoggedIn={isLoggedIn}
         currentPlan={userProfile?.plan || 'free'}
         remainingCredits={userProfile?.remainingCredits || 0}
+        onPaymentComplete={handlePaymentComplete}
+        userEmail={userProfile?.email}
+        userName={userProfile?.name}
       />
     );
   }
