@@ -4,9 +4,12 @@ import { generateFullPost } from './services/geminiService';
 import InputForm from './components/InputForm';
 import ResultPreview from './components/ResultPreview';
 import AdminPage from './components/AdminPage';
+import LandingPage from './components/LandingPage';
+
+type PageType = 'landing' | 'app' | 'admin';
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<'main' | 'admin'>('main');
+  const [currentPage, setCurrentPage] = useState<PageType>('landing');
   const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
   const [state, setState] = useState<GenerationState>({
     isLoading: false,
@@ -23,8 +26,10 @@ const App: React.FC = () => {
       const hash = window.location.hash;
       if (hash === '#admin') {
         setCurrentPage('admin');
+      } else if (hash === '#app') {
+        setCurrentPage('app');
       } else {
-        setCurrentPage('main');
+        setCurrentPage('landing');
       }
     };
 
@@ -41,11 +46,9 @@ const App: React.FC = () => {
     
     checkApiKey();
     
-    // LocalStorage 변경 감지
     const handleStorageChange = () => checkApiKey();
     window.addEventListener('storage', handleStorageChange);
     
-    // 포커스 시 재확인 (같은 탭에서 admin 페이지 다녀온 경우)
     const handleFocus = () => checkApiKey();
     window.addEventListener('focus', handleFocus);
     
@@ -67,6 +70,11 @@ const App: React.FC = () => {
     }
   };
 
+  // Landing 페이지 렌더링
+  if (currentPage === 'landing') {
+    return <LandingPage />;
+  }
+
   // Admin 페이지 렌더링
   if (currentPage === 'admin') {
     return <AdminPage />;
@@ -78,22 +86,20 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
         <div className="max-w-md w-full text-center bg-white p-12 rounded-[40px] shadow-2xl border border-slate-100 relative overflow-hidden">
           <div className="text-6xl mb-6">🏥</div>
-          <h1 className="text-2xl font-black mb-3 text-slate-900">Hospital Toolchain</h1>
-          <h2 className="text-lg font-bold text-green-600 mb-6">네이버 블로그 마케팅 전용</h2>
-          <p className="text-slate-500 mb-8 font-medium">서비스 이용을 위해 Gemini API Key 연결이 필요합니다.</p>
+          <h1 className="text-2xl font-black mb-3 text-slate-900">HospitalAI</h1>
+          <h2 className="text-lg font-bold text-emerald-600 mb-6">API 키 설정이 필요합니다</h2>
+          <p className="text-slate-500 mb-8 font-medium">서비스 이용을 위해 Gemini API Key를 먼저 설정해주세요.</p>
           <a 
             href="#admin" 
-            className="block w-full bg-green-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-green-100 hover:bg-green-600 transition-all active:scale-95 mb-4"
+            className="block w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-100 hover:shadow-2xl transition-all active:scale-95 mb-4"
           >
-             ⚙️ Admin 설정 페이지로 이동
+             ⚙️ API 키 설정하기
           </a>
           <a 
-            href="https://aistudio.google.com/app/apikey" 
-            target="_blank" 
-            rel="noopener noreferrer" 
+            href="#" 
             className="block w-full bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition-all active:scale-95"
           >
-             Google AI Studio에서 키 발급받기 →
+             ← 홈으로 돌아가기
           </a>
         </div>
       </div>
@@ -105,20 +111,26 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans relative">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-30 h-16 flex items-center shadow-sm flex-none">
         <div className="max-w-[1600px] w-full mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-100">
-                <span className="text-white font-black text-lg">N</span>
+          <a href="#" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                <span className="text-white font-black text-lg">H</span>
             </div>
-            <span className="font-black text-xl tracking-tight text-slate-800">Hospital Toolchain <span className="text-xs text-green-600 font-bold ml-1 bg-green-50 px-2 py-1 rounded-full">네이버 블로그 전용</span></span>
-          </div>
+            <span className="font-black text-xl tracking-tight text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
+          </a>
           
           <div className="flex items-center gap-3">
              <a 
+               href="#" 
+               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
+             >
+                🏠 홈
+             </a>
+             <a 
                href="#admin" 
-               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all group relative flex items-center gap-2"
+               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all flex items-center gap-2"
              >
                 <span className="text-xl">⚙️</span>
-                <span className="text-sm font-bold text-slate-500 hidden sm:inline">Admin</span>
+                <span className="text-sm font-bold text-slate-500 hidden sm:inline">설정</span>
              </a>
           </div>
         </div>
@@ -134,7 +146,7 @@ const App: React.FC = () => {
           {state.isLoading ? (
             <div className="bg-white rounded-[40px] border border-slate-100 p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse">
               <div className="relative mb-10">
-                <div className="w-24 h-24 border-8 border-green-50 border-t-green-500 rounded-full animate-spin"></div>
+                <div className="w-24 h-24 border-8 border-emerald-50 border-t-emerald-500 rounded-full animate-spin"></div>
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
               <h2 className="text-2xl font-black text-slate-800 mb-4">{state.progress}</h2>
@@ -145,7 +157,7 @@ const App: React.FC = () => {
           ) : (
             <div className="h-full bg-white rounded-[40px] shadow-2xl border border-slate-100 flex flex-col items-center justify-center p-20 text-center group">
                <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center text-6xl mb-10 group-hover:scale-110 transition-transform duration-500 grayscale opacity-20">📝</div>
-               <h3 className="text-2xl font-black text-slate-300">네이버 블로그 원고 생성</h3>
+               <h3 className="text-2xl font-black text-slate-300">블로그 원고 생성</h3>
                <p className="text-slate-300 mt-4 max-w-xs font-medium">좌측 메뉴에서 진료과와 주제를 선택하면<br/>상위 노출 로직이 적용된 글이 생성됩니다.</p>
             </div>
           )}
@@ -154,8 +166,8 @@ const App: React.FC = () => {
       </main>
 
       <div className="lg:hidden bg-white/90 backdrop-blur-xl border-t border-slate-200 fixed bottom-0 left-0 right-0 z-30 flex p-2">
-        <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400'}`}>🛠️ 설정</button>
-        <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-green-600 text-white shadow-lg' : 'text-slate-400'}`}>📄 결과</button>
+        <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>🛠️ 설정</button>
+        <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>📄 결과</button>
       </div>
     </div>
   );

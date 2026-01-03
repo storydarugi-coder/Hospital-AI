@@ -53,11 +53,11 @@ const AdminPage: React.FC = () => {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl shadow-2xl shadow-indigo-500/30 mb-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-500 to-green-600 rounded-3xl shadow-2xl shadow-emerald-500/30 mb-6">
             <span className="text-4xl">⚙️</span>
           </div>
           <h1 className="text-3xl font-black text-white mb-2">Admin Settings</h1>
-          <p className="text-slate-400 font-medium">Hospital Toolchain API 설정</p>
+          <p className="text-slate-400 font-medium">HospitalAI API 설정</p>
         </div>
 
         {/* Main Card */}
@@ -72,10 +72,10 @@ const AdminPage: React.FC = () => {
               </span>
             </div>
             <a 
-              href="/" 
-              className="text-sm font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-2"
+              href="#app" 
+              className="text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-2"
             >
-              ← 메인으로 돌아가기
+              앱으로 이동 →
             </a>
           </div>
 
@@ -153,7 +153,7 @@ const AdminPage: React.FC = () => {
               className={`flex-1 py-4 font-bold rounded-xl transition-all shadow-lg ${
                 saved 
                   ? 'bg-green-500 text-white' 
-                  : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:shadow-indigo-500/30 hover:shadow-xl'
+                  : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-emerald-500/30 hover:shadow-xl'
               }`}
             >
               {saved ? '✅ 저장됨!' : '💾 저장하기'}
