@@ -55,7 +55,6 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const signInWithOAuth = async (provider: 'google' | 'kakao' | 'naver') => {
-  // Kakao와 Naver는 Supabase에서 기본 지원하지 않으므로 별도 설정 필요
   if (provider === 'google') {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -66,7 +65,17 @@ export const signInWithOAuth = async (provider: 'google' | 'kakao' | 'naver') =>
     return { data, error };
   }
   
-  // Kakao, Naver는 추후 구현
+  if (provider === 'kakao') {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: window.location.origin + '/#app'
+      }
+    });
+    return { data, error };
+  }
+  
+  // Naver는 추후 구현
   return { data: null, error: new Error(`${provider} OAuth는 추가 설정이 필요합니다.`) };
 };
 
