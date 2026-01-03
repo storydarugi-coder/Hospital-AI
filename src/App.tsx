@@ -170,6 +170,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
+      
+      // 페이지 전환 시 스크롤을 맨 위로
+      window.scrollTo(0, 0);
+      
       if (hash === '#admin') {
         setCurrentPage('admin');
       } else if (hash === '#app') {
