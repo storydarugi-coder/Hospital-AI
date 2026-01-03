@@ -25,7 +25,7 @@ const LandingPage: React.FC = () => {
       {/* 🎉 오픈 이벤트 배너 */}
       <div className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 text-white py-3 px-4 text-center fixed top-0 left-0 right-0 z-[60]">
         <p className="text-sm sm:text-base font-bold animate-pulse">
-          🎉 오픈 이벤트! 지금 가입하면 <span className="underline">무제한 무료</span> 사용 🚀
+          🎉 오픈 이벤트! <span className="underline">일주일간 무제한 무료</span> 사용 (~1/10까지) 🚀
         </p>
       </div>
       
