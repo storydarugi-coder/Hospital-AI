@@ -38,6 +38,71 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
+  
+  // 쿠폰 모달 상태
+  const [showCouponModal, setShowCouponModal] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // 유효한 쿠폰 목록
+  const VALID_COUPONS: Record<string, { credits: number; description: string }> = {
+    'MARKETING2026': { credits: 5, description: '마케팅 2026 프로모션' },
+    'WELCOME2025': { credits: 3, description: '신규 가입 환영' },
+    'HOSPITAL100': { credits: 10, description: '병원 마케팅 100일 기념' },
+  };
+  
+  // 사용한 쿠폰 저장 (localStorage)
+  const getUsedCoupons = (): string[] => {
+    try {
+      return JSON.parse(localStorage.getItem('used_coupons') || '[]');
+    } catch {
+      return [];
+    }
+  };
+  
+  const handleApplyCoupon = () => {
+    const code = couponCode.toUpperCase().trim();
+    setCouponMessage(null);
+    
+    if (!code) {
+      setCouponMessage({ type: 'error', text: '쿠폰 코드를 입력해주세요.' });
+      return;
+    }
+    
+    const usedCoupons = getUsedCoupons();
+    
+    if (usedCoupons.includes(code)) {
+      setCouponMessage({ type: 'error', text: '이미 사용한 쿠폰입니다.' });
+      return;
+    }
+    
+    const coupon = VALID_COUPONS[code];
+    
+    if (!coupon) {
+      setCouponMessage({ type: 'error', text: '유효하지 않은 쿠폰 코드입니다.' });
+      return;
+    }
+    
+    // 쿠폰 적용
+    if (userProfile) {
+      const newCredits = userProfile.remainingCredits + coupon.credits;
+      setUserProfile({ ...userProfile, remainingCredits: newCredits });
+      
+      // 사용한 쿠폰 저장
+      localStorage.setItem('used_coupons', JSON.stringify([...usedCoupons, code]));
+      
+      setCouponMessage({ type: 'success', text: `🎉 ${coupon.description} 쿠폰 적용! +${coupon.credits}회 추가되었습니다.` });
+      setCouponCode('');
+      
+      // 3초 후 모달 닫기
+      setTimeout(() => {
+        setShowCouponModal(false);
+        setCouponMessage(null);
+      }, 2000);
+    } else {
+      setCouponMessage({ type: 'error', text: '로그인 후 쿠폰을 사용할 수 있습니다.' });
+    }
+  };
 
   // Supabase 인증 상태 감시
   useEffect(() => {
@@ -269,12 +334,16 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3">
              {/* 크레딧 표시 */}
              {isLoggedIn && userProfile && (
-               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-xl">
+               <button 
+                 onClick={() => setShowCouponModal(true)}
+                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-all"
+               >
                  <span className="text-sm text-slate-500">크레딧:</span>
                  <span className="text-sm font-bold text-emerald-600">
                    {userProfile.plan === 'premium' ? '∞' : userProfile.remainingCredits}
                  </span>
-               </div>
+                 <span className="text-xs text-emerald-500">🎟️</span>
+               </button>
              )}
              
              <a 
@@ -287,7 +356,7 @@ const App: React.FC = () => {
                href="#pricing" 
                className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
              >
-                💎 요금제
+                💎 결제
              </a>
              
              {/* 로그인/사용자 버튼 */}
@@ -348,6 +417,65 @@ const App: React.FC = () => {
         <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>🛠️ 설정</button>
         <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>📄 결과</button>
       </div>
+      
+      {/* 쿠폰 모달 */}
+      {showCouponModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-black text-slate-800">🎟️ 쿠폰 등록</h3>
+              <button 
+                onClick={() => { setShowCouponModal(false); setCouponMessage(null); setCouponCode(''); }}
+                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-sm text-slate-500 mb-4">
+                현재 크레딧: <span className="font-bold text-emerald-600">{userProfile?.remainingCredits || 0}회</span>
+              </p>
+              
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="쿠폰 코드 입력"
+                  className="flex-1 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono uppercase"
+                  onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                />
+                <button
+                  onClick={handleApplyCoupon}
+                  className="px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all"
+                >
+                  적용
+                </button>
+              </div>
+            </div>
+            
+            {couponMessage && (
+              <div className={`p-4 rounded-xl mb-4 ${
+                couponMessage.type === 'success' 
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                <p className="text-sm font-medium">{couponMessage.text}</p>
+              </div>
+            )}
+            
+            <div className="bg-slate-50 rounded-xl p-4">
+              <p className="text-xs text-slate-500 mb-2">💡 쿠폰 사용 안내</p>
+              <ul className="text-xs text-slate-400 space-y-1">
+                <li>• 쿠폰은 계정당 1회만 사용 가능합니다.</li>
+                <li>• 대소문자 구분 없이 입력하세요.</li>
+                <li>• 추가된 크레딧은 즉시 적용됩니다.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

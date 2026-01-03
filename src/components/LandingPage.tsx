@@ -21,11 +21,11 @@ const LandingPage: React.FC = () => {
             <span className="font-black text-xl text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <a href="#features" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">기능</a>
-            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">요금제</a>
+            <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">결제하기</a>
+            <a href="#app" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">블로그 AI</a>
             <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors hidden sm:block">로그인</a>
-            <a href="#app" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
-              시작하기
+            <a href="#auth" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
+              회원가입
             </a>
           </div>
         </div>
