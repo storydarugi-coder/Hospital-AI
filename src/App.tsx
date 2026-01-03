@@ -125,8 +125,8 @@ const App: React.FC = () => {
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
-          plan: 'free', // TODO: DB에서 가져오기
-          remainingCredits: 3 // TODO: DB에서 가져오기
+          plan: 'free',
+          remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
         });
       }
       setAuthLoading(false);
@@ -146,7 +146,7 @@ const App: React.FC = () => {
           email: session.user.email || '',
           name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
           plan: 'free',
-          remainingCredits: 3
+          remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
         });
         
         // 로그인 성공 시 앱으로 이동

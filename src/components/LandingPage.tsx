@@ -22,8 +22,15 @@ const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
+      {/* 🎉 오픈 이벤트 배너 */}
+      <div className="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 text-white py-3 px-4 text-center fixed top-0 left-0 right-0 z-[60]">
+        <p className="text-sm sm:text-base font-bold animate-pulse">
+          🎉 오픈 이벤트! 지금 가입하면 <span className="underline">무제한 무료</span> 사용 🚀
+        </p>
+      </div>
+      
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 50 ? 'bg-white/90 backdrop-blur-xl shadow-lg' : 'bg-transparent'}`}>
+      <nav className={`fixed top-12 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 50 ? 'bg-white/90 backdrop-blur-xl shadow-lg' : 'bg-transparent'}`}>
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -129,7 +136,7 @@ const LandingPage: React.FC = () => {
       )}
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+      <section className="pt-44 pb-20 px-6 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-emerald-100/50 to-green-50/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-blue-100/40 to-cyan-50/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
