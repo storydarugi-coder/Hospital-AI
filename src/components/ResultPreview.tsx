@@ -141,7 +141,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
             .replace(/<div class="card-content-area"/g, '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 24px; gap: 8px;"')
             .replace(/class="card-subtitle"/g, 'style="font-size: 13px; font-weight: 700; color: #3b82f6; margin-bottom: 4px;"')
             .replace(/class="card-divider-dotted"/g, 'style="width: 60%; border-bottom: 2px dotted #cbd5e1; margin: 8px 0 12px 0;"')
-            .replace(/class="card-main-title"/g, 'style="font-size: 28px; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 0; word-break: keep-all; letter-spacing: -0.5px;"')
+            .replace(/class="card-main-title"/g, 'style="font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.3; margin: 0; word-break: keep-all; letter-spacing: -0.5px; display: block; text-align: center; max-width: 100%; padding: 0 8px;"')
+            .replace(/<h1([^>]*)>/g, '<p$1>')
+            .replace(/<\/h1>/g, '</p>')
             .replace(/class="card-highlight"/g, 'style="color: #3b82f6;"')
             .replace(/<div class="card-img-container"/g, '<div style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 12px 0;"')
             .replace(/class="card-inner-img"/g, 'style="width: 85%; max-height: 160px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
@@ -334,15 +336,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
            margin: 8px 0 12px 0;
         }
 
-        .card-main-title {
-           font-size: 28px;
-           font-weight: 900;
-           color: #0f172a;
-           line-height: 1.25;
-           margin: 0;
-           word-break: keep-all;
-           letter-spacing: -0.5px;
-           white-space: pre-line;
+        .card-main-title,
+        .card-content-area h1.card-main-title,
+        .card-content-area p.card-main-title {
+           font-size: 26px !important;
+           font-weight: 900 !important;
+           color: #0f172a !important;
+           line-height: 1.3 !important;
+           margin: 0 !important;
+           word-break: keep-all !important;
+           letter-spacing: -0.5px !important;
+           white-space: pre-line !important;
+           display: block !important;
+           text-align: center !important;
+           max-width: 100% !important;
+           padding: 0 8px !important;
         }
 
         .card-highlight {

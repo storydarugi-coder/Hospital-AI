@@ -298,19 +298,19 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     
     ${request.referenceUrl ? '★벤치마킹 URL의 구성 방식도 참고하세요.' : ''}
     
-    [HTML 구조]
+    [HTML 구조 - 반드시 이 형식 그대로 따르세요]
     <div class="card-slide">
       <div class="card-border-box">
         <div class="card-header-row">
-          <span class="brand-text">HOSPITAL NOTE</span>
+          <span class="brand-text">HEALTH NOTE</span>
           <span class="arrow-icon">→</span>
         </div>
         <div class="card-content-area">
-          <p class="card-subtitle">짧은 질문 또는 키워드</p>
+          <p class="card-subtitle">짧은 질문형 (예: 왜 위험할까요?)</p>
           <div class="card-divider-dotted"></div>
-          <h1 class="card-main-title">핵심 메시지<br/><span class="card-highlight">강조어</span></h1>
+          <p class="card-main-title">짧은 핵심<br/><span class="card-highlight">강조단어</span></p>
           <div class="card-img-container">[IMG_N]</div>
-          <p class="card-desc">부연 설명 1~2문장</p>
+          <p class="card-desc">부연 설명 한 문장</p>
         </div>
         <div class="card-footer-row">
           <span class="pill-tag">${request.category}</span>
@@ -329,11 +329,21 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     card-subtitle: "알고 계셨나요?" / "왜 위험할까요?" / "이렇게 해보세요"
     card-main-title: "겨울철 심장마비<br/><span class='card-highlight'>3배</span> 증가" 
     
-    [작성 규칙]
+    [🚨 작성 규칙 - 매우 중요]
     1. 각 슬라이드에 [IMG_1]~[IMG_${targetSlides}] 마커 필수
     2. 이전 슬라이드와 내용이 자연스럽게 연결
-    3. card-main-title은 20자 이내
-    4. 실제 독자가 볼 콘텐츠만 작성 (메타 정보 금지)
+    3. card-main-title은 **반드시 <p> 태그 사용** (h1 사용 금지!)
+    4. card-main-title은 **12자 이내**로 짧게! 줄바꿈은 <br/> 사용
+    5. card-subtitle은 **8자 이내**의 질문형
+    6. card-desc는 **20자 이내**의 부연 설명
+    7. 긴 문장은 절대 금지! 핵심 키워드만!
+    8. 실제 독자가 볼 콘텐츠만 작성 (메타 정보 금지)
+    
+    [❌ 잘못된 예시 - 절대 이렇게 쓰지 마세요]
+    <p class="card-main-title">스타틴 임의 중단은 금물! 전문의가 강조하는 만성질환 복약 순응도의 중요성</p>
+    
+    [✅ 올바른 예시]
+    <p class="card-main-title">스타틴<br/><span class="card-highlight">중단 금지!</span></p>
   `;
 
   try {
