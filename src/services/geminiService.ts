@@ -306,7 +306,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
           <span class="arrow-icon">→</span>
         </div>
         <div class="card-content-area">
-          <p class="card-subtitle">슬라이드 번호나 키워드</p>
+          <p class="card-subtitle">짧은 질문 또는 키워드</p>
           <div class="card-divider-dotted"></div>
           <h1 class="card-main-title">핵심 메시지<br/><span class="card-highlight">강조어</span></h1>
           <div class="card-img-container">[IMG_N]</div>
@@ -319,11 +319,21 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
       </div>
     </div>
     
+    [🚫 절대 금지 표현 - 카드에 이런 텍스트 넣지 마세요!]
+    ❌ "01.", "02.", "03." 같은 슬라이드 번호
+    ❌ "해결책 1", "해결책 2", "마무리" 같은 구조 용어
+    ❌ "첫 번째", "두 번째", "세 번째" 같은 순서 표현
+    ❌ "후킹", "문제 제기", "원인/배경" 같은 프레임워크 용어
+    
+    [✅ 올바른 예시]
+    card-subtitle: "알고 계셨나요?" / "왜 위험할까요?" / "이렇게 해보세요"
+    card-main-title: "겨울철 심장마비<br/><span class='card-highlight'>3배</span> 증가" 
+    
     [작성 규칙]
     1. 각 슬라이드에 [IMG_1]~[IMG_${targetSlides}] 마커 필수
-    2. 이전 슬라이드와 내용이 자연스럽게 연결되어야 함
-    3. card-main-title은 20자 이내, 줄바꿈은 <br/> 사용
-    4. 마크다운 금지, HTML만 사용
+    2. 이전 슬라이드와 내용이 자연스럽게 연결
+    3. card-main-title은 20자 이내
+    4. 실제 독자가 볼 콘텐츠만 작성 (메타 정보 금지)
   `;
 
   try {
