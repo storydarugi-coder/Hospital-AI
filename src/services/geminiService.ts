@@ -276,41 +276,44 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     진료과: ${request.category}, 주제: ${request.topic}
     목표 장수: 총 ${targetSlides}장
     
-    [카드뉴스 대본 및 디자인 포맷]
-    당신은 인스타그램/네이버 포스트용 전문 카드뉴스 디자이너입니다.
-    다음 HTML 구조를 사용하여 깔끔하고 가독성 높은 디자인의 카드뉴스를 만드십시오.
-    텍스트는 카드 이미지 내부에 포함되어야 합니다.
+    [카드뉴스 디자인 가이드]
+    인스타그램/네이버 포스트용 카드뉴스를 만드세요.
     
-    ${request.referenceUrl ? '★중요: 벤치마킹 URL의 템플릿 구성을 분석하여, 해당 URL이 질문을 던지는 방식이면 질문형으로, 팩트 나열식이면 팩트 나열식으로 내용을 구성하십시오.' : ''}
+    ${request.referenceUrl ? '★중요: 벤치마킹 URL의 구성 방식을 분석하여 유사하게 구성하세요.' : ''}
     
-    [HTML 구조 가이드]
+    [필수 HTML 구조 - 반드시 이 형식 준수]
+    
     <div class="card-slide">
-       <div class="card-border-box">
-           <div class="card-header-row">
-               <span class="brand-text">HOSPITAL NOTE</span>
-               <span class="arrow-icon">→</span>
-           </div>
-           
-           <div class="card-content-area">
-               <p class="card-subtitle">...서브타이틀(벤치마킹 URL 스타일 반영)...</p>
-               <div class="card-divider-dotted"></div>
-               <h1 class="card-main-title">...핵심 메인 타이틀(벤치마킹 URL 스타일 반영)...</h1>
-               
-               <div class="card-img-container">[IMG_1]</div>
-               
-               <p class="card-desc">...본문 내용(벤치마킹 URL의 문장 호흡과 길이감 반영)...</p>
-           </div>
-           
-           <div class="card-footer-row">
-               <span class="pill-tag">부서: ${request.category}</span>
-               <span class="pill-tag">담당: 전문의</span>
-           </div>
-       </div>
+      <div class="card-border-box">
+        <div class="card-header-row">
+          <span class="brand-text">HOSPITAL NOTE</span>
+          <span class="arrow-icon">→</span>
+        </div>
+        <div class="card-content-area">
+          <p class="card-subtitle">서브타이틀 (질문형 또는 키워드)</p>
+          <div class="card-divider-dotted"></div>
+          <h1 class="card-main-title">메인 제목<br/><span class="card-highlight">강조 부분</span></h1>
+          <div class="card-img-container">[IMG_N]</div>
+          <p class="card-desc">설명 텍스트 (1~2문장)</p>
+        </div>
+        <div class="card-footer-row">
+          <span class="pill-tag">${request.category}</span>
+          <span class="pill-tag">건강정보</span>
+        </div>
+      </div>
     </div>
     
-    위 구조를 사용하여 총 ${targetSlides}장의 슬라이드를 만드십시오.
-    각 슬라이드마다 [IMG_1] ~ [IMG_${targetSlides}] 마커를 적절히 배치하십시오.
-    표지(첫 장)는 제목 위주로, 나머지는 내용 위주로 구성하십시오.
+    [슬라이드별 구성 가이드]
+    1장(표지): 주제를 흥미롭게 소개, 질문형 서브타이틀 권장
+    2~${targetSlides - 1}장(본문): 핵심 정보를 카드당 1개씩 전달
+    ${targetSlides}장(마무리): 요약 또는 행동 유도 (안전한 표현)
+    
+    [작성 규칙]
+    1. 각 슬라이드마다 [IMG_1] ~ [IMG_${targetSlides}] 마커 필수
+    2. card-main-title은 짧게 (15자 이내), 줄바꿈은 <br/> 사용
+    3. card-highlight로 핵심 단어 강조
+    4. card-desc는 1~2문장으로 간결하게
+    5. 마크다운(##, **, -) 절대 금지, HTML 태그만 사용
   `;
 
   try {

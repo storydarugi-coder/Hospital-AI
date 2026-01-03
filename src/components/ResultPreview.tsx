@@ -131,20 +131,25 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     
     if (content.postType === 'card_news') {
         styled = styled
-            .replace(/<div class="card-news-container"/g, '<div style="max-width: 600px; margin: 0 auto; background: #fafafa; padding: 20px;"')
-            .replace(/<div class="card-slide"/g, '<div style="background: white; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden; position: relative; width: 100%; aspect-ratio: 1/1;"')
-            .replace(/<div class="card-border-box"/g, '<div style="border: 2px solid #000; border-radius: 30px; margin: 20px; height: calc(100% - 40px); display: flex; flex-direction: column; justify-content: space-between; position: relative;"')
-            .replace(/<div class="card-header-row"/g, '<div style="padding: 20px; display: flex; justify-content: space-between; align-items: center;"')
-            .replace(/class="brand-text"/g, 'style="font-size: 10px; font-weight: 900; letter-spacing: 1px;"')
-            .replace(/class="arrow-icon"/g, 'style="font-size: 24px; border: 1px solid #000; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"')
-            .replace(/<div class="card-content-area"/g, '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 20px;"')
-            .replace(/class="card-subtitle"/g, 'style="font-size: 16px; font-weight: 800; color: #333; margin-bottom: 10px;"')
-            .replace(/class="card-divider-dotted"/g, 'style="width: 100%; border-bottom: 2px dotted #000; margin: 10px 0 20px 0;"')
-            .replace(/class="card-main-title"/g, 'style="font-size: 42px; font-weight: 900; color: #000; line-height: 1.1; margin: 0 0 20px 0; word-break: keep-all;"')
-            .replace(/class="card-inner-img"/g, 'style="max-width: 80%; max-height: 200px; border-radius: 12px; margin: 10px auto; display: block;"')
-            .replace(/class="card-desc"/g, 'style="font-size: 14px; color: #666; margin-top: 10px; line-height: 1.4;"')
-            .replace(/<div class="card-footer-row"/g, '<div style="padding: 20px; display: flex; justify-content: center; gap: 10px;"')
-            .replace(/class="pill-tag"/g, 'style="background: #eee; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: bold; color: #333;"');
+            .replace(/<div class="card-news-container"/g, '<div style="max-width: 480px; margin: 0 auto; padding: 16px;"')
+            .replace(/<div class="card-grid-wrapper"/g, '<div style="display: flex; flex-direction: column; gap: 24px;"')
+            .replace(/<div class="card-slide"/g, '<div style="background: #f8fafc; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); overflow: hidden; width: 100%; aspect-ratio: 1/1;"')
+            .replace(/<div class="card-border-box"/g, '<div style="border: 3px solid #1e293b; border-radius: 20px; margin: 16px; height: calc(100% - 32px); display: flex; flex-direction: column; background: #fff; overflow: hidden;"')
+            .replace(/<div class="card-header-row"/g, '<div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9;"')
+            .replace(/class="brand-text"/g, 'style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #1e293b;"')
+            .replace(/class="arrow-icon"/g, 'style="font-size: 16px; border: 2px solid #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1e293b;"')
+            .replace(/<div class="card-content-area"/g, '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 24px; gap: 8px;"')
+            .replace(/class="card-subtitle"/g, 'style="font-size: 13px; font-weight: 700; color: #3b82f6; margin-bottom: 4px;"')
+            .replace(/class="card-divider-dotted"/g, 'style="width: 60%; border-bottom: 2px dotted #cbd5e1; margin: 8px 0 12px 0;"')
+            .replace(/class="card-main-title"/g, 'style="font-size: 28px; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 0; word-break: keep-all; letter-spacing: -0.5px;"')
+            .replace(/class="card-highlight"/g, 'style="color: #3b82f6;"')
+            .replace(/<div class="card-img-container"/g, '<div style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 12px 0;"')
+            .replace(/class="card-inner-img"/g, 'style="width: 85%; max-height: 160px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
+            .replace(/class="card-desc"/g, 'style="font-size: 13px; color: #475569; margin-top: 8px; font-weight: 600; line-height: 1.6; word-break: keep-all; max-width: 90%;"')
+            .replace(/<div class="card-footer-row"/g, '<div style="padding: 12px 20px 16px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #f1f5f9;"')
+            .replace(/class="pill-tag"/g, 'style="background: #f1f5f9; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; color: #475569;"')
+            .replace(/class="hidden-title"/g, 'style="display: none;"')
+            .replace(/class="legal-box-card"/g, 'style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 16px; line-height: 1.5;"');
     } else {
         styled = applyThemeToHtml(styled, theme);
     }
@@ -252,13 +257,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         .naver-preview .content-image-wrapper::after { content: '✨ 이미지 재생성'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(79, 70, 229, 0.9); color: white; padding: 12px 24px; border-radius: 20px; font-weight: 900; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .naver-preview .content-image-wrapper:hover::after { opacity: 1; }
 
-        .card-news-container { max-width: 500px; margin: 0 auto; }
+        .card-news-container { max-width: 480px; margin: 0 auto; }
+        .card-grid-wrapper { display: flex; flex-direction: column; gap: 24px; }
         
         .card-slide { 
-           background: white; 
-           border-radius: 20px; 
-           box-shadow: 0 10px 40px rgba(0,0,0,0.08); 
-           margin-bottom: 30px; 
+           background: #f8fafc; 
+           border-radius: 24px; 
+           box-shadow: 0 8px 32px rgba(0,0,0,0.06); 
            overflow: hidden; 
            position: relative; 
            width: 100%; 
@@ -266,42 +271,42 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         }
 
         .card-border-box {
-           border: 3px solid #000;
-           border-radius: 30px;
-           margin: 20px;
-           height: calc(100% - 40px);
+           border: 3px solid #1e293b;
+           border-radius: 20px;
+           margin: 16px;
+           height: calc(100% - 32px);
            display: flex;
            flex-direction: column;
-           justify-content: space-between;
-           position: relative;
            background: #fff;
+           overflow: hidden;
         }
 
         .card-header-row {
-           padding: 20px 24px;
+           padding: 16px 20px;
            display: flex;
            justify-content: space-between;
            align-items: center;
+           border-bottom: 1px solid #f1f5f9;
         }
         
         .brand-text {
-           font-size: 11px;
+           font-size: 10px;
            font-weight: 900;
-           letter-spacing: 1px;
+           letter-spacing: 2px;
            text-transform: uppercase;
-           color: #000;
+           color: #1e293b;
         }
 
         .arrow-icon {
-           font-size: 20px;
-           border: 2px solid #000;
+           font-size: 16px;
+           border: 2px solid #1e293b;
            border-radius: 50%;
-           width: 36px;
-           height: 36px;
+           width: 28px;
+           height: 28px;
            display: flex;
            align-items: center;
            justify-content: center;
-           color: #000;
+           color: #1e293b;
         }
 
         .card-content-area {
@@ -311,72 +316,84 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
            align-items: center;
            justify-content: center;
            text-align: center;
-           padding: 0 30px;
+           padding: 20px 24px;
+           gap: 8px;
         }
 
         .card-subtitle {
-           font-size: 16px;
-           font-weight: 800;
-           color: #333;
-           margin-bottom: 12px;
-           letter-spacing: -0.5px;
+           font-size: 13px;
+           font-weight: 700;
+           color: #3b82f6;
+           margin-bottom: 4px;
+           letter-spacing: -0.3px;
         }
 
         .card-divider-dotted {
-           width: 100%;
-           border-bottom: 3px dotted #000;
-           margin: 10px 0 24px 0;
-           opacity: 0.8;
+           width: 60%;
+           border-bottom: 2px dotted #cbd5e1;
+           margin: 8px 0 12px 0;
         }
 
         .card-main-title {
-           font-size: 42px;
+           font-size: 28px;
            font-weight: 900;
-           color: #000;
-           line-height: 1.15;
-           margin: 0 0 20px 0;
+           color: #0f172a;
+           line-height: 1.25;
+           margin: 0;
            word-break: keep-all;
-           letter-spacing: -1px;
+           letter-spacing: -0.5px;
+           white-space: pre-line;
+        }
+
+        .card-highlight {
+           color: #3b82f6;
+        }
+        
+        .card-img-container {
+           width: 100%;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           padding: 12px 0;
         }
         
         .card-inner-img {
-            max-width: 80%;
-            max-height: 180px;
+            width: 85%;
+            max-height: 160px;
             object-fit: cover;
-            border-radius: 16px;
-            margin: 10px auto;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         }
         
         .card-desc {
-            font-size: 14px;
-            color: #555;
-            margin-top: 10px;
+            font-size: 13px;
+            color: #475569;
+            margin-top: 8px;
             font-weight: 600;
-            line-height: 1.5;
+            line-height: 1.6;
             word-break: keep-all;
+            max-width: 90%;
         }
 
         .card-footer-row {
-           padding: 20px;
+           padding: 12px 20px 16px;
            display: flex;
            justify-content: center;
-           gap: 12px;
-           padding-bottom: 24px;
+           gap: 8px;
+           border-top: 1px solid #f1f5f9;
         }
 
         .pill-tag {
            background: #f1f5f9;
-           padding: 8px 16px;
-           border-radius: 20px;
-           font-size: 13px;
-           font-weight: 800;
-           color: #1e293b;
-           border: 1px solid #e2e8f0;
+           padding: 6px 12px;
+           border-radius: 16px;
+           font-size: 11px;
+           font-weight: 700;
+           color: #475569;
         }
 
         .hidden-title { display: none; }
-        .legal-box-card { font-size: 11px; color: #94a3b8; text-align: center; margin-top: 20px; }
+        .legal-box-card { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 16px; line-height: 1.5; }
       `}</style>
 
       {regenOpen && (
