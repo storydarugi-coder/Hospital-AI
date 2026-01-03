@@ -450,9 +450,56 @@ const LandingPage: React.FC = () => {
               <a href="#pricing" className="hover:text-white transition-colors">요금제</a>
               <a href="#auth" className="hover:text-white transition-colors">로그인</a>
               <a href="#app" className="hover:text-white transition-colors">앱 실행</a>
+              <a href="#terms" className="hover:text-white transition-colors">이용약관</a>
+              <a href="#refund" className="hover:text-white transition-colors">환불정책</a>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center text-sm text-slate-500">
+          
+          {/* 사업자 정보 - PG사 심사 필수 */}
+          <div className="mt-8 pt-8 border-t border-slate-800">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm text-slate-400 mb-8">
+              <div>
+                <h4 className="font-bold text-white mb-2">사업자 정보</h4>
+                <p>상호명: 호스피탈AI</p>
+                <p>대표자: (대표자명 입력)</p>
+                <p>사업자등록번호: (000-00-00000)</p>
+                <p>통신판매업신고: (제0000-서울강남-0000호)</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">연락처</h4>
+                <p>이메일: support@hospitalai.kr</p>
+                <p>전화: 02-0000-0000</p>
+                <p>사업장주소: 서울특별시 (상세주소)</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">서비스 안내</h4>
+                <p>서비스 제공기간: 결제 즉시 ~ 이용권 기간 만료일</p>
+                <p>베이직/스탠다드: 결제일로부터 90일</p>
+                <p>프리미엄 월간: 결제일로부터 30일</p>
+                <p>프리미엄 연간: 결제일로부터 365일</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">환불 규정</h4>
+                <p>• 미사용 시: 결제 후 7일 이내 전액 환불</p>
+                <p>• 사용 시: 잔여 이용권 수에 비례하여 환불</p>
+                <p>• 프리미엄: 잔여 일수 비례 환불</p>
+                <p>환불 문의: support@hospitalai.kr</p>
+              </div>
+            </div>
+            
+            {/* 교환/환불 정책 상세 */}
+            <div className="p-4 bg-slate-800/50 rounded-xl text-xs text-slate-500 mb-6">
+              <p className="font-bold text-slate-400 mb-2">📋 교환/환불/취소 규정</p>
+              <p>1. 디지털 콘텐츠 서비스 특성상 교환은 불가하며, 환불만 가능합니다.</p>
+              <p>2. 결제 후 7일 이내, 서비스 미사용 시 전액 환불 가능합니다.</p>
+              <p>3. 서비스 사용(원고 생성 1회 이상) 후에는 잔여 이용권 수에 비례하여 부분 환불됩니다.</p>
+              <p>4. 프리미엄(월간/연간) 구독 상품은 잔여 일수에 비례하여 환불 금액이 산정됩니다.</p>
+              <p>5. 환불 신청: support@hospitalai.kr로 [환불신청] 제목으로 메일 발송 (처리기간: 영업일 기준 3~5일)</p>
+              <p>6. 쿠폰/프로모션으로 충전된 무료 이용권은 환불 대상에서 제외됩니다.</p>
+            </div>
+          </div>
+          
+          <div className="text-center text-sm text-slate-500">
             © 2025 HospitalAI. Made with ❤️ using AI Technology
           </div>
         </div>
