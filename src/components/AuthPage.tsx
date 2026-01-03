@@ -276,12 +276,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
           {mode === 'register' && (
             <form onSubmit={handleEmailRegister} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">이름</label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">닉네임</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="홍길동"
+                  placeholder="병원마케터"
                   required
                   className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
