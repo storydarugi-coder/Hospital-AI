@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface PricingPageProps {
   onNavigate: (page: 'landing' | 'app' | 'admin' | 'auth' | 'pricing') => void;
@@ -7,161 +7,67 @@ interface PricingPageProps {
   remainingCredits?: number;
 }
 
-interface PlanFeature {
-  text: string;
-  included: boolean;
-}
-
-interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  period: string;
-  credits: number | 'unlimited';
-  validity: string;
-  description: string;
-  features: PlanFeature[];
-  popular?: boolean;
-  cta: string;
-}
-
 export const PricingPage: React.FC<PricingPageProps> = ({ 
   onNavigate, 
   isLoggedIn = false,
   currentPlan = 'free',
   remainingCredits = 3
 }) => {
-  const plans: Plan[] = [
-    {
-      id: 'free',
-      name: '맛보기',
-      price: 0,
-      period: '',
-      credits: 3,
-      validity: '계정당 1회',
-      description: '서비스 체험용',
-      features: [
-        { text: '원고 3회 생성', included: true },
-        { text: 'AI 이미지 생성', included: true },
-        { text: '5가지 CSS 테마', included: true },
-        { text: '의료광고법 준수 검사', included: true },
-        { text: '네이버/티스토리 복사', included: true },
-        { text: '카드뉴스 생성', included: false },
-        { text: '이메일 지원', included: false },
-      ],
-      cta: '무료로 시작하기',
-    },
-    {
-      id: 'basic',
-      name: '베이직',
-      price: 10000,
-      period: '',
-      credits: 10,
-      validity: '3개월',
-      description: '개인 블로거용',
-      features: [
-        { text: '원고 10회 생성', included: true },
-        { text: 'AI 이미지 생성', included: true },
-        { text: '5가지 CSS 테마', included: true },
-        { text: '의료광고법 준수 검사', included: true },
-        { text: '네이버/티스토리 복사', included: true },
-        { text: '카드뉴스 생성', included: true },
-        { text: '이메일 지원', included: false },
-      ],
-      cta: '베이직 시작하기',
-    },
-    {
-      id: 'standard',
-      name: '스탠다드',
-      price: 19900,
-      originalPrice: 20000,
-      period: '',
-      credits: 20,
-      validity: '3개월',
-      description: '소규모 병원용',
-      features: [
-        { text: '원고 20회 생성', included: true },
-        { text: 'AI 이미지 생성', included: true },
-        { text: '5가지 CSS 테마', included: true },
-        { text: '의료광고법 준수 검사', included: true },
-        { text: '네이버/티스토리 복사', included: true },
-        { text: '카드뉴스 생성', included: true },
-        { text: '이메일 지원', included: true },
-      ],
-      popular: true,
-      cta: '스탠다드 시작하기',
-    },
-    {
-      id: 'premium',
-      name: '프리미엄',
-      price: 59900,
-      period: '/월',
-      credits: 'unlimited',
-      validity: '구독 중 무제한',
-      description: '대형 병원/대행사용',
-      features: [
-        { text: '무제한 원고 생성', included: true },
-        { text: 'AI 이미지 생성', included: true },
-        { text: '5가지 CSS 테마', included: true },
-        { text: '의료광고법 준수 검사', included: true },
-        { text: '네이버/티스토리 복사', included: true },
-        { text: '카드뉴스 생성', included: true },
-        { text: '우선 이메일 지원', included: true },
-      ],
-      cta: '프리미엄 구독하기',
-    },
-  ];
+  const [selectedBasic, setSelectedBasic] = useState<10 | 20>(10);
+  const [selectedPremium, setSelectedPremium] = useState<'monthly' | 'yearly'>('monthly');
+
+  // 가격 계산
+  const basicPrices = {
+    10: { price: 10000, original: 15000, perUnit: 1000 },
+    20: { price: 19900, original: 30000, perUnit: 995 }
+  };
+
+  const premiumPrices = {
+    monthly: { price: 59900, original: 99000 },
+    yearly: { price: 499000, original: 718800, monthly: 41583 }
+  };
 
   const handlePurchase = (planId: string) => {
     if (!isLoggedIn) {
       onNavigate('auth');
       return;
     }
-    
-    // TODO: 결제 연동 (Toss Payments, etc.)
-    console.log('Purchase plan:', planId);
-    alert(`${planId} 플랜 결제 기능은 Supabase 연동 후 활성화됩니다.`);
+    alert(`${planId} 결제 기능은 Toss Payments 연동 후 활성화됩니다.`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-500/20 rounded-full blur-3xl"></div>
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       {/* Header */}
-      <header className="relative border-b border-slate-700/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <button 
             onClick={() => onNavigate('landing')}
-            className="flex items-center gap-2 text-white hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2"
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
-              <span className="text-xl font-bold text-white">H</span>
+            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
+              <span className="text-white font-black text-lg">H</span>
             </div>
-            <span className="text-xl font-bold">HospitalAI</span>
+            <span className="font-black text-xl text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
           </button>
           
           <div className="flex items-center gap-4">
+            <button 
+              onClick={() => onNavigate('landing')}
+              className="text-sm font-bold text-slate-500 hover:text-slate-800"
+            >
+              홈
+            </button>
             {isLoggedIn ? (
-              <>
-                <span className="text-slate-300 text-sm">
-                  남은 크레딧: <span className="text-emerald-400 font-bold">{remainingCredits}</span>
-                </span>
-                <button
-                  onClick={() => onNavigate('app')}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                >
-                  앱으로 이동
-                </button>
-              </>
+              <button
+                onClick={() => onNavigate('app')}
+                className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600"
+              >
+                앱으로 이동
+              </button>
             ) : (
               <button
                 onClick={() => onNavigate('auth')}
-                className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-bold hover:bg-emerald-600"
               >
                 로그인
               </button>
@@ -170,144 +76,377 @@ export const PricingPage: React.FC<PricingPageProps> = ({
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 py-16">
-        {/* Hero */}
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            합리적인 <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">요금제</span>
-          </h1>
-          <p className="text-slate-300 text-lg max-w-2xl mx-auto">
-            필요한 만큼만 선택하세요. 모든 플랜에서 의료광고법 준수 검사와 AI 이미지 생성을 이용하실 수 있습니다.
-          </p>
-        </div>
+      {/* Hero - 비용 비교 */}
+      <section className="py-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">비용 비교</h1>
+            <p className="text-slate-500 font-medium">기존 대행사 방식 vs HospitalAI</p>
+          </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative bg-slate-800/80 backdrop-blur-xl rounded-2xl border transition-all hover:scale-105 ${
-                plan.popular
-                  ? 'border-emerald-500 shadow-2xl shadow-emerald-500/20'
-                  : 'border-slate-700/50'
-              }`}
-            >
-              {/* Popular Badge */}
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold rounded-full">
-                    인기
-                  </span>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {/* 기존 방식 */}
+            <div className="bg-slate-100 rounded-3xl p-8 relative overflow-hidden">
+              <div className="absolute top-4 right-4 px-3 py-1 bg-slate-300 text-slate-600 text-xs font-bold rounded-full">
+                구식 방법
+              </div>
+              <h3 className="text-xl font-black text-slate-700 mb-6">기존 대행사 방식</h3>
+              <div className="text-4xl font-black text-slate-800 mb-2">월 180만원</div>
+              <p className="text-slate-500 text-sm mb-6">포스팅 90건 기준 (이미지 포함)</p>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between text-slate-600">
+                  <span>포스팅 1건당</span>
+                  <span className="font-bold">20,000원</span>
                 </div>
-              )}
-
-              <div className="p-6">
-                {/* Plan Info */}
-                <div className="text-center mb-6">
-                  <h3 className="text-xl font-bold text-white mb-1">{plan.name}</h3>
-                  <p className="text-slate-400 text-sm mb-4">{plan.description}</p>
-                  
-                  <div className="mb-2">
-                    {plan.originalPrice && (
-                      <span className="text-slate-500 line-through text-sm mr-2">
-                        ₩{plan.originalPrice.toLocaleString()}
-                      </span>
-                    )}
-                    <span className="text-3xl font-bold text-white">
-                      {plan.price === 0 ? '무료' : `₩${plan.price.toLocaleString()}`}
-                    </span>
-                    {plan.period && <span className="text-slate-400">{plan.period}</span>}
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-2 text-sm">
-                    <span className="text-emerald-400 font-semibold">
-                      {plan.credits === 'unlimited' ? '무제한' : `${plan.credits}회`}
-                    </span>
-                    <span className="text-slate-500">|</span>
-                    <span className="text-slate-400">{plan.validity}</span>
-                  </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>소요 시간</span>
+                  <span className="font-bold">평균 2일</span>
                 </div>
-
-                {/* Features */}
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-2 text-sm">
-                      {feature.included ? (
-                        <i className="fas fa-check text-emerald-400"></i>
-                      ) : (
-                        <i className="fas fa-times text-slate-600"></i>
-                      )}
-                      <span className={feature.included ? 'text-slate-300' : 'text-slate-600'}>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA Button */}
-                <button
-                  onClick={() => handlePurchase(plan.id)}
-                  disabled={currentPlan === plan.id && plan.id !== 'free'}
-                  className={`w-full py-3 rounded-xl font-semibold transition-all ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-600 hover:to-teal-600 shadow-lg'
-                      : currentPlan === plan.id && plan.id !== 'free'
-                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                      : 'bg-slate-700 text-white hover:bg-slate-600'
-                  }`}
-                >
-                  {currentPlan === plan.id && plan.id !== 'free' ? '현재 플랜' : plan.cta}
-                </button>
+                <div className="flex justify-between text-slate-600">
+                  <span>수정 비용</span>
+                  <span className="font-bold">건당 5,000원</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span>이미지 비용</span>
+                  <span className="font-bold">별도 5,000원</span>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
 
-        {/* FAQ Section */}
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-white text-center mb-8">자주 묻는 질문</h2>
-          
-          <div className="space-y-4">
-            <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-white font-semibold mb-2">결제 수단은 무엇이 있나요?</h3>
-              <p className="text-slate-400 text-sm">신용카드, 체크카드, 카카오페이, 네이버페이, 토스페이 등 다양한 결제 수단을 지원합니다.</p>
-            </div>
-            
-            <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-white font-semibold mb-2">유효기간이 지나면 어떻게 되나요?</h3>
-              <p className="text-slate-400 text-sm">유효기간 내 사용하지 않은 크레딧은 소멸됩니다. 프리미엄 구독은 매월 자동 갱신됩니다.</p>
-            </div>
-            
-            <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-white font-semibold mb-2">환불이 가능한가요?</h3>
-              <p className="text-slate-400 text-sm">크레딧 사용 전 7일 이내 전액 환불 가능합니다. 일부 사용 시 잔여 크레딧에 대해 환불 요청할 수 있습니다.</p>
-            </div>
-            
-            <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-white font-semibold mb-2">같은 IP로 다른 계정을 만들면 맛보기가 추가로 주어지나요?</h3>
-              <p className="text-slate-400 text-sm">아니요. 동일한 IP에서는 여러 계정을 생성하더라도 맛보기 크레딧이 추가로 주어지지 않습니다. 이는 서비스 남용을 방지하기 위한 정책입니다.</p>
-            </div>
-            
-            <div className="bg-slate-800/60 rounded-xl p-6 border border-slate-700/50">
-              <h3 className="text-white font-semibold mb-2">세금계산서 발급이 가능한가요?</h3>
-              <p className="text-slate-400 text-sm">네, 사업자등록증 제출 시 세금계산서 발급이 가능합니다. 결제 후 고객센터로 문의해주세요.</p>
+            {/* HospitalAI */}
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-3xl p-8 relative overflow-hidden text-white shadow-2xl shadow-emerald-200">
+              <div className="absolute top-4 right-4 px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">
+                🚀 89% 절약!
+              </div>
+              <h3 className="text-xl font-black mb-6">HospitalAI 프리미엄</h3>
+              <div className="text-4xl font-black mb-2">월 59,900원</div>
+              <p className="text-emerald-100 text-sm mb-6">무제한 사용 (월 구독)</p>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between text-emerald-50">
+                  <span>포스팅 1건당</span>
+                  <span className="font-bold">💎 무제한</span>
+                </div>
+                <div className="flex justify-between text-emerald-50">
+                  <span>소요 시간</span>
+                  <span className="font-bold">⚡ 30초</span>
+                </div>
+                <div className="flex justify-between text-emerald-50">
+                  <span>수정 비용</span>
+                  <span className="font-bold">🆓 무료</span>
+                </div>
+                <div className="flex justify-between text-emerald-50">
+                  <span>AI 이미지</span>
+                  <span className="font-bold">🎁 모두 포함</span>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-white/20 text-center">
+                <div className="text-2xl font-black">연간 1,440만원 절약!</div>
+                <p className="text-emerald-200 text-sm">기존 방식 대비 월 120만원 절약</p>
+              </div>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Contact CTA */}
-        <div className="text-center mt-16">
-          <p className="text-slate-400 mb-4">더 큰 규모의 사용이 필요하신가요?</p>
-          <button className="px-6 py-3 border border-emerald-500 text-emerald-400 rounded-xl hover:bg-emerald-500/10 transition-colors">
-            기업 맞춤 상담 요청
+      {/* 요금제 섹션 */}
+      <section className="py-16 px-4 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-full text-sm font-bold mb-4">
+              🔥 오늘이 제일 싸요 · 첫 달 50% 할인
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">요금제</h2>
+            <p className="text-slate-500 font-medium">필요한 만큼만 선택하세요</p>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {/* 무료 체험 */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg">
+              <div className="text-center mb-6">
+                <span className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full mb-4">
+                  무료 체험
+                </span>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">맛보기</h3>
+                <p className="text-slate-500 text-sm">서비스 체험용</p>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="text-4xl font-black text-slate-900">무료</div>
+                <p className="text-emerald-600 font-bold text-sm mt-2">원고 3회 · 계정당 1회</p>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 블로그 원고 생성 3회
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> AI 이미지 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 의료광고법 준수 검사
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 5가지 디자인 테마
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-400">
+                  <span className="text-slate-300">✗</span> 카드뉴스 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-400">
+                  <span className="text-slate-300">✗</span> 이메일 지원
+                </li>
+              </ul>
+
+              <button
+                onClick={() => onNavigate('auth')}
+                className="w-full py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl hover:bg-slate-200 transition-all"
+              >
+                무료로 시작하기
+              </button>
+            </div>
+
+            {/* 건별 결제 */}
+            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg">
+              <div className="text-center mb-6">
+                <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full mb-4">
+                  💡 건별 결제
+                </span>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">베이직</h3>
+                <p className="text-slate-500 text-sm">필요한 만큼만</p>
+              </div>
+
+              {/* 건수 선택 */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setSelectedBasic(10)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                    selectedBasic === 10
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  10건
+                </button>
+                <button
+                  onClick={() => setSelectedBasic(20)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                    selectedBasic === 20
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  20건
+                </button>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="text-slate-400 line-through text-sm">
+                  ₩{basicPrices[selectedBasic].original.toLocaleString()}
+                </div>
+                <div className="text-4xl font-black text-slate-900">
+                  ₩{basicPrices[selectedBasic].price.toLocaleString()}
+                </div>
+                <p className="text-emerald-600 font-bold text-sm mt-2">
+                  건당 ₩{basicPrices[selectedBasic].perUnit.toLocaleString()} · 유효기간 3개월
+                </p>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 블로그 원고 생성 {selectedBasic}회
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> AI 이미지 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 의료광고법 준수 검사
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 카드뉴스 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 5가지 디자인 테마
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-400">
+                  <span className="text-slate-300">✗</span> 이메일 지원
+                </li>
+              </ul>
+
+              <button
+                onClick={() => handlePurchase('basic')}
+                className="w-full py-4 bg-emerald-500 text-white font-bold rounded-2xl hover:bg-emerald-600 transition-all"
+              >
+                구매하기
+              </button>
+            </div>
+
+            {/* 프리미엄 */}
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-3xl p-8 shadow-2xl shadow-emerald-200 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <span className="px-4 py-1 bg-yellow-400 text-yellow-900 text-xs font-black rounded-full shadow-lg">
+                  🏆 BEST
+                </span>
+              </div>
+
+              <div className="text-center mb-6">
+                <span className="inline-block px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full mb-4">
+                  🚀 무제한
+                </span>
+                <h3 className="text-2xl font-black text-white mb-2">프리미엄</h3>
+                <p className="text-emerald-100 text-sm">대형 병원 / 대행사용</p>
+              </div>
+
+              {/* 기간 선택 */}
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setSelectedPremium('monthly')}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                    selectedPremium === 'monthly'
+                      ? 'bg-white text-emerald-600'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  월간
+                </button>
+                <button
+                  onClick={() => setSelectedPremium('yearly')}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
+                    selectedPremium === 'yearly'
+                      ? 'bg-white text-emerald-600'
+                      : 'bg-white/20 text-white hover:bg-white/30'
+                  }`}
+                >
+                  연간 (30% 할인)
+                </button>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="text-white/60 line-through text-sm">
+                  ₩{premiumPrices[selectedPremium].original.toLocaleString()}
+                </div>
+                <div className="text-4xl font-black text-white">
+                  ₩{premiumPrices[selectedPremium].price.toLocaleString()}
+                </div>
+                <p className="text-emerald-200 font-bold text-sm mt-2">
+                  {selectedPremium === 'monthly' ? '무제한 · 월 구독' : `월 ₩${premiumPrices.yearly.monthly.toLocaleString()} · 연간 결제`}
+                </p>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 무제한 원고 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> AI 이미지 무제한
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 의료광고법 준수 검사
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 카드뉴스 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 5가지 디자인 테마
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 우선 이메일 지원
+                </li>
+              </ul>
+
+              <button
+                onClick={() => handlePurchase('premium')}
+                className="w-full py-4 bg-white text-emerald-600 font-bold rounded-2xl hover:bg-emerald-50 transition-all"
+              >
+                구독하기
+              </button>
+            </div>
+          </div>
+
+          {/* 플랜 선택 가이드 */}
+          <div className="max-w-3xl mx-auto mt-12 bg-white rounded-2xl p-6 border border-slate-200">
+            <h4 className="font-black text-slate-800 mb-4">💡 어떤 플랜을 선택해야 할까요?</h4>
+            <div className="grid sm:grid-cols-3 gap-4 text-sm">
+              <div className="p-4 bg-slate-50 rounded-xl">
+                <div className="font-bold text-slate-800 mb-1">맛보기</div>
+                <p className="text-slate-500">처음 사용해보시는 분</p>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-xl">
+                <div className="font-bold text-blue-800 mb-1">베이직</div>
+                <p className="text-blue-600">개인 블로거, 소규모 병원</p>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-xl">
+                <div className="font-bold text-emerald-800 mb-1">프리미엄</div>
+                <p className="text-emerald-600">대형 병원, 마케팅 대행사</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-2xl font-black text-slate-900 text-center mb-8">자주 묻는 질문</h2>
+          
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-2">결제 수단은 무엇이 있나요?</h3>
+              <p className="text-slate-500 text-sm">신용카드, 체크카드, 카카오페이, 네이버페이, 토스페이 등 다양한 결제 수단을 지원합니다.</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-2">유효기간이 지나면 어떻게 되나요?</h3>
+              <p className="text-slate-500 text-sm">유효기간 내 사용하지 않은 크레딧은 소멸됩니다. 프리미엄 구독은 매월/매년 자동 갱신됩니다.</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-2">환불이 가능한가요?</h3>
+              <p className="text-slate-500 text-sm">크레딧 사용 전 7일 이내 전액 환불 가능합니다. 일부 사용 시 잔여 크레딧에 대해 환불 요청할 수 있습니다.</p>
+            </div>
+            
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-2">같은 IP로 다른 계정을 만들면 맛보기가 추가로 주어지나요?</h3>
+              <p className="text-slate-500 text-sm">아니요. 동일한 IP에서는 여러 계정을 생성하더라도 맛보기 크레딧이 추가로 주어지지 않습니다.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-16 px-4 bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl font-black text-white mb-4">지금 시작하고 89% 비용을 절약하세요</h2>
+          <p className="text-slate-400 mb-8">무료 체험으로 HospitalAI의 놀라운 효과를 직접 경험해보세요</p>
+          
+          <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-8">
+            <div className="text-center">
+              <div className="text-2xl font-black text-emerald-400">⚡ 30초</div>
+              <p className="text-slate-500 text-xs">생성 시간</p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-emerald-400">💰 1,000원</div>
+              <p className="text-slate-500 text-xs">건당 비용</p>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-black text-emerald-400">🎉 89%</div>
+              <p className="text-slate-500 text-xs">비용 절감</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => onNavigate('auth')}
+            className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-black text-lg rounded-2xl hover:shadow-2xl hover:shadow-emerald-500/30 transition-all"
+          >
+            🚀 무료로 시작하기
           </button>
         </div>
-      </main>
+      </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-slate-700/50 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+      <footer className="py-8 px-4 bg-slate-900 border-t border-slate-800">
+        <div className="max-w-6xl mx-auto text-center text-slate-500 text-sm">
           <p>© 2025 HospitalAI. All rights reserved.</p>
         </div>
       </footer>
