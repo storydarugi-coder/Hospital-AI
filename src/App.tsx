@@ -108,6 +108,12 @@ const App: React.FC = () => {
 
   // Supabase 인증 상태 감시
   useEffect(() => {
+    // 관리자 인증 상태 확인 (localStorage)
+    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
+    if (adminAuth === 'true') {
+      setIsAdmin(true);
+    }
+    
     // 현재 세션 확인
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -167,8 +173,8 @@ const App: React.FC = () => {
       if (hash === '#admin') {
         setCurrentPage('admin');
       } else if (hash === '#app') {
-        // 비로그인 시 #app 접근 차단
-        if (!isLoggedIn && !authLoading) {
+        // 비로그인 시 #app 접근 차단 (관리자는 예외)
+        if (!isLoggedIn && !isAdmin && !authLoading) {
           window.location.hash = 'auth';
           setCurrentPage('auth');
           return;
@@ -186,7 +192,7 @@ const App: React.FC = () => {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isLoggedIn, authLoading]);
+  }, [isLoggedIn, isAdmin, authLoading]);
 
   // 페이지 네비게이션 헬퍼
   const handleNavigate = (page: PageType) => {
