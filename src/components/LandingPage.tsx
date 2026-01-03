@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-const LandingPage: React.FC = () => {
+interface LandingPageProps {
+  isLoggedIn?: boolean;
+  userName?: string;
+  onLogout?: () => void;
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName, onLogout }) => {
   const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,10 +48,24 @@ const LandingPage: React.FC = () => {
           <div className="hidden sm:flex items-center gap-4">
             <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">결제하기</a>
             <a href="#app" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">블로그 AI</a>
-            <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">로그인</a>
-            <a href="#auth" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
-              회원가입
-            </a>
+            {isLoggedIn ? (
+              <>
+                <span className="text-sm font-bold text-emerald-600">{userName} 님</span>
+                <button 
+                  onClick={onLogout}
+                  className="px-6 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                >
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="#auth" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">로그인</a>
+                <a href="#auth" className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-emerald-200 transition-all">
+                  회원가입
+                </a>
+              </>
+            )}
           </div>
           
           {/* Mobile Hamburger Button */}
@@ -112,24 +132,40 @@ const LandingPage: React.FC = () => {
               >
                 블로그 AI
               </a>
-              <a 
-                href="#auth" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
-              >
-                로그인
-              </a>
+              {!isLoggedIn && (
+                <a 
+                  href="#auth" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-4 text-lg font-bold text-slate-800 border-b border-slate-100"
+                >
+                  로그인
+                </a>
+              )}
+              {isLoggedIn && (
+                <div className="py-4 border-b border-slate-100">
+                  <span className="text-lg font-bold text-emerald-600">{userName} 님</span>
+                </div>
+              )}
             </div>
             
             {/* CTA Button */}
             <div className="px-6 pb-6">
-              <a 
-                href="#auth" 
-                onClick={() => setMobileMenuOpen(false)}
-                className="block w-full py-4 text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold text-lg rounded-xl"
-              >
-                회원가입
-              </a>
+              {isLoggedIn ? (
+                <button 
+                  onClick={() => { onLogout?.(); setMobileMenuOpen(false); }}
+                  className="block w-full py-4 text-center bg-slate-200 text-slate-700 font-bold text-lg rounded-xl"
+                >
+                  로그아웃
+                </button>
+              ) : (
+                <a 
+                  href="#auth" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block w-full py-4 text-center bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold text-lg rounded-xl"
+                >
+                  회원가입
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -338,9 +374,10 @@ const LandingPage: React.FC = () => {
               <div className="text-3xl font-black text-slate-900 mb-1">무료</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">원고 3회 | 계정당 1회</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 5가지 테마</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 3회</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 3장</li>
+                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 레퍼런스 URL 분석</li>
               </ul>
               <a href="#auth" className="block w-full py-3 text-center bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all">
                 무료 체험
@@ -354,9 +391,10 @@ const LandingPage: React.FC = () => {
               <div className="text-3xl font-black text-slate-900 mb-1">₩10,000</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">원고 10회 | 3개월</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 무료 기능</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 10회</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 5장</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
-                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 이메일 지원</li>
+                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 레퍼런스 URL 분석</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">
                 구매하기
@@ -371,9 +409,10 @@ const LandingPage: React.FC = () => {
               <div className="text-3xl font-black text-white mb-1">₩19,900</div>
               <p className="text-sm text-emerald-200 font-medium mb-6">원고 20회 | 3개월</p>
               <ul className="space-y-2 text-sm text-white/90 mb-6">
-                <li className="flex items-center gap-2"><span>✓</span> 모든 베이직 기능</li>
+                <li className="flex items-center gap-2"><span>✓</span> AI 원고 생성 20회</li>
+                <li className="flex items-center gap-2"><span>✓</span> AI 이미지 최대 5장</li>
                 <li className="flex items-center gap-2"><span>✓</span> 카드뉴스 생성</li>
-                <li className="flex items-center gap-2"><span>✓</span> 이메일 지원</li>
+                <li className="flex items-center gap-2"><span>✓</span> 레퍼런스 URL 분석</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">
                 구매하기
@@ -387,9 +426,11 @@ const LandingPage: React.FC = () => {
               <div className="text-3xl font-black text-slate-900 mb-1">₩59,900</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">무제한 | 월 구독</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 무제한</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>무제한</b></li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 5장</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 레퍼런스 URL 분석</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 우선 이메일 지원</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 전용 상담</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">
                 구독하기

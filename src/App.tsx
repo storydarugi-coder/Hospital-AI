@@ -358,7 +358,7 @@ const App: React.FC = () => {
 
   // Landing 페이지 렌더링
   if (currentPage === 'landing') {
-    return <LandingPage />;
+    return <LandingPage isLoggedIn={isLoggedIn} userName={userProfile?.name} onLogout={handleLogout} />;
   }
 
   // Admin 페이지 렌더링
