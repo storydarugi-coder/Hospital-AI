@@ -4,6 +4,8 @@ type Bindings = {
   GEMINI_API_KEY?: string;
   NAVER_CLIENT_ID?: string;
   NAVER_CLIENT_SECRET?: string;
+  PORTONE_STORE_ID?: string;
+  PORTONE_CHANNEL_KEY?: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -100,6 +102,8 @@ app.get('*', (c) => {
   const geminiKey = c.env.GEMINI_API_KEY || '';
   const naverClientId = c.env.NAVER_CLIENT_ID || '';
   const naverClientSecret = c.env.NAVER_CLIENT_SECRET || '';
+  const portoneStoreId = c.env.PORTONE_STORE_ID || '';
+  const portoneChannelKey = c.env.PORTONE_CHANNEL_KEY || '';
   
   return c.html(`
 <!DOCTYPE html>
@@ -156,9 +160,13 @@ app.get('*', (c) => {
         const gk = "${geminiKey}";
         const nci = "${naverClientId}";
         const ncs = "${naverClientSecret}";
+        const psi = "${portoneStoreId}";
+        const pck = "${portoneChannelKey}";
         if (gk) { localStorage.setItem('GEMINI_API_KEY', gk); localStorage.setItem('GLOBAL_GEMINI_API_KEY', gk); }
         if (nci) { localStorage.setItem('NAVER_CLIENT_ID', nci); localStorage.setItem('GLOBAL_NAVER_CLIENT_ID', nci); }
         if (ncs) { localStorage.setItem('NAVER_CLIENT_SECRET', ncs); localStorage.setItem('GLOBAL_NAVER_CLIENT_SECRET', ncs); }
+        if (psi) { localStorage.setItem('PORTONE_STORE_ID', psi); }
+        if (pck) { localStorage.setItem('PORTONE_CHANNEL_KEY', pck); }
       })();
     </script>
     <script type="module" src="/static/client.js"></script>
