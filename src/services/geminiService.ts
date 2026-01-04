@@ -425,8 +425,9 @@ ${styleGuide}
 2. 한국 병원 환경에 적합
 3. 전문적이고 신뢰감 있는 분위기
 4. 구체적인 요소 (인물, 배경, 분위기 등) 포함
-5. 텍스트나 로고는 절대 포함하지 말 것
-6. **위에서 지정한 스타일 키워드를 반드시 프롬프트에 포함할 것!**
+5. **텍스트 규칙**: 텍스트는 최대한 피하되, 꼭 필요하면 한글/숫자만! 영어는 O, X 같은 간단한 것만 허용
+6. 로고는 절대 포함하지 말 것
+7. **위에서 지정한 스타일 키워드를 반드시 프롬프트에 포함할 것!**
 
 **중요: 프롬프트 1개만 출력하세요! 여러 개 출력 금지!**
 설명 없이 프롬프트 문장만 **한국어**로 답변하세요.
@@ -459,7 +460,8 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     }
 
     // 한국어 프롬프트도 지원 (이미지 생성 모델은 영어+한국어 혼합 가능)
-    const finalPrompt = `${stylePrompt} ${promptText}. No text, no logos, no scary elements, professional Korean medical context.`;
+    // 텍스트 규칙: 한글/숫자만, 영어는 O/X 같은 간단한 것만
+    const finalPrompt = `${stylePrompt} ${promptText}. If text is needed, only Korean or numbers allowed. English only for simple symbols like O, X. No logos, no scary elements, professional Korean medical context.`;
 
     try {
       const response = await ai.models.generateContent({
@@ -699,13 +701,19 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
     이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'}
     
+    **텍스트 규칙 (중요!):**
+    - 이미지 안에 텍스트는 최대한 피할 것
+    - 꼭 필요하면 **한글, 숫자만** 허용
+    - 영어는 **O, X** 같은 아주 간단한 기호만 허용
+    - 긴 영어 문장이나 단어 절대 금지!
+    
     각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
     ${imageStyleGuide}
     
     예시 (${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'} 스타일):
     ${imageStyle === 'illustration' 
-      ? '- "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"\n    - "심장 건강을 나타내는 인포그래픽, 3D 일러스트, 밝고 깔끔한 느낌, 파란색 계열"'
-      : '- "깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명"\n    - "건강한 심장을 상징하는 이미지, 실사 사진, 전문적인 분위기, 밝은 톤"'}
+      ? '- "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
+      : '- "깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명"'}
   `;
 
   const cardNewsPrompt = `
@@ -805,6 +813,12 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     [🎨 이미지 프롬프트 작성 규칙 - 매우 중요!]
     **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
     이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'}
+    
+    **텍스트 규칙 (중요!):**
+    - 이미지 안에 텍스트는 최대한 피할 것
+    - 꼭 필요하면 **한글, 숫자만** 허용
+    - 영어는 **O, X** 같은 아주 간단한 기호만 허용
+    - 긴 영어 문장이나 단어 절대 금지!
     
     각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
     ${imageStyleGuide}
