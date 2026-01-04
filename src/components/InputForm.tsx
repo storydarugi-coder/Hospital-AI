@@ -199,14 +199,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
 
         <div>
-          <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100 mb-4">
-             <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                   <label className="text-xs font-black text-emerald-800 uppercase tracking-widest block mb-1">Naver Data Analysis</label>
-                   <span className="text-[11px] text-emerald-600 font-bold block">네이버 뉴스/기사 기반 트렌드 분석</span>
-                </div>
-                <button type="button" onClick={handleRecommendTrends} disabled={isLoadingTrends} className="text-xs font-black text-white bg-emerald-600 px-5 py-3 rounded-xl hover:bg-emerald-700 shadow-md transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
-                  {isLoadingTrends ? '분석 중...' : '🔍 인기 키워드 찾기'}
+          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 mb-4">
+             <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-black text-emerald-700">🔍 인기 키워드</span>
+                <button type="button" onClick={handleRecommendTrends} disabled={isLoadingTrends} className="text-xs font-black text-white bg-emerald-600 px-4 py-2.5 rounded-xl hover:bg-emerald-700 shadow-md transition-all active:scale-95 whitespace-nowrap">
+                  {isLoadingTrends ? '분석 중...' : '키워드 찾기'}
                 </button>
              </div>
           </div>
@@ -322,63 +319,47 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         )}
 
         <div>
-           <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃 스타일</label>
-           <p className="text-[11px] text-slate-500 mb-3 font-medium">병원별로 다른 박스/테두리/간격 스타일을 선택하세요</p>
-           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+           <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃</label>
+           <div className="grid grid-cols-5 gap-2">
               <button
                 type="button"
                 onClick={() => setCssTheme('modern')}
-                className={`p-4 rounded-2xl border-2 transition-all text-left ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
               >
-                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-xl">💻</span>
-                   <span className={`text-sm font-black ${cssTheme === 'modern' ? 'text-indigo-700' : 'text-slate-600'}`}>모던 카드</span>
-                 </div>
-                 <p className="text-[10px] text-slate-500 font-medium">카드형 박스 + 그림자 효과</p>
+                 <span className="text-xl mb-1">💻</span>
+                 <span className={`text-[11px] font-black ${cssTheme === 'modern' ? 'text-indigo-700' : 'text-slate-600'}`}>모던</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCssTheme('premium')}
-                className={`p-4 rounded-2xl border-2 transition-all text-left ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
               >
-                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-xl">💎</span>
-                   <span className={`text-sm font-black ${cssTheme === 'premium' ? 'text-purple-700' : 'text-slate-600'}`}>프리미엄 라인</span>
-                 </div>
-                 <p className="text-[10px] text-slate-500 font-medium">얇은 테두리 + 넓은 여백</p>
+                 <span className="text-xl mb-1">💎</span>
+                 <span className={`text-[11px] font-black ${cssTheme === 'premium' ? 'text-purple-700' : 'text-slate-600'}`}>프리미엄</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCssTheme('minimal')}
-                className={`p-4 rounded-2xl border-2 transition-all text-left ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
               >
-                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-xl">✨</span>
-                   <span className={`text-sm font-black ${cssTheme === 'minimal' ? 'text-slate-700' : 'text-slate-600'}`}>미니멀 클린</span>
-                 </div>
-                 <p className="text-[10px] text-slate-500 font-medium">여백 중심 + 최소 장식</p>
+                 <span className="text-xl mb-1">✨</span>
+                 <span className={`text-[11px] font-black ${cssTheme === 'minimal' ? 'text-slate-700' : 'text-slate-600'}`}>미니멀</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCssTheme('warm')}
-                className={`p-4 rounded-2xl border-2 transition-all text-left ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
               >
-                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-xl">☀️</span>
-                   <span className={`text-sm font-black ${cssTheme === 'warm' ? 'text-orange-700' : 'text-slate-600'}`}>따뜻한 박스</span>
-                 </div>
-                 <p className="text-[10px] text-slate-500 font-medium">둥근 박스 + 부드러운 배경</p>
+                 <span className="text-xl mb-1">☀️</span>
+                 <span className={`text-[11px] font-black ${cssTheme === 'warm' ? 'text-orange-700' : 'text-slate-600'}`}>따뜻한</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCssTheme('professional')}
-                className={`p-4 rounded-2xl border-2 transition-all text-left ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
               >
-                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-xl">🏛️</span>
-                   <span className={`text-sm font-black ${cssTheme === 'professional' ? 'text-blue-700' : 'text-slate-600'}`}>의료 전문</span>
-                 </div>
-                 <p className="text-[10px] text-slate-500 font-medium">신뢰감 있는 블루 포인트</p>
+                 <span className="text-xl mb-1">🏛️</span>
+                 <span className={`text-[11px] font-black ${cssTheme === 'professional' ? 'text-blue-700' : 'text-slate-600'}`}>전문</span>
               </button>
            </div>
         </div>
