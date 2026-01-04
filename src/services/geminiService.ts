@@ -401,6 +401,13 @@ export const recommendImagePrompt = async (blogContent: string, currentImageAlt:
        - 실사 사진 스타일 금지 (사진, 실사, DSLR 등 금지)
        - 밝고 깔끔한 파란색/흰색 색상 팔레트
        - 친근하고 현대적인 느낌`
+    : imageStyle === 'medical'
+    ? `**중요: 3D 의학/해부학 일러스트 스타일로 생성해야 합니다!**
+       - 반드시 "3D 해부학", "의학 일러스트", "인체 구조", "장기 단면도" 키워드 포함
+       - 인체 내부 구조, 장기, 뼈, 근육, 혈관 등을 과학적으로 표현
+       - 깔끔한 배경에 투명/반투명 효과로 내부 구조 시각화
+       - 교육용/의료용 전문 일러스트 느낌
+       - 파란색/흰색/빨간색 의료 색상 팔레트`
     : `**중요: 실사 사진 스타일로 생성해야 합니다!**
        - 반드시 "실사 사진", "전문 사진", "DSLR 촬영" 키워드 포함
        - 일러스트/3D 스타일 금지 (일러스트, 만화, 3D 렌더 등 금지)
@@ -435,6 +442,8 @@ ${styleGuide}
 예시 (1개만):
 ${imageStyle === 'illustration' 
   ? '"밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
+  : imageStyle === 'medical'
+  ? '"인체 심장의 3D 단면도, 좌심실과 우심실이 보이는 해부학적 구조, 혈관과 판막이 표시된 의학 일러스트, 파란색 배경, 교육용 전문 이미지"'
   : '"깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명, 전문적인 분위기"'}:`,
       config: {
         responseMimeType: "text/plain"
@@ -455,6 +464,8 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     let stylePrompt = "";
     if (style === 'photo') {
         stylePrompt = "Hyper-realistic, 8k resolution, professional DSLR photography, soft hospital lighting, trustworthy medical atmosphere, shallow depth of field.";
+    } else if (style === 'medical') {
+        stylePrompt = "Professional 3D medical anatomy illustration, detailed cross-section view, transparent body showing internal organs, scientific visualization, educational medical diagram, clean blue/white/red medical color palette, anatomically accurate, professional healthcare imagery.";
     } else {
         stylePrompt = "High-quality 3D medical illustration, clean infographic style, bright blue and white color palette, friendly and modern, isometric view, soft clay render style.";
     }
@@ -608,6 +619,8 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
   const imageStyleGuide = imageStyle === 'illustration' 
     ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽 스타일, 파란색 흰색 팔레트, 친근하고 현대적인 느낌'
+    : imageStyle === 'medical'
+    ? '3D 해부학 일러스트, 인체 구조 단면도, 장기/뼈/근육/혈관 시각화, 투명/반투명 효과, 교육용 의학 이미지, 파란색 흰색 빨간색 의료 팔레트'
     : '실사 사진, DSLR 촬영, 자연스러운 병원 조명, 전문적이고 신뢰감 있는 분위기';
   
   const blogPrompt = `
@@ -710,9 +723,11 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
     ${imageStyleGuide}
     
-    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'} 스타일):
+    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D' : '실사 사진'} 스타일):
     ${imageStyle === 'illustration' 
       ? '- "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
+      : imageStyle === 'medical'
+      ? '- "인체 심장의 3D 단면도, 좌심실과 우심실이 보이는 해부학적 구조, 혈관과 판막이 표시된 의학 일러스트, 파란색 배경"'
       : '- "깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명"'}
   `;
 
@@ -812,7 +827,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     
     [🎨 이미지 프롬프트 작성 규칙 - 매우 중요!]
     **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
-    이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'}
+    이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D 해부학' : '실사 사진'}
     
     **텍스트 규칙 (중요!):**
     - 이미지 안에 텍스트는 최대한 피할 것
@@ -823,9 +838,11 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
     ${imageStyleGuide}
     
-    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'} 스타일):
+    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D' : '실사 사진'} 스타일):
     ${imageStyle === 'illustration' 
       ? '- "밝은 병원 배경의 건강 인포그래픽, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
+      : imageStyle === 'medical'
+      ? '- "인체 폐의 3D 단면도, 기관지와 폐포 구조가 보이는 해부학 일러스트, 투명 효과, 파란색 의료 배경"'
       : '- "깔끔한 병원 환경 이미지, 실사 사진, DSLR 촬영, 전문적인 분위기"'}
   `;
 

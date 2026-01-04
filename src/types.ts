@@ -20,7 +20,7 @@ export enum ContentCategory {
 }
 
 export type AudienceMode = '환자용(친절/공감)' | '전문가용(신뢰/정보)';
-export type ImageStyle = 'photo' | 'illustration';
+export type ImageStyle = 'photo' | 'illustration' | 'medical';
 export type PostType = 'blog' | 'card_news';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
 export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
