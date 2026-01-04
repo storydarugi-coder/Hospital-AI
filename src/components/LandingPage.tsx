@@ -306,6 +306,119 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
         </div>
       </section>
 
+      {/* AI 편집 기능 Section */}
+      <section className="py-20 px-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-purple-500 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-20 right-10 w-72 h-72 bg-blue-500 rounded-full blur-[120px]"></div>
+        </div>
+        
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-6">
+              <span className="text-sm font-bold text-white">🪄 마법 같은 편집</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">생성 후 수정도 간단하게</h2>
+            <p className="text-purple-200 font-medium max-w-xl mx-auto">클릭 한 번으로 이미지 재생성, AI 채팅으로 글 수정</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* 이미지 재생성 카드 */}
+            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/20 hover:bg-white/15 transition-all group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-lg shadow-pink-500/30">
+                  🖼️
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">이미지 클릭 → 재생성</h3>
+                  <p className="text-purple-300 text-sm font-medium">마음에 안 드는 이미지? 클릭 한 번!</p>
+                </div>
+              </div>
+              <div className="bg-slate-900/50 rounded-2xl p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl flex items-center justify-center relative cursor-pointer group/img">
+                    <span className="text-3xl">🏥</span>
+                    <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">🔄 재생성</span>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white/80 text-sm font-medium mb-2">이미지를 클릭하면...</p>
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 bg-pink-500/30 text-pink-300 text-xs font-bold rounded-full">✨ 새 프롬프트 입력</span>
+                      <span className="px-3 py-1 bg-purple-500/30 text-purple-300 text-xs font-bold rounded-full">🎲 랜덤 재생성</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 원하는 스타일로 즉시 교체
+                </li>
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 프롬프트 직접 수정 가능
+                </li>
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 실사 ↔ 일러스트 변경
+                </li>
+              </ul>
+            </div>
+
+            {/* AI 채팅 수정 카드 */}
+            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-3xl border border-white/20 hover:bg-white/15 transition-all group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform shadow-lg shadow-emerald-500/30">
+                  💬
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">AI 채팅으로 글 수정</h3>
+                  <p className="text-purple-300 text-sm font-medium">말로 하면 AI가 알아서 수정!</p>
+                </div>
+              </div>
+              <div className="bg-slate-900/50 rounded-2xl p-4 mb-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-xs shrink-0">🤖</div>
+                  <div className="bg-emerald-500/20 text-emerald-200 text-sm px-3 py-2 rounded-2xl rounded-tl-none">
+                    어떤 부분을 수정할까요?
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 justify-end">
+                  <div className="bg-white/20 text-white text-sm px-3 py-2 rounded-2xl rounded-tr-none">
+                    두 번째 문단 좀 더 부드럽게 해줘
+                  </div>
+                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs shrink-0">👤</div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-xs shrink-0">🤖</div>
+                  <div className="bg-emerald-500/20 text-emerald-200 text-sm px-3 py-2 rounded-2xl rounded-tl-none">
+                    ✅ 수정 완료! 확인해보세요~
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 자연어로 편하게 요청
+                </li>
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 톤 변경, 길이 조절, 내용 추가
+                </li>
+                <li className="flex items-center gap-2 text-purple-200 text-sm">
+                  <span className="text-emerald-400">✓</span> 의료법 준수 유지하며 수정
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-12">
+            <a href="#app" className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-lg rounded-2xl hover:shadow-2xl hover:shadow-emerald-500/30 transition-all hover:-translate-y-1">
+              🚀 직접 체험해보기
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Target Users Section */}
       <section className="py-20 px-6 bg-gradient-to-b from-slate-50 to-white">
         <div className="max-w-6xl mx-auto">
