@@ -62,17 +62,17 @@ export const PLANS: Record<string, PlanInfo> = {
     id: 'basic-10',
     name: '베이직 10건',
     credits: 10,
-    price: 10000,
-    originalPrice: 15000,
+    price: 15900,
+    originalPrice: 25000,
     duration: 'once',
     description: '블로그 원고 10회 생성권'
   },
-  'basic-20': {
-    id: 'basic-20',
-    name: '베이직 20건',
+  'standard-20': {
+    id: 'standard-20',
+    name: '스탠다드 20건',
     credits: 20,
-    price: 19900,
-    originalPrice: 30000,
+    price: 29900,
+    originalPrice: 45000,
     duration: 'once',
     description: '블로그 원고 20회 생성권'
   },
@@ -80,7 +80,7 @@ export const PLANS: Record<string, PlanInfo> = {
     id: 'premium-monthly',
     name: '프리미엄 월간',
     credits: -1, // 무제한
-    price: 59900,
+    price: 69900,
     originalPrice: 99000,
     duration: 'monthly',
     description: '무제한 원고 생성 (월 구독)'
@@ -89,8 +89,8 @@ export const PLANS: Record<string, PlanInfo> = {
     id: 'premium-yearly',
     name: '프리미엄 연간',
     credits: -1, // 무제한
-    price: 499000,
-    originalPrice: 718800,
+    price: 599000,
+    originalPrice: 838800,
     duration: 'yearly',
     description: '무제한 원고 생성 (연 구독)'
   }
