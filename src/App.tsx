@@ -62,6 +62,30 @@ const App: React.FC = () => {
     }
   };
   
+  // 크레딧 저장/불러오기 (localStorage)
+  const saveUserCredits = (userId: string, credits: number, plan: string, expiresAt?: string) => {
+    const creditData = { credits, plan, expiresAt, updatedAt: new Date().toISOString() };
+    localStorage.setItem(`user_credits_${userId}`, JSON.stringify(creditData));
+  };
+  
+  const loadUserCredits = (userId: string): { credits: number; plan: string; expiresAt?: string } | null => {
+    try {
+      const data = localStorage.getItem(`user_credits_${userId}`);
+      if (data) {
+        const parsed = JSON.parse(data);
+        // 만료일 체크 (프리미엄 구독)
+        if (parsed.expiresAt && new Date(parsed.expiresAt) < new Date()) {
+          // 구독 만료됨
+          return { credits: 0, plan: 'free' };
+        }
+        return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  };
+  
   const handleApplyCoupon = () => {
     const code = couponCode.toUpperCase().trim();
     setCouponMessage(null);
@@ -87,11 +111,16 @@ const App: React.FC = () => {
     
     // 쿠폰 적용
     if (userProfile) {
-      const newCredits = userProfile.remainingCredits + coupon.credits;
-      setUserProfile({ ...userProfile, remainingCredits: newCredits });
+      const currentCredits = userProfile.remainingCredits === -1 ? 0 : userProfile.remainingCredits;
+      const newCredits = currentCredits + coupon.credits;
+      const updatedProfile = { ...userProfile, remainingCredits: newCredits };
+      setUserProfile(updatedProfile);
       
       // 사용한 쿠폰 저장
       localStorage.setItem('used_coupons', JSON.stringify([...usedCoupons, code]));
+      
+      // 크레딧 저장
+      saveUserCredits(userProfile.id, newCredits, userProfile.plan);
       
       setCouponMessage({ type: 'success', text: `🎉 ${coupon.description} 쿠폰 적용! +${coupon.credits}회 추가되었습니다.` });
       setCouponCode('');
@@ -122,13 +151,14 @@ const App: React.FC = () => {
         console.log('User found, setting isLoggedIn to true');
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
-        // 프로필 정보 설정
+        // 프로필 정보 설정 (저장된 크레딧 불러오기)
+        const { plan, remainingCredits } = loadSavedCredits(session.user);
         setUserProfile({
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
-          plan: 'free',
-          remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
+          plan,
+          remainingCredits
         });
       }
       setAuthLoading(false);
@@ -138,6 +168,22 @@ const App: React.FC = () => {
 
     console.log('Initial auth check started');
     
+    // 저장된 크레딧 불러오기 함수
+    const loadSavedCredits = (user: User) => {
+      const savedCredits = loadUserCredits(user.id);
+      if (savedCredits) {
+        return {
+          plan: savedCredits.plan as 'free' | 'basic' | 'standard' | 'premium',
+          remainingCredits: savedCredits.credits
+        };
+      }
+      // 신규 사용자: 무료 3회 (오픈 이벤트 기간에는 999)
+      return {
+        plan: 'free' as const,
+        remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
+      };
+    };
+    
     // 인증 상태 변경 감시
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
@@ -145,12 +191,14 @@ const App: React.FC = () => {
       if (session?.user) {
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
+        // 프로필 정보 설정 (저장된 크레딧 불러오기)
+        const { plan, remainingCredits } = loadSavedCredits(session.user);
         setUserProfile({
           id: session.user.id,
           email: session.user.email || '',
           name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
-          plan: 'free',
-          remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
+          plan,
+          remainingCredits
         });
         
         // 로그인 성공 시 앱으로 이동
@@ -275,10 +323,12 @@ const App: React.FC = () => {
       setState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 크레딧 차감 (로그인 시에만, 프리미엄/관리자 제외)
-      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && !isAdmin) {
-        const updatedProfile = { ...userProfile, remainingCredits: userProfile.remainingCredits - 1 };
+      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && userProfile.remainingCredits !== -1 && !isAdmin) {
+        const newCredits = userProfile.remainingCredits - 1;
+        const updatedProfile = { ...userProfile, remainingCredits: newCredits };
         setUserProfile(updatedProfile);
-        // TODO: Supabase DB에 사용량 기록
+        // localStorage에 저장
+        saveUserCredits(userProfile.id, newCredits, userProfile.plan);
       }
     } catch (err: any) {
        setState(prev => ({ ...prev, isLoading: false, error: err.message }));
@@ -324,25 +374,38 @@ const App: React.FC = () => {
     });
     
     // 크레딧 업데이트
+    let newPlan: 'free' | 'basic' | 'standard' | 'premium';
+    let newCredits: number;
+    let expiresAt: string | undefined;
+    
     if (credits === -1) {
       // 프리미엄 (무제한)
-      setUserProfile({
-        ...userProfile,
-        plan: 'premium',
-        remainingCredits: -1
-      });
+      newPlan = 'premium';
+      newCredits = -1;
+      // 만료일 설정 (월간: 30일, 연간: 365일)
+      const days = plan.duration === 'yearly' ? 365 : 30;
+      expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
     } else {
-      // 베이직 (크레딧 추가)
-      const newCredits = userProfile.remainingCredits + credits;
-      setUserProfile({
-        ...userProfile,
-        plan: 'basic',
-        remainingCredits: newCredits
-      });
+      // 베이직/스탠다드 (크레딧 추가)
+      const currentCredits = userProfile.remainingCredits === -1 ? 0 : userProfile.remainingCredits;
+      newCredits = currentCredits + credits;
+      newPlan = planId.includes('standard') ? 'standard' : 'basic';
+      // 유효기간 3개월
+      expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
     }
     
-    // TODO: Supabase DB에 결제 기록 및 크레딧 업데이트
-    console.log(`결제 완료: ${plan.name}, 크레딧: ${credits === -1 ? '무제한' : `+${credits}회`}`);
+    // 프로필 업데이트
+    const updatedProfile = {
+      ...userProfile,
+      plan: newPlan,
+      remainingCredits: newCredits
+    };
+    setUserProfile(updatedProfile);
+    
+    // localStorage에 저장
+    saveUserCredits(userProfile.id, newCredits, newPlan, expiresAt);
+    
+    console.log(`결제 완료: ${plan.name}, 크레딧: ${credits === -1 ? '무제한' : `+${credits}회`}, 저장됨`);
   };
 
   // Pricing 페이지 렌더링
