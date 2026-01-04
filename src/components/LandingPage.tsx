@@ -374,10 +374,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <div className="text-3xl font-black text-slate-900 mb-1">무료</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">원고 3회 | 계정당 1회</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 3회</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 3장</li>
-                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 카드뉴스 생성</li>
-                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 레퍼런스 URL 분석</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
               <a href="#auth" className="block w-full py-3 text-center bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all">
                 무료 체험
@@ -388,13 +388,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
               <h3 className="text-xl font-black text-slate-800 mb-1">베이직</h3>
               <p className="text-sm text-slate-400 mb-4">개인 블로거용</p>
-              <div className="text-3xl font-black text-slate-900 mb-1">₩10,000</div>
+              <div className="text-3xl font-black text-slate-900 mb-1">₩15,900</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">원고 10회 | 3개월</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 10회</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 5장</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
-                <li className="flex items-center gap-2"><span className="text-slate-300">×</span> 레퍼런스 URL 분석</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">
                 구매하기
@@ -406,13 +406,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-black rounded-full">인기</div>
               <h3 className="text-xl font-black text-white mb-1">스탠다드</h3>
               <p className="text-sm text-emerald-100 mb-4">소규모 병원용</p>
-              <div className="text-3xl font-black text-white mb-1">₩19,900</div>
+              <div className="text-3xl font-black text-white mb-1">₩29,900</div>
               <p className="text-sm text-emerald-200 font-medium mb-6">원고 20회 | 3개월</p>
               <ul className="space-y-2 text-sm text-white/90 mb-6">
-                <li className="flex items-center gap-2"><span>✓</span> AI 원고 생성 20회</li>
-                <li className="flex items-center gap-2"><span>✓</span> AI 이미지 최대 5장</li>
+                <li className="flex items-center gap-2"><span>✓</span> AI 원고 생성</li>
+                <li className="flex items-center gap-2"><span>✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span>✓</span> 카드뉴스 생성</li>
-                <li className="flex items-center gap-2"><span>✓</span> 레퍼런스 URL 분석</li>
+                <li className="flex items-center gap-2"><span>✓</span> 모든 기능 동일</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">
                 구매하기
@@ -423,14 +423,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
               <h3 className="text-xl font-black text-slate-800 mb-1">프리미엄</h3>
               <p className="text-sm text-slate-400 mb-4">대형 병원/대행사용</p>
-              <div className="text-3xl font-black text-slate-900 mb-1">₩59,900</div>
+              <div className="text-3xl font-black text-slate-900 mb-1">₩69,900</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">무제한 | 월 구독</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>무제한</b></li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 최대 5장</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 무제한</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 레퍼런스 URL 분석</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 신규 기능 우선 제공</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">
                 구독하기

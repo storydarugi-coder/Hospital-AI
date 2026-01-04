@@ -266,16 +266,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   <span className="text-emerald-500">✓</span> AI 이미지 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 카드뉴스 생성
+                </li>
+                <li className="flex items-center gap-2 text-sm text-slate-600">
                   <span className="text-emerald-500">✓</span> 의료광고법 준수 검사
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
                   <span className="text-emerald-500">✓</span> 5가지 디자인 테마
                 </li>
-                <li className="flex items-center gap-2 text-sm text-slate-400">
-                  <span className="text-slate-300">✗</span> 카드뉴스 생성
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-400">
-                  <span className="text-slate-300">✗</span> 이메일 지원
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 모든 기능 동일
                 </li>
               </ul>
 
@@ -341,16 +341,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   <span className="text-emerald-500">✓</span> AI 이미지 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="text-emerald-500">✓</span> 의료광고법 준수 검사
+                  <span className="text-emerald-500">✓</span> 카드뉴스 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="text-emerald-500">✓</span> 카드뉴스 생성
+                  <span className="text-emerald-500">✓</span> 의료광고법 준수 검사
                 </li>
                 <li className="flex items-center gap-2 text-sm text-slate-600">
                   <span className="text-emerald-500">✓</span> 5가지 디자인 테마
                 </li>
-                <li className="flex items-center gap-2 text-sm text-slate-400">
-                  <span className="text-slate-300">✗</span> 이메일 지원
+                <li className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-emerald-500">✓</span> 모든 기능 동일
                 </li>
               </ul>
 
@@ -424,19 +424,19 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                   <span>✓</span> 무제한 원고 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> AI 이미지 무제한
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 의료광고법 준수 검사
+                  <span>✓</span> AI 이미지 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white">
                   <span>✓</span> 카드뉴스 생성
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white">
+                  <span>✓</span> 의료광고법 준수 검사
+                </li>
+                <li className="flex items-center gap-2 text-sm text-white">
                   <span>✓</span> 5가지 디자인 테마
                 </li>
                 <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 우선 이메일 지원
+                  <span>✓</span> 모든 기능 동일
                 </li>
               </ul>
 
