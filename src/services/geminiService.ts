@@ -800,8 +800,17 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       </div>
       `.trim();
   } else {
-      // 이미 naver-post-container가 있으면 그대로 사용
-      finalHtml = body;
+      // 블로그 포스트: 맨 위에 메인 제목(h2) 추가
+      const mainTitle = request.topic || textData.title;
+      if (body.includes('class="naver-post-container"')) {
+        // naver-post-container 안에 제목 삽입
+        finalHtml = body.replace(
+          '<div class="naver-post-container">',
+          `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>`
+        );
+      } else {
+        finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
+      }
   }
 
   return {

@@ -343,6 +343,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   return (
     <div className="bg-white rounded-[48px] shadow-2xl border border-slate-200 h-full flex flex-col overflow-hidden relative">
       <style>{`
+        .naver-preview .main-title { font-size: 32px; font-weight: 900; margin-bottom: 30px; color: #000; line-height: 1.4; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
         .naver-preview h3 { font-size: 24px; font-weight: bold; margin-top: 50px; margin-bottom: 20px; color: #000; }
         .naver-preview p { font-size: 16px; margin-bottom: 20px; color: #333; line-height: 1.8; }
         .naver-preview .content-image-wrapper { position: relative; margin: 90px 0; }

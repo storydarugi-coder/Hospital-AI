@@ -229,12 +229,12 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">2단계. 제목 및 키워드</label>
-          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="직접 주제를 입력하거나 위에서 핫토픽을 선택하세요" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none" required />
-          <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="핵심 키워드 (쉼표 구분)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium mb-4 focus:border-emerald-500 outline-none" />
+          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">2단계. 블로그 제목</label>
+          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
+          <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="SEO 키워드 (쉼표 구분, 예: 피부건조, 겨울철 피부관리, 보습)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium mb-4 focus:border-emerald-500 outline-none" />
           
           <button type="button" onClick={handleRecommendTitles} disabled={isLoadingTitles || !topic} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-black transition-all">
-            {isLoadingTitles ? '생성 중...' : '🎯 스마트블록 상위 노출용 제목 추천'}
+            {isLoadingTitles ? '생성 중...' : '🎯 AI 제목 추천받기'}
           </button>
           
           {seoTitles.length > 0 && (
