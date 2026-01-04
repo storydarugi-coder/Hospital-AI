@@ -1064,10 +1064,9 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
     
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-2.5-flash-preview-05-20",  // 빠른 모델로 변경 (pro보다 훨씬 빠름)
         contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${sanitizedHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지하세요.`,
         config: { 
-          tools: [{ googleSearch: {} }],
           responseMimeType: "application/json", 
           responseSchema: { 
             type: Type.OBJECT, 
