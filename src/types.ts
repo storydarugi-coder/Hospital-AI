@@ -23,7 +23,7 @@ export type AudienceMode = '환자용(친절/공감)' | '전문가용(신뢰/정
 export type ImageStyle = 'photo' | 'illustration';
 export type PostType = 'blog' | 'card_news';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
-export type WritingStyle = 'safe' | 'empathy' | 'conversion';  // 안전형 / 공감형 / 전환형
+export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
 
 export interface GenerationRequest {
   category: ContentCategory;
