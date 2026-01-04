@@ -551,36 +551,40 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
           <script>
             window.onload = function() {
               // 이미지 로드 완료 후 프린트
-              const images = document.querySelectorAll('img');
-              let loadedCount = 0;
-              const totalImages = images.length;
+              var images = document.querySelectorAll('img');
+              var loadedCount = 0;
+              var totalImages = images.length;
+              
+              function tryPrint() {
+                setTimeout(function() { window.print(); }, 500);
+              }
               
               if (totalImages === 0) {
-                setTimeout(() => window.print(), 300);
+                tryPrint();
                 return;
               }
               
-              images.forEach(img => {
+              for (var i = 0; i < images.length; i++) {
+                var img = images[i];
                 if (img.complete) {
                   loadedCount++;
                 } else {
-                  img.onload = img.onerror = () => {
+                  img.onload = img.onerror = function() {
                     loadedCount++;
                     if (loadedCount >= totalImages) {
-                      setTimeout(() => window.print(), 300);
+                      tryPrint();
                     }
                   };
                 }
-              });
+              }
               
               if (loadedCount >= totalImages) {
-                setTimeout(() => window.print(), 300);
+                tryPrint();
               }
               
               // 안전장치: 5초 후 강제 프린트
-              setTimeout(() => window.print(), 5000);
+              setTimeout(function() { window.print(); }, 5000);
             };
-            }
           </script>
         </body>
         </html>
