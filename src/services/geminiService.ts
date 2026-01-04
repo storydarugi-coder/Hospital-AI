@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoTitleItem, ImageStyle } from "../types";
+import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoTitleItem, ImageStyle, WritingStyle } from "../types";
 
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
@@ -35,6 +35,102 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = `
 6. **병원 이름/연락처 절대 포함 금지**
    - 병원명, 전화번호, 주소 등 직접적인 광고성 정보는 작성하지 말 것
    - "저희 병원" 대신 "의료기관", "병원" 등 일반 명사 사용
+`;
+
+// 글 스타일별 프롬프트 (의료법 100% 준수)
+const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
+  // 🛡️ 안전형: 기존 방식, 법적 리스크 최소화
+  safe: `
+[글쓰기 스타일: 안전형 🛡️]
+- 목표: 법적 리스크 제로, 무난하고 신뢰감 있는 정보 전달
+- 톤: 차분하고 객관적인 전문가 톤
+- 특징: 정확한 의학 정보 중심, 감정 표현 최소화
+- 문장 패턴: "~할 수 있습니다", "~로 알려져 있습니다", "~를 권장합니다"
+`,
+
+  // 💗 공감형: 독자 경험 중심, "이거 내 얘기네!" 반응 유도
+  empathy: `
+[글쓰기 스타일: 공감형 💗]
+- 목표: 독자가 "이거 내 얘기네!"라고 느끼게 만들기
+- 톤: 따뜻하고 이해심 있는 친구 같은 톤
+
+[🎯 핵심 테크닉 - 반드시 적용]
+
+1. **도입부: 구체적 상황 묘사로 시작** (필수!)
+   ❌ "오늘은 겨울철 피부 건조에 대해 알아보겠습니다."
+   ✅ "히터 켜고 자고 일어나면 얼굴이 땅기는 느낌, 한 번쯤 겪어보셨을 거예요."
+   ✅ "샤워하고 나와서 5분만 지나도 온몸이 가려워지는 경험, 있으시죠?"
+   ✅ "아침에 거울 보다가 '어? 내 피부가 왜 이래?' 싶었던 적 있으시죠?"
+
+2. **구체적 상황/행동 예시 삽입** (최소 3개 이상)
+   - 시간대: "아침 세안 후", "퇴근 후", "샤워 직후", "잠들기 전"
+   - 장소: "히터 앞에서", "사무실 에어컨 아래서", "지하철 안에서"
+   - 행동: "무의식적으로 긁다가", "보습제 바르는데 따가워서", "화장이 들뜨길래"
+   
+3. **실패/예외 사례 포함** (AI 냄새 제거)
+   ✅ "모든 보습제가 다 맞는 건 아니에요. 저도 세라마이드 제품 발랐다가 오히려 따가웠던 적 있거든요."
+   ✅ "근데 솔직히, 이거 알면서도 잘 안 되는 게 현실이잖아요."
+   ✅ "병원에서 권하는 대로 했는데 별로 효과를 못 느끼는 분들도 계세요. 개인차가 있으니까요."
+
+4. **강약 조절 - 모든 문장이 같은 톤 금지**
+   - 강조: "이건 진짜 중요해요", "꼭 기억해 두세요"
+   - 약화: "근데 사실...", "솔직히 말하면...", "물론 개인차는 있지만"
+   - 공감: "맞아요, 귀찮죠", "알아요, 쉽지 않죠"
+
+5. **반복 표현 금지 - 다양한 표현 사용**
+   ❌ "~에 도움이 될 수 있습니다" 반복 금지
+   ✅ 대체 표현: "효과를 보시는 분들이 많아요", "해볼 만한 가치가 있어요", "의외로 괜찮더라고요"
+`,
+
+  // 🎯 전환형: 행동 유도 최적화, 상담/예약 유도 (의료법 준수)
+  conversion: `
+[글쓰기 스타일: 전환형 🎯]
+- 목표: 독자가 글을 읽고 "나도 검진받아봐야겠다"라고 행동하게 만들기
+- 톤: 신뢰감 + 적절한 긴장감 + 해결책 제시
+
+[🎯 핵심 테크닉 - 반드시 적용]
+
+1. **도입부: 충격적 사실 또는 질문으로 시작**
+   ❌ "오늘은 당뇨에 대해 알아보겠습니다."
+   ✅ "당뇨 전 단계인데 모르고 지나치는 사람이 절반이 넘는다는 사실, 알고 계셨나요?"
+   ✅ "혹시 최근에 소변을 자주 보시나요? 그냥 물을 많이 마셔서라고 생각하셨다면..."
+   
+2. **손실 회피 심리 활용** (의료법 준수하면서!)
+   ❌ 금지: "지금 안 하면 후회합니다"
+   ✅ 안전: "초기에 발견하면 관리가 훨씬 수월해질 수 있어요"
+   ✅ 안전: "작은 신호를 놓치면 나중에 아쉬울 수 있어요"
+   ✅ 안전: "미루다 보면 놓치기 쉬운 타이밍이 있어요"
+
+3. **구체적 수치/데이터 활용**
+   ✅ "국민건강영양조사에 따르면..."
+   ✅ "대한OO학회 발표 자료를 보면..."
+   ✅ "10명 중 7명이 이 증상을 가볍게 여긴다고 해요"
+
+4. **결론: 행동을 하나로 집중**
+   ❌ 여러 메시지 나열
+   ✅ "이번 겨울, 딱 하나만 기억하세요. '샤워 후 3분 보습'이에요."
+   ✅ "오늘 할 일: 거울 앞에서 혀 한번 내밀어보기. 그게 첫걸음이에요."
+
+5. **CTA 박스에서 심리학 기법 조합**
+   - 사회적 증거: "많은 분들이 이맘때 검진을 받으세요"
+   - 시의성: "환절기가 지나기 전에 체크해보시는 건 어떨까요"
+   - 일관성: "오늘 자가체크 한번 해보시고, 궁금한 점이 있으면 전문의와 상담을 고려해 보세요"
+`
+};
+
+// 글 스타일별 금지 표현 체크 (공통)
+const WRITING_STYLE_COMMON_RULES = `
+[⚠️ 모든 스타일 공통 - 절대 금지]
+- "~에 도움이 될 수 있습니다" 3회 이상 반복 금지
+- "중요합니다" 3회 이상 반복 금지  
+- 모든 문장이 "~합니다"로 끝나는 단조로움 금지
+- "오늘은 ~에 대해 알아보겠습니다" 같은 진부한 도입 금지
+
+[✅ 권장 문장 엔딩 다양화]
+- "~거든요", "~잖아요", "~더라고요" (친근함)
+- "~인데요", "~예요/이에요" (부드러움)
+- "~세요", "~보세요" (권유)
+- "~죠?", "~을까요?" (질문형)
 `;
 
 // 심리학적 설득 기법 기반 전환 문구 (의료광고법 100% 준수)
@@ -288,10 +384,15 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
 
   const targetImageCount = request.imageCount || 3;
   const imageMarkers = Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ');
+  const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
+  const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
   
   const blogPrompt = `
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
+    ${writingStylePrompt}
+    ${WRITING_STYLE_COMMON_RULES}
     ${benchmarkingInstruction}
+    
     진료과: ${request.category}, 페르소나: ${request.persona}, 주제: ${request.topic}
     목표 글자 수: 공백 포함 약 ${targetLength}자 (너무 짧지 않게 풍부한 내용 작성)
     이미지 개수: ${targetImageCount}장 (${imageMarkers} 마커 사용)
@@ -302,21 +403,21 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     HTML 구조 (이미지 ${targetImageCount}장 배치):
     <div class="naver-post-container">
       <h3>제목 (서론 제목)</h3>
-      <p>서론 문단... (친근하게 인사, 공감, 계절 이야기)</p>
+      <p>서론 문단 - ${writingStyle === 'safe' ? '전문적인 인사와 주제 소개' : '구체적 상황 묘사로 시작! (예: "히터 켜고 자고 일어나면...")'}</p>
       
       [IMG_1]
       
       <h3>본론 소제목 1</h3>
-      <p>전문적인 의학 정보... (상세히 설명)</p>
+      <p>전문적인 의학 정보... ${writingStyle !== 'safe' ? '+ 실제 상황 예시 포함' : ''}</p>
       <ul>
-        <li>증상 1 - 개선 가능성 언급</li>
-        <li>증상 2 - 도움이 될 수 있다고 표현</li>
+        <li>증상 1 ${writingStyle !== 'safe' ? '+ 구체적 상황 ("아침에 일어났을 때...")' : ''}</li>
+        <li>증상 2 ${writingStyle !== 'safe' ? '+ 공감 표현 ("이런 경험 있으시죠?")' : ''}</li>
       </ul>
       
       ${targetImageCount >= 2 ? '[IMG_2]' : ''}
       
       <h3>본론 소제목 2</h3>
-      <p>검사/치료 방법 설명... (안전한 표현 사용)</p>
+      <p>검사/치료 방법 설명... ${writingStyle !== 'safe' ? '+ 예외 사례 언급 ("물론 개인차가 있어서...")' : ''}</p>
       
       ${targetImageCount >= 3 ? '[IMG_3]' : ''}
       
@@ -325,7 +426,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
       ${targetImageCount >= 5 ? '<h3>전문가 조언</h3><p>전문적인 내용...</p>[IMG_5]' : ''}
       
       <h3>건강 관리 팁</h3>
-      <p>마무리 1: 핵심 정보 요약 (짧게 2-3줄)</p>
+      <p>마무리: ${writingStyle === 'conversion' ? '행동을 하나로 집중! ("딱 하나만 기억하세요...")' : '핵심 정보 요약 (짧게 2-3줄)'}</p>
       
       <div class="cta-box">
         <p class="cta-title">💡 건강 체크 포인트</p>

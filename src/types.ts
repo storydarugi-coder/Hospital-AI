@@ -23,6 +23,7 @@ export type AudienceMode = '환자용(친절/공감)' | '전문가용(신뢰/정
 export type ImageStyle = 'photo' | 'illustration';
 export type PostType = 'blog' | 'card_news';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
+export type WritingStyle = 'safe' | 'empathy' | 'conversion';  // 안전형 / 공감형 / 전환형
 
 export interface GenerationRequest {
   category: ContentCategory;
@@ -38,6 +39,7 @@ export interface GenerationRequest {
   slideCount?: number;
   imageCount?: number; // 블로그 포스트 이미지 장수
   cssTheme?: CssTheme;
+  writingStyle?: WritingStyle; // 글 스타일: 안전형/공감형/전환형
 }
 
 export interface FactCheckReport {

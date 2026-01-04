@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CATEGORIES, TONES, PERSONAS } from '../constants';
-import { GenerationRequest, ContentCategory, TrendingItem, SeoTitleItem, AudienceMode, ImageStyle, PostType, CssTheme } from '../types';
+import { GenerationRequest, ContentCategory, TrendingItem, SeoTitleItem, AudienceMode, ImageStyle, PostType, CssTheme, WritingStyle } from '../types';
 import { getTrendingTopics, recommendSeoTitles } from '../services/geminiService';
 
 interface InputFormProps {
@@ -23,6 +23,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
   const [imageCount, setImageCount] = useState<number>(3);
+  const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
   
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
@@ -45,7 +46,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       postType,
       textLength,
       slideCount,
-      imageCount
+      imageCount,
+      writingStyle
     });
   };
 
@@ -271,6 +273,53 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
            </div>
         </div>
+
+        {/* 글 스타일 선택 (NEW!) */}
+        {postType === 'blog' && (
+          <div>
+             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">✍️ 글 스타일</label>
+             <p className="text-[11px] text-slate-500 mb-3 font-medium">목적에 맞는 글쓰기 스타일을 선택하세요</p>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setWritingStyle('safe')}
+                  className={`p-4 rounded-2xl border-2 transition-all text-left ${writingStyle === 'safe' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <div className="flex items-center gap-2 mb-2">
+                     <span className="text-xl">🛡️</span>
+                     <span className={`text-sm font-black ${writingStyle === 'safe' ? 'text-slate-700' : 'text-slate-600'}`}>안전형</span>
+                   </div>
+                   <p className="text-[10px] text-slate-500 font-medium">법적 리스크 제로, 무난한 정보 전달</p>
+                   <p className="text-[9px] text-slate-400 mt-1">대행사 물량형 · 기본 정보 콘텐츠</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWritingStyle('empathy')}
+                  className={`p-4 rounded-2xl border-2 transition-all text-left relative ${writingStyle === 'empathy' ? 'border-pink-500 bg-pink-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[9px] font-black px-2 py-1 rounded-full">추천</div>
+                   <div className="flex items-center gap-2 mb-2">
+                     <span className="text-xl">💗</span>
+                     <span className={`text-sm font-black ${writingStyle === 'empathy' ? 'text-pink-700' : 'text-slate-600'}`}>공감형</span>
+                   </div>
+                   <p className="text-[10px] text-slate-500 font-medium">"이거 내 얘기네!" 독자 공감 유도</p>
+                   <p className="text-[9px] text-slate-400 mt-1">구체적 상황 · 실패 사례 · 친근한 톤</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWritingStyle('conversion')}
+                  className={`p-4 rounded-2xl border-2 transition-all text-left ${writingStyle === 'conversion' ? 'border-amber-500 bg-amber-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <div className="flex items-center gap-2 mb-2">
+                     <span className="text-xl">🎯</span>
+                     <span className={`text-sm font-black ${writingStyle === 'conversion' ? 'text-amber-700' : 'text-slate-600'}`}>전환형</span>
+                   </div>
+                   <p className="text-[10px] text-slate-500 font-medium">행동 유도 최적화 (검진/상담)</p>
+                   <p className="text-[9px] text-slate-400 mt-1">데이터 활용 · 손실회피 심리 · 행동 집중</p>
+                </button>
+             </div>
+          </div>
+        )}
 
         <div>
            <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃 스타일</label>
