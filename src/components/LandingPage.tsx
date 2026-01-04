@@ -517,8 +517,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <div>
                 <h4 className="font-bold text-white mb-2">연락처</h4>
                 <p>이메일: story.darugi@gmail.com</p>
-                <p>전화: 02-2224-9232</p>
-                <p>사업장주소: 서울특별시 송파구 거마로 56, 116동 1709호 (거여동, 송파시그니처롯데캐슬)</p>
+                <p>사업장주소: 서울특별시 송파구 거마로 56 17층</p>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">서비스 안내</h4>
