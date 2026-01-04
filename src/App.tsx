@@ -46,6 +46,10 @@ const App: React.FC = () => {
   const [couponCode, setCouponCode] = useState('');
   const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
+  // 도움말 모달 상태
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpTab, setHelpTab] = useState<'guide' | 'faq'>('guide');
+  
   // 유효한 쿠폰 목록
   const VALID_COUPONS: Record<string, { credits: number; description: string }> = {
     'MARKETING2026': { credits: 5, description: '마케팅 2026 프로모션' },
@@ -493,6 +497,13 @@ const App: React.FC = () => {
              >
                 💎 결제
              </a>
+             <button 
+               onClick={() => setShowHelpModal(true)}
+               className="w-9 h-9 hover:bg-slate-100 rounded-xl transition-all text-lg font-black text-slate-400 hover:text-emerald-600 flex items-center justify-center"
+               title="도움말"
+             >
+                ?
+             </button>
              
              {/* 로그인/사용자 버튼 */}
              {isLoggedIn && userProfile ? (
@@ -557,6 +568,204 @@ const App: React.FC = () => {
         <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>🛠️ 설정</button>
         <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>📄 결과</button>
       </div>
+      
+      {/* 도움말 모달 */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl max-h-[85vh] flex flex-col">
+            {/* 헤더 */}
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
+              <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">?</span>
+                도움말
+              </h3>
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* 탭 */}
+            <div className="flex p-2 mx-6 mt-4 bg-slate-100 rounded-xl flex-shrink-0">
+              <button
+                onClick={() => setHelpTab('guide')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${helpTab === 'guide' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                📖 사용 설명서
+              </button>
+              <button
+                onClick={() => setHelpTab('faq')}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${helpTab === 'faq' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                💬 자주 묻는 질문
+              </button>
+            </div>
+            
+            {/* 컨텐츠 */}
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+              {helpTab === 'guide' ? (
+                <div className="space-y-6">
+                  {/* 사용 설명서 내용 */}
+                  <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
+                    <h4 className="font-black text-emerald-800 mb-3 flex items-center gap-2">
+                      <span>🚀</span> 빠른 시작 가이드
+                    </h4>
+                    <ol className="text-sm text-emerald-700 space-y-2">
+                      <li className="flex gap-2"><span className="font-black">1.</span> 진료과를 선택하세요 (내과, 정형외과, 피부과 등)</li>
+                      <li className="flex gap-2"><span className="font-black">2.</span> 블로그 주제를 입력하세요 (예: "겨울철 관절 통증")</li>
+                      <li className="flex gap-2"><span className="font-black">3.</span> 키워드를 입력하세요 (네이버 검색 키워드)</li>
+                      <li className="flex gap-2"><span className="font-black">4.</span> 이미지 스타일을 선택하세요 (실사/3D/의학)</li>
+                      <li className="flex gap-2"><span className="font-black">5.</span> "생성하기" 버튼을 클릭!</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+                    <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2">
+                      <span>📝</span> 콘텐츠 타입
+                    </h4>
+                    <div className="text-sm text-slate-600 space-y-3">
+                      <div className="flex gap-3">
+                        <span className="text-lg">📄</span>
+                        <div>
+                          <p className="font-bold text-slate-700">블로그 포스팅</p>
+                          <p className="text-slate-500">네이버 블로그에 최적화된 긴 글 형식</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">🎴</span>
+                        <div>
+                          <p className="font-bold text-slate-700">카드뉴스</p>
+                          <p className="text-slate-500">인스타그램/SNS용 정사각형 슬라이드</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+                    <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2">
+                      <span>🎨</span> 이미지 스타일 설명
+                    </h4>
+                    <div className="text-sm text-slate-600 space-y-3">
+                      <div className="flex gap-3">
+                        <span className="text-lg">📸</span>
+                        <div>
+                          <p className="font-bold text-slate-700">실사 촬영</p>
+                          <p className="text-slate-500">DSLR로 촬영한 듯한 실제 병원 사진 스타일</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">🎨</span>
+                        <div>
+                          <p className="font-bold text-slate-700">3D 일러스트</p>
+                          <p className="text-slate-500">친근한 클레이/인포그래픽 스타일</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">🫀</span>
+                        <div>
+                          <p className="font-bold text-slate-700">의학 3D</p>
+                          <p className="text-slate-500">해부학적 구조를 보여주는 전문 의학 이미지</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
+                    <h4 className="font-black text-blue-800 mb-3 flex items-center gap-2">
+                      <span>✏️</span> 결과 수정하기
+                    </h4>
+                    <div className="text-sm text-blue-700 space-y-2">
+                      <p>• <strong>직접 편집:</strong> 미리보기 화면에서 텍스트를 클릭하여 직접 수정</p>
+                      <p>• <strong>AI 수정:</strong> 하단 입력창에 수정 요청 입력 (예: "첫 문단 더 친근하게")</p>
+                      <p>• <strong>이미지 재생성:</strong> 이미지 클릭 → 프롬프트 수정 → 재생성</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-50 rounded-2xl p-5 border border-purple-100">
+                    <h4 className="font-black text-purple-800 mb-3 flex items-center gap-2">
+                      <span>📋</span> 복사 & 다운로드
+                    </h4>
+                    <div className="text-sm text-purple-700 space-y-2">
+                      <p>• <strong>HTML 복사:</strong> 네이버 블로그 에디터에 붙여넣기</p>
+                      <p>• <strong>Word 다운로드:</strong> .docx 파일로 저장 (이미지 포함)</p>
+                      <p>• <strong>이미지 저장:</strong> 개별 이미지 클릭 후 우클릭 저장</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* FAQ 내용 */}
+                  {[
+                    {
+                      q: "생성된 글을 네이버 블로그에 어떻게 올리나요?",
+                      a: "'HTML 복사' 버튼을 클릭한 후, 네이버 블로그 에디터에서 'HTML' 모드로 전환하고 붙여넣기 하세요. 이미지와 스타일이 모두 유지됩니다."
+                    },
+                    {
+                      q: "이미지가 마음에 들지 않아요. 다시 생성할 수 있나요?",
+                      a: "네! 이미지를 클릭하면 재생성 팝업이 나타납니다. 프롬프트를 수정하거나 'AI 추천' 버튼으로 새로운 프롬프트를 받아 재생성할 수 있습니다."
+                    },
+                    {
+                      q: "글 내용을 부분적으로 수정하고 싶어요.",
+                      a: "두 가지 방법이 있습니다: 1) 미리보기에서 직접 텍스트 클릭 후 수정, 2) 하단 입력창에 '두 번째 문단 더 자세하게 써줘' 같은 요청 입력"
+                    },
+                    {
+                      q: "의료광고법에 문제없는 건가요?",
+                      a: "모든 글은 의료광고법 준수 가이드라인을 적용하여 생성됩니다. 다만, 최종 업로드 전 병원 자체 검토를 권장합니다."
+                    },
+                    {
+                      q: "크레딧은 어떻게 충전하나요?",
+                      a: "상단 '결제' 버튼 또는 홈페이지 요금제 페이지에서 원하는 플랜을 선택하여 충전할 수 있습니다. 쿠폰 코드가 있다면 크레딧 버튼을 클릭하여 등록하세요."
+                    },
+                    {
+                      q: "레퍼런스 URL은 뭔가요?",
+                      a: "벤치마킹하고 싶은 블로그 글의 URL을 입력하면, 해당 글의 스타일과 구조를 참고하여 콘텐츠를 생성합니다. 경쟁 병원의 인기 글을 분석할 때 유용합니다."
+                    },
+                    {
+                      q: "카드뉴스와 블로그 포스팅의 차이는?",
+                      a: "블로그 포스팅은 긴 글 형식(16:9 이미지)이고, 카드뉴스는 인스타그램/SNS용 정사각형 슬라이드 형식입니다. 목적에 맞게 선택하세요."
+                    },
+                    {
+                      q: "생성 속도가 느려요.",
+                      a: "글 작성 + 이미지 생성에 약 1-2분이 소요됩니다. 이미지 개수가 많을수록 시간이 더 걸립니다. 잠시만 기다려주세요!"
+                    }
+                  ].map((item, idx) => (
+                    <details key={idx} className="bg-slate-50 rounded-xl border border-slate-200 group">
+                      <summary className="p-4 cursor-pointer font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 rounded-xl transition-all">
+                        <span className="flex items-center gap-2">
+                          <span className="text-emerald-500">Q.</span>
+                          {item.q}
+                        </span>
+                        <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                      </summary>
+                      <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
+                        <span className="text-emerald-600 font-bold">A.</span> {item.a}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* 문의 안내 푸터 */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-3xl flex-shrink-0">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-700">📧 문의 및 건의사항</p>
+                  <p className="text-xs text-slate-500">기능 제안, 오류 신고, 기타 문의</p>
+                </div>
+                <a 
+                  href="mailto:support@hospitalai.kr?subject=[HospitalAI 문의]" 
+                  className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all text-sm flex items-center gap-2"
+                >
+                  ✉️ 메일 보내기
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* 쿠폰 모달 */}
       {showCouponModal && (
