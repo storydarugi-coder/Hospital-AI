@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
 import { modifyPostWithAI, generateSingleImage, recommendImagePrompt } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface ResultPreviewProps {
   content: GeneratedContent;
@@ -114,49 +116,169 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     }
   };
 
-  // 워드 다운로드 함수
+  // 이미지 URL을 ArrayBuffer로 변환하는 함수
+  const fetchImageAsArrayBuffer = async (url: string): Promise<ArrayBuffer | null> => {
+    try {
+      // base64 데이터인 경우
+      if (url.startsWith('data:')) {
+        const base64Data = url.split(',')[1];
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+      // 일반 URL인 경우
+      const response = await fetch(url);
+      return await response.arrayBuffer();
+    } catch (e) {
+      console.error('이미지 로드 실패:', e);
+      return null;
+    }
+  };
+
+  // 워드 다운로드 함수 - 실제 .docx 생성
   const handleDownloadWord = async () => {
-    const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+    setEditProgress('Word 문서 생성 중...');
     
-    // 워드 호환 HTML 생성
-    const wordHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8">
-        <title>Hospital AI Content</title>
-        <!--[if gte mso 9]>
-        <xml>
-          <w:WordDocument>
-            <w:View>Print</w:View>
-            <w:Zoom>100</w:Zoom>
-          </w:WordDocument>
-        </xml>
-        <![endif]-->
-        <style>
-          body { font-family: '맑은 고딕', Malgun Gothic, sans-serif; line-height: 1.8; padding: 40px; }
-          h3 { font-size: 18pt; font-weight: bold; margin-top: 24pt; margin-bottom: 12pt; color: #1a1a1a; }
-          p { font-size: 11pt; margin-bottom: 12pt; color: #333; }
-          ul { margin-left: 20pt; }
-          li { font-size: 11pt; margin-bottom: 6pt; }
-          img { max-width: 100%; height: auto; margin: 20pt 0; }
-          .cta-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 20pt; margin: 20pt 0; border-radius: 8pt; }
-        </style>
-      </head>
-      <body>
-        ${styledHtml}
-      </body>
-      </html>
-    `;
-    
-    const blob = new Blob([wordHtml], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `hospital-ai-content-${Date.now()}.doc`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      // HTML을 파싱해서 텍스트와 이미지 추출
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = localHtml;
+      
+      const docChildren: any[] = [];
+      
+      // 제목 추출
+      const mainTitle = tempDiv.querySelector('.main-title, h2');
+      if (mainTitle) {
+        docChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: mainTitle.textContent || '',
+                bold: true,
+                size: 48, // 24pt
+                font: '맑은 고딕',
+              }),
+            ],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 400 },
+          })
+        );
+      }
+      
+      // 모든 요소 순회
+      const processNode = async (node: Element) => {
+        const tagName = node.tagName?.toLowerCase();
+        
+        if (tagName === 'h3') {
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: node.textContent || '',
+                  bold: true,
+                  size: 32, // 16pt
+                  font: '맑은 고딕',
+                }),
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 },
+            })
+          );
+        } else if (tagName === 'p') {
+          const text = node.textContent?.trim();
+          if (text) {
+            docChildren.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: text,
+                    size: 24, // 12pt
+                    font: '맑은 고딕',
+                  }),
+                ],
+                spacing: { after: 200 },
+              })
+            );
+          }
+        } else if (tagName === 'li') {
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: '• ' + (node.textContent || ''),
+                  size: 24,
+                  font: '맑은 고딕',
+                }),
+              ],
+              spacing: { after: 100 },
+              indent: { left: 720 }, // 0.5 inch
+            })
+          );
+        } else if (tagName === 'img') {
+          const src = (node as HTMLImageElement).src;
+          if (src) {
+            const imageData = await fetchImageAsArrayBuffer(src);
+            if (imageData) {
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new ImageRun({
+                      data: imageData,
+                      transformation: {
+                        width: 500,
+                        height: 280,
+                      },
+                      type: 'png',
+                    }),
+                  ],
+                  spacing: { before: 300, after: 300 },
+                  alignment: AlignmentType.CENTER,
+                })
+              );
+            }
+          }
+        }
+        
+        // 자식 노드 처리 (img는 제외 - 이미 처리됨)
+        if (tagName !== 'img') {
+          for (const child of Array.from(node.children)) {
+            await processNode(child);
+          }
+        }
+      };
+      
+      // 컨테이너 안의 모든 요소 처리
+      const container = tempDiv.querySelector('.naver-post-container') || tempDiv;
+      for (const child of Array.from(container.children)) {
+        if (child.classList?.contains('main-title') || child.tagName?.toLowerCase() === 'h2') continue; // 이미 처리됨
+        await processNode(child);
+      }
+      
+      // 문서 생성
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docChildren.length > 0 ? docChildren : [
+            new Paragraph({
+              children: [new TextRun({ text: tempDiv.textContent || '', font: '맑은 고딕' })],
+            }),
+          ],
+        }],
+      });
+      
+      // .docx 파일로 저장
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `hospital-ai-content-${Date.now()}.docx`);
+      
+    } catch (e) {
+      console.error('Word 생성 오류:', e);
+      alert('Word 문서 생성 중 오류가 발생했습니다.');
+    } finally {
+      setEditProgress('');
+    }
   };
 
   // PDF 다운로드 함수
