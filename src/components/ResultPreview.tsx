@@ -114,29 +114,108 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     }
   };
 
-  const handleBatchImageStyleChange = async (style: ImageStyle) => {
-     if (!confirm("모든 이미지를 재생성하시겠습니까? 시간이 소요됩니다.")) return;
-     
-     setIsEditingAi(true);
-     setEditProgress(style === 'photo' ? '모든 이미지를 실사로 변경 중...' : '모든 이미지를 일러스트로 변경 중...');
-     const aspectRatio = content.postType === 'card_news' ? "1:1" : "16:9";
-     
-     try {
-         const tempDiv = document.createElement('div');
-         tempDiv.innerHTML = localHtml;
-         const imgs = Array.from(tempDiv.querySelectorAll('img'));
-         
-         await Promise.all(imgs.map(async (img) => {
-             const prompt = img.alt;
-             if (prompt) {
-                 const newUrl = await generateSingleImage(prompt, style, aspectRatio);
-                 if (newUrl) img.src = newUrl;
-             }
-         }));
-         
-         setLocalHtml(tempDiv.innerHTML);
-     } catch(e) { alert('이미지 변경 중 오류가 발생했습니다.'); }
-     finally { setIsEditingAi(false); setEditProgress(''); }
+  // 워드 다운로드 함수
+  const handleDownloadWord = async () => {
+    const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+    
+    // 워드 호환 HTML 생성
+    const wordHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <title>Hospital AI Content</title>
+        <!--[if gte mso 9]>
+        <xml>
+          <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+          </w:WordDocument>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: '맑은 고딕', Malgun Gothic, sans-serif; line-height: 1.8; padding: 40px; }
+          h3 { font-size: 18pt; font-weight: bold; margin-top: 24pt; margin-bottom: 12pt; color: #1a1a1a; }
+          p { font-size: 11pt; margin-bottom: 12pt; color: #333; }
+          ul { margin-left: 20pt; }
+          li { font-size: 11pt; margin-bottom: 6pt; }
+          img { max-width: 100%; height: auto; margin: 20pt 0; }
+          .cta-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 20pt; margin: 20pt 0; border-radius: 8pt; }
+        </style>
+      </head>
+      <body>
+        ${styledHtml}
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob([wordHtml], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hospital-ai-content-${Date.now()}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // PDF 다운로드 함수
+  const handleDownloadPDF = async () => {
+    setEditProgress('PDF 생성 중...');
+    
+    try {
+      const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
+      // 새 창에서 프린트 다이얼로그 열기 (PDF로 저장 가능)
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('팝업이 차단되었습니다. 팝업을 허용해주세요.');
+        return;
+      }
+      
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Hospital AI Content - PDF</title>
+          <style>
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+            body { 
+              font-family: '맑은 고딕', Malgun Gothic, sans-serif; 
+              line-height: 1.8; 
+              padding: 40px; 
+              max-width: 800px; 
+              margin: 0 auto;
+            }
+            h3 { font-size: 20px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; color: #1a1a1a; }
+            p { font-size: 14px; margin-bottom: 15px; color: #333; }
+            ul { margin-left: 25px; }
+            li { font-size: 14px; margin-bottom: 8px; }
+            img { max-width: 100%; height: auto; margin: 25px 0; border-radius: 12px; }
+            .cta-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 25px; margin: 25px 0; border-radius: 12px; }
+          </style>
+        </head>
+        <body>
+          ${styledHtml}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (e) {
+      alert('PDF 생성 중 오류가 발생했습니다.');
+    } finally {
+      setEditProgress('');
+    }
   };
 
   const applyInlineStylesForNaver = (html: string, theme: CssTheme = currentTheme) => {
@@ -533,12 +612,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
             )}
           </div>
           <div className="flex items-center gap-2">
-             <span className="text-[10px] font-black uppercase text-slate-400 mr-2 hidden lg:inline">Quick Actions</span>
-             <button onClick={() => handleBatchImageStyleChange('photo')} disabled={isEditingAi} className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
-                📸 전체 실사로
+             <span className="text-[10px] font-black uppercase text-slate-400 mr-2 hidden lg:inline">다운로드</span>
+             <button onClick={handleDownloadWord} disabled={isEditingAi} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                📄 Word
              </button>
-             <button onClick={() => handleBatchImageStyleChange('illustration')} disabled={isEditingAi} className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
-                🎨 전체 일러스트로
+             <button onClick={handleDownloadPDF} disabled={isEditingAi} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                📑 PDF
              </button>
           </div>
         </div>
