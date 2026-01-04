@@ -1011,10 +1011,12 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   const textData = await generateBlogPostText(request);
   
-  const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' : '실사 촬영';
+  const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' 
+    : request.imageStyle === 'medical' ? '의학 3D' 
+    : '실사 촬영';
   const imgRatio = request.postType === 'card_news' ? "1:1" : "16:9";
   
-  onProgress(`${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
+  onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
   
   const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount || 3);
   
