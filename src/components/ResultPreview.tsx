@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver';
 
 interface ResultPreviewProps {
   content: GeneratedContent;
+  darkMode?: boolean;
 }
 
 // AI 수정 프롬프트 템플릿
@@ -22,7 +23,7 @@ const AI_PROMPT_TEMPLATES = [
 // 임시저장 키
 const AUTOSAVE_KEY = 'hospitalai_autosave';
 
-const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
+const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false }) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | 'html'>('preview');
   const [localHtml, setLocalHtml] = useState(content.fullHtml);
@@ -33,6 +34,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const [charCount, setCharCount] = useState(0);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
+  
+  // Undo 기능을 위한 히스토리
+  const [htmlHistory, setHtmlHistory] = useState<string[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  
+  // 이미지 다운로드 모달
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  const [downloadImgSrc, setDownloadImgSrc] = useState('');
+  const [downloadImgIndex, setDownloadImgIndex] = useState(0);
   
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenIndex, setRegenIndex] = useState<number>(1);
@@ -106,6 +116,41 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     } catch {
       return false;
     }
+  };
+
+  // Undo: 이전 상태로 되돌리기
+  const handleUndo = () => {
+    if (htmlHistory.length > 0) {
+      const prevHtml = htmlHistory[htmlHistory.length - 1];
+      setHtmlHistory(prev => prev.slice(0, -1));
+      setLocalHtml(prevHtml);
+      setCanUndo(htmlHistory.length > 1);
+    }
+  };
+
+  // 히스토리에 현재 상태 저장 (AI 수정 전에 호출)
+  const saveToHistory = () => {
+    setHtmlHistory(prev => [...prev.slice(-9), localHtml]); // 최대 10개 유지
+    setCanUndo(true);
+  };
+
+  // 이미지 다운로드 함수
+  const downloadImage = (imgSrc: string, index: number) => {
+    const link = document.createElement('a');
+    link.href = imgSrc;
+    link.download = `hospital-ai-image-${index}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 이미지 클릭 핸들러 (다운로드 or 재생성 선택 모달)
+  const handleImageClick = (imgSrc: string, imgAlt: string, index: number) => {
+    setDownloadImgSrc(imgSrc);
+    setDownloadImgIndex(index);
+    setRegenIndex(index);
+    setRegenPrompt(imgAlt || 'professional illustration');
+    setDownloadModalOpen(true);
   };
 
   // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트
@@ -729,6 +774,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const handleAiEditSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!editorInput.trim()) return;
+      
+      // Undo를 위해 현재 상태 저장
+      saveToHistory();
+      
       setIsEditingAi(true);
       setEditProgress('AI 에디터가 요청하신 내용을 바탕으로 원고를 최적화하고 있습니다...');
       
@@ -796,7 +845,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   };
 
   return (
-    <div className="bg-white rounded-[48px] shadow-2xl border border-slate-200 h-full flex flex-col overflow-hidden relative">
+    <div className={`rounded-[48px] shadow-2xl border h-full flex flex-col overflow-hidden relative transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
       <style>{`
         .naver-preview .main-title { font-size: 32px; font-weight: 900; margin-bottom: 30px; color: #000; line-height: 1.4; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
         .naver-preview h3 { font-size: 24px; font-weight: bold; margin-top: 50px; margin-bottom: 20px; color: #000; }
@@ -952,6 +1001,57 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         .legal-box-card { font-size: 10px; color: #94a3b8; text-align: center; margin-top: 16px; line-height: 1.5; }
       `}</style>
 
+      {/* 이미지 클릭 시 선택 모달 (다운로드 or 재생성) */}
+      {downloadModalOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-6">
+          <div className={`w-full max-w-md rounded-[28px] shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className={`text-sm font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🖼️ {downloadImgIndex}번 이미지</div>
+              <button
+                type="button"
+                onClick={() => setDownloadModalOpen(false)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* 이미지 미리보기 */}
+            <div className="p-4">
+              <img 
+                src={downloadImgSrc} 
+                alt={`이미지 ${downloadImgIndex}`}
+                className="w-full h-48 object-cover rounded-xl"
+              />
+            </div>
+            
+            {/* 버튼들 */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  downloadImage(downloadImgSrc, downloadImgIndex);
+                  setDownloadModalOpen(false);
+                }}
+                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+              >
+                📥 다운로드
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDownloadModalOpen(false);
+                  setRegenOpen(true);
+                }}
+                className="flex-1 py-3 bg-purple-500 text-white font-bold rounded-xl hover:bg-purple-600 transition-all flex items-center justify-center gap-2"
+              >
+                ✨ 재생성
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {regenOpen && (
         <div className="fixed inset-0 z-[9999] bg-black/40 flex items-center justify-center p-6">
           <div className="w-full max-w-2xl bg-white rounded-[36px] shadow-2xl border border-slate-200 overflow-hidden">
@@ -1079,24 +1179,36 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         </div>
       )}
 
-      <div className="p-6 border-b border-slate-100 bg-white flex-none">
+      <div className={`p-6 border-b flex-none transition-colors duration-300 ${darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-100 bg-white'}`}>
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-4">
-            <div className="flex bg-slate-100 p-1.5 rounded-xl">
-                <button onClick={() => setActiveTab('preview')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'preview' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>미리보기</button>
-                <button onClick={() => setActiveTab('html')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'html' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>HTML</button>
+            <div className={`flex p-1.5 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-100'}`}>
+                <button onClick={() => setActiveTab('preview')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'preview' ? (darkMode ? 'bg-slate-600 text-emerald-400 shadow-sm' : 'bg-white text-green-600 shadow-sm') : 'text-slate-400'}`}>미리보기</button>
+                <button onClick={() => setActiveTab('html')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'html' ? (darkMode ? 'bg-slate-600 text-emerald-400 shadow-sm' : 'bg-white text-green-600 shadow-sm') : 'text-slate-400'}`}>HTML</button>
             </div>
             
             {/* 글자 수 표시 */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-xs font-bold text-slate-500">📊 글자 수:</span>
-              <span className={`text-sm font-black ${charCount < 1500 ? 'text-amber-500' : charCount > 4000 ? 'text-blue-500' : 'text-emerald-600'}`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
+              <span className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>📊 글자 수:</span>
+              <span className={`text-sm font-black ${charCount < 1500 ? 'text-amber-500' : charCount > 4000 ? 'text-blue-500' : 'text-emerald-500'}`}>
                 {charCount.toLocaleString()}자
               </span>
-              <span className="text-[10px] text-slate-400">
+              <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                 {charCount < 1500 ? '(짧음)' : charCount < 2500 ? '(적당)' : charCount < 4000 ? '(길음)' : '(매우 길음)'}
               </span>
             </div>
+            
+            {/* Undo 버튼 */}
+            {canUndo && (
+              <button
+                type="button"
+                onClick={handleUndo}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${darkMode ? 'bg-orange-900/50 text-orange-400 hover:bg-orange-900' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'}`}
+                title="이전 상태로 되돌리기"
+              >
+                ↩️ 되돌리기
+              </button>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
@@ -1105,14 +1217,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
               {hasAutoSave() && (
                 <button 
                   onClick={loadAutoSave}
-                  className="px-3 py-2 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all"
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-amber-900/50 text-amber-400 hover:bg-amber-900' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
                   title="임시저장 불러오기"
                 >
                   📂 불러오기
                 </button>
               )}
               {lastSaved && (
-                <span className="text-[10px] text-slate-400 hidden lg:inline">
+                <span className={`text-[10px] hidden lg:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
                   💾 {lastSaved.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 저장됨
                 </span>
               )}
@@ -1126,8 +1238,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-black text-slate-400">🎨 블로그 레이아웃 스타일:</span>
-            <span className="text-[10px] text-slate-500 font-medium">{CSS_THEMES[currentTheme].description}</span>
+            <span className={`text-xs font-black ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>🎨 블로그 레이아웃 스타일:</span>
+            <span className={`text-[10px] font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{CSS_THEMES[currentTheme].description}</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {(['modern', 'premium', 'minimal', 'warm', 'professional'] as CssTheme[]).map((theme) => {
@@ -1141,7 +1253,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                   className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border-2 ${
                     isActive
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                      : darkMode 
+                        ? 'bg-slate-700 text-slate-300 border-slate-600 hover:border-slate-500'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                   }`}
                 >
                   {themeInfo.name}
@@ -1152,7 +1266,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8 lg:p-16 bg-slate-50 custom-scrollbar">
+      <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {activeTab === 'preview' ? (
           <div className={`mx-auto bg-white shadow-lg border border-slate-100 p-12 naver-preview min-h-[800px] ${content.postType === 'card_news' ? 'max-w-xl' : 'max-w-3xl'}`}>
               <div 
@@ -1163,9 +1277,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                 onClick={(e) => {
                    const target = e.target as HTMLElement;
                    if (target.tagName === 'IMG') {
+                      const imgElement = target as HTMLImageElement;
                       const allImgs = Array.from(editorRef.current?.querySelectorAll('img') || []);
-                      const index = allImgs.indexOf(target as HTMLImageElement) + 1;
-                      openRegenModal(index, (target as HTMLImageElement).alt || 'professional illustration');
+                      const index = allImgs.indexOf(imgElement) + 1;
+                      handleImageClick(imgElement.src, imgElement.alt, index);
                    }
                 }}
                 className="focus:outline-none"
@@ -1182,7 +1297,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
         )}
       </div>
       
-      <div className="p-6 bg-white border-t border-slate-100 flex-none">
+      <div className={`p-6 border-t flex-none transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
          <div className="max-w-4xl mx-auto">
             {isEditingAi && (
                 <div className="mb-3 flex items-center gap-3 animate-pulse">
@@ -1197,18 +1312,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                 <button
                   type="button"
                   onClick={() => setShowTemplates(!showTemplates)}
-                  className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                  className={`text-xs font-bold flex items-center gap-1 ${darkMode ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-700'}`}
                 >
                   <span>🎯 빠른 수정</span>
                   <span className={`transition-transform ${showTemplates ? 'rotate-180' : ''}`}>▼</span>
                 </button>
                 {!showTemplates && (
-                  <span className="text-[10px] text-slate-400">클릭하면 자주 쓰는 AI 수정 명령어가 나타납니다</span>
+                  <span className={`text-[10px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>클릭하면 자주 쓰는 AI 수정 명령어가 나타납니다</span>
                 )}
               </div>
               
               {showTemplates && (
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in duration-200">
+                <div className={`flex flex-wrap gap-2 p-3 rounded-xl border animate-in fade-in duration-200 ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-200'}`}>
                   {AI_PROMPT_TEMPLATES.map((template, idx) => (
                     <button
                       key={idx}
@@ -1218,7 +1333,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                         setShowTemplates(false);
                       }}
                       disabled={isEditingAi}
-                      className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      className={`px-3 py-2 border rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 ${darkMode ? 'bg-slate-600 border-slate-500 text-slate-300 hover:border-emerald-500 hover:text-emerald-400' : 'bg-white border-slate-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50'}`}
                     >
                       <span>{template.icon}</span>
                       <span>{template.label}</span>
@@ -1234,10 +1349,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                     value={editorInput} 
                     onChange={(e) => setEditorInput(e.target.value)}
                     placeholder="예: '3번째 문단을 더 부드럽게 고치고 전체 그림을 현대적인 스타일로 바꿔줘'"
-                    className="flex-1 px-6 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:border-green-500 outline-none font-bold text-sm"
+                    className={`flex-1 px-6 py-4 border rounded-xl focus:border-green-500 outline-none font-bold text-sm transition-colors ${darkMode ? 'bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
                     disabled={isEditingAi}
                 />
-                <button type="submit" disabled={isEditingAi} className="px-8 py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all text-sm">
+                <button type="submit" disabled={isEditingAi} className={`px-8 py-4 font-bold rounded-xl transition-all text-sm ${darkMode ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-slate-900 text-white hover:bg-black'}`}>
                     {isEditingAi ? 'AI 작동중' : 'AI 정밀보정'}
                 </button>
             </form>

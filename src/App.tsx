@@ -50,6 +50,22 @@ const App: React.FC = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpTab, setHelpTab] = useState<'guide' | 'faq'>('guide');
   
+  // 다크모드 상태
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('darkMode');
+      return saved === 'true';
+    }
+    return false;
+  });
+  
+  // 다크모드 토글
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('darkMode', String(newMode));
+  };
+  
   // 유효한 쿠폰 목록
   const VALID_COUPONS: Record<string, { credits: number; description: string }> = {
     'MARKETING2026': { credits: 5, description: '마케팅 2026 프로모션' },
@@ -460,14 +476,14 @@ const App: React.FC = () => {
 
   // 메인 앱 렌더링
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans relative">
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-100 sticky top-0 z-30 h-16 flex items-center shadow-sm flex-none">
+    <div className={`min-h-screen flex flex-col font-sans relative transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <header className={`backdrop-blur-xl border-b sticky top-0 z-30 h-16 flex items-center shadow-sm flex-none transition-colors duration-300 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-slate-100'}`}>
         <div className="max-w-[1600px] w-full mx-auto px-6 flex justify-between items-center">
           <a href="#" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-100">
                 <span className="text-white font-black text-lg">H</span>
             </div>
-            <span className="font-black text-xl tracking-tight text-slate-800">Hospital<span className="text-emerald-600">AI</span></span>
+            <span className={`font-black text-xl tracking-tight ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>Hospital<span className="text-emerald-500">AI</span></span>
           </a>
           
           <div className="flex items-center gap-3">
@@ -499,10 +515,19 @@ const App: React.FC = () => {
              </a>
              <button 
                onClick={() => setShowHelpModal(true)}
-               className="w-9 h-9 hover:bg-slate-100 rounded-xl transition-all text-lg font-black text-slate-400 hover:text-emerald-600 flex items-center justify-center"
+               className={`w-9 h-9 rounded-xl transition-all text-lg font-black flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
                title="도움말"
              >
                 ?
+             </button>
+             
+             {/* 다크모드 토글 */}
+             <button 
+               onClick={toggleDarkMode}
+               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-yellow-400' : 'hover:bg-slate-100 text-slate-400'}`}
+               title={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
+             >
+                {darkMode ? '☀️' : '🌙'}
              </button>
              
              {/* 로그인/사용자 버튼 */}
@@ -543,30 +568,30 @@ const App: React.FC = () => {
 
         <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
           {state.isLoading ? (
-            <div className="bg-white rounded-[40px] border border-slate-100 p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse">
+            <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
               <div className="relative mb-10">
-                <div className="w-24 h-24 border-8 border-emerald-50 border-t-emerald-500 rounded-full animate-spin"></div>
+                <div className={`w-24 h-24 border-8 border-t-emerald-500 rounded-full animate-spin ${darkMode ? 'border-slate-700' : 'border-emerald-50'}`}></div>
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
-              <h2 className="text-2xl font-black text-slate-800 mb-4">{state.progress}</h2>
-              <p className="text-slate-400 max-w-xs font-medium text-center">네이버 스마트블록 노출을 위한<br/>최적의 의료 콘텐츠를 생성하고 있습니다.</p>
+              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{state.progress}</h2>
+              <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>네이버 스마트블록 노출을 위한<br/>최적의 의료 콘텐츠를 생성하고 있습니다.</p>
             </div>
           ) : state.data ? (
-            <ResultPreview content={state.data} />
+            <ResultPreview content={state.data} darkMode={darkMode} />
           ) : (
-            <div className="h-full bg-white rounded-[40px] shadow-2xl border border-slate-100 flex flex-col items-center justify-center p-20 text-center group">
-               <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center text-6xl mb-10 group-hover:scale-110 transition-transform duration-500 grayscale opacity-20">📝</div>
-               <h3 className="text-2xl font-black text-slate-300">블로그 원고 생성</h3>
-               <p className="text-slate-300 mt-4 max-w-xs font-medium">좌측 메뉴에서 진료과와 주제를 선택하면<br/>상위 노출 로직이 적용된 글이 생성됩니다.</p>
+            <div className={`h-full rounded-[40px] shadow-2xl border flex flex-col items-center justify-center p-20 text-center group transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+               <div className={`w-32 h-32 rounded-full flex items-center justify-center text-6xl mb-10 group-hover:scale-110 transition-transform duration-500 grayscale opacity-20 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>📝</div>
+               <h3 className={`text-2xl font-black ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>블로그 원고 생성</h3>
+               <p className={`mt-4 max-w-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>좌측 메뉴에서 진료과와 주제를 선택하면<br/>상위 노출 로직이 적용된 글이 생성됩니다.</p>
             </div>
           )}
         </div>
 
       </main>
 
-      <div className="lg:hidden bg-white/90 backdrop-blur-xl border-t border-slate-200 fixed bottom-0 left-0 right-0 z-30 flex p-2">
-        <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>🛠️ 설정</button>
-        <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400'}`}>📄 결과</button>
+      <div className={`lg:hidden backdrop-blur-xl border-t fixed bottom-0 left-0 right-0 z-30 flex p-2 transition-colors duration-300 ${darkMode ? 'bg-slate-800/90 border-slate-700' : 'bg-white/90 border-slate-200'}`}>
+        <button onClick={() => setMobileTab('input')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'input' ? 'bg-emerald-600 text-white shadow-lg' : darkMode ? 'text-slate-400' : 'text-slate-400'}`}>🛠️ 설정</button>
+        <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : darkMode ? 'text-slate-400' : 'text-slate-400'}`}>📄 결과</button>
       </div>
       
       {/* 도움말 모달 */}
