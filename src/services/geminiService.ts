@@ -394,16 +394,16 @@ CTA = "이 상황에서는 다른 선택지가 없다 + 지금이다" ✅
 export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration'): Promise<string> => {
   const ai = getAiClient();
   
-  // 스타일에 따른 프롬프트 가이드
+  // 스타일에 따른 프롬프트 가이드 (한국어)
   const styleGuide = imageStyle === 'illustration' 
     ? `**중요: 3D 일러스트/인포그래픽 스타일로 생성해야 합니다!**
-       - 반드시 "3D illustration", "isometric", "clay render", "infographic style" 키워드 포함
-       - 실사 사진 스타일 금지 (photo, realistic, DSLR 등 금지)
+       - 반드시 "3D 일러스트", "아이소메트릭", "클레이 렌더", "인포그래픽 스타일" 키워드 포함
+       - 실사 사진 스타일 금지 (사진, 실사, DSLR 등 금지)
        - 밝고 깔끔한 파란색/흰색 색상 팔레트
        - 친근하고 현대적인 느낌`
     : `**중요: 실사 사진 스타일로 생성해야 합니다!**
-       - 반드시 "realistic photo", "professional photography", "DSLR" 키워드 포함
-       - 일러스트/3D 스타일 금지 (illustration, cartoon, 3D render 등 금지)
+       - 반드시 "실사 사진", "전문 사진", "DSLR 촬영" 키워드 포함
+       - 일러스트/3D 스타일 금지 (일러스트, 만화, 3D 렌더 등 금지)
        - 자연스러운 병원 조명
        - 전문적이고 신뢰감 있는 분위기`;
   
@@ -428,7 +428,11 @@ ${styleGuide}
 5. 텍스트나 로고는 절대 포함하지 말 것
 6. **위에서 지정한 스타일 키워드를 반드시 프롬프트에 포함할 것!**
 
-프롬프트만 **한국어**로 답변하세요 (설명 없이, 예: "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 파란색 흰색 팔레트"):`,
+프롬프트만 **한국어**로 답변하세요 (설명 없이).
+
+예시:
+- 3D 일러스트: "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"
+- 실사 사진: "깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명, 전문적인 분위기":`,
       config: {
         responseMimeType: "text/plain"
       }
