@@ -773,6 +773,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   }
   
   images.forEach(img => {
+    const pattern = new RegExp(`\\[IMG_${img.index}\\]`, "gi");
     if (img.data) {
       let imgHtml = "";
       if (request.postType === 'card_news') {
@@ -780,11 +781,15 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       } else {
           imgHtml = `<div class="content-image-wrapper"><img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" /></div>`;
       }
-      
-      const pattern = new RegExp(`\\[IMG_${img.index}\\]`, "gi");
       body = body.replace(pattern, imgHtml);
+    } else {
+      // 이미지 생성 실패 시 마커 제거
+      body = body.replace(pattern, '');
     }
   });
+  
+  // 혹시 남아있는 [IMG_N] 마커 모두 제거
+  body = body.replace(/\[IMG_\d+\]/gi, '');
 
   const disclaimer = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
 
