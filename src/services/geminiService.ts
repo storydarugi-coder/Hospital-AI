@@ -418,7 +418,7 @@ ${blogContent.substring(0, 3000)}
 
 ${styleGuide}
 
-이 글의 맥락과 주제에 맞는 이미지 프롬프트를 영어로 추천해주세요.
+이 글의 맥락과 주제에 맞는 이미지 프롬프트를 **한국어**로 추천해주세요.
 
 요구사항:
 1. 글의 핵심 주제와 연관성 높은 장면
@@ -428,7 +428,7 @@ ${styleGuide}
 5. 텍스트나 로고는 절대 포함하지 말 것
 6. **위에서 지정한 스타일 키워드를 반드시 프롬프트에 포함할 것!**
 
-프롬프트만 영어로 답변하세요 (설명 없이):`,
+프롬프트만 **한국어**로 답변하세요 (설명 없이, 예: "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 파란색 흰색 팔레트"):`,
       config: {
         responseMimeType: "text/plain"
       }
@@ -444,6 +444,7 @@ ${styleGuide}
 export const generateSingleImage = async (promptText: string, style: ImageStyle = 'photo', aspectRatio: string = "16:9"): Promise<string> => {
     const ai = getAiClient();
     
+    // 한국어 프롬프트를 영어로 변환하여 이미지 생성 품질 향상
     let stylePrompt = "";
     if (style === 'photo') {
         stylePrompt = "Hyper-realistic, 8k resolution, professional DSLR photography, soft hospital lighting, trustworthy medical atmosphere, shallow depth of field.";
@@ -451,7 +452,8 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = "High-quality 3D medical illustration, clean infographic style, bright blue and white color palette, friendly and modern, isometric view, soft clay render style.";
     }
 
-    const finalPrompt = `${stylePrompt} Subject: ${promptText}. No text, no scary elements, professional Korean medical context. Aspect ratio ${aspectRatio}.`;
+    // 한국어 프롬프트도 지원 (이미지 생성 모델은 영어+한국어 혼합 가능)
+    const finalPrompt = `${stylePrompt} ${promptText}. No text, no logos, no scary elements, professional Korean medical context.`;
 
     try {
       const response = await ai.models.generateContent({
