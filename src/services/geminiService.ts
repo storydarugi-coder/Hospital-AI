@@ -12,6 +12,13 @@ const getAiClient = () => {
 const MEDICAL_SAFETY_SYSTEM_PROMPT = `
 당신은 대한민국 의료광고법을 완벽히 숙지한 '네이버 공식 병원 블로그' 전문 에디터입니다.
 
+[🔍 팩트체크 필수 - 최신 정보 검증]
+- Google 검색 도구를 활용하여 모든 의학 정보의 정확성 검증
+- 출처: 보건복지부, 질병관리청, 대한OO학회, 국민건강보험공단 등 공신력 있는 기관
+- 오래된 정보(2년 이상)는 최신 가이드라인으로 업데이트
+- fact_check 점수 85점 이상 목표
+- 검증되지 않은 수치/통계는 사용 금지
+
 [필수 준수 사항 - 의료광고법]
 1. 네이버 '스마트에디터 ONE' 스타일에 맞춰 작성.
 
@@ -656,6 +663,17 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
   const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
+  
+  // 현재 한국 시간 정보 (최신 정보 기반 글 작성용)
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const currentYear = koreaTime.getFullYear();
+  const currentMonth = koreaTime.getMonth() + 1;
+  const currentDay = koreaTime.getDate();
+  const currentSeason = currentMonth >= 3 && currentMonth <= 5 ? '봄' 
+    : currentMonth >= 6 && currentMonth <= 8 ? '여름'
+    : currentMonth >= 9 && currentMonth <= 11 ? '가을' : '겨울';
+  const timeContext = `현재 날짜: ${currentYear}년 ${currentMonth}월 ${currentDay}일 (${currentSeason})`;
   const imageStyleGuide = imageStyle === 'illustration' 
     ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽 스타일, 파란색 흰색 팔레트, 친근하고 현대적인 느낌'
     : imageStyle === 'medical'
@@ -667,6 +685,13 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     ${writingStylePrompt}
     ${WRITING_STYLE_COMMON_RULES}
     ${benchmarkingInstruction}
+    
+    [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]
+    ${timeContext}
+    - ${currentYear}년 최신 의학 가이드라인/연구 결과 반영
+    - ${currentSeason}철 특성 고려 (계절성 질환, 생활 습관 등)
+    - 오래된 정보(2년 이상)는 최신 정보로 업데이트하여 작성
+    - Google 검색으로 ${currentYear}년 최신 정보 확인 후 작성
     
     진료과: ${request.category}, 페르소나: ${request.persona}, 주제: ${request.topic}
     목표 글자 수: 공백 포함 약 ${targetLength}자 (너무 짧지 않게 풍부한 내용 작성)
@@ -775,6 +800,13 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     ${writingStylePrompt}
     ${WRITING_STYLE_COMMON_RULES}
     ${benchmarkingInstruction}
+    
+    [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]
+    ${timeContext}
+    - ${currentYear}년 최신 의학 가이드라인/연구 결과 반영
+    - ${currentSeason}철 특성 고려 (계절성 질환, 생활 습관 등)
+    - Google 검색으로 ${currentYear}년 최신 정보 확인 후 작성
+    
     진료과: ${request.category}, 주제: ${request.topic}
     총 ${targetSlides}장의 카드뉴스
     글 스타일: ${writingStyle === 'expert' ? '전문가형(신뢰·권위·논문 인용)' : writingStyle === 'empathy' ? '공감형(독자 공감 유도)' : '전환형(행동 유도)'}
