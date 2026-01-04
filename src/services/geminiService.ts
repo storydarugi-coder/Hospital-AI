@@ -852,6 +852,64 @@ export const recommendSeoTitles = async (topic: string, keywords: string): Promi
   return JSON.parse(response.text || "[]");
 };
 
+// 카드뉴스 스타일 참고 이미지 분석 함수
+export const analyzeStyleReferenceImage = async (base64Image: string): Promise<string> => {
+  const ai = getAiClient();
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              inlineData: {
+                mimeType: base64Image.includes('png') ? 'image/png' : 'image/jpeg',
+                data: base64Image.split(',')[1] // base64 데이터만 추출
+              }
+            },
+            {
+              text: `이 카드뉴스/인포그래픽 이미지의 디자인 스타일을 상세히 분석해주세요.
+
+분석 항목:
+1. **레이아웃 구조**: 요소 배치, 여백, 정렬 방식
+2. **색상 팔레트**: 주요 색상, 보조 색상, 배경색
+3. **테두리/프레임**: 테두리 스타일, 굵기, 둥글기
+4. **헤더/브랜딩**: 상단 로고/텍스트 영역 스타일
+5. **타이포그래피**: 제목 크기/굵기, 본문 스타일, 강조 방식
+6. **이미지 스타일**: 일러스트/사진/아이콘 등 시각 요소 특징
+7. **태그/해시태그**: 하단 태그 디자인
+8. **전체 분위기**: 친근한/전문적인/귀여운 등
+
+JSON 형식으로 답변하세요:
+{
+  "layout": "레이아웃 설명",
+  "colors": "색상 설명 (예: 오렌지 테두리, 흰 배경, 검정 텍스트)",
+  "border": "테두리 스타일",
+  "header": "헤더 영역 설명",
+  "typography": "글꼴/텍스트 스타일",
+  "imageStyle": "이미지/일러스트 스타일",
+  "tags": "태그 디자인",
+  "mood": "전체 분위기",
+  "cssInstructions": "이 스타일을 재현하기 위한 CSS 지침"
+}`
+            }
+          ]
+        }
+      ],
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+    
+    return response.text || '{}';
+  } catch (error) {
+    console.error('스타일 분석 실패:', error);
+    return '{}';
+  }
+};
+
 export const generateBlogPostText = async (request: GenerationRequest): Promise<{ 
     title: string; 
     content: string; 
@@ -862,6 +920,26 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
   const isCardNews = request.postType === 'card_news';
   const targetLength = request.textLength || 2000;
   const targetSlides = request.slideCount || 6;
+  
+  // 스타일 참고 이미지 분석 (카드뉴스일 때만)
+  let styleAnalysis = '';
+  if (isCardNews && request.styleReferenceImage) {
+    try {
+      const analysisResult = await analyzeStyleReferenceImage(request.styleReferenceImage);
+      styleAnalysis = `
+[🎨 스타일 참고 이미지 분석 결과 - 반드시 이 스타일을 따라하세요!]
+${analysisResult}
+
+**중요: 위 분석 결과를 기반으로 동일한 스타일의 카드뉴스를 생성하세요!**
+- 색상 팔레트를 정확히 따라하세요
+- 레이아웃 구조를 모방하세요
+- 타이포그래피 스타일을 유지하세요
+- 테두리/프레임 스타일을 재현하세요
+`;
+    } catch (e) {
+      console.warn('스타일 분석 실패:', e);
+    }
+  }
   
   let benchmarkingInstruction = '';
   if (request.referenceUrl) {
@@ -1070,6 +1148,7 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     ${writingStylePrompt}
     ${WRITING_STYLE_COMMON_RULES}
     ${benchmarkingInstruction}
+    ${styleAnalysis}
     
     [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]
     ${timeContext}
@@ -1222,7 +1301,14 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
 };
 
 export const generateFullPost = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
-  const step1Msg = request.referenceUrl 
+  // 스타일 참고 이미지가 있으면 먼저 분석
+  if (request.postType === 'card_news' && request.styleReferenceImage) {
+    onProgress('🎨 스타일 참고 이미지 분석 중...');
+  }
+  
+  const step1Msg = request.styleReferenceImage
+      ? `✨ 참고 이미지 스타일로 카드뉴스 생성 중...`
+      : request.referenceUrl 
       ? `🔗 레퍼런스 URL 분석 및 ${request.postType === 'card_news' ? '카드뉴스 템플릿 모방' : '스타일 벤치마킹'} 중...` 
       : `네이버 로직 분석 및 ${request.postType === 'card_news' ? '카드뉴스 기획' : '블로그 원고 작성'} 중...`;
   

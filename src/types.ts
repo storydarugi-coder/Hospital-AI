@@ -40,6 +40,7 @@ export interface GenerationRequest {
   imageCount?: number; // 블로그 포스트 이미지 장수
   cssTheme?: CssTheme;
   writingStyle?: WritingStyle; // 글 스타일: 안전형/공감형/전환형
+  styleReferenceImage?: string; // 카드뉴스 스타일 참고 이미지 (Base64)
 }
 
 export interface FactCheckReport {

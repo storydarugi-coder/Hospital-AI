@@ -29,6 +29,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
   const [isLoadingTitles, setIsLoadingTitles] = useState(false);
+  
+  // 카드뉴스 스타일 참고 이미지
+  const [styleReferenceImage, setStyleReferenceImage] = useState<string>('');
+  const [styleImagePreview, setStyleImagePreview] = useState<string>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +51,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       textLength,
       slideCount,
       imageCount,
-      writingStyle
+      writingStyle,
+      styleReferenceImage: postType === 'card_news' ? styleReferenceImage : undefined
     });
   };
 
@@ -77,6 +82,31 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     } finally {
         setIsLoadingTitles(false);
     }
+  };
+
+  // 카드뉴스 스타일 참고 이미지 업로드 핸들러
+  const handleStyleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // 파일 크기 체크 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('이미지 크기는 5MB 이하로 업로드해주세요.');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setStyleReferenceImage(base64);
+      setStyleImagePreview(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveStyleImage = () => {
+    setStyleReferenceImage('');
+    setStyleImagePreview('');
   };
 
   return (
@@ -177,23 +207,74 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                   </div>
                </div>
            ) : (
-               <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest">카드뉴스 장수</label>
-                    <span className="text-xs font-bold text-blue-600">{slideCount}장</span>
+               <div className="space-y-4">
+                  {/* 카드뉴스 장수 슬라이더 */}
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">카드뉴스 장수</label>
+                      <span className="text-xs font-bold text-blue-600">{slideCount}장</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="4" 
+                      max="10" 
+                      step="1" 
+                      value={slideCount} 
+                      onChange={(e) => setSlideCount(parseInt(e.target.value))}
+                      className="w-full accent-blue-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
+                       <span>4장</span>
+                       <span>10장</span>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min="4" 
-                    max="10" 
-                    step="1" 
-                    value={slideCount} 
-                    onChange={(e) => setSlideCount(parseInt(e.target.value))}
-                    className="w-full accent-blue-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                  <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
-                     <span>4장</span>
-                     <span>10장</span>
+                  
+                  {/* 스타일 참고 이미지 업로드 */}
+                  <div className="border-t border-slate-200 pt-4">
+                    <label className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3 block flex items-center gap-2">
+                      🎨 스타일 참고 이미지 <span className="text-slate-400 font-medium normal-case">(선택사항)</span>
+                    </label>
+                    <p className="text-[11px] text-slate-500 mb-3">
+                      따라하고 싶은 카드뉴스 이미지를 업로드하면 동일한 스타일로 생성해요!
+                    </p>
+                    
+                    {!styleImagePreview ? (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer bg-blue-50/50 hover:bg-blue-50 transition-all group">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <svg className="w-8 h-8 mb-2 text-blue-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <p className="text-xs text-blue-500 font-bold">클릭하여 이미지 업로드</p>
+                          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG (최대 5MB)</p>
+                        </div>
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          onChange={handleStyleImageUpload}
+                        />
+                      </label>
+                    ) : (
+                      <div className="relative">
+                        <img 
+                          src={styleImagePreview} 
+                          alt="스타일 참고 이미지" 
+                          className="w-full h-40 object-contain rounded-2xl border border-blue-200 bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveStyleImage}
+                          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                        <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+                          ✨ 이 스타일로 생성됩니다
+                        </div>
+                      </div>
+                    )}
                   </div>
                </div>
            )}
