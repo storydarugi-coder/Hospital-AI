@@ -477,9 +477,12 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
 
   const cardNewsPrompt = `
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
+    ${writingStylePrompt}
+    ${WRITING_STYLE_COMMON_RULES}
     ${benchmarkingInstruction}
     진료과: ${request.category}, 주제: ${request.topic}
     총 ${targetSlides}장의 카드뉴스
+    글 스타일: ${writingStyle === 'safe' ? '안전형(무난한 정보 전달)' : writingStyle === 'empathy' ? '공감형(독자 공감 유도)' : '전환형(행동 유도)'}
     
     [🚨 가장 중요: 스토리 연결성]
     카드뉴스는 반드시 **하나의 이야기**로 연결되어야 합니다.
