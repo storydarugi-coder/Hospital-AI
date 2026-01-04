@@ -138,7 +138,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     }
   };
 
-  // 워드 다운로드 함수 - 실제 .docx 생성
+  // HTML에서 깨끗한 텍스트 추출 (태그 제거, 정리)
+  const cleanText = (text: string | null): string => {
+    if (!text) return '';
+    return text
+      .replace(/\s+/g, ' ')  // 연속 공백을 하나로
+      .replace(/\n+/g, ' ')  // 줄바꿈을 공백으로
+      .trim();
+  };
+
+  // 워드 다운로드 함수 - 실제 .docx 생성 (개선된 정렬)
   const handleDownloadWord = async () => {
     setEditProgress('Word 문서 생성 중...');
     
@@ -148,119 +157,224 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
       tempDiv.innerHTML = localHtml;
       
       const docChildren: any[] = [];
+      const processedTexts = new Set<string>(); // 중복 방지
       
       // 제목 추출
       const mainTitle = tempDiv.querySelector('.main-title, h2');
       if (mainTitle) {
-        docChildren.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: mainTitle.textContent || '',
-                bold: true,
-                size: 48, // 24pt
-                font: '맑은 고딕',
-              }),
-            ],
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 400 },
-          })
-        );
+        const titleText = cleanText(mainTitle.textContent);
+        if (titleText) {
+          processedTexts.add(titleText);
+          docChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: titleText,
+                  bold: true,
+                  size: 48, // 24pt
+                  font: '맑은 고딕',
+                  color: '1a1a1a',
+                }),
+              ],
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 400, line: 360 },
+              alignment: AlignmentType.LEFT,
+            })
+          );
+          // 제목 아래 구분선 효과
+          docChildren.push(
+            new Paragraph({
+              spacing: { after: 300 },
+              border: {
+                bottom: { style: BorderStyle.SINGLE, size: 12, color: '10b981' }
+              }
+            })
+          );
+        }
       }
       
-      // 모든 요소 순회
-      const processNode = async (node: Element) => {
-        const tagName = node.tagName?.toLowerCase();
+      // 순서대로 모든 요소 처리 (깊이 우선 탐색 대신 순차 처리)
+      const processElements = async (container: Element) => {
+        const elements = container.querySelectorAll('h3, p, li, img, ul, div.cta-box, div.content-image-wrapper');
         
-        if (tagName === 'h3') {
-          docChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: node.textContent || '',
-                  bold: true,
-                  size: 32, // 16pt
-                  font: '맑은 고딕',
-                }),
-              ],
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 400, after: 200 },
-            })
-          );
-        } else if (tagName === 'p') {
-          const text = node.textContent?.trim();
-          if (text) {
-            docChildren.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: text,
-                    size: 24, // 12pt
-                    font: '맑은 고딕',
-                  }),
-                ],
-                spacing: { after: 200 },
-              })
-            );
-          }
-        } else if (tagName === 'li') {
-          docChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: '• ' + (node.textContent || ''),
-                  size: 24,
-                  font: '맑은 고딕',
-                }),
-              ],
-              spacing: { after: 100 },
-              indent: { left: 720 }, // 0.5 inch
-            })
-          );
-        } else if (tagName === 'img') {
-          const src = (node as HTMLImageElement).src;
-          if (src) {
-            const imageData = await fetchImageAsArrayBuffer(src);
-            if (imageData) {
+        for (const element of Array.from(elements)) {
+          const tagName = element.tagName?.toLowerCase();
+          const classList = element.classList;
+          
+          // 이미 처리된 제목은 스킵
+          if (classList?.contains('main-title') || (tagName === 'h2')) continue;
+          
+          // CTA 박스 처리
+          if (classList?.contains('cta-box')) {
+            const ctaText = cleanText(element.textContent);
+            if (ctaText && !processedTexts.has(ctaText)) {
+              processedTexts.add(ctaText);
               docChildren.push(
                 new Paragraph({
                   children: [
-                    new ImageRun({
-                      data: imageData,
-                      transformation: {
-                        width: 500,
-                        height: 280,
-                      },
-                      type: 'png',
+                    new TextRun({
+                      text: '💡 ' + ctaText,
+                      size: 24,
+                      font: '맑은 고딕',
+                      italics: true,
+                      color: '059669',
                     }),
                   ],
-                  spacing: { before: 300, after: 300 },
-                  alignment: AlignmentType.CENTER,
+                  spacing: { before: 300, after: 300, line: 360 },
+                  indent: { left: 400, right: 400 },
+                  shading: { fill: 'f0fdf4' },
+                })
+              );
+            }
+            continue;
+          }
+          
+          // 이미지 wrapper 처리
+          if (classList?.contains('content-image-wrapper')) {
+            const img = element.querySelector('img');
+            if (img) {
+              const src = img.src;
+              if (src) {
+                const imageData = await fetchImageAsArrayBuffer(src);
+                if (imageData) {
+                  docChildren.push(
+                    new Paragraph({
+                      children: [
+                        new ImageRun({
+                          data: imageData,
+                          transformation: {
+                            width: 450,
+                            height: 253, // 16:9 비율 유지
+                          },
+                          type: 'png',
+                        }),
+                      ],
+                      spacing: { before: 400, after: 400 },
+                      alignment: AlignmentType.CENTER,
+                    })
+                  );
+                }
+              }
+            }
+            continue;
+          }
+          
+          // h3 제목 처리
+          if (tagName === 'h3') {
+            const text = cleanText(element.textContent);
+            if (text && !processedTexts.has(text)) {
+              processedTexts.add(text);
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: text,
+                      bold: true,
+                      size: 32, // 16pt
+                      font: '맑은 고딕',
+                      color: '1e40af',
+                    }),
+                  ],
+                  heading: HeadingLevel.HEADING_2,
+                  spacing: { before: 500, after: 200, line: 360 },
                 })
               );
             }
           }
-        }
-        
-        // 자식 노드 처리 (img는 제외 - 이미 처리됨)
-        if (tagName !== 'img') {
-          for (const child of Array.from(node.children)) {
-            await processNode(child);
+          
+          // 단락 처리
+          else if (tagName === 'p') {
+            // 부모가 CTA 박스면 스킵 (이미 처리됨)
+            if (element.closest('.cta-box')) continue;
+            
+            const text = cleanText(element.textContent);
+            if (text && text.length > 2 && !processedTexts.has(text)) {
+              processedTexts.add(text);
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: text,
+                      size: 24, // 12pt
+                      font: '맑은 고딕',
+                    }),
+                  ],
+                  spacing: { after: 240, line: 400 }, // 1.5배 줄간격
+                  alignment: AlignmentType.BOTH, // 양쪽 정렬
+                })
+              );
+            }
+          }
+          
+          // 리스트 아이템 처리
+          else if (tagName === 'li') {
+            const text = cleanText(element.textContent);
+            if (text && !processedTexts.has(text)) {
+              processedTexts.add(text);
+              docChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: '• ' + text,
+                      size: 24,
+                      font: '맑은 고딕',
+                    }),
+                  ],
+                  spacing: { after: 150, line: 360 },
+                  indent: { left: 500 },
+                })
+              );
+            }
+          }
+          
+          // 단독 이미지 처리
+          else if (tagName === 'img') {
+            // 이미 wrapper로 처리된 이미지는 스킵
+            if (element.closest('.content-image-wrapper')) continue;
+            
+            const src = (element as HTMLImageElement).src;
+            if (src) {
+              const imageData = await fetchImageAsArrayBuffer(src);
+              if (imageData) {
+                docChildren.push(
+                  new Paragraph({
+                    children: [
+                      new ImageRun({
+                        data: imageData,
+                        transformation: {
+                          width: 450,
+                          height: 253,
+                        },
+                        type: 'png',
+                      }),
+                    ],
+                    spacing: { before: 400, after: 400 },
+                    alignment: AlignmentType.CENTER,
+                  })
+                );
+              }
+            }
           }
         }
       };
       
       // 컨테이너 안의 모든 요소 처리
       const container = tempDiv.querySelector('.naver-post-container') || tempDiv;
-      for (const child of Array.from(container.children)) {
-        if (child.classList?.contains('main-title') || child.tagName?.toLowerCase() === 'h2') continue; // 이미 처리됨
-        await processNode(child);
-      }
+      await processElements(container);
       
-      // 문서 생성
+      // 문서 생성 - 페이지 설정 포함
       const doc = new Document({
         sections: [{
-          properties: {},
+          properties: {
+            page: {
+              margin: {
+                top: 1440,    // 1 inch = 1440 twips
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
           children: docChildren.length > 0 ? docChildren : [
             new Paragraph({
               children: [new TextRun({ text: tempDiv.textContent || '', font: '맑은 고딕' })],
@@ -281,7 +395,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
     }
   };
 
-  // PDF 다운로드 함수
+  // PDF 다운로드 함수 (개선된 정렬)
   const handleDownloadPDF = async () => {
     setEditProgress('PDF 생성 중...');
     
@@ -302,31 +416,168 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
           <meta charset="utf-8">
           <title>Hospital AI Content - PDF</title>
           <style>
+            @page {
+              size: A4;
+              margin: 2cm;
+            }
             @media print {
-              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              body { 
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+              }
+              /* 페이지 나눔 방지 */
+              h3, p, li, img {
+                page-break-inside: avoid;
+              }
+              /* 제목 뒤에서 페이지 나눔 방지 */
+              h2, h3 {
+                page-break-after: avoid;
+              }
+              /* 이미지 전후 페이지 나눔 설정 */
+              .content-image-wrapper, img {
+                page-break-inside: avoid;
+                page-break-before: auto;
+                page-break-after: auto;
+              }
+            }
+            * {
+              box-sizing: border-box;
             }
             body { 
-              font-family: '맑은 고딕', Malgun Gothic, sans-serif; 
-              line-height: 1.8; 
-              padding: 40px; 
-              max-width: 800px; 
+              font-family: '맑은 고딕', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; 
+              line-height: 1.9; 
+              padding: 0;
+              margin: 0;
+              max-width: 100%;
+              color: #333;
+              font-size: 14px;
+              word-break: keep-all;
+              overflow-wrap: break-word;
+            }
+            /* 메인 제목 */
+            h2, .main-title { 
+              font-size: 24px; 
+              font-weight: 900; 
+              margin: 0 0 20px 0;
+              padding-bottom: 15px;
+              color: #1a1a1a; 
+              border-bottom: 3px solid #10b981;
+              line-height: 1.4;
+            }
+            /* 소제목 */
+            h3 { 
+              font-size: 18px; 
+              font-weight: 700; 
+              margin: 35px 0 15px 0;
+              padding: 12px 16px;
+              color: #1e40af;
+              background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+              border-left: 4px solid #3b82f6;
+              border-radius: 0 8px 8px 0;
+            }
+            /* 본문 */
+            p { 
+              font-size: 14px; 
+              margin: 0 0 18px 0;
+              color: #333;
+              text-align: justify;
+              line-height: 1.9;
+            }
+            /* 리스트 */
+            ul { 
+              margin: 15px 0 20px 0;
+              padding-left: 0;
+              list-style: none;
+            }
+            li { 
+              font-size: 14px; 
+              margin-bottom: 12px;
+              padding: 10px 15px 10px 30px;
+              background: #f8fafc;
+              border-radius: 8px;
+              position: relative;
+              line-height: 1.7;
+            }
+            li::before {
+              content: '•';
+              position: absolute;
+              left: 12px;
+              color: #10b981;
+              font-weight: bold;
+              font-size: 18px;
+            }
+            /* 이미지 */
+            img { 
+              max-width: 100%; 
+              height: auto; 
+              margin: 25px auto;
+              display: block;
+              border-radius: 12px;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+            .content-image-wrapper {
+              margin: 30px 0;
+              text-align: center;
+            }
+            .content-image-wrapper img {
               margin: 0 auto;
             }
-            h3 { font-size: 20px; font-weight: bold; margin-top: 30px; margin-bottom: 15px; color: #1a1a1a; }
-            p { font-size: 14px; margin-bottom: 15px; color: #333; }
-            ul { margin-left: 25px; }
-            li { font-size: 14px; margin-bottom: 8px; }
-            img { max-width: 100%; height: auto; margin: 25px 0; border-radius: 12px; }
-            .cta-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 25px; margin: 25px 0; border-radius: 12px; }
+            /* CTA 박스 */
+            .cta-box, [class*="cta"] { 
+              background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+              border: 2px solid #10b981;
+              padding: 25px;
+              margin: 30px 0;
+              border-radius: 16px;
+              page-break-inside: avoid;
+            }
+            /* 해시태그 */
+            .hashtags, [class*="hashtag"] {
+              margin-top: 30px;
+              padding: 15px;
+              background: #f8fafc;
+              border-radius: 12px;
+              color: #64748b;
+              font-size: 13px;
+            }
+            /* 숨김 요소 */
+            .hidden-title { display: none; }
           </style>
         </head>
         <body>
           ${styledHtml}
           <script>
             window.onload = function() {
-              setTimeout(function() {
-                window.print();
-              }, 500);
+              // 이미지 로드 완료 후 프린트
+              const images = document.querySelectorAll('img');
+              let loadedCount = 0;
+              const totalImages = images.length;
+              
+              if (totalImages === 0) {
+                setTimeout(() => window.print(), 300);
+                return;
+              }
+              
+              images.forEach(img => {
+                if (img.complete) {
+                  loadedCount++;
+                } else {
+                  img.onload = img.onerror = () => {
+                    loadedCount++;
+                    if (loadedCount >= totalImages) {
+                      setTimeout(() => window.print(), 300);
+                    }
+                  };
+                }
+              });
+              
+              if (loadedCount >= totalImages) {
+                setTimeout(() => window.print(), 300);
+              }
+              
+              // 안전장치: 5초 후 강제 프린트
+              setTimeout(() => window.print(), 5000);
+            };
             }
           </script>
         </body>
