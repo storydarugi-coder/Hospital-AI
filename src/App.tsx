@@ -756,7 +756,7 @@ const App: React.FC = () => {
                   <p className="text-xs text-slate-500">기능 제안, 오류 신고, 기타 문의</p>
                 </div>
                 <a 
-                  href="mailto:support@hospitalai.kr?subject=[HospitalAI 문의]" 
+                  href="mailto:story.darugi@gmail.com?subject=[HospitalAI 문의]" 
                   className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all text-sm flex items-center gap-2"
                 >
                   ✉️ 메일 보내기
