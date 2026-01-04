@@ -9,6 +9,19 @@ interface ResultPreviewProps {
   content: GeneratedContent;
 }
 
+// AI 수정 프롬프트 템플릿
+const AI_PROMPT_TEMPLATES = [
+  { label: '친근하게', prompt: '전체적으로 더 친근하고 따뜻한 톤으로 수정해줘', icon: '💗' },
+  { label: 'CTA 강화', prompt: '마지막 부분의 CTA를 더 강력하게 수정해줘. 독자가 행동하고 싶게 만들어줘', icon: '🎯' },
+  { label: '전문적으로', prompt: '더 전문적이고 신뢰감 있는 톤으로 수정해줘. 의학 용어도 적절히 사용해줘', icon: '👨‍⚕️' },
+  { label: '짧게 요약', prompt: '전체 내용을 20% 정도 줄여서 핵심만 간결하게 정리해줘', icon: '✂️' },
+  { label: '예시 추가', prompt: '각 섹션에 독자가 공감할 수 있는 구체적인 예시나 상황을 추가해줘', icon: '📝' },
+  { label: 'SEO 강화', prompt: '키워드 밀도를 높이고 소제목을 SEO에 최적화된 형태로 수정해줘', icon: '🔍' },
+];
+
+// 임시저장 키
+const AUTOSAVE_KEY = 'hospitalai_autosave';
+
 const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'preview' | 'html'>('preview');
@@ -17,6 +30,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const [editorInput, setEditorInput] = useState('');
   const [isEditingAi, setIsEditingAi] = useState(false);
   const [editProgress, setEditProgress] = useState('');
+  const [charCount, setCharCount] = useState(0);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showTemplates, setShowTemplates] = useState(false);
   
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenIndex, setRegenIndex] = useState<number>(1);
@@ -31,6 +47,66 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   useEffect(() => {
     setLocalHtml(content.fullHtml);
   }, [content.fullHtml]);
+
+  // 글자 수 계산
+  useEffect(() => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = localHtml;
+    const text = tempDiv.innerText || tempDiv.textContent || '';
+    setCharCount(text.length);
+  }, [localHtml]);
+
+  // 임시저장 (5초마다 자동저장)
+  useEffect(() => {
+    const saveTimer = setInterval(() => {
+      if (localHtml && localHtml.trim()) {
+        const saveData = {
+          html: localHtml,
+          theme: currentTheme,
+          postType: content.postType,
+          imageStyle: content.imageStyle,
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(saveData));
+        setLastSaved(new Date());
+      }
+    }, 5000);
+    return () => clearInterval(saveTimer);
+  }, [localHtml, currentTheme, content.postType, content.imageStyle]);
+
+  // 임시저장 불러오기
+  const loadAutoSave = () => {
+    try {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.html) {
+          setLocalHtml(data.html);
+          if (data.theme) setCurrentTheme(data.theme);
+          alert('임시저장된 내용을 불러왔습니다!');
+        }
+      }
+    } catch (e) {
+      console.error('임시저장 불러오기 실패:', e);
+    }
+  };
+
+  // 임시저장 삭제
+  const clearAutoSave = () => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setLastSaved(null);
+    alert('임시저장이 삭제되었습니다.');
+  };
+
+  // 임시저장 데이터 있는지 확인
+  const hasAutoSave = () => {
+    try {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      return !!saved;
+    } catch {
+      return false;
+    }
+  };
 
   // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트
   useEffect(() => {
@@ -1005,13 +1081,47 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
 
       <div className="p-6 border-b border-slate-100 bg-white flex-none">
         <div className="flex justify-between items-center mb-4">
-          <div className="flex bg-slate-100 p-1.5 rounded-xl">
-              <button onClick={() => setActiveTab('preview')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'preview' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>미리보기</button>
-              <button onClick={() => setActiveTab('html')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'html' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>HTML</button>
+          <div className="flex items-center gap-4">
+            <div className="flex bg-slate-100 p-1.5 rounded-xl">
+                <button onClick={() => setActiveTab('preview')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'preview' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>미리보기</button>
+                <button onClick={() => setActiveTab('html')} className={`px-8 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'html' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400'}`}>HTML</button>
+            </div>
+            
+            {/* 글자 수 표시 */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-500">📊 글자 수:</span>
+              <span className={`text-sm font-black ${charCount < 1500 ? 'text-amber-500' : charCount > 4000 ? 'text-blue-500' : 'text-emerald-600'}`}>
+                {charCount.toLocaleString()}자
+              </span>
+              <span className="text-[10px] text-slate-400">
+                {charCount < 1500 ? '(짧음)' : charCount < 2500 ? '(적당)' : charCount < 4000 ? '(길음)' : '(매우 길음)'}
+              </span>
+            </div>
           </div>
-          <button onClick={handleCopy} className={`px-10 py-3 rounded-xl text-md font-bold text-white shadow-xl transition-all active:scale-95 ${copied ? 'bg-emerald-500' : 'bg-green-500 hover:bg-green-600'}`}>
-              {copied ? '✅ 복사 완료' : '블로그로 복사'}
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {/* 임시저장 버튼 */}
+            <div className="flex items-center gap-1">
+              {hasAutoSave() && (
+                <button 
+                  onClick={loadAutoSave}
+                  className="px-3 py-2 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-all"
+                  title="임시저장 불러오기"
+                >
+                  📂 불러오기
+                </button>
+              )}
+              {lastSaved && (
+                <span className="text-[10px] text-slate-400 hidden lg:inline">
+                  💾 {lastSaved.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 저장됨
+                </span>
+              )}
+            </div>
+            
+            <button onClick={handleCopy} className={`px-10 py-3 rounded-xl text-md font-bold text-white shadow-xl transition-all active:scale-95 ${copied ? 'bg-emerald-500' : 'bg-green-500 hover:bg-green-600'}`}>
+                {copied ? '✅ 복사 완료' : '블로그로 복사'}
+            </button>
+          </div>
         </div>
         
         <div>
@@ -1080,6 +1190,44 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                     <span className="text-sm font-bold text-green-600">{editProgress}</span>
                 </div>
             )}
+            
+            {/* AI 프롬프트 템플릿 버튼들 */}
+            <div className="mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplates(!showTemplates)}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+                >
+                  <span>🎯 빠른 수정</span>
+                  <span className={`transition-transform ${showTemplates ? 'rotate-180' : ''}`}>▼</span>
+                </button>
+                {!showTemplates && (
+                  <span className="text-[10px] text-slate-400">클릭하면 자주 쓰는 AI 수정 명령어가 나타납니다</span>
+                )}
+              </div>
+              
+              {showTemplates && (
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 animate-in fade-in duration-200">
+                  {AI_PROMPT_TEMPLATES.map((template, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setEditorInput(template.prompt);
+                        setShowTemplates(false);
+                      }}
+                      disabled={isEditingAi}
+                      className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:border-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <span>{template.icon}</span>
+                      <span>{template.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
             <form onSubmit={handleAiEditSubmit} className="flex gap-3">
                 <input 
                     type="text" 
