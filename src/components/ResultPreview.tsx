@@ -24,13 +24,26 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
   const [isRecommendingPrompt, setIsRecommendingPrompt] = useState(false);
   
   const editorRef = useRef<HTMLDivElement>(null);
+  const isInternalChange = useRef(false);
 
   useEffect(() => {
     setLocalHtml(content.fullHtml);
   }, [content.fullHtml]);
 
+  // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트
+  useEffect(() => {
+    if (editorRef.current && !isInternalChange.current) {
+      const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      if (editorRef.current.innerHTML !== styledHtml) {
+        editorRef.current.innerHTML = styledHtml;
+      }
+    }
+    isInternalChange.current = false;
+  }, [localHtml, currentTheme]);
+
   const handleHtmlChange = () => {
     if (editorRef.current) {
+      isInternalChange.current = true;
       setLocalHtml(editorRef.current.innerHTML);
     }
   };
@@ -576,6 +589,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
               <div 
                 ref={editorRef}
                 contentEditable
+                suppressContentEditableWarning
                 onInput={handleHtmlChange}
                 onClick={(e) => {
                    const target = e.target as HTMLElement;
@@ -585,7 +599,6 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
                       openRegenModal(index, (target as HTMLImageElement).alt || 'professional illustration');
                    }
                 }}
-                dangerouslySetInnerHTML={{ __html: applyInlineStylesForNaver(localHtml, currentTheme) }}
                 className="focus:outline-none"
               />
           </div>
