@@ -837,10 +837,30 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
   newImagePrompts?: string[]
 }> => {
     const ai = getAiClient();
+    
+    // 이미지 URL을 플레이스홀더로 대체 (토큰 초과 방지)
+    // base64 이미지나 긴 URL을 짧은 플레이스홀더로 변환
+    const imageMap: Map<string, string> = new Map();
+    let imgCounter = 0;
+    
+    const sanitizedHtml = currentHtml.replace(
+      /<img([^>]*?)src=["']([^"']+)["']([^>]*)>/gi,
+      (match, before, src, after) => {
+        // 이미 플레이스홀더인 경우 스킵
+        if (src.startsWith('__IMG_PLACEHOLDER_')) {
+          return match;
+        }
+        const placeholder = `__IMG_PLACEHOLDER_${imgCounter}__`;
+        imageMap.set(placeholder, src);
+        imgCounter++;
+        return `<img${before}src="${placeholder}"${after}>`;
+      }
+    );
+    
     try {
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
-        contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${currentHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수.`,
+        contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${sanitizedHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지하세요.`,
         config: { 
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json", 
@@ -856,6 +876,18 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
           } 
         }
       });
-      return JSON.parse(response.text || "{}");
+      
+      const result = JSON.parse(response.text || "{}");
+      
+      // 플레이스홀더를 원래 이미지 URL로 복원
+      let restoredHtml = result.newHtml;
+      imageMap.forEach((originalSrc, placeholder) => {
+        restoredHtml = restoredHtml.replace(new RegExp(placeholder, 'g'), originalSrc);
+      });
+      
+      return {
+        ...result,
+        newHtml: restoredHtml
+      };
     } catch (error) { throw error; }
 };
