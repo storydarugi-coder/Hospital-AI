@@ -46,6 +46,7 @@ export interface FactCheckReport {
   fact_score: number;
   verified_facts_count: number;
   safety_score: number;
+  conversion_score: number;  // 전환력 점수 (0~100) - 의료법 준수하면서 행동 유도하는 능력
   issues: string[];
   recommendations: string[];
 }

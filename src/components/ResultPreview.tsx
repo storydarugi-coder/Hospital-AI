@@ -1151,18 +1151,36 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
       {content.factCheck && (
         <div className="bg-slate-900 p-6 flex items-center justify-between text-white flex-none">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-6">
+            {/* 전환 점수 (Conversion Score) - 상단에 배치 */}
             <div className="flex flex-col">
-              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">Naver Logic Score</span>
-              <div className="flex items-center gap-3">
+              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🎯 전환력 점수</span>
+              <div className="flex items-center gap-2">
+                 <span className={`text-3xl font-black ${(content.factCheck.conversion_score || 0) >= 80 ? 'text-emerald-400' : (content.factCheck.conversion_score || 0) >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                   {content.factCheck.conversion_score || 0}점
+                 </span>
+                 <span className="text-[10px] opacity-70 leading-tight">
+                   {(content.factCheck.conversion_score || 0) >= 80 ? '🔥 강력' : (content.factCheck.conversion_score || 0) >= 60 ? '👍 적당' : '💡 보완 필요'}
+                 </span>
+              </div>
+            </div>
+            
+            {/* 구분선 */}
+            <div className="w-px h-12 bg-slate-700"></div>
+            
+            {/* 안전성 점수 (Safety Score) */}
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">⚖️ 의료법 준수</span>
+              <div className="flex items-center gap-2">
                  <span className={`text-3xl font-black ${content.factCheck.safety_score > 80 ? 'text-green-400' : 'text-amber-400'}`}>
                    {content.factCheck.safety_score}점
                  </span>
-                 <span className="text-xs opacity-70">안전성 확보</span>
+                 <span className="text-[10px] opacity-70">{content.factCheck.safety_score > 80 ? '✅ 안전' : '⚠️ 검토 필요'}</span>
               </div>
             </div>
+            
             {content.postType === 'card_news' && (
-                <div className="hidden lg:block">
+                <div className="hidden lg:block ml-4">
                    <span className="text-xs font-bold text-blue-400 border border-blue-400 px-2 py-1 rounded-lg">카드뉴스 모드</span>
                 </div>
             )}
