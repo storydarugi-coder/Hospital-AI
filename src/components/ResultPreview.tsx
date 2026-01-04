@@ -80,7 +80,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content }) => {
       tempDiv.innerHTML = localHtml;
       const textContent = tempDiv.innerText || tempDiv.textContent || '';
       
-      const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt);
+      // 현재 이미지 스타일을 전달하여 스타일에 맞는 프롬프트 추천
+      const currentStyle = content.imageStyle || 'illustration';
+      const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt, currentStyle);
       setRegenPrompt(recommendedPrompt);
     } catch (err) {
       alert('프롬프트 추천 중 오류가 발생했습니다.');

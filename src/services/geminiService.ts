@@ -368,8 +368,21 @@ CTA = "이 경우엔 다른 선택지는 아니다" ✅
 5. 계절/시의형: "건강 관리하기 좋은 계절입니다. 이번 기회에 점검해 보시는 건 어떨까요?"
 `;
 
-export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string): Promise<string> => {
+export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration'): Promise<string> => {
   const ai = getAiClient();
+  
+  // 스타일에 따른 프롬프트 가이드
+  const styleGuide = imageStyle === 'illustration' 
+    ? `**중요: 3D 일러스트/인포그래픽 스타일로 생성해야 합니다!**
+       - 반드시 "3D illustration", "isometric", "clay render", "infographic style" 키워드 포함
+       - 실사 사진 스타일 금지 (photo, realistic, DSLR 등 금지)
+       - 밝고 깔끔한 파란색/흰색 색상 팔레트
+       - 친근하고 현대적인 느낌`
+    : `**중요: 실사 사진 스타일로 생성해야 합니다!**
+       - 반드시 "realistic photo", "professional photography", "DSLR" 키워드 포함
+       - 일러스트/3D 스타일 금지 (illustration, cartoon, 3D render 등 금지)
+       - 자연스러운 병원 조명
+       - 전문적이고 신뢰감 있는 분위기`;
   
   try {
     const response = await ai.models.generateContent({
@@ -380,8 +393,9 @@ ${blogContent.substring(0, 3000)}
 
 현재 이미지 설명: "${currentImageAlt}"
 
-이 글의 맥락과 주제에 맞는 더 나은 이미지 프롬프트를 영어로 추천해주세요.
-프롬프트는 구체적이고 상세해야 하며, 의료/병원 맥락에 적합해야 합니다.
+${styleGuide}
+
+이 글의 맥락과 주제에 맞는 이미지 프롬프트를 영어로 추천해주세요.
 
 요구사항:
 1. 글의 핵심 주제와 연관성 높은 장면
@@ -389,6 +403,7 @@ ${blogContent.substring(0, 3000)}
 3. 전문적이고 신뢰감 있는 분위기
 4. 구체적인 요소 (인물, 배경, 분위기 등) 포함
 5. 텍스트나 로고는 절대 포함하지 말 것
+6. **위에서 지정한 스타일 키워드를 반드시 프롬프트에 포함할 것!**
 
 프롬프트만 영어로 답변하세요 (설명 없이):`,
       config: {
