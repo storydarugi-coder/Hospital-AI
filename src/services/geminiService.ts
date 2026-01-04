@@ -445,7 +445,7 @@ ${styleGuide}
   }
 };
 
-export const generateSingleImage = async (promptText: string, style: ImageStyle = 'photo', aspectRatio: string = "16:9"): Promise<string> => {
+export const generateSingleImage = async (promptText: string, style: ImageStyle = 'illustration', aspectRatio: string = "16:9"): Promise<string> => {
     const ai = getAiClient();
     
     // 한국어 프롬프트를 영어로 변환하여 이미지 생성 품질 향상
@@ -601,6 +601,10 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
   const imageMarkers = Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ');
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
   const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
+  const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
+  const imageStyleGuide = imageStyle === 'illustration' 
+    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽 스타일, 파란색 흰색 팔레트, 친근하고 현대적인 느낌'
+    : '실사 사진, DSLR 촬영, 자연스러운 병원 조명, 전문적이고 신뢰감 있는 분위기';
   
   const blogPrompt = `
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
@@ -688,6 +692,18 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     - "방문하세요", "내원하세요" 같은 직접 권유 표현 절대 금지
     - "검진을 고려해 보시는 것도 좋습니다", "전문의와 상담이 필요할 수 있습니다" 등 간접 표현 사용
     - 병원 이름, 전화번호, 주소 절대 금지
+    
+    [🎨 이미지 프롬프트 작성 규칙 - 매우 중요!]
+    **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
+    이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'}
+    
+    각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
+    ${imageStyleGuide}
+    
+    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'} 스타일):
+    ${imageStyle === 'illustration' 
+      ? '- "밝은 병원 진료실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"\n    - "심장 건강을 나타내는 인포그래픽, 3D 일러스트, 밝고 깔끔한 느낌, 파란색 계열"'
+      : '- "깔끔한 병원 진료실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명"\n    - "건강한 심장을 상징하는 이미지, 실사 사진, 전문적인 분위기, 밝은 톤"'}
   `;
 
   const cardNewsPrompt = `
@@ -783,6 +799,18 @@ export const generateBlogPostText = async (request: GenerationRequest): Promise<
     
     [✅ 올바른 예시]
     <p class="card-main-title">스타틴<br/><span class="card-highlight">중단 금지!</span></p>
+    
+    [🎨 이미지 프롬프트 작성 규칙 - 매우 중요!]
+    **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
+    이미지 스타일: ${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'}
+    
+    각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
+    ${imageStyleGuide}
+    
+    예시 (${imageStyle === 'illustration' ? '3D 일러스트' : '실사 사진'} 스타일):
+    ${imageStyle === 'illustration' 
+      ? '- "밝은 병원 배경의 건강 인포그래픽, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
+      : '- "깔끔한 병원 환경 이미지, 실사 사진, DSLR 촬영, 전문적인 분위기"'}
   `;
 
   try {
