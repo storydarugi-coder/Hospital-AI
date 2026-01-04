@@ -274,49 +274,39 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
            </div>
         </div>
 
-        {/* 글 스타일 선택 - 마케팅 핵심 설정 */}
+        {/* 글 스타일 선택 - 마케팅 핵심 설정 (가로 배치) */}
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-2xl border border-slate-200">
-           <div className="flex items-center justify-between mb-3">
-              <div>
-                 <label className="block text-xs font-black text-slate-700 uppercase tracking-widest">✍️ 마케팅 글 스타일</label>
-                 <p className="text-[10px] text-slate-500 font-medium mt-0.5">목적에 맞는 글쓰기 스타일 선택</p>
+           <div className="flex items-center gap-4">
+              <div className="shrink-0">
+                 <label className="text-xs font-black text-slate-700">✍️ 글 스타일</label>
               </div>
-           </div>
-           <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setWritingStyle('expert')}
-                className={`flex-1 p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${writingStyle === 'expert' ? 'border-blue-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-              >
-                 <span className="text-2xl">📚</span>
-                 <div className="text-left">
-                    <span className={`text-sm font-black block ${writingStyle === 'expert' ? 'text-blue-700' : 'text-slate-600'}`}>전문가형</span>
-                    <p className="text-[10px] text-slate-500 font-medium">신뢰·권위·논문 인용</p>
-                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setWritingStyle('empathy')}
-                className={`flex-1 p-3 rounded-xl border-2 transition-all flex items-center gap-3 relative ${writingStyle === 'empathy' ? 'border-pink-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-              >
-                 <div className="absolute -top-2 right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full">추천</div>
-                 <span className="text-2xl">💗</span>
-                 <div className="text-left">
-                    <span className={`text-sm font-black block ${writingStyle === 'empathy' ? 'text-pink-700' : 'text-slate-600'}`}>공감형</span>
-                    <p className="text-[10px] text-slate-500 font-medium">상황 묘사·친근한 톤</p>
-                 </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setWritingStyle('conversion')}
-                className={`flex-1 p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${writingStyle === 'conversion' ? 'border-amber-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-              >
-                 <span className="text-2xl">🎯</span>
-                 <div className="text-left">
-                    <span className={`text-sm font-black block ${writingStyle === 'conversion' ? 'text-amber-700' : 'text-slate-600'}`}>전환형</span>
-                    <p className="text-[10px] text-slate-500 font-medium">행동 유도·심리 기법</p>
-                 </div>
-              </button>
+              <div className="flex-1 flex gap-2">
+                 <button
+                   type="button"
+                   onClick={() => setWritingStyle('expert')}
+                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'expert' ? 'border-blue-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
+                 >
+                    <span className="text-lg">📚</span>
+                    <span className={`text-xs font-black ${writingStyle === 'expert' ? 'text-blue-700' : 'text-slate-600'}`}>전문가형</span>
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => setWritingStyle('empathy')}
+                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 relative ${writingStyle === 'empathy' ? 'border-pink-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
+                 >
+                    <div className="absolute -top-1.5 right-1 bg-pink-500 text-white text-[7px] font-black px-1 py-0.5 rounded">추천</div>
+                    <span className="text-lg">💗</span>
+                    <span className={`text-xs font-black ${writingStyle === 'empathy' ? 'text-pink-700' : 'text-slate-600'}`}>공감형</span>
+                 </button>
+                 <button
+                   type="button"
+                   onClick={() => setWritingStyle('conversion')}
+                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'conversion' ? 'border-amber-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
+                 >
+                    <span className="text-lg">🎯</span>
+                    <span className={`text-xs font-black ${writingStyle === 'conversion' ? 'text-amber-700' : 'text-slate-600'}`}>전환형</span>
+                 </button>
+              </div>
            </div>
         </div>
 
