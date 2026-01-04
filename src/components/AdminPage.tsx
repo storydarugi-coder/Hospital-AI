@@ -80,10 +80,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     }
   }, [isAuthenticated]);
 
+  const [dataError, setDataError] = useState<string>('');
+  
   const loadUsersAndPayments = async () => {
     setLoadingData(true);
+    setDataError('');
+    
     try {
-      // 사용자 목록 가져오기
+      // 방법 1: profiles 테이블에서 가져오기 시도
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
@@ -91,6 +95,27 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       
       if (profilesError) {
         console.error('프로필 로드 에러:', profilesError);
+        
+        // profiles 테이블이 없으면 안내 메시지
+        if (profilesError.code === '42P01' || profilesError.message?.includes('does not exist')) {
+          setDataError('⚠️ profiles 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
+        } else {
+          setDataError(`프로필 로드 실패: ${profilesError.message}`);
+        }
+        
+        // 현재 로그인한 사용자 정보라도 가져오기
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUsers([{
+            id: user.id,
+            email: user.email || '',
+            name: user.user_metadata?.name || user.email?.split('@')[0] || '사용자',
+            plan: 'free',
+            remaining_credits: 999,
+            created_at: user.created_at || new Date().toISOString()
+          }]);
+          setStats(prev => ({ ...prev, totalUsers: 1, todaySignups: 1 }));
+        }
       } else {
         setUsers(profilesData || []);
         
@@ -119,6 +144,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       
       if (paymentsError) {
         console.error('결제 로드 에러:', paymentsError);
+        // payments 테이블 에러는 무시 (아직 결제가 없을 수 있음)
       } else {
         setPayments(paymentsData || []);
         
@@ -134,6 +160,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       }
     } catch (err) {
       console.error('데이터 로드 오류:', err);
+      setDataError(`데이터 로드 오류: ${String(err)}`);
     }
     setLoadingData(false);
   };
@@ -490,7 +517,25 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                 </button>
               </div>
               
-              {users.length === 0 ? (
+              {/* 에러 메시지 */}
+              {dataError && (
+                <div className="mb-6 p-4 bg-amber-500/20 border border-amber-500/30 rounded-xl">
+                  <p className="text-amber-300 text-sm font-medium mb-3">{dataError}</p>
+                  <p className="text-slate-400 text-xs">
+                    📌 Supabase Dashboard → SQL Editor에서 profiles 테이블을 생성해주세요.
+                  </p>
+                  <a 
+                    href="https://supabase.com/dashboard/project/giiatpxkhponcbduyzci/sql" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block mt-2 text-xs text-amber-400 hover:text-amber-300 underline"
+                  >
+                    🔗 Supabase SQL Editor 열기
+                  </a>
+                </div>
+              )}
+              
+              {users.length === 0 && !dataError ? (
                 <div className="text-center py-12">
                   <div className="text-5xl mb-4">👥</div>
                   <p className="text-slate-400 font-medium">
@@ -500,7 +545,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                     Supabase 프로필 테이블을 확인하세요.
                   </p>
                 </div>
-              ) : (
+              ) : users.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -525,7 +570,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                     </tbody>
                   </table>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
 
