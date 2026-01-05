@@ -526,8 +526,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 3. 없으면 undefined
       const customStylePrompt = content.customImagePrompt || undefined;
       
+      // 🎨 스타일 결정: 커스텀 스타일 > 기본 스타일
+      const styleText = customStylePrompt 
+        ? customStylePrompt  // 커스텀 스타일 있으면 그대로 사용
+        : style === 'illustration' ? '3D 일러스트' 
+        : style === 'medical' ? '의학 3D' 
+        : '실사 사진';
+      
       let imagePromptToUse = editImagePrompt || 
-        `1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : style === 'custom' ? '커스텀 스타일' : '실사 사진'}`;
+        `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어 텍스트만`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
