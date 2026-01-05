@@ -1024,7 +1024,9 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     const cleanPromptText = promptText
       .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '') // base64 데이터 제거
       .replace(/https?:\/\/[^\s"'<>]+/g, '') // URL 제거
-      .replace(/[A-Za-z0-9+/]{30,}/g, '') // 30자 이상의 알파벳+숫자 조합 제거 (코드 패턴)
+      .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상의 알파벳+숫자+/+= 조합 제거 (더 엄격하게!)
+      .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드 제거
+      .replace(/BAOMY|VGRy|dCRn|OenP|ztX2/g, '') // 자주 나오는 base64 패턴 제거
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
     
@@ -2166,7 +2168,8 @@ export const convertScriptToCardNews = async (
   const cleanImagePrompt = (prompt: string) => prompt
     .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
     .replace(/https?:\/\/[^\s"'<>]+/g, '')
-    .replace(/[A-Za-z0-9+/]{30,}/g, '')
+    .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상으로 더 엄격하게!
+    .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -2261,7 +2264,8 @@ export const generateCardNewsWithAgents = async (
   const cleanImagePrompt = (prompt: string) => prompt
     .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
     .replace(/https?:\/\/[^\s"'<>]+/g, '')
-    .replace(/[A-Za-z0-9+/]{30,}/g, '')
+    .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상으로 더 엄격하게!
+    .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드
     .replace(/\s+/g, ' ')
     .trim();
   const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
