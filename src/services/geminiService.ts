@@ -1892,54 +1892,52 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
     });
     
     const result = JSON.parse(response.text || '{"cards":[]}');
-    // 결과에 커스텀 스타일이 누락되어 있으면 추가
-    let cards = result.cards || slides.map(s => ({
-      imagePrompt: `1:1 정사각형 카드뉴스, ${styleGuide}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}`,
-      textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
-    }));
     
-    // 🚨 후처리: 표지(1장)와 마지막 장의 imagePrompt에서 description 관련 내용 제거!
-    if (cards.length > 0) {
-      // 표지(1장): description 관련 텍스트 제거 + 강조 추가
-      cards[0].imagePrompt = cards[0].imagePrompt
-        .replace(/,?\s*하단에[^,]*설명[^,]*/gi, '')
-        .replace(/,?\s*설명[^,]*텍스트[^,]*/gi, '')
-        .replace(/,?\s*description[^,]*/gi, '')
-        + ', 설명 텍스트 없이 제목과 부제와 일러스트만!';
-      cards[0].textPrompt.description = '';
+    // 🚨🚨🚨 AI가 생성한 imagePrompt는 무시하고, 슬라이드 정보 + 사용자 스타일로 직접 조합!
+    // AI가 멋대로 다른 텍스트/스타일을 넣는 문제 해결
+    const cards = slides.map((s, idx) => {
+      const isFirst = idx === 0;
+      const isLast = idx === slides.length - 1;
+      const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       
-      // 마지막 장: description 관련 텍스트 제거 + 강조 추가
-      if (cards.length > 1) {
-        const lastIdx = cards.length - 1;
-        cards[lastIdx].imagePrompt = cards[lastIdx].imagePrompt
-          .replace(/,?\s*하단에[^,]*설명[^,]*/gi, '')
-          .replace(/,?\s*설명[^,]*텍스트[^,]*/gi, '')
-          .replace(/,?\s*description[^,]*/gi, '')
-          + ', 설명 텍스트 없이 제목과 부제와 일러스트만!';
-        cards[lastIdx].textPrompt.description = '';
+      // 표지/마지막은 description 없음
+      const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
+      
+      // 🎨 스타일 결정: 커스텀 > 기본
+      const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
+      
+      // imagePrompt 직접 조합 (AI 결과 무시!)
+      const imagePrompt = `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`;
+      
+      // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
+      const aiCard = result.cards?.[idx];
+      const textPrompt = aiCard?.textPrompt || {
+        subtitle: s.subtitle,
+        mainTitle: s.mainTitle,
+        description: (isFirst || isLast) ? '' : s.description,
+        tags: s.tags
+      };
+      
+      // 표지/마지막은 description 강제 제거
+      if (isFirst || isLast) {
+        textPrompt.description = '';
       }
-      console.log('🚨 [fullImageCardPromptAgent] 표지/마지막 장 description 제거 완료');
-    }
+      
+      return { imagePrompt, textPrompt };
+    });
     
-    // 커스텀 스타일이 있으면 각 imagePrompt에 강제 추가
-    if (customImagePrompt?.trim()) {
-      console.log('🎨 카드뉴스 이미지에 커스텀 스타일 강제 적용:', customImagePrompt);
-      return cards.map((card: any) => ({
-        ...card,
-        imagePrompt: `${card.imagePrompt}, ${customImagePrompt} 스타일`
-      }));
-    }
+    console.log('🎨 카드 프롬프트 직접 생성 완료:', cards.length, '장, 스타일:', hasCustomStyle ? '커스텀' : '기본');
     return cards;
   } catch (error) {
     console.error('전체 이미지 카드 프롬프트 실패:', error);
-    const fallbackStyle = customImagePrompt?.trim() ? `${customImagePrompt} 스타일` : styleGuide;
+    const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
     const fallbackCards = slides.map((s, idx) => {
       const isFirst = idx === 0;
       const isLast = idx === slides.length - 1;
-      const descPart = (isFirst || isLast) ? '' : `, ${s.description}`;
-      const noDescNote = (isFirst || isLast) ? ', 설명 텍스트 없이 제목과 부제와 일러스트만!' : '';
+      const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
+      const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       return {
-        imagePrompt: `1:1 정사각형 카드뉴스, ${fallbackStyle}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}${descPart}, ${s.imageKeyword}${noDescNote}`,
+        imagePrompt: `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
@@ -1948,7 +1946,7 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
         }
       };
     });
-    console.log('🚨 [fullImageCardPromptAgent fallback] 표지/마지막 장 description 제거 완료');
+    console.log('🚨 [fullImageCardPromptAgent fallback] 직접 생성, 스타일:', hasCustomStyle ? '커스텀' : '기본');
     return fallbackCards;
   }
 };
