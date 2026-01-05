@@ -1854,10 +1854,33 @@ ${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑
     
     const result = JSON.parse(response.text || '{"cards":[]}');
     // 결과에 커스텀 스타일이 누락되어 있으면 추가
-    const cards = result.cards || slides.map(s => ({
+    let cards = result.cards || slides.map(s => ({
       imagePrompt: `1:1 정사각형 카드뉴스, ${styleGuide}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}`,
       textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
     }));
+    
+    // 🚨 후처리: 표지(1장)와 마지막 장의 imagePrompt에서 description 관련 내용 제거!
+    if (cards.length > 0) {
+      // 표지(1장): description 관련 텍스트 제거 + 강조 추가
+      cards[0].imagePrompt = cards[0].imagePrompt
+        .replace(/,?\s*하단에[^,]*설명[^,]*/gi, '')
+        .replace(/,?\s*설명[^,]*텍스트[^,]*/gi, '')
+        .replace(/,?\s*description[^,]*/gi, '')
+        + ', 설명 텍스트 없이 제목과 부제와 일러스트만!';
+      cards[0].textPrompt.description = '';
+      
+      // 마지막 장: description 관련 텍스트 제거 + 강조 추가
+      if (cards.length > 1) {
+        const lastIdx = cards.length - 1;
+        cards[lastIdx].imagePrompt = cards[lastIdx].imagePrompt
+          .replace(/,?\s*하단에[^,]*설명[^,]*/gi, '')
+          .replace(/,?\s*설명[^,]*텍스트[^,]*/gi, '')
+          .replace(/,?\s*description[^,]*/gi, '')
+          + ', 설명 텍스트 없이 제목과 부제와 일러스트만!';
+        cards[lastIdx].textPrompt.description = '';
+      }
+      console.log('🚨 [fullImageCardPromptAgent] 표지/마지막 장 description 제거 완료');
+    }
     
     // 커스텀 스타일이 있으면 각 imagePrompt에 강제 추가
     if (customImagePrompt?.trim()) {
@@ -1871,10 +1894,23 @@ ${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑
   } catch (error) {
     console.error('전체 이미지 카드 프롬프트 실패:', error);
     const fallbackStyle = customImagePrompt?.trim() ? `${customImagePrompt} 스타일` : styleGuide;
-    return slides.map(s => ({
-      imagePrompt: `1:1 정사각형 카드뉴스, ${fallbackStyle}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}`,
-      textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
-    }));
+    const fallbackCards = slides.map((s, idx) => {
+      const isFirst = idx === 0;
+      const isLast = idx === slides.length - 1;
+      const descPart = (isFirst || isLast) ? '' : `, ${s.description}`;
+      const noDescNote = (isFirst || isLast) ? ', 설명 텍스트 없이 제목과 부제와 일러스트만!' : '';
+      return {
+        imagePrompt: `1:1 정사각형 카드뉴스, ${fallbackStyle}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}${descPart}, ${s.imageKeyword}${noDescNote}`,
+        textPrompt: { 
+          subtitle: s.subtitle, 
+          mainTitle: s.mainTitle, 
+          description: (isFirst || isLast) ? '' : s.description, 
+          tags: s.tags 
+        }
+      };
+    });
+    console.log('🚨 [fullImageCardPromptAgent fallback] 표지/마지막 장 description 제거 완료');
+    return fallbackCards;
   }
 };
 
@@ -3112,8 +3148,12 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount || 3);
   
+  // 폴백 방식에서도 참고 이미지 전달 (레이아웃 재가공 지원)
+  const fallbackReferenceImage = request.coverStyleImage || request.contentStyleImage;
+  const fallbackCopyMode = request.styleCopyMode;
+  
   const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => 
-     generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt).then(img => ({ index: i + 1, data: img, prompt: p }))
+     generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
   ));
 
   let body = textData.content;
