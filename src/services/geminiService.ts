@@ -266,6 +266,64 @@ const getMedicalSafetyPrompt = () => {
 // 기존 호환성을 위한 상수 (실제 사용 시 getMedicalSafetyPrompt() 호출)
 const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 
+// =============================================
+// 🎨 공통 이미지 프롬프트 상수 (중복 제거)
+// =============================================
+
+// 카드뉴스 레이아웃 규칙 (2단 분할 금지)
+const CARD_LAYOUT_RULE = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
+
+// 카드뉴스 레이아웃 상세 규칙
+const CARD_LAYOUT_PROMPT = `
+⛔ 금지: 상단 흰색/회색 텍스트박스 + 하단 일러스트 분리 레이아웃
+✅ 필수: 일러스트가 화면 100% 채우고, 그 위에 텍스트 배치 (포스터 스타일)
+- 배경: 전체 화면 일러스트 또는 그라데이션+일러스트
+- 텍스트: 일러스트 위 반투명 배경과 함께 오버레이
+- 해시태그 금지, 한국어만!`;
+
+// 참고 이미지 프레임 복제 모드 규칙
+const REF_IMAGE_COPY_MODE_PROMPT = `
+🚨 [최우선 규칙] 참고 이미지는 "빈 액자"입니다 - 내용물은 완전히 무시하세요!
+
+⛔ [절대 금지] 참고 이미지 속 모든 "내용물"은 존재하지 않는 것으로 취급!
+🚫 참고 이미지의 그림/일러스트 → 무시! 완전히 새 그림!
+🚫 참고 이미지의 텍스트 → 무시! 완전히 새 텍스트!
+🚫 참고 이미지의 주제 → 무관! 내가 요청한 주제만!
+
+✅ [오직 복제할 것 - 뼈대/프레임만]
+- 카드 외곽 모양 (라운드, 테두리, 그림자)
+- 브라우저 창 버튼 (있으면 포함)
+- 영역 분리 방식, 여백, 정렬
+- 폰트 스타일 느낌, UI 구조`;
+
+// 참고 이미지 스타일 참고 모드 규칙
+const REF_IMAGE_INSPIRE_MODE_PROMPT = `
+[레이아웃 재가공 모드] 참고 이미지를 "적당히" 재해석!
+
+🎨 [70% 유지] 색상 팔레트, 분위기/톤, 일러스트 기법, 레이아웃 구조, 폰트 느낌
+🔄 [30% 변형] 일러스트 내용을 새 주제로, 텍스트 내용 교체, 배치 미세 조정
+
+⛔ [절대 금지]
+- 참고 이미지 일러스트/텍스트 그대로 복사
+- 완전히 다른 스타일로 만들기
+- 참고 이미지가 2D 파스텔이면 → 3D로 변환 금지!
+
+🎯 목표: 같은 시리즈처럼 보이지만 새로운 카드!`;
+
+// 이미지 내 텍스트 규칙
+const IMAGE_TEXT_RULES = `
+[이미지 내 텍스트 규칙]
+- ✅ 허용: 질환명, 증상명, 의학 용어, 정보성 키워드
+- ❌ 금지: 광고성 문구, 로고, 워터마크, base64 문자열
+- ⚠️ 한국어 텍스트만!`;
+
+// 기본 스타일 프롬프트
+const DEFAULT_STYLE_PROMPTS = {
+  illustration: '고품질 3D 의료 일러스트, 인포그래픽, 파란색/흰색, 아이소메트릭, 클레이 렌더',
+  medical: '전문 3D 의학 해부학 일러스트, 단면도, 인체 내부, 과학적 시각화',
+  photo: '초고화질 실사 사진, 8K, DSLR, 부드러운 병원 조명, 얕은 피사계 심도'
+};
+
 // 글 스타일별 프롬프트 (의료법 100% 준수)
 const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
   // 📚 전문가형: 의학 지식 깊이 강조, 논문/연구 인용, 전문의 권위감
@@ -969,32 +1027,21 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     // 1:1 비율이면 완성형 카드뉴스 모드
     const isCardNewsMode = aspectRatio === "1:1";
     
-    // 스타일별 한국어 프롬프트 (사용자가 바로 이해하고 수정 가능)
-    let stylePrompt = "";
     // 🎨 스타일 우선순위: 커스텀 > 참고 이미지 스타일 > 기본 스타일
+    let stylePrompt = "";
     if (customStylePrompt && customStylePrompt.trim()) {
-        // 사용자 커스텀 스타일 프롬프트 - 최우선 적용
         stylePrompt = customStylePrompt;
-        console.log('🎨 커스텀 이미지 스타일 적용:', customStylePrompt.substring(0, 50) + '...');
+        console.log('🎨 커스텀 스타일:', customStylePrompt.substring(0, 50));
     } else if (referenceImage) {
-        // 🔴 참고 이미지가 있으면 기본 3D 스타일 적용 안 함!
-        // 참고 이미지의 스타일을 그대로 따라가도록 지시
-        stylePrompt = "참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트, 클레이 렌더, 아이소메트릭 등으로 강제 변환하지 마세요!";
-        console.log('🖼️ 참고 이미지 스타일 따라가기 모드');
-    } else if (style === 'photo') {
-        stylePrompt = "초고화질 실사 사진, 8K 해상도, 전문 DSLR 촬영, 부드러운 병원 조명, 신뢰감 있는 의료 분위기, 얕은 피사계 심도";
-    } else if (style === 'medical') {
-        stylePrompt = "전문 3D 의학 해부학 일러스트, 상세한 단면도, 투명한 인체 내부 장기 표현, 과학적 시각화, 교육용 의료 다이어그램, 파란색/흰색/빨간색 의료 색상, 해부학적으로 정확한 표현";
+        stylePrompt = "참고 이미지 스타일 그대로 (3D 변환 금지!)";
+        console.log('🖼️ 참고 이미지 스타일 모드');
     } else {
-        stylePrompt = "고품질 3D 의료 일러스트, 깔끔한 인포그래픽 스타일, 밝은 파란색과 흰색 팔레트, 친근하고 현대적인 느낌, 아이소메트릭 뷰, 부드러운 클레이 렌더 스타일";
+        stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
     }
 
-    // 완성형 카드뉴스 모드일 때 추가 지시 - 가장 간결하고 강력하게!
+    // 완성형 카드뉴스 모드
     const cardNewsPrompt = isCardNewsMode ? `
-🔴🔴🔴 [절대 필수] 전체 배경 일러스트 + 텍스트 오버레이 구조! 🔴🔴🔴
-
-⛔ 금지: 상단 흰색/회색 텍스트박스 + 하단 일러스트 분리 레이아웃
-✅ 필수: 일러스트가 화면 100% 채우고, 그 위에 텍스트 배치 (포스터 스타일)
+🔴 [필수] ${CARD_LAYOUT_PROMPT}
 
 [출력 이미지 구조]
 - 배경: 전체 화면을 채우는 일러스트 또는 그라데이션+일러스트
@@ -1003,71 +1050,13 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 - 해시태그 금지, 한국어만!
 ` : '';
 
-    // 참고 이미지 모드별 프롬프트
+    // 참고 이미지 모드별 프롬프트 (상수 사용)
     let refImagePrompt = '';
     if (referenceImage) {
       if (copyMode) {
-        // ========== 프레임 복제 모드 ==========
-        refImagePrompt = `
-████████████████████████████████████████████████████████████████████████████████
-🚨 [최우선 규칙] 참고 이미지는 "빈 액자"입니다 - 내용물은 완전히 무시하세요!
-████████████████████████████████████████████████████████████████████████████████
-
-⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
-[절대 금지] 참고 이미지 속 모든 "내용물"은 존재하지 않는 것으로 취급하세요!
-⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔⛔
-
-🚫 참고 이미지 안에 어떤 그림/일러스트가 있든 → 없는 것으로 간주! 완전히 새 그림!
-🚫 참고 이미지 안에 어떤 텍스트가 있든 → 없는 것으로 간주! 완전히 새 텍스트!
-🚫 참고 이미지가 무슨 주제든 → 완전히 무관한 주제! 내가 요청한 주제만!
-🚫 비슷한 느낌의 일러스트도 금지! 완전히 다른 그림!
-
-예시) 참고 이미지에 "돼지저금통 + 돈 + 짠테크" 그림이 있더라도
-→ 나는 "피부 색소침착"을 요청했으므로 → 돼지, 돈, 저금통은 존재하지 않음!
-→ 피부/자외선/멜라닌/피부결/얼룩 관련 완전히 새로운 의료 일러스트만!
-
-✅✅✅ [오직 복제해야 할 것 - 뼈대/프레임만] ✅✅✅
-- 카드 외곽 모양 (라운드, 테두리 굵기, 그림자)
-- 브라우저 창 버튼 (빨강/노랑/초록) - 있으면 반드시 포함
-- 영역 분리 방식 (상단/중앙/하단 또는 좌우 분리)
-- 여백 비율, 정렬 방식 (중앙정렬 등)
-- 폰트 스타일의 "느낌" (굵은/가는, 산세리프/세리프)
-- 전체적인 UI 구조 (웹카드, 앱화면, SNS 카드 등)
-
-🎯 [결과물]
-- 구조/프레임: 참고 이미지와 동일
-- 일러스트/그림: 내가 요청한 주제에 맞는 100% 새로운 그림
-- 텍스트: 내가 요청한 주제에 맞는 100% 새로운 텍스트
-`;
+        refImagePrompt = REF_IMAGE_COPY_MODE_PROMPT;
       } else {
-        // ========== 레이아웃 재가공 모드 (스타일+레이아웃 적당히 참고) ==========
-        refImagePrompt = `
-████████████████████████████████████████████████████████████████████████████████
-[레이아웃 재가공 모드] 참고 이미지를 "적당히" 재해석해서 새로 만드세요!
-████████████████████████████████████████████████████████████████████████████████
-
-🎨 [참고할 것 - 70% 유지]
-- 전체적인 색상 팔레트 (배경색, 강조색 유사하게)
-- 분위기/톤 (밝은/어두운/따뜻한/차가운)
-- 일러스트 스타일 기법 (파스텔/3D/플랫/수채화 등)
-- 레이아웃 구조 (텍스트 위치, 일러스트 배치 방향)
-- 폰트 느낌 (굵기, 스타일)
-
-🔄 [변경할 것 - 30% 변형]
-- 일러스트 내용: 내가 요청한 주제에 맞게 새로 그림
-- 텍스트 내용: 내가 제공하는 제목/부제/설명으로 교체
-- 배치 미세 조정: 약간의 변형으로 새로운 느낌
-
-⛔ [절대 금지]
-- 참고 이미지의 일러스트 그대로 복사
-- 참고 이미지의 텍스트 그대로 복사
-- 완전히 다른 스타일로 만들기 (스타일은 유지!)
-- 🔴 참고 이미지가 2D 파스텔이면 → 3D/클레이/아이소메트릭으로 변환 금지!
-- 🔴 참고 이미지가 플랫 디자인이면 → 3D로 변환 금지!
-- 🔴 참고 이미지의 일러스트 기법을 반드시 따라가세요!
-
-🎯 목표: 같은 시리즈처럼 보이지만 새로운 카드! (스타일/기법 동일!)
-`;
+        refImagePrompt = REF_IMAGE_INSPIRE_MODE_PROMPT;
       }
     }
 
@@ -1080,17 +1069,14 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
       ? `[🎨 커스텀 스타일 필수] "${customStylePrompt}" 스타일로만 생성! 3D/클레이/아이소메트릭 등 다른 스타일 금지!` 
       : `[스타일] ${stylePrompt}`;
     
-    // 전체 한국어 프롬프트 - 카드뉴스 레이아웃 규칙을 맨 앞에!
+    // 전체 프롬프트 조합 (상수 사용으로 간결화)
     const finalPrompt = `${cardNewsPrompt}
 ${refImagePrompt}
 ${styleSection}
 
 [요청 내용] ${cleanPromptText}
 
-[이미지 내 텍스트 규칙]
-- ✅ 허용: 질환명, 증상명, 의학 용어, 정보성 키워드
-- ❌ 금지: 광고성 문구, 로고, 워터마크, base64 문자열
-- ⚠️ 한국어 텍스트만!`;
+${IMAGE_TEXT_RULES}`;
 
     try {
       // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
@@ -1914,10 +1900,8 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 🎨 스타일 결정: 커스텀 > 기본
       const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
       
-      // imagePrompt 직접 조합 (AI 결과 무시!)
-      // 🔴 레이아웃 규칙을 프롬프트 앞에 명시!
-      const layoutRule = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
-      const imagePrompt = `${layoutRule}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`;
+      // imagePrompt 직접 조합 (상수 사용)
+      const imagePrompt = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -1946,9 +1930,8 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const isLast = idx === slides.length - 1;
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
-      const layoutRule = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
       return {
-        imagePrompt: `${layoutRule}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`,
+        imagePrompt: `${CARD_LAYOUT_RULE}, 1:1 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
