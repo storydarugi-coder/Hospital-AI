@@ -1673,14 +1673,18 @@ const fullImageCardPromptAgent = async (
   const mood = styleConfig?.mood || '밝고 친근한';
   const keyFeatures = styleConfig?.keyFeatures?.join(', ') || '';
   
-  // 슬라이드 정보 (1장=표지, 마지막장은 description 제외!)
+  // 슬라이드 정보 (description이 비어있으면 생략!)
   const slideSummaries = slides.map((s, i) => {
-    const isFirstOrLast = i === 0 || i === slides.length - 1;
-    // 표지(1장)와 마지막 장은 description 생략!
-    if (isFirstOrLast) {
-      return `${i + 1}장 (${i === 0 ? '표지' : '마지막'}): subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" ⚠️description 없음! 이미지="${s.imageKeyword}"`;
+    const isFirst = i === 0;
+    const isLast = i === slides.length - 1;
+    const label = isFirst ? ' (표지)' : isLast ? ' (마지막)' : '';
+    const hasDescription = s.description && s.description.trim().length > 0;
+    
+    // description이 없거나 비어있으면 생략!
+    if (!hasDescription) {
+      return `${i + 1}장${label}: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" ⚠️description 없음 - 설명 텍스트 넣지 마세요! 이미지="${s.imageKeyword}"`;
     }
-    return `${i + 1}장: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" description="${s.description}" 이미지="${s.imageKeyword}"`;
+    return `${i + 1}장${label}: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" description="${s.description}" 이미지="${s.imageKeyword}"`;
   }).join('\n');
 
   // 🎨 스타일 참고 이미지가 있으면 프롬프트 3회 반복 강조!
@@ -1768,9 +1772,10 @@ ${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑
 2. "소셜미디어 카드뉴스" (1번은 "카드뉴스 표지"로!)
 3. "배경색 ${bgColor}" (3번 언급 권장!)
 4. "텍스트가 이미지 내에 완전히 포함된, 잘리지 않는"
-5. 실제 텍스트 내용 (subtitle, mainTitle, description)
-6. 일러스트 설명 + "${mood} 분위기"
-7. "모든 텍스트가 화면 안에 완전히 들어가도록, 여백 충분히"
+5. 실제 텍스트 내용 (subtitle, mainTitle)
+6. 🚨 description은 "⚠️description 없음"이면 절대 넣지 마세요! 있는 경우만 포함!
+7. 일러스트 설명 + "${mood} 분위기"
+8. "모든 텍스트가 화면 안에 완전히 들어가도록, 여백 충분히"
 
 ⚠️⚠️⚠️ 중요: imagePrompt는 반드시 **한국어**로 작성하세요! 영어 금지!
 
