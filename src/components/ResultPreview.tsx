@@ -369,8 +369,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       return;
     }
     
+    // 🔧 현재 히스토리가 이미 3개면 저장 불가
+    if (autoSaveHistory.length >= 3) {
+      alert('⚠️ 저장 슬롯이 가득 찼습니다!\n\n불러오기에서 기존 저장본을 삭제한 후 다시 저장해주세요.');
+      return;
+    }
+    
     const now = new Date();
     const title = extractTitle(localHtml);
+    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     
     const saveData = {
       html: localHtml,
@@ -378,7 +385,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       postType: content.postType,
       imageStyle: content.imageStyle,
       savedAt: now.toISOString(),
-      title: title
+      title: `${title} (${timeStr})` // 시간 포함하여 구분
     };
     
     // 현재 저장 (단일 저장은 항상 시도)
@@ -391,27 +398,22 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
     setLastSaved(now);
     
-    // 히스토리에 추가 (최근 3개만 유지 - 용량 절약)
+    // 히스토리에 추가 (최근 3개만 유지)
     setAutoSaveHistory(prev => {
-      const filtered = prev.filter(item => item.title !== title);
-      let newHistory = [saveData, ...filtered].slice(0, 3);
+      // 🔧 같은 제목 필터링 제거 - 시간이 다르면 별도 저장
+      let newHistory = [saveData, ...prev].slice(0, 3);
       
       // 저장 시도
       let historyStr = JSON.stringify(newHistory);
       if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
-        // 용량 초과 시 2개로 줄여서 재시도
-        newHistory = newHistory.slice(0, 2);
-        historyStr = JSON.stringify(newHistory);
-        if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
-          // 그래도 안 되면 1개만
-          newHistory = newHistory.slice(0, 1);
-          safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
-        }
+        // 용량 초과 시 경고 표시
+        alert('⚠️ 저장 용량이 초과되었습니다.\n\n기존 저장본을 삭제하고 다시 시도해주세요.');
+        return prev; // 기존 상태 유지
       }
       return newHistory;
     });
     
-    alert(`"${title}" 저장되었습니다!`);
+    alert(`✅ "${title}" 저장되었습니다! (${autoSaveHistory.length + 1}/3)`);
   };
 
   // 특정 저장본 불러오기
@@ -517,8 +519,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       // 편집된 이미지 프롬프트 구성
       const style = content.imageStyle || 'illustration';
-      // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
-      const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+      
+      // 🎨 커스텀 스타일 프롬프트 우선순위:
+      // 1. content.customImagePrompt가 있으면 무조건 사용 (style이 'custom'이 아니어도!)
+      // 2. 참고 이미지가 있고 style이 'custom'이면 분석된 스타일 적용
+      // 3. 없으면 undefined
+      const customStylePrompt = content.customImagePrompt || undefined;
       
       let imagePromptToUse = editImagePrompt || 
         `1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : style === 'custom' ? '커스텀 스타일' : '실사 사진'}`;
@@ -534,13 +540,22 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         setCardRegenProgress('🎨 커스텀 스타일로 이미지 생성 중...');
       }
       
+      // 🔧 디버그 로그 추가
+      console.log('🔄 카드 재생성 파라미터:', {
+        style,
+        customStylePrompt: customStylePrompt?.substring(0, 50),
+        hasRefImage: !!cardRegenRefImage,
+        refImageMode,
+        imagePromptToUse: imagePromptToUse.substring(0, 100)
+      });
+      
       // 참고 이미지와 모드를 generateSingleImage에 전달 (inspire/copy 모두 지원)
       // customStylePrompt를 4번째 파라미터로 전달 (커스텀 스타일 유지)
       const newImage = await generateSingleImage(
         imagePromptToUse, 
         style, 
         '1:1', 
-        customStylePrompt,  // 커스텀 스타일 프롬프트 전달!
+        customStylePrompt,  // 🎨 커스텀 스타일 프롬프트 - content.customImagePrompt가 있으면 항상 전달!
         cardRegenRefImage || undefined,  // 참고 이미지가 있으면 항상 전달
         refImageMode === 'copy'  // copy 모드인지 여부
       );
@@ -763,8 +778,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       const style = content.imageStyle || 'illustration';
       const imgRatio = content.postType === 'card_news' ? "1:1" : "16:9";
-      // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
-      const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+      // 🎨 커스텀 스타일 프롬프트: content.customImagePrompt가 있으면 무조건 사용!
+      // (style이 'custom'이 아니어도 적용 - 일관성 유지)
+      const customStylePrompt = content.customImagePrompt || undefined;
+      console.log('🔄 블로그 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
       const newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
       if (newImageData) {
         const tempDiv = document.createElement('div');
@@ -1344,8 +1361,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   const targetIdx = idxList[i];
                   if (!targetIdx) return;
                   const style = content.imageStyle || 'illustration';
-                  // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
-                  const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+                  // 🎨 커스텀 스타일 프롬프트: content.customImagePrompt가 있으면 무조건 사용!
+                  const customStylePrompt = content.customImagePrompt || undefined;
+                  console.log('🔄 AI 보정 이미지 재생성:', { targetIdx, style, customStylePrompt: customStylePrompt?.substring(0, 50) });
                   newImageMap[targetIdx] = await generateSingleImage(prompt, style, '16:9', customStylePrompt);
                 })
               );
@@ -2365,45 +2383,73 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   {/* 자동저장 히스토리 드롭다운 */}
                   {showAutoSaveDropdown && autoSaveHistory.length > 0 && (
                     <div 
-                      className={`absolute bottom-full right-0 mb-2 w-72 rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
+                      className={`absolute bottom-full right-0 mb-2 w-80 rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
                         darkMode ? 'bg-slate-800 border-amber-500' : 'bg-white border-amber-300'
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className={`px-3 py-2 text-[10px] font-bold flex items-center justify-between ${darkMode ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                        <span>📂 저장된 글 ({autoSaveHistory.length}개)</span>
+                        <span>📂 저장된 글 ({autoSaveHistory.length}/3)</span>
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowAutoSaveDropdown(false); }}
                           className="text-xs hover:opacity-70"
                         >✕</button>
                       </div>
                       {autoSaveHistory.map((item, idx) => (
-                        <button
+                        <div
                           key={idx}
-                          type="button"
-                          onClick={() => loadFromAutoSaveHistory(item)}
-                          className={`w-full px-4 py-3 text-left text-xs transition-all border-b last:border-b-0 ${
-                            darkMode 
-                              ? 'hover:bg-amber-900/50 text-slate-200 border-slate-700' 
-                              : 'hover:bg-amber-50 text-slate-700 border-slate-100'
+                          className={`flex items-center gap-2 px-3 py-2.5 border-b last:border-b-0 ${
+                            darkMode ? 'border-slate-700' : 'border-slate-100'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-black text-sm truncate flex-1">{item.title}</span>
-                            <span className={`text-[9px] ml-2 px-2 py-0.5 rounded-full ${
-                              item.postType === 'card_news' 
-                                ? 'bg-purple-100 text-purple-600' 
-                                : 'bg-blue-100 text-blue-600'
-                            }`}>
-                              {item.postType === 'card_news' ? '카드뉴스' : '블로그'}
-                            </span>
-                          </div>
-                          <div className={`text-[9px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                            🕐 {new Date(item.savedAt).toLocaleString('ko-KR', { 
-                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
-                            })}
-                          </div>
-                        </button>
+                          {/* 불러오기 버튼 */}
+                          <button
+                            type="button"
+                            onClick={() => loadFromAutoSaveHistory(item)}
+                            className={`flex-1 text-left text-xs transition-all rounded-lg p-2 ${
+                              darkMode 
+                                ? 'hover:bg-amber-900/50 text-slate-200' 
+                                : 'hover:bg-amber-50 text-slate-700'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-black text-sm truncate flex-1">{item.title}</span>
+                              <span className={`text-[9px] ml-2 px-2 py-0.5 rounded-full ${
+                                item.postType === 'card_news' 
+                                  ? 'bg-purple-100 text-purple-600' 
+                                  : 'bg-blue-100 text-blue-600'
+                              }`}>
+                                {item.postType === 'card_news' ? '카드뉴스' : '블로그'}
+                              </span>
+                            </div>
+                            <div className={`text-[9px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                              🕐 {new Date(item.savedAt).toLocaleString('ko-KR', { 
+                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                              })}
+                            </div>
+                          </button>
+                          
+                          {/* 🗑️ 삭제 버튼 */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`"${item.title}"을(를) 삭제하시겠습니까?`)) {
+                                const newHistory = autoSaveHistory.filter((_, i) => i !== idx);
+                                setAutoSaveHistory(newHistory);
+                                localStorage.setItem(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
+                              }
+                            }}
+                            className={`p-2 rounded-lg text-xs font-bold transition-all ${
+                              darkMode 
+                                ? 'bg-red-900/50 text-red-400 hover:bg-red-900' 
+                                : 'bg-red-50 text-red-500 hover:bg-red-100'
+                            }`}
+                            title="삭제"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
