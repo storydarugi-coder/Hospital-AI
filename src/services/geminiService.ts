@@ -994,39 +994,34 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 ⚠️ 창의적 재해석 금지! 참고 이미지를 보고 최대한 똑같이 만드세요!
 `;
       } else {
-        // 영감 모드: 느낌만 참고하여 재창작 (레이아웃은 자유롭게!)
+        // 스타일 참고 모드: 색감/분위기/레이아웃 구조를 비슷하게 (but 100% 복제는 아님)
         refImagePrompt = `
-🎨🎨🎨 [느낌만 참고 모드 - 레이아웃은 자유롭게!] 🎨🎨🎨
-첨부된 참고 이미지의 **분위기와 색감만** 참고하세요!
+🎨🎨🎨 [스타일 참고 모드 - 비슷한 느낌으로!] 🎨🎨🎨
+첨부된 참고 이미지를 분석하고, **비슷한 스타일**로 새 카드뉴스를 만드세요!
 
-✅ 참고할 것 (느낌만!):
-1. **색상 톤**: 따뜻한 톤? 차가운 톤? 파스텔? 비비드? → 비슷한 느낌으로
-2. **전체 분위기**: 밝은? 차분한? 전문적? 귀여운? → 유사한 무드
-3. **일러스트 스타일**: 3D? 2D? 플랫? → 비슷한 그래픽 스타일
+✅ 반드시 참고할 것:
+1. **색상 팔레트**: 배경색, 강조색 → 비슷한 색상 톤 사용
+2. **전체 분위기**: 밝은? 차분한? 전문적? → 유사한 무드 유지
+3. **일러스트 스타일**: 3D? 2D? 플랫? 귀여운? → 비슷한 그래픽 스타일
+4. **레이아웃 구조**: 텍스트 위치(상단/중앙/하단), 일러스트 배치 → 비슷한 구도로!
+5. **프레임 스타일**: 브라우저 창 버튼이 있다면 비슷하게, 둥근 카드면 비슷하게
 
-🚨🚨🚨 레이아웃은 절대 복제하지 마세요! 🚨🚨🚨
-❌ 텍스트 위치 복제 금지!
-❌ 요소 배치 복제 금지!
-❌ 프레임/테두리 스타일 복제 금지!
-❌ 브라우저 창 버튼 복제 금지!
+⚠️ 주의사항:
+- 참고 이미지의 텍스트 내용은 복사하지 마세요 (내가 제공하는 텍스트 사용!)
+- 100% 똑같이 복제할 필요 없음 - "같은 디자이너가 만든 느낌"이면 됨
+- 색상은 정확히 같지 않아도 됨 - 비슷한 톤이면 OK
 
-✅ 레이아웃은 내 마음대로:
-- 텍스트 위치: 자유롭게 배치
-- 일러스트 위치/크기: 자유롭게 결정
-- 여백과 구도: 콘텐츠에 맞게 새롭게 구성
-
-✅ 최종 목표: 참고 이미지의 **색감/분위기**만 비슷하고, **레이아웃은 완전히 새로운** 카드뉴스!
+✅ 최종 목표: 참고 이미지와 **같은 시리즈처럼** 보이는 새 카드뉴스!
 `;
       }
     }
 
     // 🚨 프롬프트에서 base64/URL 패턴 필터링 (이미지에 코드가 렌더링되는 것 방지)
     const cleanPromptText = promptText
-      .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '') // base64 데이터 제거
-      .replace(/https?:\/\/[^\s"'<>]+/g, '') // URL 제거
-      .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상의 알파벳+숫자+/+= 조합 제거 (더 엄격하게!)
-      .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드 제거
-      .replace(/BAOMY|VGRy|dCRn|OenP|ztX2/g, '') // 자주 나오는 base64 패턴 제거
+      .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 전체 제거
+      .replace(/https?:\/\/[^\s]+/g, '') // URL 전체 제거
+      .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상의 영숫자+특수문자 조합 제거
+      .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '') // 한글, 영문, 숫자, 기본 문장부호만 허용
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
     
@@ -2166,10 +2161,10 @@ export const convertScriptToCardNews = async (
   
   // 🚨 imagePrompt에서 base64/URL 패턴 필터링 (이미지에 코드 렌더링 방지)
   const cleanImagePrompt = (prompt: string) => prompt
-    .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
-    .replace(/https?:\/\/[^\s"'<>]+/g, '')
-    .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상으로 더 엄격하게!
-    .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드
+    .replace(/data:[^;]+;base64,[^\s]+/g, '')
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상 영숫자 조합 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -2262,10 +2257,10 @@ export const generateCardNewsWithAgents = async (
   
   // 이미지 프롬프트만 추출 (기존 호환성) - 🚨 base64/URL 필터링!
   const cleanImagePrompt = (prompt: string) => prompt
-    .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
-    .replace(/https?:\/\/[^\s"'<>]+/g, '')
-    .replace(/[A-Za-z0-9+/=]{20,}/g, '') // 20자 이상으로 더 엄격하게!
-    .replace(/[A-Z][A-Za-z0-9]{15,}/g, '') // 대문자로 시작하는 16자 이상 코드
+    .replace(/data:[^;]+;base64,[^\s]+/g, '')
+    .replace(/https?:\/\/[^\s]+/g, '')
+    .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상 영숫자 조합 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '')
     .replace(/\s+/g, ' ')
     .trim();
   const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
@@ -3027,8 +3022,12 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       const maxImages = request.slideCount || 6;
       onProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
       
+      // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
+      const referenceImage = request.coverStyleImage || request.contentStyleImage;
+      const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
+      
       const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
-        generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt).then(img => ({ index: i + 1, data: img, prompt: p }))
+        generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt, referenceImage, copyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
       ));
       
       // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
