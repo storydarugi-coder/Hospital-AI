@@ -8,6 +8,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Supabase 클라이언트 생성
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// 클라이언트 재초기화 (호환성을 위해 기존 클라이언트 반환)
+export const reinitializeSupabase = () => supabase;
+
 // Supabase 설정 여부 확인
 export const isSupabaseConfigured = () => {
   return !!(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -17,7 +20,7 @@ export const isSupabaseConfigured = () => {
 export const getUserIP = async (): Promise<string> => {
   try {
     const response = await fetch('https://api.ipify.org?format=json');
-    const data = await response.json();
+    const data = await response.json() as { ip: string };
     return data.ip;
   } catch {
     // IP 가져오기 실패 시 랜덤 해시 사용

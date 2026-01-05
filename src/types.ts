@@ -43,6 +43,7 @@ export interface GenerationRequest {
   coverStyleImage?: string; // 카드뉴스 표지 스타일 참고 이미지 (Base64)
   contentStyleImage?: string; // 카드뉴스 본문 스타일 참고 이미지 (Base64)
   customImagePrompt?: string; // 커스텀 이미지 스타일 프롬프트
+  styleCopyMode?: boolean; // true=레이아웃 복제, false=느낌만 참고
 }
 
 export interface FactCheckReport {
