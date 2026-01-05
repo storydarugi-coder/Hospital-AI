@@ -1534,7 +1534,22 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 시점 고정 (🔥 핵심! 🔥)*
       }
     });
     
-    return JSON.parse(response.text || "{}");
+    const result = JSON.parse(response.text || "{}");
+    
+    // 🚨 후처리: 1장(표지)과 마지막 장의 description 강제로 빈 문자열로!
+    if (result.slides && result.slides.length > 0) {
+      // 1장 (표지) description 제거
+      result.slides[0].description = "";
+      
+      // 마지막 장 description 제거
+      if (result.slides.length > 1) {
+        result.slides[result.slides.length - 1].description = "";
+      }
+      
+      console.log('🚨 표지/마지막 장 description 강제 제거 완료');
+    }
+    
+    return result;
   } catch (error) {
     console.error('스토리 기획 에이전트 실패:', error);
     throw error;
