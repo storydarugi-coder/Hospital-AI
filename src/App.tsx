@@ -709,6 +709,8 @@ const App: React.FC = () => {
               isLoading={isGeneratingScript}
               progress={scriptProgress}
               darkMode={darkMode}
+              topic={pendingRequest?.topic}
+              category={pendingRequest?.category}
             />
           ) : state.isLoading || isGeneratingScript ? (
             <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>

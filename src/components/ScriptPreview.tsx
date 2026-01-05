@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CardNewsScript, CardNewsSlideScript } from '../types';
+import { regenerateSlideContent } from '../services/geminiService';
 
 interface ScriptPreviewProps {
   script: CardNewsScript;
@@ -9,6 +10,8 @@ interface ScriptPreviewProps {
   isLoading: boolean;
   progress: string;
   darkMode?: boolean;
+  topic?: string;
+  category?: string;
 }
 
 // 슬라이드 타입 라벨
@@ -27,14 +30,62 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
   isLoading,
   progress,
   darkMode = false,
+  topic = '',
+  category = '',
 }) => {
   const [editingSlide, setEditingSlide] = useState<number | null>(null);
   const [tempEdit, setTempEdit] = useState<CardNewsSlideScript | null>(null);
+  const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
 
   // 슬라이드 편집 시작
   const startEditing = (slideIndex: number) => {
     setEditingSlide(slideIndex);
     setTempEdit({ ...script.slides[slideIndex] });
+  };
+  
+  // AI로 슬라이드 재생성
+  const handleAiRegenerate = async (slideIndex: number) => {
+    if (regeneratingSlide !== null) return;
+    
+    setRegeneratingSlide(slideIndex);
+    try {
+      const currentSlide = script.slides[slideIndex];
+      const regenerated = await regenerateSlideContent({
+        slideIndex,
+        slideType: currentSlide.slideType,
+        topic: topic || script.topic,
+        category,
+        totalSlides: script.totalSlides,
+        currentContent: {
+          subtitle: currentSlide.subtitle,
+          mainTitle: currentSlide.mainTitle,
+          description: currentSlide.description,
+          imageKeyword: currentSlide.imageKeyword,
+        },
+        prevSlide: slideIndex > 0 ? script.slides[slideIndex - 1] : undefined,
+        nextSlide: slideIndex < script.slides.length - 1 ? script.slides[slideIndex + 1] : undefined,
+      });
+      
+      const updatedSlides = [...script.slides];
+      updatedSlides[slideIndex] = {
+        ...currentSlide,
+        subtitle: regenerated.subtitle,
+        mainTitle: regenerated.mainTitle,
+        description: regenerated.description,
+        speakingNote: regenerated.speakingNote || currentSlide.speakingNote,
+        imageKeyword: regenerated.imageKeyword,
+      };
+      
+      onEditScript({
+        ...script,
+        slides: updatedSlides,
+      });
+    } catch (error) {
+      console.error('AI 재생성 실패:', error);
+      alert('AI 재생성 중 오류가 발생했습니다.');
+    } finally {
+      setRegeneratingSlide(null);
+    }
   };
 
   // 슬라이드 편집 저장
@@ -140,16 +191,42 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
                 </div>
                 
                 {!isEditing && (
-                  <button
-                    onClick={() => startEditing(index)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      darkMode 
-                        ? 'bg-slate-600 text-slate-300 hover:bg-slate-500'
-                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                    }`}
-                  >
-                    ✏️ 수정
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* AI 재생성 버튼 */}
+                    <button
+                      onClick={() => handleAiRegenerate(index)}
+                      disabled={regeneratingSlide !== null || isLoading}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${
+                        regeneratingSlide === index
+                          ? 'bg-purple-500 text-white'
+                          : darkMode 
+                            ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/50 border border-purple-500/50'
+                            : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
+                      }`}
+                    >
+                      {regeneratingSlide === index ? (
+                        <span className="flex items-center gap-1">
+                          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          AI 작성중...
+                        </span>
+                      ) : (
+                        '🤖 AI 재작성'
+                      )}
+                    </button>
+                    
+                    {/* 수정 버튼 */}
+                    <button
+                      onClick={() => startEditing(index)}
+                      disabled={regeneratingSlide !== null}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${
+                        darkMode 
+                          ? 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      ✏️ 수정
+                    </button>
+                  </div>
                 )}
               </div>
 

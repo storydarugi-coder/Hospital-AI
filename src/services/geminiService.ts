@@ -1008,10 +1008,12 @@ ${cardNewsPrompt}
 - ✅ 허용 (적극 사용): 
   - 모든 질환명: 혈액암, 백혈병, 당뇨병, 고혈압, 암, 종양 등
   - 모든 증상명: 멍, 출혈, 피로, 부종, 통증, 발열 등
-  - 의학 용어: 림프절, 혈소판, 백혈구, 적혈구 등
+  - 의학 용어: 림프절, 혈소판, 백혈구, 적혤구 등
   - 정보성 키워드, 질문형 문구, 숫자/통계
 - ❌ 금지 (광고성 문구만): "즉시 상담", "병원 방문", "예약하세요", "내원하세요", "완치 보장", "최고", "100% 효과"
 - ❌ 금지 (디자인): 로고, 워터마크, 말풍선, 공포 유발 요소
+- ❌ 절대 금지 (데이터): base64 문자열, 코드, 알파벳+숫자 조합의 무의미한 문자열
+- ⚠️ 이미지 안에는 오직 의미있는 한국어 텍스트만 포함! 영어/숫자 조합의 코드 문자열 절대 금지!
 전문적인 한국 의료 정보 카드뉴스.`;
 
     try {
@@ -3095,6 +3097,109 @@ JSON 형식으로 답변:
     return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error('카드 재생성 실패:', error);
+    throw error;
+  }
+};
+
+// 원고 단계에서 개별 슬라이드 내용 AI 재생성
+export const regenerateSlideContent = async (params: {
+  slideIndex: number;
+  slideType: string;
+  topic: string;
+  category: string;
+  totalSlides: number;
+  currentContent: {
+    subtitle: string;
+    mainTitle: string;
+    description: string;
+    imageKeyword: string;
+  };
+  prevSlide?: { mainTitle: string; description: string };
+  nextSlide?: { mainTitle: string; description: string };
+}): Promise<{
+  subtitle: string;
+  mainTitle: string;
+  description: string;
+  speakingNote: string;
+  imageKeyword: string;
+}> => {
+  const ai = getAiClient();
+  
+  const slidePosition = params.slideIndex === 0 
+    ? '표지 (첫 번째)' 
+    : params.slideIndex === params.totalSlides - 1 
+    ? '마무리 (마지막)' 
+    : `본문 (${params.slideIndex + 1}번째)`;
+  
+  const slideTypeGuide = params.slideType === 'cover' 
+    ? '주제 소개 + 흥미 유발, 간결하고 임팩트 있게'
+    : params.slideType === 'closing'
+    ? '행동 유도 + 감성적 마무리, CTA 포함'
+    : params.slideType === 'concept'
+    ? '핵심 개념/정의 설명, 쉽고 명확하게'
+    : '구체적인 정보/방법/증상 설명';
+  
+  const prompt = `
+당신은 의료 카드뉴스 원고 작성 전문가입니다. 슬라이드 내용을 더 매력적으로 다시 작성해주세요.
+
+[슬라이드 정보]
+- 위치: ${slidePosition} (총 ${params.totalSlides}장)
+- 타입: ${params.slideType}
+- 주제: ${params.topic}
+- 진료과: ${params.category}
+
+[현재 내용 - 참고만]
+부제: ${params.currentContent.subtitle}
+메인제목: ${params.currentContent.mainTitle}
+설명: ${params.currentContent.description}
+이미지키워드: ${params.currentContent.imageKeyword}
+
+${params.prevSlide ? `[이전 슬라이드]\n제목: ${params.prevSlide.mainTitle}\n설명: ${params.prevSlide.description}` : ''}
+${params.nextSlide ? `[다음 슬라이드]\n제목: ${params.nextSlide.mainTitle}\n설명: ${params.nextSlide.description}` : ''}
+
+[작성 가이드]
+- 슬라이드 타입: ${slideTypeGuide}
+- 부제: 4~8자, 상황/감정 표현 (예: "겨울철에 유독?", "혹시 나도?")
+- 메인제목: 10~15자, 핵심 메시지, <highlight>강조</highlight> 태그 사용
+- 설명: 2~3문장, 공감 + 정보
+- 이미지키워드: 3~5개 키워드 (예: "겨울, 혈관, 건강체크, 증상")
+- speakingNote: 이 슬라이드의 의도/목적 설명
+
+⚠️ 의료광고법 준수: "최고", "완치", "보장" 등 과장 표현 금지
+
+JSON 형식:
+{
+  "subtitle": "부제 (4~8자)",
+  "mainTitle": "메인 <highlight>제목</highlight> (10~15자)",
+  "description": "2~3문장 설명",
+  "speakingNote": "이 슬라이드 의도 설명",
+  "imageKeyword": "키워드1, 키워드2, 키워드3"
+}
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            subtitle: { type: Type.STRING },
+            mainTitle: { type: Type.STRING },
+            description: { type: Type.STRING },
+            speakingNote: { type: Type.STRING },
+            imageKeyword: { type: Type.STRING }
+          },
+          required: ["subtitle", "mainTitle", "description", "speakingNote", "imageKeyword"]
+        }
+      }
+    });
+    
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error('슬라이드 원고 재생성 실패:', error);
     throw error;
   }
 };
