@@ -2805,6 +2805,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
         },
         postType: 'card_news',
         imageStyle: request.imageStyle,
+        customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
         cardPrompts: agentResult.cardPrompts // 재생성용 프롬프트 데이터
       };
     } catch (error) {
@@ -2992,7 +2993,8 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
     tags: [],
     factCheck: textData.fact_check,
     postType: request.postType,
-    imageStyle: request.imageStyle
+    imageStyle: request.imageStyle,
+    customImagePrompt: request.customImagePrompt // 커스텀 이미지 프롬프트 저장 (재생성용)
   };
 };
 

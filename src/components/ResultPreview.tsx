@@ -515,8 +515,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       // 편집된 이미지 프롬프트 구성
       const style = content.imageStyle || 'illustration';
+      // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
+      const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+      
       let imagePromptToUse = editImagePrompt || 
-        `1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진'}`;
+        `1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : style === 'custom' ? '커스텀 스타일' : '실사 사진'}`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
@@ -525,14 +528,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         } else {
           setCardRegenProgress('✨ 스타일 참고하여 생성 중...');
         }
+      } else if (customStylePrompt) {
+        setCardRegenProgress('🎨 커스텀 스타일로 이미지 생성 중...');
       }
       
       // 참고 이미지와 모드를 generateSingleImage에 전달 (inspire/copy 모두 지원)
+      // customStylePrompt를 4번째 파라미터로 전달 (커스텀 스타일 유지)
       const newImage = await generateSingleImage(
         imagePromptToUse, 
         style, 
         '1:1', 
-        undefined, 
+        customStylePrompt,  // 커스텀 스타일 프롬프트 전달!
         cardRegenRefImage || undefined,  // 참고 이미지가 있으면 항상 전달
         refImageMode === 'copy'  // copy 모드인지 여부
       );
@@ -755,7 +761,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       const style = content.imageStyle || 'illustration';
       const imgRatio = content.postType === 'card_news' ? "1:1" : "16:9";
-      const newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio);
+      // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
+      const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+      const newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
       if (newImageData) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = localHtml;
@@ -1334,7 +1342,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   const targetIdx = idxList[i];
                   if (!targetIdx) return;
                   const style = content.imageStyle || 'illustration';
-                  newImageMap[targetIdx] = await generateSingleImage(prompt, style);
+                  // 커스텀 스타일인 경우 저장된 커스텀 프롬프트 사용
+                  const customStylePrompt = style === 'custom' ? content.customImagePrompt : undefined;
+                  newImageMap[targetIdx] = await generateSingleImage(prompt, style, '16:9', customStylePrompt);
                 })
               );
 

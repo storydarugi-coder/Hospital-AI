@@ -94,6 +94,7 @@ export interface GeneratedContent {
   postType: PostType;
   cssTheme?: CssTheme;
   imageStyle?: ImageStyle;
+  customImagePrompt?: string; // 커스텀 이미지 프롬프트 (재생성용)
   cardPrompts?: CardPromptData[]; // 카드별 프롬프트 (재생성용)
 }
 
