@@ -935,9 +935,11 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     
     // 스타일별 한국어 프롬프트 (사용자가 바로 이해하고 수정 가능)
     let stylePrompt = "";
-    if (style === 'custom' && customStylePrompt) {
-        // 사용자 커스텀 스타일 프롬프트
+    // 커스텀 프롬프트가 있으면 무조건 커스텀 프롬프트 사용! (style 값과 무관하게)
+    if (customStylePrompt && customStylePrompt.trim()) {
+        // 사용자 커스텀 스타일 프롬프트 - 최우선 적용
         stylePrompt = customStylePrompt;
+        console.log('🎨 커스텀 이미지 스타일 적용:', customStylePrompt.substring(0, 50) + '...');
     } else if (style === 'photo') {
         stylePrompt = "초고화질 실사 사진, 8K 해상도, 전문 DSLR 촬영, 부드러운 병원 조명, 신뢰감 있는 의료 분위기, 얕은 피사계 심도";
     } else if (style === 'medical') {
