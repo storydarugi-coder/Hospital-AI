@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { GenerationRequest, GenerationState } from './types';
-import { generateFullPost } from './services/geminiService';
+import { GenerationRequest, GenerationState, CardNewsScript } from './types';
+import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import InputForm from './components/InputForm';
 import ResultPreview from './components/ResultPreview';
+import ScriptPreview from './components/ScriptPreview';
 import AdminPage from './components/AdminPage';
 import LandingPage from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
@@ -40,6 +41,12 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
+  
+  // 카드뉴스 2단계 워크플로우 상태
+  const [cardNewsScript, setCardNewsScript] = useState<CardNewsScript | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<GenerationRequest | null>(null);
+  const [scriptProgress, setScriptProgress] = useState<string>('');
+  const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
   
   // 쿠폰 모달 상태
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -336,8 +343,30 @@ const App: React.FC = () => {
       return;
     }
 
-    setState(prev => ({ ...prev, isLoading: true, error: null, progress: '네이버 로직 기반 키워드 분석 및 이미지 생성 중...' }));
     setMobileTab('result');
+    
+    // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
+    if (request.postType === 'card_news') {
+      setIsGeneratingScript(true);
+      setCardNewsScript(null);
+      setPendingRequest(request);
+      setState(prev => ({ ...prev, isLoading: false, data: null, error: null }));
+      
+      try {
+        const script = await generateCardNewsScript(request, setScriptProgress);
+        setCardNewsScript(script);
+        setScriptProgress('');
+      } catch (err: any) {
+        setScriptProgress('');
+        setState(prev => ({ ...prev, error: err.message }));
+      } finally {
+        setIsGeneratingScript(false);
+      }
+      return;
+    }
+
+    // 블로그: 기존 플로우 (한 번에 생성)
+    setState(prev => ({ ...prev, isLoading: true, error: null, progress: '네이버 로직 기반 키워드 분석 및 이미지 생성 중...' }));
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
@@ -354,6 +383,109 @@ const App: React.FC = () => {
        setState(prev => ({ ...prev, isLoading: false, error: err.message }));
        setMobileTab('input');
     }
+  };
+
+  // 카드뉴스 원고 재생성
+  const handleRegenerateScript = async () => {
+    if (!pendingRequest) return;
+    
+    setIsGeneratingScript(true);
+    setCardNewsScript(null);
+    
+    try {
+      const script = await generateCardNewsScript(pendingRequest, setScriptProgress);
+      setCardNewsScript(script);
+      setScriptProgress('');
+    } catch (err: any) {
+      setScriptProgress('');
+      setState(prev => ({ ...prev, error: err.message }));
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  // 카드뉴스 원고 승인 → 디자인 변환
+  const handleApproveScript = async () => {
+    if (!cardNewsScript || !pendingRequest) return;
+    
+    setIsGeneratingScript(true);
+    setScriptProgress('🎨 [2단계] 카드뉴스 디자인 및 이미지 생성 중...');
+    
+    try {
+      // 원고를 디자인으로 변환
+      const designResult = await convertScriptToCardNews(
+        cardNewsScript, 
+        pendingRequest, 
+        setScriptProgress
+      );
+      
+      // 이미지 생성
+      setScriptProgress('🖼️ 이미지 생성 중...');
+      const imageStyle = pendingRequest.imageStyle || 'illustration';
+      
+      // 이미지 생성 (병렬 처리)
+      const imagePromises = designResult.imagePrompts.map((prompt, i) => {
+        setScriptProgress(`🖼️ 이미지 ${i + 1}/${designResult.imagePrompts.length}장 생성 중...`);
+        return generateSingleImage(prompt, imageStyle, '1:1');
+      });
+      
+      const images = await Promise.all(imagePromises);
+      
+      // HTML에 이미지 삽입
+      let finalHtml = designResult.content;
+      images.forEach((imgUrl, i) => {
+        finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgUrl || '');
+      });
+      
+      // 결과 저장
+      setState({
+        isLoading: false,
+        error: null,
+        data: {
+          htmlContent: finalHtml,
+          title: designResult.title,
+          imageUrl: images[0] || '',
+          fullHtml: finalHtml,
+          tags: [],
+          factCheck: {
+            fact_score: 0,
+            verified_facts_count: 0,
+            safety_score: 85,
+            conversion_score: 80,
+            issues: [],
+            recommendations: []
+          },
+          postType: 'card_news',
+          imageStyle: pendingRequest.imageStyle,
+          cardPrompts: designResult.cardPrompts
+        },
+        progress: ''
+      });
+      
+      // 크레딧 차감
+      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && userProfile.remainingCredits !== -1 && !isAdmin) {
+        const newCredits = userProfile.remainingCredits - 1;
+        const updatedProfile = { ...userProfile, remainingCredits: newCredits };
+        setUserProfile(updatedProfile);
+        saveUserCredits(userProfile.id, newCredits, userProfile.plan);
+      }
+      
+      // 원고 상태 초기화
+      setCardNewsScript(null);
+      setPendingRequest(null);
+      setScriptProgress('');
+      
+    } catch (err: any) {
+      setScriptProgress('');
+      setState(prev => ({ ...prev, error: err.message }));
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  // 원고 수정
+  const handleEditScript = (updatedScript: CardNewsScript) => {
+    setCardNewsScript(updatedScript);
   };
 
   // 로딩 중
@@ -563,18 +695,33 @@ const App: React.FC = () => {
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-8 flex flex-col lg:flex-row gap-8 overflow-hidden h-[calc(100vh-64px)]">
         
         <div className={`lg:w-[400px] flex flex-col gap-6 overflow-y-auto pb-24 lg:pb-0 custom-scrollbar ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
-          <InputForm onSubmit={handleGenerate} isLoading={state.isLoading} />
+          <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
         </div>
 
         <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
-          {state.isLoading ? (
+          {/* 카드뉴스 원고 미리보기 (2단계 워크플로우) */}
+          {cardNewsScript ? (
+            <ScriptPreview
+              script={cardNewsScript}
+              onApprove={handleApproveScript}
+              onRegenerate={handleRegenerateScript}
+              onEditScript={handleEditScript}
+              isLoading={isGeneratingScript}
+              progress={scriptProgress}
+              darkMode={darkMode}
+            />
+          ) : state.isLoading || isGeneratingScript ? (
             <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
               <div className="relative mb-10">
                 <div className={`w-24 h-24 border-8 border-t-emerald-500 rounded-full animate-spin ${darkMode ? 'border-slate-700' : 'border-emerald-50'}`}></div>
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
-              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{state.progress}</h2>
-              <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>네이버 스마트블록 노출을 위한<br/>최적의 의료 콘텐츠를 생성하고 있습니다.</p>
+              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{state.progress || scriptProgress}</h2>
+              <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
+                {pendingRequest?.postType === 'card_news' 
+                  ? '카드뉴스 원고를 생성하고 있습니다...' 
+                  : '네이버 스마트블록 노출을 위한\n최적의 의료 콘텐츠를 생성하고 있습니다.'}
+              </p>
             </div>
           ) : state.data ? (
             <ResultPreview content={state.data} darkMode={darkMode} />
