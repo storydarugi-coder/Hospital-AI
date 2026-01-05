@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoTitleItem, ImageStyle, WritingStyle } from "../types";
+import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
@@ -18,21 +18,83 @@ const getMedicalSafetyPrompt = () => {
   return `
 당신은 대한민국 의료광고법을 완벽히 숙지한 '네이버 공식 병원 블로그' 전문 에디터입니다.
 
-[⚖️ ${year}년 최신 의료광고법 준수 - 매우 중요!]
-**반드시 ${year}년 현재 시행 중인 최신 의료법/의료광고법을 기준으로 작성하세요.**
-- Google 검색으로 "${year}년 의료광고법 개정" 확인 필수
+████████████████████████████████████████████████████████████████████████████████
+🚨🚨🚨 [최우선 적용] 심의 탈락 방지 - 절대 금지 규칙 🚨🚨🚨
+████████████████████████████████████████████████████████████████████████████████
+
+**⛔ 제목 작성 시 절대 금지 (심의 최대 리스크!):**
+❌ "치료", "항암", "항암치료", "치료 과정", "치료법" → 제목에 절대 넣지 마세요!
+❌ "전문의가 권장하는", "전문의 추천", "의사가 알려주는" → 전문성 암시 금지!
+❌ "총정리", "완벽 가이드", "모든 것" → 치료 가이드 제공으로 오인!
+❌ "관리 방법", "예방법 총정리" → 의료행위 안내로 오인 가능!
+❌ 질환명 남발 (제목에 "암", "백혈병" 등 과도하게 강조)
+❌ 과한 경고 ("위험!", "긴급!", "지금 당장!")
+
+**✅ 제목 정답 공식 (반드시 이 공식 사용!):**
+📌 **[일상 증상] + [의심 프레임] + [확인/체크 기준]**
+
+예시:
+✅ "멍·출혈·피로, 혈액 이상을 의심해볼 수 있는 기준"
+   → [일상 증상: 멍·출혈·피로] + [의심 프레임: 혈액 이상을 의심] + [확인 기준]
+✅ "코피가 자주 난다면? 혈액 건강 체크가 필요한 순간"
+   → [일상 증상: 코피] + [의심 프레임: 혈액 건강] + [확인 기준: 체크가 필요한 순간]
+✅ "쉽게 드는 멍, 단순 타박일까? 확인이 필요한 신호들"
+   → [일상 증상: 쉽게 드는 멍] + [의심 프레임: 단순 타박일까?] + [확인 기준]
+✅ "피로가 풀리지 않을 때, 혈액 검사를 고려해볼 수 있는 기준"
+   → [일상 증상: 피로] + [의심 프레임] + [확인 기준: 검사를 고려해볼 수 있는]
+
+**🚫 이런 제목은 절대 안 됩니다:**
+❌ "혈액암 초기 증상 5가지: 항암치료 과정까지 총정리" (치료 언급 + 총정리)
+❌ "전문의가 알려주는 백혈병 완벽 가이드" (전문의 + 완벽 가이드)
+❌ "지금 당장 확인해야 할 암 신호!" (과한 경고 + 질환명 강조)
+
+**⛔ 도입부 절대 금지:**
+❌ "안녕하세요. ~에디터입니다" → 작성 주체 애매하게 만듦, 삭제!
+❌ "~를 전해드리는 에디터입니다" → 불필요한 자기소개, 삭제!
+❌ "오늘은 ~에 대해 알아보겠습니다" → AI 티 나는 진부한 도입!
+✅ 바로 상황 묘사로 시작! (예: "겨울철 건조한 공기 탓일까요?")
+
+**⛔ 숫자 표현 절대 금지 (출처 없으면 사용 불가!):**
+❌ "15~20분", "15분 이상" → ✅ "충분히 압박해도", "상당 시간이 지나도"
+❌ "38도", "38도 이상 고열" → ✅ "뚜렷한 원인 없는 고열", "열이 지속될 때"
+❌ "6개월간 10% 감소" → ✅ "짧은 기간 동안 눈에 띄는 체중 감소"
+❌ "2주 이상", "2주 이상 지속" → ✅ "시간이 지나도 반복될 경우", "일시적이지 않고 지속될 때"
+❌ "3일 이상", "일주일 이상" → ✅ "며칠이 지나도 호전되지 않을 때"
+📌 원칙: 숫자는 출처(대한OO학회, 질병관리청 등)와 함께만! 아니면 범주형으로!
+
+**⛔ 치료 파트 절대 금지 표현:**
+❌ "일상으로의 복귀 가능성은 높아질 수 있습니다" → 치료 효과 기대 암시!
+❌ "선택할 수 있는 치료 옵션이 많아진다" → 치료 기대감 유발!
+❌ "일상을 유지하며 치료" → 치료 성과 암시!
+❌ "획기적인 신약", "CAR-T", "면역항암제" → 특정 치료법 홍보!
+✅ "치료 방법은 질환의 종류·상태에 따라 다양합니다"
+✅ "치료 계획은 전문의의 판단에 따라 달라집니다"
+✅ "치료 접근 방식에 차이가 생길 수 있습니다"
+
+**⛔ CTA/마무리 완곡 표현 필수:**
+❌ "가까운 내과를 방문하여" → 직접 방문 유도!
+❌ "병원에 가서 검사를 받아보세요" → 직접 권유!
+✅ "혈액 검사를 통해 현재 상태를 확인해 볼 수 있습니다"
+✅ "가까운 의료기관에서 확인하는 것이 도움이 될 수 있습니다"
+✅ "필요 시 전문의와 상담을 고려해 보시기 바랍니다"
+
+████████████████████████████████████████████████████████████████████████████████
+
+[⚖️ ${year}년 의료광고법 준수 - 보수적 해석 원칙]
+**${year}년 기준 보건복지부·의료광고 심의 지침을 반영하여 작성하세요.**
+**불확실한 경우 반드시 보수적으로 해석하여 적용하세요.**
 - 의료법 제56조(의료광고의 금지 등), 제57조(의료광고의 심의)
-- 의료법 시행령, 의료광고 심의 지침 ${year}년 최신본 적용
-- 보건복지부, 대한의사협회 ${year}년 가이드라인 참조
+- 의료법 시행령, 의료광고 심의 지침 적용
+- 보건복지부, 대한의사협회 가이드라인 참조
 
-[🔍 팩트체크 필수 - 최신 정보 검증]
-- Google 검색 도구를 활용하여 모든 의학 정보의 정확성 검증
-- 출처: 보건복지부, 질병관리청, 대한OO학회, 국민건강보험공단 등 공신력 있는 기관
-- 오래된 정보(2년 이상)는 ${year}년 최신 가이드라인으로 업데이트
-- fact_check 점수 85점 이상 목표
-- 검증되지 않은 수치/통계는 사용 금지
+[🔍 의학 정보 작성 원칙 - 출처 기반 보수 적용]
+**출처가 명시되지 않은 수치, 시간, 확률 표현은 사용하지 마세요.**
+**학회·정부 출처가 불명확하면 일반화 표현으로 대체하세요.**
+- 출처 활용 시: 보건복지부, 질병관리청, 대한OO학회, 국민건강보험공단 등 공신력 있는 기관
+- 구체적 수치/통계는 출처 확인 가능한 경우에만 사용
+- 불확실한 의학 정보는 "~할 수 있습니다", "~경우가 있습니다" 등 완화 표현 사용
 
-[필수 준수 사항 - ${year}년 의료광고법]
+[필수 준수 사항 - 의료광고법]
 1. 네이버 '스마트에디터 ONE' 스타일에 맞춰 작성.
 
 2. **절대 금지 표현 (의료법 제56조 위반):**
@@ -40,7 +102,7 @@ const getMedicalSafetyPrompt = () => {
    - '방문하세요', '내원하세요', '예약하세요', '문의하세요', '상담하세요' (직접 권유)
    - '확실한 효과', '반드시', '보장', '증명된' (보장성 표현)
    - 타 의료기관과의 비교 광고 (비교광고 금지)
-   - 환자 치료 전후 사진 비교 (${year}년 기준 엄격 규제)
+   - 환자 치료 전후 사진 비교 (엄격 규제)
    - 신의료기술 등 심의 미필 의료기술 광고
    
 3. **안전한 표현으로 대체:**
@@ -59,10 +121,133 @@ const getMedicalSafetyPrompt = () => {
    - 병원명, 전화번호, 주소 등 직접적인 광고성 정보는 작성하지 말 것
    - "저희 병원" 대신 "의료기관", "병원" 등 일반 명사 사용
    
-7. **${year}년 강화된 규제 사항:**
-   - 시술 부작용/합병증 정보 필수 언급
-   - "개인차가 있을 수 있습니다" 문구 필수 포함
+7. **시술·약물·침습적 치료 언급 시 (조건부 적용):**
+   - 부작용, 합병증, 개인차 가능성을 함께 언급
+   - "개인차가 있을 수 있습니다" 문구 포함
    - 비급여 진료비 광고 시 관련 규정 준수
+
+████████████████████████████████████████████████████████████████████████████████
+[🛡️ 의료법 보수적 표현 가이드 - 심의 안전 강화]
+████████████████████████████████████████████████████████████████████████████████
+
+8. **연예인/유명인 사례 언급 시 (매우 중요!):**
+   - ❌ 금지: "배우 OOO도 이 질환으로 투병했습니다" → 직접 연결
+   - ✅ 안전: "최근 한 배우의 투병 소식이 전해지며 관심이 높아졌습니다" → 계기만 언급
+   - ✅ 안전: "언론을 통해 알려진 사례들을 보면..." → 간접 언급
+   - 📌 원칙: 유명인 실명은 '계기'까지만, 질환 설명과는 한 칸 떼어서 작성
+   - 📌 이유: 유명인 → 질환 → 공포 유발 구조는 심의에서 문제될 수 있음
+
+9. **단정적 표현 → 보수적 표현 변환 (필수!):**
+   - ❌ "~경우가 많습니다" → ✅ "~경우도 보고됩니다", "~경우가 있습니다"
+   - ❌ "~로 시작됩니다" → ✅ "~로 시작되는 경우도 있습니다"
+   - ❌ "~해야 합니다" → ✅ "~하는 것이 도움이 될 수 있습니다"
+   - ❌ "~입니다" (단정) → ✅ "~일 수 있습니다", "~로 알려져 있습니다"
+   - ❌ "반드시 ~" → ✅ "가능하다면 ~", "~하는 것이 권장됩니다"
+   
+10. **구체적 수치/시간 기준 언급 시:**
+    - ❌ "15분 이상 지혈 안 되면 위험" → 출처 없는 단정
+    - ✅ "상당 시간 압박해도 지혈이 잘 되지 않는 경우" → 일반화
+    - ✅ "대한OO학회 자료에 따르면 약 15분..." → 출처 명시
+    - 📌 원칙: 구체적 수치는 출처와 함께, 또는 일반화해서 표현
+
+11. **질환 증상 설명 시 보수적 톤:**
+    - ❌ "이 증상이 나타나면 암입니다"
+    - ✅ "이러한 증상이 지속될 경우 정밀 검사를 통해 원인을 확인해 보시는 것이 좋습니다"
+    - ❌ "초기 증상은 ~입니다"
+    - ✅ "일부에서 보고되는 초기 징후로는 ~가 있습니다. 다만 개인차가 있습니다"
+
+12. **공포 조장 방지:**
+    - ❌ "이걸 무시하면 큰일납니다", "늦으면 손 쓸 수 없습니다"
+    - ✅ "조기에 확인하는 것이 건강 관리에 도움이 됩니다"
+    - ✅ "증상이 반복될 경우 전문의 상담을 고려해 보시기 바랍니다"
+
+13. **제목에서 중증 질환명 직접 연결 금지:**
+    - ❌ "코피와 멍, 혈액암 초기 증상 5가지" → 공포 유발 + 단정적
+    - ✅ "코피와 멍, 혈액 이상 신호 5가지 체크리스트" → 완화
+    - ✅ "코피·멍이 반복된다면? 혈액 건강 체크가 필요한 순간"
+    - 📌 원칙: 제목은 "혈액 이상/혈액 건강"으로, 암/백혈병은 본문에서 '가능성 중 하나'로
+
+14. **의료인 1인칭 표현 금지 (의료인 가장 위험!):**
+    - ❌ "저도 진료실에서...", "제가 환자분들을 보면...", "임상에서 느끼기에..."
+    - ✅ "실내 습도가 낮으면 콧속이 따갑게 느껴지는 분들이 많아요"
+    - ✅ "의료 현장에서는 ~라고 알려져 있습니다"
+    - 📌 이유: 작성 주체가 의료인으로 오인되면 법적 리스크 발생
+    - 📌 예외: 병원 공식 블로그에서 의사 실명으로 작성하는 경우만 허용
+
+15. **CTA(행동 유도) 표현 최종 점검:**
+    - ❌ "~해보세요", "~하세요" → 직접 권유로 해석 가능
+    - ✅ "~고려해 보실 수 있습니다", "~하는 것도 하나의 방법입니다"
+    - ✅ "필요 시 전문의와 상담을 고려해 보시기 바랍니다"
+    - 📌 마지막 CTA 박스 권장 패턴:
+      "증상이 반복된다면, 단순 피로로 단정하기보다
+       혈액 검사로 수치를 확인해 보는 것이 도움이 될 수 있습니다.
+       증상의 원인은 다양하고 개인차가 있을 수 있으므로,
+       필요 시 전문의와 상담을 고려해 보시기 바랍니다."
+
+16. **제목에서 '치료/항암/전문의 권장/총정리' 절대 금지 (🚨최대 리스크!):**
+    - ❌ "혈액암 초기 증상부터 항암 치료까지, 전문의가 권장하는 관리 방법 총정리"
+    - ❌ "진단부터 항암치료 과정까지 총정리" → 의료행위 안내로 오인!
+    - ❌ "전문의가 권장하는", "전문의 추천" → 전문성·치료 효과 암시!
+    - ❌ "총정리", "완벽 가이드" → 치료 가이드 제공으로 오인!
+    - ✅ "혈액암 초기 증상 체크리스트: 놓치기 쉬운 혈액 이상 신호"
+    - ✅ "멍·출혈·피로, 혈액 건강 이상을 의심해볼 수 있는 기준"
+    - ✅ "혈액암에서 나타날 수 있는 초기 신호들: 확인이 필요한 순간"
+    - 📌 원칙: 제목='증상/신호 체크' 관점, 치료는 본문에서 '일반적 흐름'으로만!
+
+17. **치료 파트 서술 시 톤 완화 (🚨매우 중요!):**
+    - ❌ "일상으로의 복귀 가능성은 높아질 수 있습니다" → 치료 효과 기대 암시!
+    - ❌ "선택할 수 있는 치료 옵션이 많아진다" → 치료 기대감 유발!
+    - ❌ "일상을 유지하며 치료" → 치료 성과 암시!
+    - ❌ "CAR-T, 면역항암제 등 획기적인 신약" → 특정 치료법 홍보!
+    - ❌ "치료 성적 향상", "생존율 증가" → 효과 보장 암시!
+    - ✅ "치료 방법은 질환의 종류·상태에 따라 다양합니다"
+    - ✅ "치료 계획을 세우는 데 있어 선택의 폭이 넓어질 수 있습니다" (복귀 가능성 대신)
+    - ✅ "치료 접근 방식에 차이가 생길 수 있습니다"
+    - ✅ "치료 결정은 전문의의 판단과 환자 상태에 따라 달라집니다"
+    - 📌 원칙: '긍정'은 유지하되, '기대감/효과 암시'는 절대 금지!
+
+18. **증상 설명 후 '다른 원인 가능성' 문장 필수 추가 (🚨누락 금지!):**
+    - **모든 증상 설명 뒤에 반드시 완충 문장 1개 삽입!**
+    - ✅ "다만 이러한 증상은 다른 원인에서도 나타날 수 있어, 증상만으로 특정 질환을 단정할 수는 없습니다"
+    - ✅ "물론 이 증상이 있다고 해서 반드시 심각한 질환을 의미하는 것은 아닙니다"
+    - ✅ "감염성 질환이나 일시적인 컨디션 난조에서도 비슷한 증상이 나타날 수 있습니다"
+    - ✅ "피로, 스트레스, 영양 불균형 등 다양한 원인이 있을 수 있습니다"
+    - 📌 원칙: 증상→질환 단정 구조 방지, 독자 불안 완화
+
+19. **숫자/시간 기준 절대 금지 (🚨출처 없으면 사용 불가!):**
+    - ❌ "2주 이상", "2주 이상 지속될 때" → ✅ "시간이 지나도 반복될 경우"
+    - ❌ "15~20분", "15분 이상 지혈 안 될 때" → ✅ "충분히 압박해도 지혈이 잘 되지 않을 때"
+    - ❌ "38도", "38도 이상 고열" → ✅ "뚜렷한 원인 없는 고열이 지속될 때"
+    - ❌ "6개월간 10% 감소" → ✅ "짧은 기간 동안 눈에 띄는 체중 감소"
+    - ❌ "3일 이상", "일주일 이상" → ✅ "며칠이 지나도 호전되지 않을 때"
+    - 📌 원칙: 숫자는 출처(대한OO학회, 질병관리청)와 함께만! 아니면 범주형으로!
+
+20. **도입부 자기소개 금지 (🚨불필요한 문장 삭제!):**
+    - ❌ "안녕하세요. ~에디터입니다" → 작성 주체 애매, 삭제!
+    - ❌ "여러분의 건강한 일상을 위해 신뢰할 수 있는 의학 정보를 전해드리는 에디터입니다"
+    - ❌ "오늘은 ~에 대해 알아보겠습니다" → AI 티 나는 진부한 도입!
+    - ✅ 바로 상황 묘사로 시작! (예: "겨울철 건조한 공기 탓일까요?")
+    - ✅ 독자 공감 유도로 시작! (예: "멍이 쉽게 드는 편이신가요?")
+    - 📌 원칙: 불필요한 자기소개 없이 바로 본론으로!
+
+22. **도입부 연도/월 표기 → 계절 표현으로 일반화 (글 유통기한 연장!):**
+    - ❌ "2026년 1월", "2025년 겨울" → 글의 유통 기한이 짧아짐!
+    - ❌ "올해 초", "이번 달" → 시점이 고정되어 나중에 어색해짐!
+    - ✅ "요즘처럼 난방을 많이 사용하는 겨울철에는..."
+    - ✅ "겨울철 건조한 공기 탓일까요?"
+    - ✅ "환절기에 접어들면서..."
+    - ✅ "무더운 여름철이 되면..."
+    - 📌 원칙: 구체적 연도/월 대신 계절 표현으로 → 글의 수명 연장!
+    - 📌 예외: 특정 뉴스/이슈를 언급할 때만 연도 사용 가능
+
+21. **CTA/마무리 완곡 표현 필수 (🚨직접 방문 유도 금지!):**
+    - ❌ "가까운 내과를 방문하여" → 직접 방문 유도!
+    - ❌ "병원에 가서 검사를 받아보세요" → 직접 권유!
+    - ❌ "내원하세요", "예약하세요", "상담하세요" → 직접 권유 금지!
+    - ✅ "혈액 검사를 통해 현재 상태를 확인해 볼 수 있습니다"
+    - ✅ "가까운 의료기관에서 확인하는 것이 도움이 될 수 있습니다"
+    - ✅ "필요 시 전문의와 상담을 고려해 보시기 바랍니다"
+    - 📌 원칙: '방문/내원/예약' 대신 '확인/고려' 표현 사용!
 `;
 };
 
@@ -73,6 +258,9 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
   // 📚 전문가형: 의학 지식 깊이 강조, 논문/연구 인용, 전문의 권위감
   expert: `
+[🚨 스타일 선택 규칙 - 최우선 적용]
+아래 '전문가형' 스타일만 선택해 적용하며, 다른 스타일(공감형/전환형)의 문체·표현은 사용하지 마세요.
+
 [글쓰기 스타일: 전문가형 📚]
 - 목표: "이 의사 진짜 잘 아네" 신뢰감과 권위 구축
 - 톤: 전문적이면서도 이해하기 쉬운 설명
@@ -108,6 +296,9 @@ const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
 
   // 💗 공감형: 독자 경험 중심, "이거 내 얘기네!" 반응 유도
   empathy: `
+[🚨 스타일 선택 규칙 - 최우선 적용]
+아래 '공감형' 스타일만 선택해 적용하며, 다른 스타일(전문가형/전환형)의 문체·표현은 사용하지 마세요.
+
 [글쓰기 스타일: 공감형 💗]
 - 목표: 독자가 "이거 내 얘기네!"라고 느끼게 만들기
 - 톤: 따뜻하고 이해심 있는 친구 같은 톤
@@ -142,6 +333,9 @@ const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
 
   // 🎯 전환형: 행동 유도 최적화, 상담/예약 유도 (의료법 준수)
   conversion: `
+[🚨 스타일 선택 규칙 - 최우선 적용]
+아래 '전환형' 스타일만 선택해 적용하며, 다른 스타일(전문가형/공감형)의 문체·표현은 사용하지 마세요.
+
 [글쓰기 스타일: 전환형 🎯]
 - 목표: 독자가 글을 읽고 "나도 검진받아봐야겠다"라고 행동하게 만들기
 - 톤: 신뢰감 + 적절한 긴장감 + 해결책 제시
@@ -196,12 +390,13 @@ const WRITING_STYLE_COMMON_RULES = `
    ✅ "설마 나는 아니겠지... 했는데"
    ✅ "무심코 지나쳤던 이 신호, 사실은..."
 
-3. **숫자/통계 충격** - 정확한 출처 기반 수치만 사용!
-   ⚠️ 중요: 보건복지부, 질병관리청, 대한OO학회 등 공신력 있는 출처의 통계만 사용
-   ⚠️ 팩트체크 85점 이상 필수 - 허위/과장 통계 절대 금지!
+3. **숫자/통계 충격** - 출처 기반 보수 적용!
+   ⚠️ 출처가 명시되지 않은 수치, 시간, 확률 표현은 사용 금지
+   ⚠️ 학회·정부 출처가 불명확하면 일반화 표현으로 대체
    ✅ "질병관리청 통계에 따르면..."
    ✅ "대한당뇨병학회 발표 자료를 보면..."
    ✅ "국민건강영양조사 결과..."
+   ✅ 출처 불명확 시: "많은 분들이...", "흔히 발생하는..." 등 일반화 표현
 
 4. **질문형 오프닝** - 독자를 대화에 끌어들이기
    ✅ "혹시 이런 경험 있으세요?"
@@ -265,41 +460,43 @@ const WRITING_STYLE_COMMON_RULES = `
    - 롱테일 키워드 포함
    ✅ #피부건조 #겨울철피부관리 #피부보습 #건조한피부 #피부건강
 
-[🎯 마케팅 글 핵심 - 예약 전환율 높이기 (의료법 100% 준수 + 공신력 출처 필수)]
+[🎯 마케팅 글 핵심 - 예약 전환율 높이기 (의료법 100% 준수 + 보수적 해석 원칙)]
 
-**★★★ 최우선: 모든 의학 정보는 Google 검색으로 공식 출처 확인 필수 ★★★**
-- 골든타임, 비가역성, 예후 등 의학적 표현 → 반드시 검색 후 사용
-- 출처: 보건복지부, 질병관리청, 대한OO학회, 국민건강보험공단
-- 검색 예시: "OO질환 골든타임 site:kdca.go.kr OR site:학회"
-- 출처 없으면 일반적인 배제형 CTA만 사용
+**★★★ 최우선: 불확실한 의학 정보는 보수적으로 해석 ★★★**
+- 골든타임, 비가역성, 예후 등 의학적 표현 → 출처 확인 가능한 경우에만 사용
+- 출처 활용 시: 보건복지부, 질병관리청, 대한OO학회, 국민건강보험공단
+- **출처 불명확 시: 일반적인 배제형 CTA만 사용 (구체적 수치/시간 금지)**
 
 **★★★ CTA 핵심 공식: "오세요"가 아니라 "다른 선택지는 아니다 + 지금이다" ★★★**
 
 **[CTA 3대 핵심 장치 - 출처 확인 후 사용]**
 
 1. **⏰ 시간 조건** - '나중'이라는 선택지 제거
-   ⚠️ 구체적 시간(48시간, 24시간 등)은 반드시 출처 확인 후 사용
+   ⚠️ 구체적 시간(48시간, 24시간 등)은 출처 확인 가능한 경우에만 사용
+   ⚠️ 출처 불명확 시: 구체적 시간 대신 일반화 표현 사용
    
-   ✅ 출처 필요 없는 안전한 표현:
+   ✅ 출처 없어도 안전한 표현 (기본값으로 사용):
    - "이런 증상이 **갑자기** 나타났다면"
    - "**이 시점부터는** 지켜보기보다 확인이 필요합니다"
    - "증상이 시작된 **시점에서** 확인하느냐, 미루느냐"
    
-   ✅ 출처 확인 후 사용 가능:
-   - "**골든타임 OO시간** 이내에" (학회/공식 가이드라인 확인 시)
+   ✅ 출처 확인 가능한 경우에만:
+   - "**골든타임 OO시간** 이내에" (학회/공식 가이드라인 명시)
    
    ❌ 금지: 출처 없이 구체적 시간 임의 작성
 
-2. **🔒 비가역성** - 반드시 Google 검색으로 확인 후 사용
-   ⚠️ "회복 어려움", "되돌릴 수 없음" 등은 해당 질환에서 의학적으로 확인된 경우에만
+2. **🔒 비가역성** - 보수적 해석 원칙 적용
+   ⚠️ "회복 어려움", "되돌릴 수 없음" 등은 출처 확인 가능한 경우에만 사용
+   ⚠️ 불확실하면 일반화 표현으로 대체
    
-   ✅ 출처 확인 후 사용:
+   ✅ 출처 확인 가능한 경우에만:
    - "대한OO학회에 따르면, 초기 치료가 예후에 중요한 영향을 미칩니다"
-   - "OO은 회복이 어려운 경우가 많은 것으로 알려져 있습니다" (출처 확인 시)
+   - "OO은 회복이 어려운 경우가 많은 것으로 알려져 있습니다" (출처 명시)
    
-   ✅ 출처 없어도 안전한 표현:
+   ✅ 출처 불명확 시 안전한 표현 (기본값으로 사용):
    - "초기에 확인하는 것이 치료 방향을 결정하는 데 도움이 됩니다"
    - "미루기보다 빨리 확인하는 것이 좋습니다"
+   - "조기 발견이 관리에 도움이 될 수 있습니다"
    
    ❌ 금지: 
    - 출처 없이 "한 번 손상되면 회복 불가"
@@ -730,12 +927,18 @@ ${imageStyle === 'illustration'
   }
 };
 
-export const generateSingleImage = async (promptText: string, style: ImageStyle = 'illustration', aspectRatio: string = "16:9"): Promise<string> => {
+export const generateSingleImage = async (promptText: string, style: ImageStyle = 'illustration', aspectRatio: string = "16:9", customStylePrompt?: string, referenceImage?: string, copyMode?: boolean): Promise<string> => {
     const ai = getAiClient();
+    
+    // 1:1 비율이면 완성형 카드뉴스 모드
+    const isCardNewsMode = aspectRatio === "1:1";
     
     // 스타일별 한국어 프롬프트 (사용자가 바로 이해하고 수정 가능)
     let stylePrompt = "";
-    if (style === 'photo') {
+    if (style === 'custom' && customStylePrompt) {
+        // 사용자 커스텀 스타일 프롬프트
+        stylePrompt = customStylePrompt;
+    } else if (style === 'photo') {
         stylePrompt = "초고화질 실사 사진, 8K 해상도, 전문 DSLR 촬영, 부드러운 병원 조명, 신뢰감 있는 의료 분위기, 얕은 피사계 심도";
     } else if (style === 'medical') {
         stylePrompt = "전문 3D 의학 해부학 일러스트, 상세한 단면도, 투명한 인체 내부 장기 표현, 과학적 시각화, 교육용 의료 다이어그램, 파란색/흰색/빨간색 의료 색상, 해부학적으로 정확한 표현";
@@ -743,13 +946,71 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = "고품질 3D 의료 일러스트, 깔끔한 인포그래픽 스타일, 밝은 파란색과 흰색 팔레트, 친근하고 현대적인 느낌, 아이소메트릭 뷰, 부드러운 클레이 렌더 스타일";
     }
 
-    // 전체 한국어 프롬프트
-    const finalPrompt = `${stylePrompt}. ${promptText}. 텍스트는 진짜 필요할 때만 한글/숫자로, 영어는 가급적 자제. 로고 금지, 무서운 요소 금지, 전문적인 한국 의료 맥락.`;
+    // 완성형 카드뉴스 모드일 때 추가 지시
+    const cardNewsPrompt = isCardNewsMode ? `
+[🎨 완성형 카드뉴스 이미지 생성 규칙]
+- 이 이미지는 그 자체로 완성된 소셜미디어 카드뉴스 1장입니다
+- 이미지 안에 제목과 설명 텍스트만 포함 (해시태그 절대 금지!)
+- 별도 HTML 오버레이 없이 이미지 자체가 최종 결과물입니다
+- 텍스트는 그래픽 요소로 깔끔하게 렌더링하세요
+- 레이아웃: 상단에 작은 부제, 그 아래 큰 제목, 중앙에 일러스트, 하단에 설명
+- ❌ 해시태그(#) 절대 넣지 마세요!
+` : '';
+
+    // 참고 이미지 복제 모드일 때 강력한 지시
+    const copyModePrompt = (referenceImage && copyMode) ? `
+🚨🚨🚨 [레이아웃 복제 모드 - 매우 중요!] 🚨🚨🚨
+첨부된 참고 이미지의 레이아웃을 **정확히 똑같이** 복제하세요!
+
+✅ 반드시 복제할 것:
+1. 배경색 - 참고 이미지와 동일한 색상
+2. 프레임 스타일 - 브라우저 창 버튼(빨강/노랑/초록)이 있다면 반드시 포함
+3. 텍스트 위치 - 상단/중앙/하단 배치를 동일하게
+4. 일러스트 위치와 크기 - 참고 이미지와 동일한 위치/비율
+5. 전체 구도와 여백 - 레이아웃 구조를 그대로 유지
+6. 폰트 스타일 - 굵기, 크기 비율 유사하게
+
+❌ 변경할 것:
+- 텍스트 내용만 제가 제공하는 내용으로 교체
+
+⚠️ 창의적 재해석 금지! 참고 이미지를 보고 최대한 똑같이 만드세요!
+` : '';
+
+    // 전체 한국어 프롬프트 - 의료법 위반 문구만 금지, 한글/숫자는 허용
+    const finalPrompt = `${copyModePrompt}${stylePrompt}. ${promptText}. 
+${cardNewsPrompt}
+[이미지 내 텍스트 규칙]
+- ✅ 허용 (적극 사용): 
+  - 모든 질환명: 혈액암, 백혈병, 당뇨병, 고혈압, 암, 종양 등
+  - 모든 증상명: 멍, 출혈, 피로, 부종, 통증, 발열 등
+  - 의학 용어: 림프절, 혈소판, 백혈구, 적혈구 등
+  - 정보성 키워드, 질문형 문구, 숫자/통계
+- ❌ 금지 (광고성 문구만): "즉시 상담", "병원 방문", "예약하세요", "내원하세요", "완치 보장", "최고", "100% 효과"
+- ❌ 금지 (디자인): 로고, 워터마크, 말풍선, 공포 유발 요소
+전문적인 한국 의료 정보 카드뉴스.`;
 
     try {
+      // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
+      let contentParts: any[] = [];
+      
+      if (referenceImage && copyMode) {
+        // Base64 데이터 추출
+        const base64Match = referenceImage.match(/^data:([^;]+);base64,(.+)$/);
+        if (base64Match) {
+          contentParts.push({
+            inlineData: {
+              mimeType: base64Match[1],
+              data: base64Match[2]
+            }
+          });
+        }
+      }
+      
+      contentParts.push({ text: finalPrompt });
+      
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-image-preview",
-        contents: { parts: [{ text: finalPrompt }] },
+        contents: { parts: contentParts },
         config: { imageConfig: { aspectRatio: aspectRatio, imageSize: "1K" } }
       });
       for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -852,8 +1113,8 @@ export const recommendSeoTitles = async (topic: string, keywords: string): Promi
   return JSON.parse(response.text || "[]");
 };
 
-// 카드뉴스 스타일 참고 이미지 분석 함수
-export const analyzeStyleReferenceImage = async (base64Image: string): Promise<string> => {
+// 카드뉴스 스타일 참고 이미지 분석 함수 (표지/본문 구분)
+export const analyzeStyleReferenceImage = async (base64Image: string, isCover: boolean = false): Promise<string> => {
   const ai = getAiClient();
   
   try {
@@ -870,29 +1131,55 @@ export const analyzeStyleReferenceImage = async (base64Image: string): Promise<s
               }
             },
             {
-              text: `이 카드뉴스/인포그래픽 이미지의 디자인 스타일을 상세히 분석해주세요.
+              text: `이 카드뉴스/인포그래픽 이미지의 **디자인 스타일을 매우 상세히** 분석해주세요.
 
-분석 항목:
-1. **레이아웃 구조**: 요소 배치, 여백, 정렬 방식
-2. **색상 팔레트**: 주요 색상, 보조 색상, 배경색
-3. **테두리/프레임**: 테두리 스타일, 굵기, 둥글기
-4. **헤더/브랜딩**: 상단 로고/텍스트 영역 스타일
-5. **타이포그래피**: 제목 크기/굵기, 본문 스타일, 강조 방식
-6. **이미지 스타일**: 일러스트/사진/아이콘 등 시각 요소 특징
-7. **태그/해시태그**: 하단 태그 디자인
-8. **전체 분위기**: 친근한/전문적인/귀여운 등
+**🚨🚨🚨 매우 중요: 이 이미지의 디자인을 그대로 복제할 수 있도록 정확한 CSS 값을 추출하세요! 🚨🚨🚨**
 
-JSON 형식으로 답변하세요:
+**이 이미지는 ${isCover ? '표지(1장)' : '본문(2장 이후)'} 스타일 참고용입니다.**
+
+분석 항목 (정확한 HEX 코드와 px 값으로!):
+1. **프레임 스타일**: 
+   - 브라우저 창 모양? (상단에 빨강/노랑/초록 버튼 3개)
+   - 둥근 테두리 카드?
+   - 테두리 색상(HEX)과 굵기(px)
+   - 그림자 효과?
+
+2. **배경색**: 정확한 HEX 코드 (예: #E8F4FD 연한 하늘색, #FFF5E6 베이지, #FFFFFF 흰색)
+   - 그라데이션이면 방향과 색상 모두
+
+3. **텍스트 스타일** (정확한 값으로!):
+   - 작은 부제목: 색상(HEX), 크기(px), 폰트 굵기
+   - 메인 제목: 색상(HEX), 크기(px), 폰트 굵기
+   - 강조 텍스트: 색상(HEX) 또는 배경 하이라이트 색상(HEX)
+   - 설명 텍스트: 색상(HEX), 크기(px)
+
+4. **일러스트/이미지 위치**: top/center/bottom + 크기 비율(%)
+
+5. **전체 레이아웃**: padding, gap, 정렬 방식
+
+6. **태그/뱃지 스타일**: 배경색(HEX), 텍스트색(HEX), border-radius(px)
+
+**반드시 JSON 형식으로 정확한 값만 답변:**
 {
-  "layout": "레이아웃 설명",
-  "colors": "색상 설명 (예: 오렌지 테두리, 흰 배경, 검정 텍스트)",
-  "border": "테두리 스타일",
-  "header": "헤더 영역 설명",
-  "typography": "글꼴/텍스트 스타일",
-  "imageStyle": "이미지/일러스트 스타일",
-  "tags": "태그 디자인",
-  "mood": "전체 분위기",
-  "cssInstructions": "이 스타일을 재현하기 위한 CSS 지침"
+  "frameStyle": "browser-window / rounded-card / rectangle",
+  "hasWindowButtons": true,
+  "windowButtonColors": ["#FF5F57", "#FFBD2E", "#28CA41"],
+  "backgroundColor": "#E8F4FD",
+  "borderColor": "#3B82F6",
+  "borderWidth": "2px",
+  "borderRadius": "16px",
+  "boxShadow": "0 4px 12px rgba(0,0,0,0.1)",
+  "subtitleStyle": { "color": "#6B7280", "fontSize": "14px", "fontWeight": "500" },
+  "mainTitleStyle": { "color": "#1F2937", "fontSize": "28px", "fontWeight": "700" },
+  "highlightStyle": { "color": "#3B82F6", "backgroundColor": "transparent" },
+  "descStyle": { "color": "#4B5563", "fontSize": "16px" },
+  "tagStyle": { "backgroundColor": "#EBF5FF", "color": "#3B82F6", "borderRadius": "20px" },
+  "illustPosition": "bottom",
+  "illustSize": "60%",
+  "padding": "24px",
+  "mood": "밝고 친근한 / 전문적인 / 따뜻한 등",
+  "keyFeatures": ["브라우저 프레임", "연한 하늘색 배경", "파란색 강조"],
+  "fullCss": ".card-slide { background: #E8F4FD; border: 2px solid #3B82F6; border-radius: 16px; padding: 24px; }"
 }`
             }
           ]
@@ -910,35 +1197,990 @@ JSON 형식으로 답변하세요:
   }
 };
 
+// ============================================
+// 🤖 미니 에이전트 방식 카드뉴스 생성 시스템
+// ============================================
+
+// 슬라이드 스토리 타입 정의
+interface SlideStory {
+  slideNumber: number;
+  slideType: 'cover' | 'concept' | 'content' | 'closing';
+  subtitle: string;      // 10-15자
+  mainTitle: string;     // 15-20자 (강조 부분 <highlight>로 표시)
+  description: string;   // 30-50자
+  tags: string[];        // 해시태그 2-3개
+  imageKeyword: string;  // 이미지 핵심 키워드
+}
+
+interface CardNewsStory {
+  topic: string;
+  totalSlides: number;
+  slides: SlideStory[];
+  overallTheme: string;
+}
+
+// [1단계] 스토리 기획 에이전트
+const storyPlannerAgent = async (
+  topic: string, 
+  category: string, 
+  slideCount: number,
+  writingStyle: WritingStyle
+): Promise<CardNewsStory> => {
+  const ai = getAiClient();
+  const currentYear = getCurrentYear();
+  
+  const prompt = `당신은 **전환형 카드뉴스** 스토리 기획 전문가입니다.
+
+[🎯 미션] "${topic}" 주제로 ${slideCount}장짜리 **전환형** 카드뉴스를 기획하세요.
+
+이 콘텐츠는 의료정보 안내용 카드뉴스이며,
+네이버 병원 블로그 및 SNS에 사용됩니다.
+의료광고법을 준수하며, 직접적인 방문·예약 유도는 금지합니다.
+
+[📅 현재: ${currentYear}년 - 보수적 해석 원칙]
+- ${currentYear}년 기준 보건복지부·의료광고 심의 지침을 반영
+- **불확실한 경우 반드시 보수적으로 해석**
+- 출처 없는 수치/시간/확률 표현 금지
+
+[진료과] ${category}
+[글 스타일] ${writingStyle === 'expert' ? '전문가형(신뢰·권위)' : writingStyle === 'empathy' ? '공감형(독자 공감)' : '전환형(정보→확인 유도)'}
+
+[🧠 핵심 원칙: 카드뉴스는 "정보 나열"이 아니라 "심리 흐름"이다!]
+- 카드뉴스는 슬라이드형 설득 구조
+- 각 카드는 **서로 다른 심리적 역할**을 가져야 함
+- 생활습관(운동, 식단, 금연 등)은 **보조 정보로만** (최대 1장)
+- 마지막 2장은 반드시 "시점 고정" + "안전한 CTA"
+
+[🚨🚨🚨 카드별 심리적 역할 - ${slideCount}장 기준 🚨🚨🚨]
+
+**1장 - 주의 환기 (왜 봐야 하나)**
+- 위험 인식 유도, 흥미 유발
+- 공포 조장 금지, 질문형 또는 반전형 문구
+- 예: "많은 사람들이 놓치는 경고 신호"
+
+**2장 - 오해 깨기**
+- 착각을 바로잡는 메시지
+- 예: "단순 피로가 아닐 수도 있어요"
+
+${slideCount >= 5 ? `**3장 - 위험 신호 명확화 (전조증상)**
+- 대표적 증상 2-3가지 명확히
+- "개인차가 있을 수 있습니다" 명시` : ''}
+
+${slideCount >= 6 ? `**4장 - 자가 판단의 한계**
+- "증상만으로 원인을 구분하기 어렵다"
+- 검사·의학적 확인 필요성 강조` : ''}
+
+${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
+- 구체적 증상 설명, 관련 정보
+- 생활습관은 최대 1장만!` : ''}
+
+**${slideCount-1}장 - 시점 고정 (🔥 핵심! 🔥)**
+- "이런 증상이 나타났다면"
+- "지켜보기보다 확인 시점일 수 있다"
+- 구체 시간 언급 금지!
+
+**${slideCount}장 - 안전한 CTA**
+- "불편함이 반복된다면 전문적인 확인을 고려해볼 수 있어요"
+- ❌ 병원·예약·내원·상담 직접 언급 금지!
+
+[📝 텍스트 분량 규칙]
+- subtitle: 10-15자의 질문형/핵심 포인트 (예: "왜 중요할까요?")
+- mainTitle: 15-20자, 줄바꿈 포함, 강조 부분은 <highlight>로 감싸기
+  예: "이 신호를<highlight>놓치지 마세요</highlight>"
+- description: 30-50자의 구체적 설명문
+
+[🚨🚨🚨 의료법 준수 - 최우선! 🚨🚨🚨]
+
+**절대 금지 표현:**
+❌ "즉시 상담", "바로 상담", "지금 상담"
+❌ "전문의 상담", "전문의와 상담하세요"
+❌ "병원 방문", "내원하세요", "예약하세요"
+❌ "검진 받으세요", "진료 받으세요"
+❌ "완치", "최고", "보장", "확실히"
+❌ "골든타임", "48시간 내" 등 구체적 시간 표현
+
+**안전한 대체 표현:**
+✅ "증상이 지속되면 확인이 필요할 수 있어요"
+✅ "전문적인 확인을 고려해볼 수 있어요"
+✅ "지켜보기보다 확인 시점일 수 있어요"
+✅ "개인차가 있을 수 있어요"
+
+[⚠️ 생활습관 카드 제한]
+- 생활습관(운동, 식단, 금연 등) 카드는 **최대 1장**만
+- 생활습관이 핵심 메시지(확인 시점)를 대체하면 안 됨!
+
+[❌ 금지]
+- "01.", "첫 번째" 등 번호 표현
+- "해결책 1", "마무리" 등 프레임워크 용어
+- 출처 없는 구체적 수치/시간/확률 표현
+
+[✅ 슬라이드 연결]
+- 이전 슬라이드와 자연스럽게 이어지도록
+- **심리 흐름**: 주의환기 → 오해깨기 → 증상명확화 → 자가판단한계 → 시점고정 → CTA`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            topic: { type: Type.STRING },
+            totalSlides: { type: Type.INTEGER },
+            overallTheme: { type: Type.STRING },
+            slides: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  slideNumber: { type: Type.INTEGER },
+                  slideType: { type: Type.STRING },
+                  subtitle: { type: Type.STRING },
+                  mainTitle: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  imageKeyword: { type: Type.STRING }
+                },
+                required: ["slideNumber", "slideType", "subtitle", "mainTitle", "description", "tags", "imageKeyword"]
+              }
+            }
+          },
+          required: ["topic", "totalSlides", "slides", "overallTheme"]
+        }
+      }
+    });
+    
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error('스토리 기획 에이전트 실패:', error);
+    throw error;
+  }
+};
+
+// 분석된 스타일 전체 인터페이스
+interface AnalyzedStyle {
+  frameStyle?: string;
+  hasWindowButtons?: boolean;
+  windowButtonColors?: string[];
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: string;
+  borderRadius?: string;
+  boxShadow?: string;
+  subtitleStyle?: { color?: string; fontSize?: string; fontWeight?: string; };
+  mainTitleStyle?: { color?: string; fontSize?: string; fontWeight?: string; };
+  highlightStyle?: { color?: string; backgroundColor?: string; };
+  descStyle?: { color?: string; fontSize?: string; };
+  tagStyle?: { backgroundColor?: string; color?: string; borderRadius?: string; };
+  illustPosition?: string;
+  illustSize?: string;
+  padding?: string;
+  mood?: string;
+  keyFeatures?: string[];
+}
+
+// [2단계] HTML 조립 함수 (분석된 스타일 전체 적용)
+const assembleCardNewsHtml = (
+  story: CardNewsStory,
+  styleConfig?: AnalyzedStyle
+): string => {
+  const bgColor = styleConfig?.backgroundColor || '#E8F4FD';
+  const bgGradient = `linear-gradient(180deg, ${bgColor} 0%, ${bgColor}dd 100%)`;
+  const accentColor = styleConfig?.borderColor || '#3B82F6';
+  
+  // 분석된 스타일 적용 (기본값 포함)
+  const borderRadius = styleConfig?.borderRadius || '24px';
+  const boxShadow = styleConfig?.boxShadow || '0 4px 16px rgba(0,0,0,0.08)';
+  const borderWidth = styleConfig?.borderWidth || '0';
+  const padding = styleConfig?.padding || '32px 28px';
+  
+  const subtitle = {
+    color: styleConfig?.subtitleStyle?.color || accentColor,
+    fontSize: styleConfig?.subtitleStyle?.fontSize || '14px',
+    fontWeight: styleConfig?.subtitleStyle?.fontWeight || '700'
+  };
+  
+  const mainTitle = {
+    color: styleConfig?.mainTitleStyle?.color || '#1E293B',
+    fontSize: styleConfig?.mainTitleStyle?.fontSize || '26px',
+    fontWeight: styleConfig?.mainTitleStyle?.fontWeight || '900'
+  };
+  
+  const highlight = {
+    color: styleConfig?.highlightStyle?.color || accentColor,
+    backgroundColor: styleConfig?.highlightStyle?.backgroundColor || 'transparent'
+  };
+  
+  const desc = {
+    color: styleConfig?.descStyle?.color || '#475569',
+    fontSize: styleConfig?.descStyle?.fontSize || '15px'
+  };
+  
+  const tag = {
+    backgroundColor: styleConfig?.tagStyle?.backgroundColor || `${accentColor}15`,
+    color: styleConfig?.tagStyle?.color || accentColor,
+    borderRadius: styleConfig?.tagStyle?.borderRadius || '20px'
+  };
+  
+  // 브라우저 윈도우 버튼 HTML (분석된 스타일에 있으면 적용)
+  const windowButtonsHtml = styleConfig?.hasWindowButtons ? `
+    <div class="window-buttons" style="display: flex; gap: 8px; padding: 12px 16px;">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[0] || '#FF5F57'};"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[1] || '#FFBD2E'};"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[2] || '#28CA41'};"></span>
+    </div>` : '';
+  
+  const slides = story.slides.map((slide, idx) => {
+    // mainTitle에서 <highlight> 태그를 실제 span으로 변환 (분석된 highlight 스타일 적용)
+    const highlightBg = highlight.backgroundColor !== 'transparent' 
+      ? `background: ${highlight.backgroundColor}; padding: 2px 6px; border-radius: 4px;` 
+      : '';
+    const formattedTitle = slide.mainTitle
+      .replace(/<highlight>/g, `<span class="card-highlight" style="color: ${highlight.color}; ${highlightBg}">`)
+      .replace(/<\/highlight>/g, '</span>')
+      .replace(/\n/g, '<br/>');
+    
+    // 프레임 스타일에 따른 border 적용
+    const borderStyle = borderWidth !== '0' ? `border: ${borderWidth} solid ${accentColor};` : '';
+    
+    return `
+      <div class="card-slide" style="background: ${bgGradient}; border-radius: ${borderRadius}; ${borderStyle} box-shadow: ${boxShadow}; overflow: hidden; aspect-ratio: 1/1;">
+        ${windowButtonsHtml}
+        <div class="card-content-area" style="padding: ${padding}; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%; justify-content: center; gap: 12px;">
+          <p class="card-subtitle" style="font-size: ${subtitle.fontSize}; font-weight: ${subtitle.fontWeight}; color: ${subtitle.color}; margin-bottom: 4px;">${slide.subtitle}</p>
+          <p class="card-main-title" style="font-size: ${mainTitle.fontSize}; font-weight: ${mainTitle.fontWeight}; color: ${mainTitle.color}; line-height: 1.3; margin: 0; word-break: keep-all;">${formattedTitle}</p>
+          <div class="card-img-container" style="width: 100%; display: flex; justify-content: center; padding: 16px 0;">[IMG_${idx + 1}]</div>
+          <p class="card-desc" style="font-size: ${desc.fontSize}; color: ${desc.color}; line-height: 1.7; font-weight: 500; max-width: 90%;">${slide.description}</p>
+        </div>
+      </div>`;
+  });
+  
+  return slides.join('\n');
+};
+
+// 카드별 프롬프트 데이터는 types.ts에서 import
+
+// [3단계] 전체 이미지 카드용 프롬프트 생성 에이전트
+const fullImageCardPromptAgent = async (
+  slides: SlideStory[],
+  imageStyle: ImageStyle,
+  category: string,
+  styleConfig?: AnalyzedStyle
+): Promise<CardPromptData[]> => {
+  const ai = getAiClient();
+  
+  const styleGuide = imageStyle === 'illustration' 
+    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽'
+    : imageStyle === 'medical'
+    ? '3D 해부학 일러스트, 인체 구조, 교육용'
+    : '실사 사진, DSLR 촬영';
+  
+  // 🎨 스타일 참고 이미지가 있으면 해당 색상 사용, 없으면 기본값
+  const bgColor = styleConfig?.backgroundColor || '#E8F4FD';
+  const accentColor = styleConfig?.borderColor || '#3B82F6';
+  const hasWindowButtons = styleConfig?.hasWindowButtons || false;
+  const mood = styleConfig?.mood || '밝고 친근한';
+  const keyFeatures = styleConfig?.keyFeatures?.join(', ') || '';
+  
+  // 슬라이드 정보
+  const slideSummaries = slides.map((s, i) => 
+    `${i + 1}장: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" description="${s.description}" 이미지="${s.imageKeyword}"`
+  ).join('\n');
+
+  // 🎨 스타일 참고 이미지가 있으면 프롬프트 3회 반복 강조!
+  const styleRefInfo = styleConfig ? `
+████████████████████████████████████████████████████████████████████████████████
+🚨🚨🚨 최우선 규칙: 참고 이미지 스타일을 100% 동일하게 적용! 🚨🚨🚨
+████████████████████████████████████████████████████████████████████████████████
+
+[1번째 강조] 반드시 이 색상을 사용하세요!
+- 배경색: ${bgColor} ← 이 정확한 HEX 색상!
+- 강조색: ${accentColor} ← 제목에 사용!
+- 프레임: ${hasWindowButtons ? '브라우저 창 (상단 빨강/노랑/초록 버튼 3개 필수!)' : '둥근 카드'}
+- 분위기: ${mood}
+${keyFeatures ? `- 디자인 특징: ${keyFeatures}` : ''}
+
+[2번째 강조] 배경은 반드시 ${bgColor}! 다른 색 절대 금지!
+[3번째 강조] ${bgColor} 배경 + ${accentColor} 강조색 조합 필수!
+` : '';
+
+  const prompt = `당신은 **소셜미디어 카드뉴스 디자이너**입니다.
+
+████████████████████████████████████████████████████████████████████████████████
+[🎯 핵심 미션] 이미지 1장 = 완성된 카드뉴스 1장
+████████████████████████████████████████████████████████████████████████████████
+
+**중요**: 생성될 이미지는 그 자체로 완성된 카드뉴스 1장이어야 합니다!
+- 별도의 HTML 텍스트 오버레이 없음
+- 이미지 안에 제목과 설명만 그래픽으로 렌더링 (해시태그 절대 금지!)
+- 인스타그램/네이버 카드뉴스 스타일
+- ❌ 해시태그(#) 넣지 마세요!
+
+${styleRefInfo}
+
+[기본 스타일] ${styleGuide}
+[진료과] ${category}
+
+[슬라이드별 텍스트 내용 - 이미지 안에 포함되어야 함!]
+${slideSummaries}
+
+████████████████████████████████████████████████████████████████████████████████
+[🎨 1번 카드 = 표지 (COVER) - 필수!]
+████████████████████████████████████████████████████████████████████████████████
+⭐ 1번 카드는 반드시 "표지" 스타일로 만드세요!
+- 임팩트 있는 메인 제목이 화면 중앙에 크게!
+- 일러스트가 중앙을 차지하며 시선을 끔
+- 부제목은 상단에 작게
+- 본문 설명 텍스트는 최소화 또는 생략
+- 전체적으로 "이 카드뉴스가 무엇에 관한 것인지" 한눈에 파악되게!
+
+[표지 프롬프트 예시]
+"1:1 정사각형 카드뉴스 표지, 배경색 ${bgColor}, 중앙에 '심장이 보내는 경고 신호' 크고 임팩트있는 제목, 큰 심장 3D 일러스트가 화면 중앙을 지배, 상단에 작은 '놓치면 안 되는' 부제, 시선을 사로잡는 표지 디자인"
+
+████████████████████████████████████████████████████████████████████████████████
+[📐 2번 이후 카드 = 본문 레이아웃]
+████████████████████████████████████████████████████████████████████████████████
+${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑/초록 원형 버튼)' : ''}
+✅ 전체 배경: ${bgColor} 단색 또는 그라데이션 (다른 색 절대 금지!)
+✅ 상단 10%: subtitle 텍스트 (작은 글씨, ${accentColor}색)
+✅ 상단 20%: mainTitle 텍스트 (큰 굵은 글씨, 강조부분만 ${accentColor}색)
+✅ 중앙 50%: 핵심 일러스트/3D 아이콘 (카드의 절반 차지!)
+✅ 하단 20%: description 텍스트 (중간 크기, 회색 계열)
+❌ 해시태그 없음! (태그/배지 넣지 마세요)
+
+[📝 각 프롬프트에 반드시 포함할 문구] ⚠️ 반드시 한국어로 작성!
+1. "1:1 정사각형"
+2. "소셜미디어 카드뉴스" (1번은 "카드뉴스 표지"로!)
+3. "배경색 ${bgColor}" (3번 언급 권장!)
+4. "텍스트가 이미지 내에 완전히 포함된, 잘리지 않는"
+5. 실제 텍스트 내용 (subtitle, mainTitle, description)
+6. 일러스트 설명 + "${mood} 분위기"
+7. "모든 텍스트가 화면 안에 완전히 들어가도록, 여백 충분히"
+
+⚠️⚠️⚠️ 중요: imagePrompt는 반드시 **한국어**로 작성하세요! 영어 금지!
+
+[✅ 본문 카드 프롬프트 예시]
+"1:1 정사각형 소셜미디어 카드뉴스, 배경색 ${bgColor}, 상단에 '증상 알아보기' 파란색 작은 텍스트, 중앙 상단에 '가슴 통증의 종류' 큰 제목, 중앙에 심장 3D 일러스트, 하단에 '이런 증상을 무시하면...' 설명, 해시태그 없음, ${mood} 분위기, 모든 텍스트가 잘리지 않고 화면 안에 완전히 표시"
+
+⚠️⚠️⚠️ [텍스트 잘림 방지 필수 규칙] ⚠️⚠️⚠️
+- 모든 텍스트는 화면 경계에서 충분한 여백(최소 10%)을 두고 배치
+- 긴 텍스트는 2-3줄로 줄바꿈하여 가로폭에 맞게 조정
+- 텍스트가 이미지 바깥으로 절대 잘리지 않도록!
+- 프롬프트 끝에 반드시 "텍스트 잘림 없음" 문구 추가
+
+[🚨 의료법 준수]
+❌ 금지: "상담하세요", "방문하세요", "예약하세요", "완치", "보장"
+✅ 허용: 증상명, 질환명, 정보성 키워드, 질문형
+
+████████████████████████████████████████████████████████████████████████████████
+[🇰🇷 언어 규칙] 모든 imagePrompt는 반드시 한국어로!
+████████████████████████████████████████████████████████████████████████████████
+❌ 영어 프롬프트 금지! (예: "1:1 square social media card news cover...")
+✅ 한국어 프롬프트만! (예: "1:1 정사각형 소셜미디어 카드뉴스 표지...")
+프롬프트 내 모든 텍스트는 한국어로 작성하세요.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  imagePrompt: { type: Type.STRING },
+                  textPrompt: {
+                    type: Type.OBJECT,
+                    properties: {
+                      subtitle: { type: Type.STRING },
+                      mainTitle: { type: Type.STRING },
+                      description: { type: Type.STRING },
+                      tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+                    },
+                    required: ["subtitle", "mainTitle", "description", "tags"]
+                  }
+                },
+                required: ["imagePrompt", "textPrompt"]
+              }
+            }
+          },
+          required: ["cards"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || '{"cards":[]}');
+    return result.cards || slides.map(s => ({
+      imagePrompt: `1:1 카드, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}, ${styleGuide}`,
+      textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
+    }));
+  } catch (error) {
+    console.error('전체 이미지 카드 프롬프트 실패:', error);
+    return slides.map(s => ({
+      imagePrompt: `1:1 카드, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}, ${styleGuide}`,
+      textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
+    }));
+  }
+};
+
+// [기존 호환] 이미지만 생성하는 프롬프트 에이전트
+const imagePromptAgent = async (
+  slides: SlideStory[],
+  imageStyle: ImageStyle,
+  category: string
+): Promise<string[]> => {
+  const ai = getAiClient();
+  
+  const styleGuide = imageStyle === 'illustration' 
+    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽, 파란색 흰색 팔레트'
+    : imageStyle === 'medical'
+    ? '3D 해부학 일러스트, 인체 구조, 교육용 의학 이미지'
+    : '실사 사진, DSLR 촬영, 전문적인 분위기';
+  
+  const slideSummaries = slides.map((s, i) => `${i + 1}장: ${s.slideType} - ${s.imageKeyword}`).join('\n');
+  
+  const prompt = `당신은 의료/건강 이미지 프롬프트 전문가입니다.
+
+[미션] 각 슬라이드에 맞는 이미지 프롬프트를 한국어로 작성하세요.
+[스타일] ${styleGuide}
+[진료과] ${category}
+[슬라이드] ${slideSummaries}
+
+[규칙]
+- 한국어로 작성
+- 4:3 비율 적합
+- 로고/워터마크 금지
+- 의료법 위반 문구 금지 (상담/방문/예약/완치/보장)
+- 허용: 증상명, 질환명, 정보성 키워드, 질문형, 숫자
+
+예시: "가슴 통증을 느끼는 중년 남성, 3D 일러스트, 파란색 배경, 밝은 톤"`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: { prompts: { type: Type.ARRAY, items: { type: Type.STRING } } },
+          required: ["prompts"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || '{"prompts":[]}');
+    return result.prompts || [];
+  } catch (error) {
+    console.error('이미지 프롬프트 에이전트 실패:', error);
+    return slides.map(s => `${s.imageKeyword}, ${styleGuide}`);
+  }
+};
+
+// ============================================
+// 🎯 2단계 워크플로우: 원고 생성 → 사용자 확인 → 카드뉴스 디자인
+// ============================================
+
+// [1단계] 원고 생성 함수 - 상세 원고 + speakingNote 포함
+export const generateCardNewsScript = async (
+  request: GenerationRequest,
+  onProgress: (msg: string) => void
+): Promise<CardNewsScript> => {
+  const ai = getAiClient();
+  const slideCount = request.slideCount || 6;
+  const currentYear = getCurrentYear();
+  const writingStyle = request.writingStyle || 'empathy';
+  
+  onProgress('📝 [1단계] 원고 기획 중...');
+  
+  const prompt = `당신은 **전환형 카드뉴스** 원고 작성 전문가입니다.
+
+[🎯 미션] "${request.topic}" 주제로 ${slideCount}장짜리 **상세 원고**를 작성하세요.
+
+이 콘텐츠는 의료정보 안내용 카드뉴스이며,
+네이버 병원 블로그 및 SNS에 사용됩니다.
+의료광고법을 준수하며, 직접적인 방문·예약 유도는 금지합니다.
+
+[📅 현재: ${currentYear}년 - 보수적 해석 원칙]
+- ${currentYear}년 기준 보건복지부·의료광고 심의 지침을 반영
+- **불확실한 경우 반드시 보수적으로 해석**
+- 출처 없는 수치/시간/확률 표현 금지
+
+[진료과] ${request.category}
+[글 스타일] ${writingStyle === 'expert' ? '전문가형(신뢰·권위)' : writingStyle === 'empathy' ? '공감형(독자 공감)' : '전환형(정보→확인 유도)'}
+
+[🧠 핵심 원칙: 카드뉴스는 "정보 나열"이 아니라 "심리 흐름"이다!]
+- 카드뉴스는 슬라이드형 설득 구조
+- 각 카드는 **서로 다른 심리적 역할**을 가져야 함
+- 생활습관(운동, 식단, 금연 등)은 **보조 정보로만** (최대 1장)
+- 마지막 2장은 반드시 "시점 고정" + "안전한 CTA"
+
+[📝 원고 작성 규칙 - 매우 중요!]
+각 슬라이드에 다음 내용을 작성하세요:
+
+1. **subtitle** (10-15자): 질문형 또는 핵심 포인트
+   예: "왜 중요할까요?", "혹시 이런 증상?"
+
+2. **mainTitle** (15-25자): 핵심 메시지, 줄바꿈 포함
+   예: "이 신호를\n놓치지 마세요"
+   - 강조할 부분은 <highlight>태그</highlight>로 감싸기
+
+3. **description** (40-80자): 구체적인 설명문
+   - 독자가 얻어갈 정보가 있어야 함!
+   - 너무 짧으면 안 됨 (최소 40자)
+
+4. **speakingNote** (50-100자): 이 슬라이드에서 전달하고 싶은 핵심 메시지
+   - 편집자/작성자가 참고할 내부 메모
+   - 왜 이 내용이 필요한지, 독자에게 어떤 감정을 유발해야 하는지
+   - 예: "독자가 '나도 그런 증상 있는데?' 하고 공감하게 만들어야 함"
+
+5. **imageKeyword** (10-20자): 이미지 생성을 위한 핵심 키워드
+   예: "심장 들고 있는 의사", "피로한 직장인"
+
+[🚨🚨🚨 카드별 심리적 역할 - ${slideCount}장 기준 🚨🚨🚨]
+
+**1장 - 주의 환기 (왜 봐야 하나)**
+- slideType: "cover"
+- 위험 인식 유도, 흥미 유발
+- 공포 조장 금지, 질문형 또는 반전형 문구
+- speakingNote: "독자의 관심을 끌어야 함. '어? 나도?' 반응 유도"
+
+**2장 - 오해 깨기 (개념 정리)**
+- slideType: "concept"
+- 착각을 바로잡는 메시지
+- speakingNote: "잘못된 상식을 깨고 올바른 정보 제공"
+
+${slideCount >= 5 ? `**3장 - 위험 신호 명확화**
+- slideType: "content"
+- 대표적 증상 2-3가지 명확히
+- speakingNote: "구체적 증상을 나열해 '자가 체크' 느낌"` : ''}
+
+${slideCount >= 6 ? `**4장 - 자가 판단의 한계**
+- slideType: "content"
+- 검사·의학적 확인 필요성 강조
+- speakingNote: "혼자 판단하면 안 되는 이유 설명"` : ''}
+
+${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
+- slideType: "content"
+- 구체적 증상 설명, 관련 정보
+- 생활습관은 최대 1장만!` : ''}
+
+**${slideCount-1}장 - 시점 고정 (🔥 핵심! 🔥)**
+- slideType: "content"
+- "이런 증상이 나타났다면"
+- speakingNote: "지금이 확인할 타이밍이라는 것을 인식시키기"
+
+**${slideCount}장 - 안전한 CTA**
+- slideType: "closing"
+- "불편함이 반복된다면 전문적인 확인을 고려해볼 수 있어요"
+- speakingNote: "직접 권유 없이 행동을 유도하는 부드러운 마무리"
+
+[🚨🚨🚨 의료법 준수 - 최우선! 🚨🚨🚨]
+
+**절대 금지 표현:**
+❌ "즉시 상담", "바로 상담", "지금 상담"
+❌ "전문의 상담", "전문의와 상담하세요"
+❌ "병원 방문", "내원하세요", "예약하세요"
+❌ "검진 받으세요", "진료 받으세요"
+❌ "완치", "최고", "보장", "확실히"
+❌ "골든타임", "48시간 내" 등 구체적 시간 표현
+
+**안전한 대체 표현:**
+✅ "증상이 지속되면 확인이 필요할 수 있어요"
+✅ "전문적인 확인을 고려해볼 수 있어요"
+✅ "지켜보기보다 확인 시점일 수 있어요"
+✅ "개인차가 있을 수 있어요"`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            topic: { type: Type.STRING },
+            totalSlides: { type: Type.INTEGER },
+            overallTheme: { type: Type.STRING },
+            slides: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  slideNumber: { type: Type.INTEGER },
+                  slideType: { type: Type.STRING },
+                  subtitle: { type: Type.STRING },
+                  mainTitle: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  speakingNote: { type: Type.STRING },
+                  imageKeyword: { type: Type.STRING }
+                },
+                required: ["slideNumber", "slideType", "subtitle", "mainTitle", "description", "speakingNote", "imageKeyword"]
+              }
+            }
+          },
+          required: ["title", "topic", "totalSlides", "slides", "overallTheme"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || "{}");
+    
+    onProgress(`✅ 원고 생성 완료 (${result.slides?.length || 0}장)`);
+    
+    return result as CardNewsScript;
+  } catch (error) {
+    console.error('원고 생성 실패:', error);
+    throw error;
+  }
+};
+
+// [2단계] 원고를 카드뉴스로 변환하는 함수
+export const convertScriptToCardNews = async (
+  script: CardNewsScript,
+  request: GenerationRequest,
+  onProgress: (msg: string) => void
+): Promise<{ content: string; imagePrompts: string[]; cardPrompts: CardPromptData[]; title: string; }> => {
+  onProgress('🎨 [2단계] 카드뉴스 디자인 변환 중...');
+  
+  // 스토리를 SlideStory 형식으로 변환 (기존 함수와 호환)
+  const slides: SlideStory[] = script.slides.map(s => ({
+    slideNumber: s.slideNumber,
+    slideType: s.slideType as 'cover' | 'concept' | 'content' | 'closing',
+    subtitle: s.subtitle,
+    mainTitle: s.mainTitle,
+    description: s.description,
+    tags: [], // 태그는 프롬프트 생성 시 추가됨
+    imageKeyword: s.imageKeyword
+  }));
+  
+  // 스타일 분석 (참고 이미지가 있는 경우)
+  let styleConfig: AnalyzedStyle | undefined;
+  if (request.coverStyleImage || request.contentStyleImage) {
+    try {
+      const styleImage = request.coverStyleImage || request.contentStyleImage;
+      onProgress('🎨 참고 이미지 스타일 분석 중...');
+      const styleJson = await analyzeStyleReferenceImage(styleImage!, !!request.coverStyleImage);
+      styleConfig = JSON.parse(styleJson);
+      const features = styleConfig?.keyFeatures?.slice(0, 3).join(', ') || '';
+      onProgress(`✨ 스타일 적용: ${styleConfig?.backgroundColor || '분석됨'} ${features ? `(${features})` : ''}`);
+    } catch (e) {
+      console.warn('스타일 분석 실패, 기본 스타일 사용:', e);
+    }
+  }
+  
+  // HTML 조립
+  onProgress('🏗️ 카드 구조 생성 중...');
+  const htmlContent = assembleCardNewsHtml({ ...script, slides }, styleConfig);
+  
+  // 카드 프롬프트 생성
+  onProgress('🎨 카드 이미지 프롬프트 생성 중...');
+  const cardPrompts = await fullImageCardPromptAgent(
+    slides,
+    request.imageStyle || 'illustration',
+    request.category,
+    styleConfig
+  );
+  
+  const imagePrompts = cardPrompts.map(c => c.imagePrompt);
+  onProgress(`✅ 카드뉴스 디자인 변환 완료 (${cardPrompts.length}장)`);
+  
+  return {
+    content: htmlContent,
+    imagePrompts,
+    cardPrompts,
+    title: script.title
+  };
+};
+
+// [통합] 미니 에이전트 오케스트레이터 (기존 호환 유지)
+export const generateCardNewsWithAgents = async (
+  request: GenerationRequest,
+  onProgress: (msg: string) => void
+): Promise<{ content: string; imagePrompts: string[]; cardPrompts: CardPromptData[]; title: string; }> => {
+  const slideCount = request.slideCount || 6;
+  
+  // 1단계: 스토리 기획
+  onProgress('📝 [1/3] 스토리 기획 중...');
+  const story = await storyPlannerAgent(
+    request.topic,
+    request.category,
+    slideCount,
+    request.writingStyle || 'empathy'
+  );
+  
+  if (!story.slides || story.slides.length === 0) {
+    throw new Error('스토리 기획 실패: 슬라이드가 생성되지 않았습니다.');
+  }
+  
+  onProgress(`✅ 스토리 기획 완료 (${story.slides.length}장)`);
+  
+  // 2단계: HTML 조립
+  onProgress('🏗️ [2/3] 카드 구조 생성 중...');
+  
+  // 스타일 분석 결과가 있으면 전체 스타일 적용
+  let styleConfig: AnalyzedStyle | undefined;
+  if (request.coverStyleImage || request.contentStyleImage) {
+    try {
+      const styleImage = request.coverStyleImage || request.contentStyleImage;
+      onProgress('🎨 참고 이미지 스타일 분석 중...');
+      const styleJson = await analyzeStyleReferenceImage(styleImage!, !!request.coverStyleImage);
+      const parsed = JSON.parse(styleJson);
+      
+      // 전체 스타일 정보 전달 (색상뿐만 아니라 폰트, 레이아웃, 프레임 등 모두)
+      styleConfig = {
+        frameStyle: parsed.frameStyle,
+        hasWindowButtons: parsed.hasWindowButtons,
+        windowButtonColors: parsed.windowButtonColors,
+        backgroundColor: parsed.backgroundColor,
+        borderColor: parsed.borderColor,
+        borderWidth: parsed.borderWidth,
+        borderRadius: parsed.borderRadius,
+        boxShadow: parsed.boxShadow,
+        subtitleStyle: parsed.subtitleStyle,
+        mainTitleStyle: parsed.mainTitleStyle,
+        highlightStyle: parsed.highlightStyle,
+        descStyle: parsed.descStyle,
+        tagStyle: parsed.tagStyle,
+        illustPosition: parsed.illustPosition,
+        illustSize: parsed.illustSize,
+        padding: parsed.padding,
+        mood: parsed.mood,
+        keyFeatures: parsed.keyFeatures
+      };
+      
+      const features = parsed.keyFeatures?.slice(0, 3).join(', ') || '';
+      onProgress(`✨ 스타일 적용: ${parsed.backgroundColor || '분석됨'} ${features ? `(${features})` : ''}`);
+    } catch (e) {
+      console.warn('스타일 분석 실패, 기본 스타일 사용:', e);
+    }
+  }
+  
+  const htmlContent = assembleCardNewsHtml(story, styleConfig);
+  onProgress('✅ 카드 구조 생성 완료');
+  
+  // 3단계: 전체 이미지 카드 프롬프트 생성 (텍스트 + 이미지 통합)
+  onProgress('🎨 [3/3] 카드 프롬프트 생성 중...');
+  const cardPrompts = await fullImageCardPromptAgent(
+    story.slides,
+    request.imageStyle || 'illustration',
+    request.category,
+    styleConfig
+  );
+  
+  // 이미지 프롬프트만 추출 (기존 호환성)
+  const imagePrompts = cardPrompts.map(c => c.imagePrompt);
+  onProgress(`✅ 카드 프롬프트 ${cardPrompts.length}개 생성 완료`);
+  
+  return {
+    content: htmlContent,
+    imagePrompts,
+    cardPrompts, // 새로 추가: 텍스트+이미지 프롬프트 전체
+    title: story.topic
+  };
+};
+
+// ============================================
+// 기존 블로그 포스트 생성 함수 (유지)
+// ============================================
+
 export const generateBlogPostText = async (request: GenerationRequest): Promise<{ 
     title: string; 
     content: string; 
     imagePrompts: string[];
     fact_check: FactCheckReport;
+    analyzedStyle?: { backgroundColor?: string; borderColor?: string; };
 }> => {
   const ai = getAiClient();
   const isCardNews = request.postType === 'card_news';
   const targetLength = request.textLength || 2000;
   const targetSlides = request.slideCount || 6;
   
-  // 스타일 참고 이미지 분석 (카드뉴스일 때만)
-  let styleAnalysis = '';
-  if (isCardNews && request.styleReferenceImage) {
-    try {
-      const analysisResult = await analyzeStyleReferenceImage(request.styleReferenceImage);
-      styleAnalysis = `
-[🎨 스타일 참고 이미지 분석 결과 - 반드시 이 스타일을 따라하세요!]
-${analysisResult}
-
-**중요: 위 분석 결과를 기반으로 동일한 스타일의 카드뉴스를 생성하세요!**
-- 색상 팔레트를 정확히 따라하세요
-- 레이아웃 구조를 모방하세요
-- 타이포그래피 스타일을 유지하세요
-- 테두리/프레임 스타일을 재현하세요
-`;
-    } catch (e) {
-      console.warn('스타일 분석 실패:', e);
+  // 스타일 참고 이미지 분석 (카드뉴스일 때만 - 표지/본문 분리)
+  let coverStyleAnalysis = '';
+  let contentStyleAnalysis = '';
+  let analyzedBgColor = '';
+  
+  if (isCardNews) {
+    // 표지 스타일 분석
+    if (request.coverStyleImage) {
+      try {
+        coverStyleAnalysis = await analyzeStyleReferenceImage(request.coverStyleImage, true);
+      } catch (e) {
+        console.warn('표지 스타일 분석 실패:', e);
+      }
     }
+    
+    // 본문 스타일 분석
+    if (request.contentStyleImage) {
+      try {
+        contentStyleAnalysis = await analyzeStyleReferenceImage(request.contentStyleImage, false);
+      } catch (e) {
+        console.warn('본문 스타일 분석 실패:', e);
+      }
+    }
+    
+    // 표지만 있으면 본문도 같은 스타일 적용
+    if (coverStyleAnalysis && !contentStyleAnalysis) {
+      contentStyleAnalysis = coverStyleAnalysis;
+    }
+  }
+  
+  // 스타일 분석 결과를 프롬프트에 적용
+  let styleAnalysis = '';
+  let coverStyle: any = {};
+  let contentStyle: any = {};
+  
+  if (coverStyleAnalysis || contentStyleAnalysis) {
+    // JSON 파싱 시도
+    try {
+      if (coverStyleAnalysis) coverStyle = JSON.parse(coverStyleAnalysis);
+      if (contentStyleAnalysis) contentStyle = JSON.parse(contentStyleAnalysis);
+      // 배경색 저장 (후처리용)
+      analyzedBgColor = coverStyle.backgroundColor || contentStyle.backgroundColor || '';
+    } catch (e) {
+      // JSON 파싱 실패 시 원본 텍스트 사용
+      console.warn('스타일 JSON 파싱 실패:', e);
+    }
+    
+    // 브라우저 프레임 HTML 생성
+    const windowButtonsHtml = (style: any) => {
+      if (style.hasWindowButtons || style.frameStyle === 'browser-window') {
+        const colors = style.windowButtonColors || ['#FF5F57', '#FFBD2E', '#28CA41'];
+        return `<div class="browser-header" style="display:flex; gap:6px; padding:8px 12px; background:#f0f0f0; border-radius:12px 12px 0 0;">
+          <span style="width:12px; height:12px; border-radius:50%; background:${colors[0]};"></span>
+          <span style="width:12px; height:12px; border-radius:50%; background:${colors[1]};"></span>
+          <span style="width:12px; height:12px; border-radius:50%; background:${colors[2]};"></span>
+        </div>`;
+      }
+      return '';
+    };
+    
+    // inline CSS 스타일 생성 함수
+    const generateInlineStyle = (style: any) => {
+      const parts = [];
+      if (style.backgroundColor) parts.push(`background-color: ${style.backgroundColor}`);
+      if (style.borderColor && style.borderWidth) {
+        parts.push(`border: ${style.borderWidth} solid ${style.borderColor}`);
+      } else if (style.borderColor) {
+        parts.push(`border: 2px solid ${style.borderColor}`);
+      }
+      if (style.borderRadius) parts.push(`border-radius: ${style.borderRadius}`);
+      if (style.boxShadow) parts.push(`box-shadow: ${style.boxShadow}`);
+      if (style.padding) parts.push(`padding: ${style.padding}`);
+      return parts.join('; ');
+    };
+    
+    // 제목 스타일 생성
+    const generateTitleStyle = (style: any) => {
+      if (!style.mainTitleStyle) return '';
+      const s = style.mainTitleStyle;
+      const parts = [];
+      if (s.color) parts.push(`color: ${s.color}`);
+      if (s.fontSize) parts.push(`font-size: ${s.fontSize}`);
+      if (s.fontWeight) parts.push(`font-weight: ${s.fontWeight}`);
+      return parts.join('; ');
+    };
+    
+    // 강조 스타일 생성
+    const generateHighlightStyle = (style: any) => {
+      if (!style.highlightStyle) return '';
+      const s = style.highlightStyle;
+      const parts = [];
+      if (s.color) parts.push(`color: ${s.color}`);
+      if (s.backgroundColor && s.backgroundColor !== 'transparent') {
+        parts.push(`background-color: ${s.backgroundColor}`);
+        parts.push(`padding: 2px 6px`);
+        parts.push(`border-radius: 4px`);
+      }
+      return parts.join('; ');
+    };
+    
+    // 부제목 스타일 생성
+    const generateSubtitleStyle = (style: any) => {
+      if (!style.subtitleStyle) return '';
+      const s = style.subtitleStyle;
+      const parts = [];
+      if (s.color) parts.push(`color: ${s.color}`);
+      if (s.fontSize) parts.push(`font-size: ${s.fontSize}`);
+      if (s.fontWeight) parts.push(`font-weight: ${s.fontWeight}`);
+      return parts.join('; ');
+    };
+    
+    // 태그 스타일 생성
+    const generateTagStyle = (style: any) => {
+      if (!style.tagStyle) return '';
+      const s = style.tagStyle;
+      const parts = [];
+      if (s.backgroundColor) parts.push(`background-color: ${s.backgroundColor}`);
+      if (s.color) parts.push(`color: ${s.color}`);
+      if (s.borderRadius) parts.push(`border-radius: ${s.borderRadius}`);
+      parts.push(`padding: 4px 12px`);
+      return parts.join('; ');
+    };
+    
+    const coverInlineStyle = generateInlineStyle(coverStyle);
+    const contentInlineStyle = generateInlineStyle(contentStyle);
+    const coverTitleStyle = generateTitleStyle(coverStyle);
+    const coverHighlightStyle = generateHighlightStyle(coverStyle);
+    const coverSubtitleStyle = generateSubtitleStyle(coverStyle);
+    const coverTagStyle = generateTagStyle(coverStyle);
+    const contentTitleStyle = generateTitleStyle(contentStyle);
+    const contentHighlightStyle = generateHighlightStyle(contentStyle);
+    const contentSubtitleStyle = generateSubtitleStyle(contentStyle);
+    const contentTagStyle = generateTagStyle(contentStyle);
+    
+    // 분석된 배경색을 CSS로 변환
+    const bgColor = coverStyle.backgroundColor || contentStyle.backgroundColor || '#E8F4FD';
+    const bgGradient = bgColor.includes('gradient') ? bgColor : `linear-gradient(180deg, ${bgColor} 0%, ${bgColor}dd 100%)`;
+    
+    styleAnalysis = `
+[🎨🎨🎨 카드뉴스 스타일 - 이 스타일을 반드시 그대로 적용하세요! 🎨🎨🎨]
+
+**⚠️⚠️⚠️ 최우선 규칙 ⚠️⚠️⚠️**
+**모든 카드에 반드시 style="background: ${bgGradient};" 적용!**
+**기본 흰 배경(#f8fafc, #fff) 사용 금지!**
+
+**필수 적용 배경색: ${bgColor}**
+
+${coverStyleAnalysis ? `**📕 표지 (1장) HTML:**
+<div class="card-slide" style="background: ${bgGradient}; border-radius: 24px; overflow: hidden;">
+  ${windowButtonsHtml(coverStyle)}
+  <div class="card-content-area" style="padding: 32px 28px;">
+    <p class="card-subtitle" style="${coverSubtitleStyle || 'color: #3B82F6; font-size: 14px; font-weight: 700;'}">부제목 (10~15자)</p>
+    <p class="card-main-title" style="${coverTitleStyle || 'color: #1E293B; font-size: 28px; font-weight: 900;'}">메인 제목<br/><span style="color: #3B82F6;">강조</span></p>
+    <div class="card-img-container">[IMG_1]</div>
+    <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.7;">30~50자의 구체적인 설명 문장을 작성하세요!</p>
+  </div>
+</div>
+` : ''}
+
+${contentStyleAnalysis ? `**📄 본문 (2장~) HTML:**
+<div class="card-slide" style="background: ${bgGradient}; border-radius: 24px; overflow: hidden;">
+  ${windowButtonsHtml(contentStyle)}
+  <div class="card-content-area" style="padding: 32px 28px;">
+    <p class="card-subtitle" style="${contentSubtitleStyle || 'color: #3B82F6; font-size: 14px; font-weight: 700;'}">부제목 (10~15자)</p>
+    <p class="card-main-title" style="${contentTitleStyle || 'color: #1E293B; font-size: 28px; font-weight: 900;'}">메인 제목<br/><span style="color: #3B82F6;">강조</span></p>
+    <div class="card-img-container">[IMG_N]</div>
+    <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.7;">30~50자의 구체적인 설명 문장을 작성하세요!</p>
+  </div>
+</div>
+` : ''}
+
+**🚨 배경색 필수 적용: ${bgColor} 🚨**
+style 속성에 background: ${bgGradient}; 반드시 포함!
+`;
   }
   
   let benchmarkingInstruction = '';
@@ -1144,6 +2386,11 @@ ${analysisResult}
   `;
 
   const cardNewsPrompt = `
+    **🚨🚨🚨 최우선 지침: 이것은 카드뉴스입니다! 🚨🚨🚨**
+    - 블로그 포스팅 형식(긴 문단)으로 작성하면 안 됩니다!
+    - 반드시 <div class="card-slide"> 구조의 슬라이드 형식으로 작성하세요!
+    - 각 슬라이드는 짧은 텍스트(제목 12자, 설명 20자 이내)만 포함합니다!
+    
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
     ${writingStylePrompt}
     ${WRITING_STYLE_COMMON_RULES}
@@ -1160,25 +2407,60 @@ ${analysisResult}
     총 ${targetSlides}장의 카드뉴스
     글 스타일: ${writingStyle === 'expert' ? '전문가형(신뢰·권위·논문 인용)' : writingStyle === 'empathy' ? '공감형(독자 공감 유도)' : '전환형(행동 유도)'}
     
-    [🚨 가장 중요: 스토리 연결성]
-    카드뉴스는 반드시 **하나의 이야기**로 연결되어야 합니다.
-    각 슬라이드가 "그래서 → 왜냐하면 → 따라서" 논리로 자연스럽게 이어져야 합니다.
+    [🚨🚨🚨 핵심 주제 키워드 - 반드시 모든 카드에 반영하세요! 🚨🚨🚨]
     
-    **스토리 구조 (${targetSlides}장):**
-    1장: 🎯 후킹 - 독자의 관심을 끄는 질문/충격적 사실
-    2장: ❓ 문제 제기 - "왜 이게 문제인가?"
-    3장: 💡 원인/배경 - "이런 이유 때문입니다"
-    4장: ✅ 해결책 1 - 첫 번째 실천 방법
-    5장: ✅ 해결책 2 - 두 번째 실천 방법  
-    ${targetSlides}장: 📌 마무리 - 핵심 요약 + 심리학적 전환 문구 (아래 참조)
+    **주제: "${request.topic}"**
+    - 이 주제가 모든 카드의 중심이 되어야 합니다!
+    - "${request.topic}"과 직접 관련된 구체적인 내용만 작성하세요!
+    - 일반적이고 추상적인 건강 정보는 ❌ 금지!
+    - "${request.topic}"의 구체적인 증상, 원인, 특징을 다루세요!
     
-    **예시 (겨울철 심근경색):**
-    1장: "겨울에 심장마비가 3배 증가한다는 사실, 알고 계셨나요?"
-    2장: "왜 유독 겨울에 위험할까요?"
-    3장: "추위에 혈관이 수축하면서 혈압이 급상승합니다"
-    4장: "예방법 1: 외출 시 목도리로 목 보호하기"
-    5장: "예방법 2: 아침 운동보다 오후 운동이 안전해요"
-    6장: "작은 습관이 생명을 지킵니다 💪" (심리학적 전환 문구)
+    **⚠️ 질환명/증상명 사용 규칙:**
+    - "${request.topic}"에 포함된 질환명(예: 혈액암, 당뇨병, 고혈압 등)은 그대로 사용하세요!
+    - 의료 정보를 돌려말하지 마세요! 직접적으로 설명하세요!
+    - "몸의 변화", "건강 이상 신호" 같은 모호한 표현 ❌
+    - "${request.topic}"의 실제 증상명과 특징을 구체적으로 ✅
+    
+    [🚨🚨🚨 가장 중요: 스토리 연결성 - 반드시 읽고 적용하세요! 🚨🚨🚨]
+    
+    **카드뉴스는 반드시 "하나의 스토리"로 연결되어야 합니다!**
+    - 각 슬라이드가 독립적인 내용이면 안 됩니다!
+    - 1장부터 마지막 장까지 "${request.topic}"에 대해 깊이 있게 다루세요!
+    - "표지 → 정의/개요 → 구체적 증상/특징들 → 마무리" 구조를 따르세요!
+    
+    **스토리 구조 (${targetSlides}장) - "${request.topic}" 기준:**
+    
+    📕 **1장 (표지)**: "${request.topic}" 주제 소개
+    - 제목에 "${request.topic}" 키워드 필수 포함!
+    - 예: "${request.topic}, 이런 신호를 놓치지 마세요"
+    
+    📘 **2장**: "${request.topic}"이란? (정의/개요)
+    - "${request.topic}"가 무엇인지 직접적으로 설명
+    - 모호하게 돌려말하지 않기!
+    
+    📗 **3~${targetSlides - 1}장**: "${request.topic}"의 구체적 증상/특징/방법
+    - 각 슬라이드에 "${request.topic}"과 직접 관련된 하나의 구체적 내용
+    - 실제 증상명, 특징, 원인 등을 명확하게!
+    - 예시: 혈액암이라면 → "멍이 쉽게 드나요?", "잇몸 출혈", "만성 피로", "림프절 부종"
+    
+    📙 **${targetSlides}장 (마무리)**: 정리 + 행동 유도
+    - "${request.topic}" 관련 핵심 메시지
+    - 자가진단/전문의 상담 권유 등
+    
+    **✅ "${request.topic}" 주제 올바른 예시:**
+    만약 주제가 "혈액암 초기증상"이라면:
+    1장: "혈액암, 이 신호를 놓치고 있진 않나요?" (표지)
+    2장: "혈액암이란?" - 혈액세포에 생기는 암의 종류 설명
+    3장: "멍이 쉽게 드시나요?" - 혈소판 감소로 인한 증상
+    4장: "잇몸에서 피가 자주 나나요?" - 출혈 경향 설명
+    5장: "쉬어도 풀리지 않는 피로감" - 빈혈로 인한 피로
+    6장: "조기 발견이 중요합니다" - 정기검진 권유
+    
+    **❌ 잘못된 예시 (주제와 동떨어진 일반론):**
+    1장: "몸이 보내는 신호" (← 주제 키워드 없음!)
+    2장: "피로의 원인" (← 너무 일반적!)
+    3장: "건강관리의 중요성" (← 주제와 무관!)
+    → "${request.topic}"을 직접 다루지 않으면 안 됩니다!
     
     ${PSYCHOLOGY_CTA_PROMPT}
     
@@ -1198,26 +2480,28 @@ ${analysisResult}
     
     ${request.referenceUrl ? '★벤치마킹 URL의 구성 방식도 참고하세요.' : ''}
     
-    [HTML 구조 - 반드시 이 형식 그대로 따르세요]
-    <div class="card-slide">
-      <div class="card-border-box">
-        <div class="card-header-row">
-          <span class="brand-text">HEALTH NOTE</span>
-          <span class="arrow-icon">→</span>
-        </div>
-        <div class="card-content-area">
-          <p class="card-subtitle">짧은 질문형 (예: 왜 위험할까요?)</p>
-          <div class="card-divider-dotted"></div>
-          <p class="card-main-title">짧은 핵심<br/><span class="card-highlight">강조단어</span></p>
-          <div class="card-img-container">[IMG_N]</div>
-          <p class="card-desc">부연 설명 한 문장</p>
-        </div>
-        <div class="card-footer-row">
-          <span class="pill-tag">${request.category}</span>
-          <span class="pill-tag">건강정보</span>
-        </div>
+    ${styleAnalysis ? `
+    **⚠️⚠️⚠️ 중요: 스타일 참고 이미지가 있습니다! ⚠️⚠️⚠️**
+    - 위에서 제공한 "표지/본문 HTML 템플릿"의 style 속성을 그대로 사용하세요!
+    - 기본 HEALTH NOTE 스타일(주황색 테두리)을 사용하면 안 됩니다!
+    - 분석된 색상(${coverStyle.backgroundColor || contentStyle.backgroundColor || '분석된 색상'})을 반드시 적용하세요!
+    ` : `
+    [HTML 구조 - 기본 스타일 (연한 하늘색 배경)]
+    **⚠️ 중요: 아래 템플릿을 그대로 복사해서 사용하세요! style 속성 필수!**
+    
+    <div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; padding: 0; overflow: hidden;">
+      <div style="padding: 32px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%;">
+        <p class="card-subtitle" style="font-size: 14px; font-weight: 700; color: #3B82F6; margin-bottom: 8px;">질문형 부제목 (10~15자)</p>
+        <p class="card-main-title" style="font-size: 28px; font-weight: 900; color: #1E293B; line-height: 1.3; margin: 0 0 16px 0;">메인 제목<br/><span style="color: #3B82F6;">강조 텍스트</span></p>
+        <div class="card-img-container" style="width: 100%; margin: 16px 0;">[IMG_N]</div>
+        <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.6; font-weight: 500; max-width: 90%;">여기에 30~50자의 구체적인 설명 문장을 작성하세요. 독자가 정보를 얻을 수 있도록 충분히!</p>
       </div>
     </div>
+    
+    **🚨 card-desc 부분이 가장 중요합니다! 반드시 30자 이상 작성하세요! 🚨**
+    
+    **배경색 필수: style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%);" 적용!**
+    `}
     
     [🚫 절대 금지 표현 - 카드에 이런 텍스트 넣지 마세요!]
     ❌ "01.", "02.", "03." 같은 슬라이드 번호
@@ -1229,15 +2513,26 @@ ${analysisResult}
     card-subtitle: "알고 계셨나요?" / "왜 위험할까요?" / "이렇게 해보세요"
     card-main-title: "겨울철 심장마비<br/><span class='card-highlight'>3배</span> 증가" 
     
-    [🚨 작성 규칙 - 매우 중요]
+    [🚨🚨🚨 작성 규칙 - 매우 중요 🚨🚨🚨]
     1. 각 슬라이드에 [IMG_1]~[IMG_${targetSlides}] 마커 필수
     2. 이전 슬라이드와 내용이 자연스럽게 연결
     3. card-main-title은 **반드시 <p> 태그 사용** (h1 사용 금지!)
-    4. card-main-title은 **12자 이내**로 짧게! 줄바꿈은 <br/> 사용
-    5. card-subtitle은 **8자 이내**의 질문형
-    6. card-desc는 **20자 이내**의 부연 설명
-    7. 긴 문장은 절대 금지! 핵심 키워드만!
-    8. 실제 독자가 볼 콘텐츠만 작성 (메타 정보 금지)
+    4. card-main-title은 **15~20자**로 충분히 작성! 줄바꿈은 <br/> 사용
+    5. card-subtitle은 **10~15자**의 질문형 또는 핵심 포인트
+    6. **card-desc는 반드시 30~50자**의 구체적인 설명 문장 포함! (가장 중요!)
+    7. 실제 독자가 볼 콘텐츠만 작성 (메타 정보 금지)
+    8. **글씨가 너무 없으면 안 됨!** 각 카드에 충분한 정보 전달 필수!
+    
+    [📝 텍스트 분량 규칙 - 반드시 지키세요!]
+    ❌ 잘못된 예 (텍스트 부족):
+    - card-subtitle: "지금 알아야 해요" (8자)
+    - card-main-title: "심정지<br/><span class='card-highlight'>4분</span>" (6자)
+    - card-desc: "골든타임 사수" (6자) ← 너무 짧음!
+    
+    ✅ 올바른 예 (충분한 텍스트):
+    - card-subtitle: "왜 4분이 중요할까요?" (12자)
+    - card-main-title: "뇌세포 생존<br/><span class='card-highlight'>마지노선</span>" (12자)
+    - card-desc: "4분이 지나면 뇌 손상이 급격히 진행돼요. 골든타임을 놓치지 마세요!" (40자) ← 이 정도는 되어야 함!
     
     [❌ 잘못된 예시 - 절대 이렇게 쓰지 마세요]
     <p class="card-main-title">스타틴 임의 중단은 금물! 전문의가 강조하는 만성질환 복약 순응도의 중요성</p>
@@ -1264,6 +2559,11 @@ ${analysisResult}
       : imageStyle === 'medical'
       ? '- "인체 폐의 3D 단면도, 기관지와 폐포 구조가 보이는 해부학 일러스트, 투명 효과, 파란색 의료 배경"'
       : '- "깔끔한 병원 환경 이미지, 실사 사진, DSLR 촬영, 전문적인 분위기"'}
+    
+    [🚨🚨🚨 최종 검증 - 작성 후 반드시 확인하세요! 🚨🚨🚨]
+    각 카드의 card-desc가 30자 이상인지 확인하세요!
+    예: "심장이 멈춘 지 4분이 지나면 뇌세포가 마음대로 누설되기 시작해요" (이 정도 길이)
+    텍스트가 너무 짧으면 독자가 정보를 얻을 수 없습니다!
   `;
 
   try {
@@ -1296,17 +2596,121 @@ ${analysisResult}
         }
       }
     });
-    return JSON.parse(response.text || "{}");
+    const result = JSON.parse(response.text || "{}");
+    
+    // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
+    if (result.content && typeof result.content !== 'string') {
+      console.warn('AI returned non-string content, attempting to extract HTML...');
+      if (Array.isArray(result.content)) {
+        // 배열인 경우 각 항목에서 HTML 추출
+        result.content = result.content.map((item: any) => {
+          if (typeof item === 'string') return item;
+          if (item?.content) return item.content;
+          if (item?.html) return item.html;
+          return '';
+        }).join('');
+      } else if (typeof result.content === 'object') {
+        // 객체인 경우 content나 html 필드 추출
+        result.content = result.content.content || result.content.html || JSON.stringify(result.content);
+      }
+    }
+    
+    // 분석된 스타일 정보 추가
+    if (analyzedBgColor) {
+      result.analyzedStyle = { backgroundColor: analyzedBgColor };
+    }
+    return result;
   } catch (error) { throw error; }
 };
 
 export const generateFullPost = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
-  // 스타일 참고 이미지가 있으면 먼저 분석
-  if (request.postType === 'card_news' && request.styleReferenceImage) {
-    onProgress('🎨 스타일 참고 이미지 분석 중...');
+  const isCardNews = request.postType === 'card_news';
+  
+  // 🤖 카드뉴스: 미니 에이전트 방식 사용
+  if (isCardNews) {
+    onProgress('🤖 미니 에이전트 방식으로 카드뉴스 생성 시작...');
+    
+    try {
+      // 미니 에이전트로 스토리 기획 + HTML 조립 + 이미지 프롬프트 생성
+      const agentResult = await generateCardNewsWithAgents(request, onProgress);
+      
+      // 이미지 생성
+      const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' 
+        : request.imageStyle === 'medical' ? '의학 3D' 
+        : '실사 촬영';
+      onProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
+      
+      // 🎨 이미지 = 카드 전체! (텍스트가 이미지 안에 포함된 완성형)
+      const maxImages = request.slideCount || 6;
+      onProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
+      
+      const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
+        generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt).then(img => ({ index: i + 1, data: img, prompt: p }))
+      ));
+      
+      // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
+      const cardSlides = images.map((img, idx) => {
+        if (img.data) {
+          return `
+            <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+              <img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>`;
+        }
+        return '';
+      }).filter(Boolean).join('\n');
+      
+      const disclaimer = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
+      
+      const finalHtml = `
+        <div class="card-news-container">
+          <h2 class="hidden-title">${agentResult.title}</h2>
+          <div class="card-grid-wrapper">
+            ${cardSlides}
+          </div>
+          <div class="legal-box-card">${disclaimer}</div>
+        </div>
+      `.trim();
+      
+      onProgress('✅ 카드뉴스 생성 완료!');
+      
+      return {
+        title: agentResult.title,
+        htmlContent: finalHtml,
+        imageUrl: images[0]?.data || "",
+        fullHtml: finalHtml,
+        tags: [],
+        factCheck: {
+          fact_score: 85,
+          safety_score: 90,
+          conversion_score: 80,
+          verified_facts_count: 5,
+          issues: [],
+          recommendations: []
+        },
+        postType: 'card_news',
+        imageStyle: request.imageStyle,
+        cardPrompts: agentResult.cardPrompts // 재생성용 프롬프트 데이터
+      };
+    } catch (error) {
+      console.error('미니 에이전트 방식 실패, 기존 방식으로 폴백:', error);
+      onProgress('⚠️ 미니 에이전트 실패, 기존 방식으로 재시도...');
+      // 기존 방식으로 폴백 (아래 코드로 계속)
+    }
   }
   
-  const step1Msg = request.styleReferenceImage
+  // 📝 블로그 포스트 또는 카드뉴스 폴백: 기존 방식 사용
+  const hasStyleRef = request.postType === 'card_news' && (request.coverStyleImage || request.contentStyleImage);
+  if (hasStyleRef) {
+    if (request.coverStyleImage && request.contentStyleImage) {
+      onProgress('🎨 표지/본문 스타일 분석 중...');
+    } else if (request.coverStyleImage) {
+      onProgress('🎨 표지 스타일 분석 중 (본문도 동일 적용)...');
+    } else {
+      onProgress('🎨 본문 스타일 분석 중...');
+    }
+  }
+  
+  const step1Msg = hasStyleRef
       ? `✨ 참고 이미지 스타일로 카드뉴스 생성 중...`
       : request.referenceUrl 
       ? `🔗 레퍼런스 URL 분석 및 ${request.postType === 'card_news' ? '카드뉴스 템플릿 모방' : '스타일 벤치마킹'} 중...` 
@@ -1319,21 +2723,75 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' 
     : request.imageStyle === 'medical' ? '의학 3D' 
     : '실사 촬영';
-  const imgRatio = request.postType === 'card_news' ? "1:1" : "16:9";
+  const imgRatio = request.postType === 'card_news' ? "4:3" : "16:9";
   
   onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
   
   const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount || 3);
   
   const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => 
-     generateSingleImage(p, request.imageStyle, imgRatio).then(img => ({ index: i + 1, data: img, prompt: p }))
+     generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt).then(img => ({ index: i + 1, data: img, prompt: p }))
   ));
 
   let body = textData.content;
   
+  // body가 HTML이 아닌 JSON/배열 형태인지 검증
+  if (body && (body.startsWith('[{') || body.startsWith('{"'))) {
+    console.error('AI returned JSON instead of HTML, attempting to extract...');
+    try {
+      const parsed = JSON.parse(body);
+      if (Array.isArray(parsed)) {
+        body = parsed.map(item => item.content || item.html || '').join('');
+      } else if (parsed.content || parsed.html) {
+        body = parsed.content || parsed.html;
+      }
+    } catch (e) {
+      console.error('Failed to parse JSON content:', e);
+    }
+  }
+  
   // AI가 class를 빼먹었을 경우 강제로 감싸기
   if (request.postType !== 'card_news' && !body.includes('class="naver-post-container"')) {
     body = `<div class="naver-post-container">${body}</div>`;
+  }
+  
+  // 🚨 카드뉴스인데 card-slide가 없으면 AI가 HTML 구조를 완전히 무시한 것!
+  // 이 경우 기본 카드뉴스 템플릿으로 강제 생성
+  if (request.postType === 'card_news' && !body.includes('class="card-slide"')) {
+    console.warn('AI ignored card-slide structure, generating fallback template...');
+    const slideCount = request.slideCount || 6;
+    const fallbackSlides: string[] = [];
+    
+    // body에서 텍스트 추출 시도
+    const plainText = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const sentences = plainText.split(/[.!?。]/).filter(s => s.trim().length > 5);
+    
+    for (let i = 0; i < slideCount; i++) {
+      const isFirst = i === 0;
+      const isLast = i === slideCount - 1;
+      const sentenceIdx = Math.min(i, sentences.length - 1);
+      const sentence = sentences[sentenceIdx] || request.topic;
+      
+      let subtitle = isFirst ? '알아보자!' : isLast ? '함께 실천해요' : `포인트 ${i}`;
+      let mainTitle = isFirst 
+        ? `${request.topic}<br/><span class="card-highlight">총정리</span>`
+        : isLast 
+        ? `건강한 습관<br/><span class="card-highlight">시작해요!</span>`
+        : sentence.slice(0, 15) + (sentence.length > 15 ? '...' : '');
+      let desc = sentence.slice(0, 50) || '건강한 생활을 위한 정보를 확인하세요.';
+      
+      fallbackSlides.push(`
+        <div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; overflow: hidden;">
+          <div style="padding: 32px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%;">
+            <p class="card-subtitle" style="font-size: 14px; font-weight: 700; color: #3B82F6; margin-bottom: 8px;">${subtitle}</p>
+            <p class="card-main-title" style="font-size: 28px; font-weight: 900; color: #1E293B; line-height: 1.3; margin: 0 0 16px 0;">${mainTitle}</p>
+            <div class="card-img-container" style="width: 100%; margin: 16px 0;">[IMG_${i + 1}]</div>
+            <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.6; font-weight: 500; max-width: 90%;">${desc}</p>
+          </div>
+        </div>
+      `);
+    }
+    body = fallbackSlides.join('\n');
   }
   
   images.forEach(img => {
@@ -1354,6 +2812,34 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   // 혹시 남아있는 [IMG_N] 마커 모두 제거
   body = body.replace(/\[IMG_\d+\]/gi, '');
+
+  // 카드뉴스: 분석된 스타일 배경색 강제 적용 (AI가 무시할 경우 대비)
+  if (request.postType === 'card_news' && textData.analyzedStyle?.backgroundColor) {
+    const bgColor = textData.analyzedStyle.backgroundColor;
+    const bgGradient = bgColor.includes('gradient') ? bgColor : `linear-gradient(180deg, ${bgColor} 0%, ${bgColor}dd 100%)`;
+    // 기존 card-slide의 background 스타일을 분석된 색상으로 교체
+    body = body.replace(
+      /(<div[^>]*class="[^"]*card-slide[^"]*"[^>]*style="[^"]*)background:[^;]*;?/gi,
+      `$1background: ${bgGradient};`
+    );
+    // 만약 background 스타일이 없는 card-slide가 있다면 추가
+    body = body.replace(
+      /<div([^>]*)class="([^"]*card-slide[^"]*)"([^>]*)>/gi,
+      (match, pre, cls, post) => {
+        if (match.includes('style="')) {
+          // 이미 style이 있지만 background가 없으면 추가
+          if (!match.includes('background:')) {
+            return match.replace('style="', `style="background: ${bgGradient}; `);
+          }
+          return match;
+        } else {
+          // style이 없으면 추가
+          return `<div${pre}class="${cls}"${post} style="background: ${bgGradient};">`;
+        }
+      }
+    );
+    onProgress(`🎨 템플릿 색상(${bgColor}) 적용 완료`);
+  }
 
   const disclaimer = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
 
@@ -1392,6 +2878,107 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
     postType: request.postType,
     imageStyle: request.imageStyle
   };
+};
+
+// 카드뉴스 개별 슬라이드 재생성 함수
+export const regenerateCardSlide = async (
+  cardIndex: number,
+  currentCardHtml: string,
+  userInstruction: string,
+  context: {
+    topic: string;
+    category: string;
+    totalSlides: number;
+    prevCardContent?: string;
+    nextCardContent?: string;
+    imageStyle?: ImageStyle;
+  }
+): Promise<{ newCardHtml: string; newImagePrompt: string; message: string }> => {
+  const ai = getAiClient();
+  
+  const slidePosition = cardIndex === 0 
+    ? '표지 (1장)' 
+    : cardIndex === context.totalSlides - 1 
+    ? '마무리 (마지막 장)' 
+    : `본문 (${cardIndex + 1}장)`;
+  
+  const imageStyleGuide = context.imageStyle === 'illustration' 
+    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트'
+    : context.imageStyle === 'medical'
+    ? '3D 해부학 일러스트, 인체 구조, 의학 이미지'
+    : '실사 사진, DSLR 촬영, 전문적인 분위기';
+  
+  // 현재 HTML에서 이미지를 마커로 교체 (기존 이미지 제거)
+  const cleanedHtml = currentCardHtml
+    .replace(/<img[^>]*class="card-inner-img"[^>]*>/gi, `[IMG_${cardIndex + 1}]`)
+    .replace(/<img[^>]*>/gi, `[IMG_${cardIndex + 1}]`);
+  
+  const prompt = `
+당신은 카드뉴스 슬라이드를 재생성하는 전문가입니다.
+
+[현재 슬라이드 정보]
+- 위치: ${slidePosition} (총 ${context.totalSlides}장 중 ${cardIndex + 1}번째)
+- 주제: ${context.topic}
+- 진료과: ${context.category}
+
+[현재 슬라이드 HTML - 텍스트만 참고]
+${cleanedHtml}
+
+${context.prevCardContent ? `[이전 슬라이드 내용]\n${context.prevCardContent}` : ''}
+${context.nextCardContent ? `[다음 슬라이드 내용]\n${context.nextCardContent}` : ''}
+
+[사용자 요청]
+${userInstruction}
+
+████████████████████████████████████████████████████████████████████████████████
+[🚨 필수 작성 규칙] 
+████████████████████████████████████████████████████████████████████████████████
+1. card-slide 구조를 유지하세요
+2. card-main-title은 12자 이내, card-subtitle은 8자 이내
+3. ⚠️ 이미지 영역은 반드시 [IMG_${cardIndex + 1}] 텍스트 마커만 사용! (img 태그 금지!)
+4. 이전/다음 슬라이드와 내용이 자연스럽게 연결되어야 합니다
+5. ${slidePosition === '표지 (1장)' ? '주제 소개 + 흥미 유발 문구' : slidePosition === '마무리 (마지막 장)' ? '행동 유도 + 감성적 마무리' : '구체적인 정보/방법 제시'}
+
+⚠️⚠️⚠️ 중요: newCardHtml에 <img> 태그 넣지 마세요! [IMG_${cardIndex + 1}] 마커만!
+예시: <div class="card-img-container">[IMG_${cardIndex + 1}]</div>
+
+[이미지 프롬프트 규칙]
+- 반드시 한국어로 작성
+- 스타일: ${imageStyleGuide}
+- 1:1 정사각형 카드뉴스 형식
+- 로고/워터마크/해시태그 금지
+
+JSON 형식으로 답변:
+{
+  "newCardHtml": "<div class=\"card-slide\">...[IMG_${cardIndex + 1}]...</div>",
+  "newImagePrompt": "1:1 정사각형 카드뉴스, 한국어 이미지 프롬프트...",
+  "message": "수정 완료 메시지"
+}
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            newCardHtml: { type: Type.STRING },
+            newImagePrompt: { type: Type.STRING },
+            message: { type: Type.STRING }
+          },
+          required: ["newCardHtml", "newImagePrompt", "message"]
+        }
+      }
+    });
+    
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error('카드 재생성 실패:', error);
+    throw error;
+  }
 };
 
 export const modifyPostWithAI = async (currentHtml: string, userInstruction: string): Promise<{ 

@@ -668,6 +668,39 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   
+                  <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100">
+                    <h4 className="font-black text-indigo-800 mb-3 flex items-center gap-2">
+                      <span>🎨</span> 카드뉴스 스타일 참고 기능
+                    </h4>
+                    <div className="text-sm text-indigo-700 space-y-3">
+                      <p className="text-indigo-600 mb-2">따라하고 싶은 카드뉴스 디자인이 있다면:</p>
+                      <div className="flex gap-3">
+                        <span className="text-lg">📕</span>
+                        <div>
+                          <p className="font-bold text-indigo-700">표지 스타일 (1장)</p>
+                          <p className="text-indigo-500">첫 장 디자인 참고 이미지 업로드</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">📄</span>
+                        <div>
+                          <p className="font-bold text-indigo-700">본문 스타일 (2장~)</p>
+                          <p className="text-indigo-500">본문 디자인 참고 이미지 업로드</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <span className="text-lg">🔗</span>
+                        <div>
+                          <p className="font-bold text-indigo-700">URL 벤치마킹</p>
+                          <p className="text-indigo-500">블로그/뉴스 링크로 구조 분석 (4단계)</p>
+                        </div>
+                      </div>
+                      <p className="text-xs text-indigo-500 bg-indigo-100 p-2 rounded-lg mt-2">
+                        💡 표지만 업로드하면 본문도 같은 스타일로 생성됩니다!
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
                     <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2">
                       <span>🎨</span> 이미지 스타일 설명
@@ -750,6 +783,10 @@ const App: React.FC = () => {
                     {
                       q: "카드뉴스와 블로그 포스팅의 차이는?",
                       a: "블로그 포스팅은 긴 글 형식(16:9 이미지)이고, 카드뉴스는 인스타그램/SNS용 정사각형 슬라이드 형식입니다. 목적에 맞게 선택하세요."
+                    },
+                    {
+                      q: "카드뉴스 스타일 참고 이미지는 어떻게 사용하나요?",
+                      a: "캔바나 인스타에서 마음에 드는 카드뉴스를 캡처해서 업로드하세요. AI가 색상, 레이아웃, 타이포그래피를 분석해서 동일한 스타일로 생성합니다. 표지(1장)와 본문(2장~)을 따로 지정할 수도 있고, 표지만 업로드하면 본문도 같은 스타일로 만들어집니다. (참고: 캔바/인스타는 로그인이 필요해서 URL 분석이 안 되니 이미지 캡처 후 업로드해주세요!)"
                     },
                     {
                       q: "생성 속도가 느려요.",

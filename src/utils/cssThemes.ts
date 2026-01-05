@@ -27,10 +27,10 @@ export const CSS_THEMES: Record<CssTheme, {
     imgStyle: 'max-width:100%; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1);',
     ulStyle: 'margin:30px 0; padding-left:0; list-style:none;',
     liStyle: 'margin:15px 0; padding:18px 20px; background:#f8f9fa; border-left:4px solid #4a90e2; border-radius:8px; font-size:16px; line-height:1.7;',
-    ctaBoxStyle: 'margin:45px 0; padding:30px 35px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius:16px; box-shadow:0 8px 30px rgba(102,126,234,0.3);',
-    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#fff; margin-bottom:15px;',
-    ctaTextStyle: 'font-size:16px; color:rgba(255,255,255,0.95); line-height:1.9; margin-bottom:15px;',
-    ctaSubtextStyle: 'font-size:15px; color:rgba(255,255,255,0.85); font-style:italic;'
+    ctaBoxStyle: 'margin:45px 0; padding:30px 35px; background:#f0f9ff; border:2px solid #3b82f6; border-radius:16px; box-shadow:0 4px 15px rgba(59,130,246,0.1);',
+    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#1e40af; margin-bottom:15px;',
+    ctaTextStyle: 'font-size:16px; color:#334155; line-height:1.9; margin-bottom:15px;',
+    ctaSubtextStyle: 'font-size:15px; color:#64748b; font-style:italic;'
   },
   
   premium: {
@@ -78,10 +78,10 @@ export const CSS_THEMES: Record<CssTheme, {
     imgStyle: 'max-width:100%; border-radius:12px;',
     ulStyle: 'margin:32px 0; padding-left:0; list-style:none;',
     liStyle: 'margin:16px 0; padding:16px 22px; background:#fff; border-radius:12px; font-size:16px; line-height:1.75; box-shadow:0 1px 5px rgba(0,0,0,0.05);',
-    ctaBoxStyle: 'margin:42px 0; padding:32px 35px; background:linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%); border-radius:20px; box-shadow:0 6px 25px rgba(255,107,107,0.25);',
-    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#fff; margin-bottom:15px;',
-    ctaTextStyle: 'font-size:16px; color:rgba(255,255,255,0.95); line-height:1.9; margin-bottom:15px;',
-    ctaSubtextStyle: 'font-size:15px; color:rgba(255,255,255,0.85);'
+    ctaBoxStyle: 'margin:42px 0; padding:32px 35px; background:#fff7ed; border:2px solid #f97316; border-radius:20px; box-shadow:0 4px 15px rgba(249,115,22,0.1);',
+    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#c2410c; margin-bottom:15px;',
+    ctaTextStyle: 'font-size:16px; color:#431407; line-height:1.9; margin-bottom:15px;',
+    ctaSubtextStyle: 'font-size:15px; color:#9a3412;'
   },
   
   professional: {
@@ -95,10 +95,10 @@ export const CSS_THEMES: Record<CssTheme, {
     imgStyle: 'max-width:100%; border-radius:8px;',
     ulStyle: 'margin:35px 0; padding-left:0; list-style:none;',
     liStyle: 'margin:18px 0; padding:20px 24px; background:#fff; border-left:5px solid #0066cc; border-radius:8px; font-size:16px; line-height:1.8; box-shadow:0 2px 8px rgba(0,102,204,0.08);',
-    ctaBoxStyle: 'margin:48px 0; padding:35px 40px; background:linear-gradient(135deg, #0066cc 0%, #004999 100%); border-radius:12px; box-shadow:0 8px 30px rgba(0,102,204,0.3);',
-    ctaTitleStyle: 'font-size:21px; font-weight:800; color:#fff; margin-bottom:16px;',
-    ctaTextStyle: 'font-size:16px; color:rgba(255,255,255,0.95); line-height:1.95; margin-bottom:16px;',
-    ctaSubtextStyle: 'font-size:15px; color:rgba(255,255,255,0.85); font-weight:500;'
+    ctaBoxStyle: 'margin:48px 0; padding:35px 40px; background:#eff6ff; border:2px solid #0066cc; border-radius:12px; box-shadow:0 4px 15px rgba(0,102,204,0.1);',
+    ctaTitleStyle: 'font-size:21px; font-weight:800; color:#1e40af; margin-bottom:16px;',
+    ctaTextStyle: 'font-size:16px; color:#1e3a5f; line-height:1.95; margin-bottom:16px;',
+    ctaSubtextStyle: 'font-size:15px; color:#3b82f6; font-weight:500;'
   }
 };
 

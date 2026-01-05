@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CATEGORIES, TONES, PERSONAS } from '../constants';
 import { GenerationRequest, ContentCategory, TrendingItem, SeoTitleItem, AudienceMode, ImageStyle, PostType, CssTheme, WritingStyle } from '../types';
 import { getTrendingTopics, recommendSeoTitles } from '../services/geminiService';
+
+// localStorage 키
+const CUSTOM_PROMPT_KEY = 'hospital_custom_image_prompt';
 
 interface InputFormProps {
   onSubmit: (data: GenerationRequest) => void;
@@ -20,6 +23,18 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [keywords, setKeywords] = useState('');
   const [referenceUrl, setReferenceUrl] = useState('');
   
+  // 커스텀 이미지 프롬프트
+  const [customPrompt, setCustomPrompt] = useState<string>('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  
+  // localStorage에서 저장된 커스텀 프롬프트 불러오기
+  useEffect(() => {
+    const saved = localStorage.getItem(CUSTOM_PROMPT_KEY);
+    if (saved) {
+      setCustomPrompt(saved);
+    }
+  }, []);
+  
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
   const [imageCount, setImageCount] = useState<number>(3);
@@ -30,10 +45,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
   const [isLoadingTitles, setIsLoadingTitles] = useState(false);
   
-  // 카드뉴스 스타일 참고 이미지
-  const [styleReferenceImage, setStyleReferenceImage] = useState<string>('');
-  const [styleImagePreview, setStyleImagePreview] = useState<string>('');
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!topic.trim()) return;
@@ -52,7 +63,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       slideCount,
       imageCount,
       writingStyle,
-      styleReferenceImage: postType === 'card_news' ? styleReferenceImage : undefined
+      customImagePrompt: imageStyle === 'custom' ? customPrompt : undefined
     });
   };
 
@@ -84,31 +95,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     }
   };
 
-  // 카드뉴스 스타일 참고 이미지 업로드 핸들러
-  const handleStyleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // 파일 크기 체크 (5MB 제한)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('이미지 크기는 5MB 이하로 업로드해주세요.');
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setStyleReferenceImage(base64);
-      setStyleImagePreview(base64);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveStyleImage = () => {
-    setStyleReferenceImage('');
-    setStyleImagePreview('');
-  };
-
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
       <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-3">
@@ -129,7 +115,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
           onClick={() => setPostType('card_news')}
           className={`flex-1 py-3 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <span>💳</span> 카드뉴스 제작
+          <span>🖼️</span> 카드뉴스 제작
         </button>
       </div>
       
@@ -229,53 +215,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                     </div>
                   </div>
                   
-                  {/* 스타일 참고 이미지 업로드 */}
-                  <div className="border-t border-slate-200 pt-4">
-                    <label className="text-xs font-black text-blue-600 uppercase tracking-widest mb-3 block flex items-center gap-2">
-                      🎨 스타일 참고 이미지 <span className="text-slate-400 font-medium normal-case">(선택사항)</span>
-                    </label>
-                    <p className="text-[11px] text-slate-500 mb-3">
-                      따라하고 싶은 카드뉴스 이미지를 업로드하면 동일한 스타일로 생성해요!
-                    </p>
-                    
-                    {!styleImagePreview ? (
-                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer bg-blue-50/50 hover:bg-blue-50 transition-all group">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <svg className="w-8 h-8 mb-2 text-blue-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          <p className="text-xs text-blue-500 font-bold">클릭하여 이미지 업로드</p>
-                          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG (최대 5MB)</p>
-                        </div>
-                        <input 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/png,image/jpeg,image/jpg,image/webp"
-                          onChange={handleStyleImageUpload}
-                        />
-                      </label>
-                    ) : (
-                      <div className="relative">
-                        <img 
-                          src={styleImagePreview} 
-                          alt="스타일 참고 이미지" 
-                          className="w-full h-40 object-contain rounded-2xl border border-blue-200 bg-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleRemoveStyleImage}
-                          className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                        <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg">
-                          ✨ 이 스타일로 생성됩니다
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
                </div>
            )}
         </div>
@@ -336,10 +276,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
 
         <div>
            <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">3단계. 이미지 스타일 선택</label>
-           <div className="grid grid-cols-3 gap-2">
+           <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
-                onClick={() => setImageStyle('photo')}
+                onClick={() => { setImageStyle('photo'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'photo' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">📸</span>
@@ -347,7 +287,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={() => setImageStyle('illustration')}
+                onClick={() => { setImageStyle('illustration'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'illustration' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🎨</span>
@@ -355,13 +295,52 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={() => setImageStyle('medical')}
+                onClick={() => { setImageStyle('medical'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'medical' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🫀</span>
                  <span className="text-xs font-black">의학 3D</span>
               </button>
+              <button
+                type="button"
+                onClick={() => { setImageStyle('custom'); setShowCustomInput(true); }}
+                className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'custom' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
+              >
+                 <span className="text-xl">✏️</span>
+                 <span className="text-xs font-black">커스텀</span>
+              </button>
            </div>
+           
+           {/* 커스텀 프롬프트 입력 영역 */}
+           {showCustomInput && imageStyle === 'custom' && (
+             <div className="mt-3 p-4 bg-orange-50 rounded-2xl border border-orange-200 animate-fadeIn">
+               <div className="flex items-center justify-between mb-2">
+                 <label className="text-xs font-black text-orange-700">✨ 나만의 이미지 스타일 프롬프트</label>
+                 {customPrompt && (
+                   <button
+                     type="button"
+                     onClick={() => {
+                       localStorage.setItem(CUSTOM_PROMPT_KEY, customPrompt);
+                       alert('✅ 프롬프트가 저장되었습니다! 다음에도 사용할 수 있어요.');
+                     }}
+                     className="px-3 py-1 bg-orange-500 text-white text-[10px] font-bold rounded-lg hover:bg-orange-600 transition-all"
+                   >
+                     💾 저장
+                   </button>
+                 )}
+               </div>
+               <textarea
+                 value={customPrompt}
+                 onChange={(e) => setCustomPrompt(e.target.value)}
+                 placeholder="예: 따뜻한 파스텔톤, 손그림 느낌의 일러스트, 부드러운 선, 귀여운 캐릭터 스타일..."
+                 className="w-full p-3 bg-white border border-orange-200 rounded-xl text-sm font-medium focus:border-orange-400 outline-none resize-none"
+                 rows={3}
+               />
+               <p className="text-[10px] text-orange-600 mt-2">
+                 💡 원하는 이미지 스타일을 자유롭게 입력하세요. 저장하면 다음에도 사용할 수 있어요!
+               </p>
+             </div>
+           )}
         </div>
 
         {/* 글 스타일 선택 - 마케팅 핵심 설정 (가로 배치) */}
@@ -400,90 +379,96 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
            </div>
         </div>
 
-        <div>
-           <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃</label>
-           <div className="grid grid-cols-5 gap-2">
-              <button
-                type="button"
-                onClick={() => setCssTheme('modern')}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-              >
-                 <span className="text-xl mb-1">💻</span>
-                 <span className={`text-[11px] font-black ${cssTheme === 'modern' ? 'text-indigo-700' : 'text-slate-600'}`}>모던</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCssTheme('premium')}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-              >
-                 <span className="text-xl mb-1">💎</span>
-                 <span className={`text-[11px] font-black ${cssTheme === 'premium' ? 'text-purple-700' : 'text-slate-600'}`}>프리미엄</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCssTheme('minimal')}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-              >
-                 <span className="text-xl mb-1">✨</span>
-                 <span className={`text-[11px] font-black ${cssTheme === 'minimal' ? 'text-slate-700' : 'text-slate-600'}`}>미니멀</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCssTheme('warm')}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-              >
-                 <span className="text-xl mb-1">☀️</span>
-                 <span className={`text-[11px] font-black ${cssTheme === 'warm' ? 'text-orange-700' : 'text-slate-600'}`}>따뜻한</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCssTheme('professional')}
-                className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-              >
-                 <span className="text-xl mb-1">🏛️</span>
-                 <span className={`text-[11px] font-black ${cssTheme === 'professional' ? 'text-blue-700' : 'text-slate-600'}`}>전문</span>
-              </button>
-           </div>
-        </div>
-
-        <div className="border-t border-slate-100 pt-6 mt-2">
-          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex justify-between">
-             4단계. 스타일 설정 (선택사항)
-             <span className="text-emerald-600 font-bold">벤치마킹 URL 입력 시 자동 적용</span>
-          </label>
-          
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-               <span className="text-lg">🔗</span>
-               <span className="text-sm font-bold text-slate-700">경쟁사/우수 블로그 스타일 벤치마킹</span>
-            </div>
-            <input 
-              type="url" 
-              value={referenceUrl} 
-              onChange={(e) => setReferenceUrl(e.target.value)}
-              placeholder={postType === 'card_news' ? "참고할 카드뉴스(인스타/블로그) URL 입력 (구성 모방)" : "따라하고 싶은 네이버 블로그 URL을 입력하세요 (말투/로직 복사)"}
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium focus:border-emerald-500 outline-none text-sm"
-            />
-            {referenceUrl && <p className="text-[11px] text-emerald-600 mt-2 font-bold px-2">✅ URL이 입력되었습니다. {postType === 'card_news' ? '해당 카드뉴스 템플릿의 논리 구조와 전개 방식을 분석하여 적용합니다.' : '기존 페르소나 설정 대신 해당 블로그의 말투와 논리를 모방합니다.'}</p>}
+        {/* 블로그 레이아웃 (블로그만 표시) */}
+        {postType === 'blog' && (
+          <div>
+             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃</label>
+             <div className="grid grid-cols-5 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCssTheme('modern')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <span className="text-xl mb-1">💻</span>
+                   <span className={`text-[11px] font-black ${cssTheme === 'modern' ? 'text-indigo-700' : 'text-slate-600'}`}>모던</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCssTheme('premium')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <span className="text-xl mb-1">💎</span>
+                   <span className={`text-[11px] font-black ${cssTheme === 'premium' ? 'text-purple-700' : 'text-slate-600'}`}>프리미엄</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCssTheme('minimal')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <span className="text-xl mb-1">✨</span>
+                   <span className={`text-[11px] font-black ${cssTheme === 'minimal' ? 'text-slate-700' : 'text-slate-600'}`}>미니멀</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCssTheme('warm')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <span className="text-xl mb-1">☀️</span>
+                   <span className={`text-[11px] font-black ${cssTheme === 'warm' ? 'text-orange-700' : 'text-slate-600'}`}>따뜻한</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCssTheme('professional')}
+                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                >
+                   <span className="text-xl mb-1">🏛️</span>
+                   <span className={`text-[11px] font-black ${cssTheme === 'professional' ? 'text-blue-700' : 'text-slate-600'}`}>전문</span>
+                </button>
+             </div>
           </div>
+        )}
 
-          {!referenceUrl && (
-            <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-2">페르소나 직접 선택</label>
-                <select value={persona} onChange={(e) => setPersona(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500">
-                  {PERSONAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
-                </select>
+        {/* 4단계: 블로그만 스타일 설정 표시 (카드뉴스는 숨김) */}
+        {postType === 'blog' && (
+          <div className="border-t border-slate-100 pt-6 mt-2">
+            <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex justify-between">
+               4단계. 스타일 설정 (선택사항)
+               <span className="text-emerald-600 font-bold">벤치마킹 URL 입력 시 자동 적용</span>
+            </label>
+            
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                 <span className="text-lg">🔗</span>
+                 <span className="text-sm font-bold text-slate-700">경쟁사/우수 블로그 스타일 벤치마킹</span>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-2">말투 직접 선택</label>
-                <select value={tone} onChange={(e) => setTone(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500">
-                  {TONES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
+              <input 
+                type="url" 
+                value={referenceUrl} 
+                onChange={(e) => setReferenceUrl(e.target.value)}
+                placeholder="따라하고 싶은 네이버 블로그 URL을 입력하세요 (말투/로직 복사)"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium focus:border-emerald-500 outline-none text-sm"
+              />
+              {referenceUrl && <p className="text-[11px] text-emerald-600 mt-2 font-bold px-2">✅ URL이 입력되었습니다. 기존 페르소나 설정 대신 해당 블로그의 말투와 논리를 모방합니다.</p>}
             </div>
-          )}
-        </div>
+
+            {!referenceUrl && (
+              <div className="grid grid-cols-2 gap-4 animate-fadeIn">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-2">페르소나 직접 선택</label>
+                  <select value={persona} onChange={(e) => setPersona(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500">
+                    {PERSONAS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-2">말투 직접 선택</label>
+                  <select value={tone} onChange={(e) => setTone(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500">
+                    {TONES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"

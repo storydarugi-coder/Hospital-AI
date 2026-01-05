@@ -20,7 +20,7 @@ export enum ContentCategory {
 }
 
 export type AudienceMode = '환자용(친절/공감)' | '전문가용(신뢰/정보)';
-export type ImageStyle = 'photo' | 'illustration' | 'medical';
+export type ImageStyle = 'photo' | 'illustration' | 'medical' | 'custom';
 export type PostType = 'blog' | 'card_news';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
 export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
@@ -40,7 +40,9 @@ export interface GenerationRequest {
   imageCount?: number; // 블로그 포스트 이미지 장수
   cssTheme?: CssTheme;
   writingStyle?: WritingStyle; // 글 스타일: 안전형/공감형/전환형
-  styleReferenceImage?: string; // 카드뉴스 스타일 참고 이미지 (Base64)
+  coverStyleImage?: string; // 카드뉴스 표지 스타일 참고 이미지 (Base64)
+  contentStyleImage?: string; // 카드뉴스 본문 스타일 참고 이미지 (Base64)
+  customImagePrompt?: string; // 커스텀 이미지 스타일 프롬프트
 }
 
 export interface FactCheckReport {
@@ -50,6 +52,36 @@ export interface FactCheckReport {
   conversion_score: number;  // 전환력 점수 (0~100) - 의료법 준수하면서 행동 유도하는 능력
   issues: string[];
   recommendations: string[];
+}
+
+// 카드별 프롬프트 데이터 (재생성 UI용)
+export interface CardPromptData {
+  imagePrompt: string;
+  textPrompt: {
+    subtitle: string;
+    mainTitle: string;
+    description: string;
+    tags: string[];
+  };
+}
+
+// 카드뉴스 원고 (1단계: 스크립트)
+export interface CardNewsScript {
+  title: string;
+  topic: string;
+  totalSlides: number;
+  slides: CardNewsSlideScript[];
+  overallTheme: string;
+}
+
+export interface CardNewsSlideScript {
+  slideNumber: number;
+  slideType: 'cover' | 'concept' | 'content' | 'closing';
+  subtitle: string;
+  mainTitle: string;
+  description: string;
+  speakingNote: string; // 이 슬라이드에서 전달하고 싶은 핵심 메시지
+  imageKeyword: string;
 }
 
 export interface GeneratedContent {
@@ -62,6 +94,7 @@ export interface GeneratedContent {
   postType: PostType;
   cssTheme?: CssTheme;
   imageStyle?: ImageStyle;
+  cardPrompts?: CardPromptData[]; // 카드별 프롬프트 (재생성용)
 }
 
 export interface GenerationState {

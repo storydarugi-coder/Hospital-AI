@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, recommendImagePrompt } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, recommendImagePrompt, regenerateCardSlide } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
+import html2canvas from 'html2canvas';
 
 interface ResultPreviewProps {
   content: GeneratedContent;
@@ -22,6 +23,27 @@ const AI_PROMPT_TEMPLATES = [
 
 // 임시저장 키
 const AUTOSAVE_KEY = 'hospitalai_autosave';
+const AUTOSAVE_HISTORY_KEY = 'hospitalai_autosave_history'; // 여러 저장본 관리
+const CARD_PROMPT_HISTORY_KEY = 'hospitalai_card_prompt_history';
+
+// 자동저장 히스토리 타입
+interface AutoSaveHistoryItem {
+  html: string;
+  theme: string;
+  postType: string;
+  imageStyle?: string;
+  savedAt: string;
+  title: string; // 첫 번째 제목 추출
+}
+
+// 카드 프롬프트 히스토리 타입
+interface CardPromptHistoryItem {
+  subtitle: string;
+  mainTitle: string;
+  description: string;
+  imagePrompt: string;
+  savedAt: string;
+}
 
 const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false }) => {
   const [copied, setCopied] = useState(false);
@@ -35,6 +57,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showTemplates, setShowTemplates] = useState(false);
   
+  // 자동저장 히스토리 (여러 저장본 관리)
+  const [autoSaveHistory, setAutoSaveHistory] = useState<AutoSaveHistoryItem[]>([]);
+  const [showAutoSaveDropdown, setShowAutoSaveDropdown] = useState(false);
+  
   // Undo 기능을 위한 히스토리
   const [htmlHistory, setHtmlHistory] = useState<string[]>([]);
   const [canUndo, setCanUndo] = useState(false);
@@ -43,6 +69,92 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
   const [downloadImgSrc, setDownloadImgSrc] = useState('');
   const [downloadImgIndex, setDownloadImgIndex] = useState(0);
+  
+  // 카드뉴스 다운로드 모달
+  const [cardDownloadModalOpen, setCardDownloadModalOpen] = useState(false);
+  const [downloadingCard, setDownloadingCard] = useState(false);
+  const [cardDownloadProgress, setCardDownloadProgress] = useState('');
+  
+  // 카드 재생성 모달
+  const [cardRegenModalOpen, setCardRegenModalOpen] = useState(false);
+  const [cardRegenIndex, setCardRegenIndex] = useState(0);
+  const [cardRegenInstruction, setCardRegenInstruction] = useState('');
+  const [isRegeneratingCard, setIsRegeneratingCard] = useState(false);
+  const [cardRegenProgress, setCardRegenProgress] = useState('');
+  
+  // 카드 재생성 시 편집 가능한 프롬프트
+  const [editSubtitle, setEditSubtitle] = useState('');
+  const [editMainTitle, setEditMainTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [editImagePrompt, setEditImagePrompt] = useState('');
+  const [cardRegenRefImage, setCardRegenRefImage] = useState(''); // 참고 이미지
+  const [refImageMode, setRefImageMode] = useState<'inspire' | 'copy'>('copy'); // 참고 이미지 적용 방식
+  const [currentCardImage, setCurrentCardImage] = useState(''); // 현재 카드의 이미지 URL
+  const [promptHistory, setPromptHistory] = useState<CardPromptHistoryItem[]>([]); // 저장된 프롬프트 히스토리
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  
+  // 프롬프트 히스토리 불러오기
+  useEffect(() => {
+    const saved = localStorage.getItem(CARD_PROMPT_HISTORY_KEY);
+    if (saved) {
+      try {
+        setPromptHistory(JSON.parse(saved));
+      } catch (e) {
+        console.error('히스토리 로드 실패:', e);
+      }
+    }
+  }, []);
+  
+  // 프롬프트 저장 함수
+  const savePromptToHistory = () => {
+    if (!editSubtitle && !editMainTitle && !editDescription) return;
+    
+    const newItem: CardPromptHistoryItem = {
+      subtitle: editSubtitle,
+      mainTitle: editMainTitle,
+      description: editDescription,
+      imagePrompt: editImagePrompt,
+      savedAt: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    // 최근 3개만 유지 (중복 제거)
+    const filtered = promptHistory.filter(h => 
+      h.subtitle !== newItem.subtitle || h.mainTitle !== newItem.mainTitle
+    );
+    const newHistory = [newItem, ...filtered].slice(0, 3);
+    
+    setPromptHistory(newHistory);
+    localStorage.setItem(CARD_PROMPT_HISTORY_KEY, JSON.stringify(newHistory));
+    alert('✅ 프롬프트가 저장되었습니다!');
+  };
+  
+  // 히스토리에서 불러오기
+  const loadFromHistory = (item: CardPromptHistoryItem) => {
+    setEditSubtitle(item.subtitle);
+    setEditMainTitle(item.mainTitle);
+    setEditDescription(item.description);
+    setEditImagePrompt(item.imagePrompt);
+    setShowHistoryDropdown(false);
+  };
+  
+  // 텍스트 변경 시 이미지 프롬프트 자동 연동
+  useEffect(() => {
+    // 텍스트 내용이 하나라도 있으면 이미지 프롬프트 자동 생성
+    if (editSubtitle || editMainTitle || editDescription) {
+      const style = content.imageStyle || 'illustration';
+      const styleText = style === 'illustration' ? '3D 일러스트, 아이소메트릭, 클레이 렌더' 
+        : style === 'medical' ? '의학 3D 해부학 일러스트' 
+        : '실사 사진, 전문적인 의료 분위기';
+      
+      const newImagePrompt = `1:1 정사각형 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
+      
+      setEditImagePrompt(newImagePrompt);
+    }
+  }, [editSubtitle, editMainTitle, editDescription, content.imageStyle]);
+  
+  // 카드 수 (localHtml 변경 시 업데이트)
+  const [cardCount, setCardCount] = useState(0);
   
   const [regenOpen, setRegenOpen] = useState(false);
   const [regenIndex, setRegenIndex] = useState<number>(1);
@@ -58,52 +170,228 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setLocalHtml(content.fullHtml);
   }, [content.fullHtml]);
 
-  // 글자 수 계산
+  // 글자 수 계산 (실제 보이는 텍스트만) + 카드 수 업데이트
   useEffect(() => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = localHtml;
-    const text = tempDiv.innerText || tempDiv.textContent || '';
-    setCharCount(text.length);
-  }, [localHtml]);
+    
+    // 카드 수 계산
+    const cards = tempDiv.querySelectorAll('.card-slide');
+    setCardCount(cards.length);
+    
+    // 숨겨진 요소 제거
+    const hiddenElements = tempDiv.querySelectorAll('.hidden-title, [style*="display: none"], [style*="display:none"]');
+    hiddenElements.forEach(el => el.remove());
+    
+    // 카드뉴스의 경우 실제 내용만 계산 (태그/해시태그/메타정보 제외)
+    if (content.postType === 'card_news') {
+      // pill-tag, footer, legal-box 등 메타정보 제거
+      const metaElements = tempDiv.querySelectorAll('.pill-tag, .card-footer-row, .legal-box-card, .brand-text, .arrow-icon');
+      metaElements.forEach(el => el.remove());
+      
+      // 실제 콘텐츠 텍스트만 추출 (subtitle, main-title, desc)
+      let contentText = '';
+      tempDiv.querySelectorAll('.card-subtitle, .card-main-title, .card-desc').forEach(el => {
+        contentText += (el.textContent || '') + ' ';
+      });
+      
+      const text = contentText.replace(/\s+/g, ' ').trim();
+      setCharCount(text.length);
+    } else {
+      // 블로그 포스트의 경우 전체 텍스트 계산
+      const text = (tempDiv.textContent || '')
+        .replace(/\s+/g, ' ')  // 연속 공백 제거
+        .trim();
+      
+      setCharCount(text.length);
+    }
+  }, [localHtml, content.postType]);
 
-  // 임시저장 (5초마다 자동저장)
+  // 카드뉴스 카드에 오버레이 추가
+  useEffect(() => {
+    if (content.postType !== 'card_news') return;
+    
+    const addOverlaysToCards = () => {
+      const cards = document.querySelectorAll('.naver-preview .card-slide');
+      cards.forEach((card, index) => {
+        // 이미 오버레이가 있으면 스킵
+        if (card.querySelector('.card-overlay')) return;
+        
+        // 카드 번호 배지
+        const badge = document.createElement('div');
+        badge.className = 'card-number-badge';
+        badge.textContent = index === 0 ? '표지' : `${index + 1}`;
+        card.appendChild(badge);
+        
+        // 오버레이 생성
+        const overlay = document.createElement('div');
+        overlay.className = 'card-overlay';
+        overlay.innerHTML = `
+          <button class="card-overlay-btn regen" data-index="${index}">
+            🔄 재생성
+          </button>
+          <button class="card-overlay-btn download" data-index="${index}">
+            💾 다운로드
+          </button>
+        `;
+        card.appendChild(overlay);
+        
+        // 버튼 클릭 이벤트
+        overlay.querySelector('.regen')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openCardRegenModal(index);
+        });
+        
+        overlay.querySelector('.download')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleSingleCardDownload(index);
+        });
+      });
+    };
+    
+    // DOM 업데이트 후 실행
+    const timer = setTimeout(addOverlaysToCards, 100);
+    return () => clearTimeout(timer);
+  }, [localHtml, content.postType]);
+
+  // 단일 카드 다운로드
+  const handleSingleCardDownload = async (cardIndex: number) => {
+    const cards = document.querySelectorAll('.naver-preview .card-slide');
+    const card = cards[cardIndex] as HTMLElement;
+    if (!card) return;
+    
+    try {
+      // 오버레이 임시 숨김
+      const overlay = card.querySelector('.card-overlay') as HTMLElement;
+      const badge = card.querySelector('.card-number-badge') as HTMLElement;
+      if (overlay) overlay.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+      
+      const canvas = await html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: null
+      });
+      
+      // 오버레이 복구
+      if (overlay) overlay.style.display = '';
+      if (badge) badge.style.display = '';
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          saveAs(blob, `card_${cardIndex + 1}.png`);
+        }
+      }, 'image/png');
+    } catch (error) {
+      console.error('카드 다운로드 실패:', error);
+      alert('카드 다운로드에 실패했습니다.');
+    }
+  };
+
+  // HTML에서 제목 추출하는 함수
+  const extractTitle = (html: string): string => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // 카드뉴스: .card-main-title 또는 .hidden-title
+    const cardTitle = tempDiv.querySelector('.card-main-title, .hidden-title');
+    if (cardTitle) return (cardTitle.textContent || '').slice(0, 30) || '카드뉴스';
+    
+    // 블로그: h1, h2, .blog-title
+    const blogTitle = tempDiv.querySelector('h1, h2, .blog-title');
+    if (blogTitle) return (blogTitle.textContent || '').slice(0, 30) || '블로그 글';
+    
+    return '저장된 글';
+  };
+
+  // 자동저장 히스토리 불러오기
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(AUTOSAVE_HISTORY_KEY);
+      if (saved) {
+        setAutoSaveHistory(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('자동저장 히스토리 로드 실패:', e);
+    }
+  }, []);
+
+  // localStorage 안전 저장 함수 (용량 초과 방지)
+  const safeLocalStorageSet = (key: string, value: string): boolean => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      // QuotaExceededError 처리
+      console.warn('localStorage 용량 초과, 오래된 데이터 정리 중...');
+      return false;
+    }
+  };
+
+  // 임시저장 (5초마다 자동저장 + 히스토리에 추가)
   useEffect(() => {
     const saveTimer = setInterval(() => {
       if (localHtml && localHtml.trim()) {
+        const now = new Date();
+        const title = extractTitle(localHtml);
+        
         const saveData = {
           html: localHtml,
           theme: currentTheme,
           postType: content.postType,
           imageStyle: content.imageStyle,
-          savedAt: new Date().toISOString()
+          savedAt: now.toISOString(),
+          title: title
         };
-        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(saveData));
-        setLastSaved(new Date());
+        
+        // 현재 자동저장 (단일 저장은 항상 시도)
+        const saveDataStr = JSON.stringify(saveData);
+        if (!safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr)) {
+          // 용량 초과 시 히스토리 전체 삭제 후 재시도
+          localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
+          setAutoSaveHistory([]);
+          safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr);
+        }
+        setLastSaved(now);
+        
+        // 히스토리에 추가 (최근 3개만 유지 - 용량 절약)
+        setAutoSaveHistory(prev => {
+          const filtered = prev.filter(item => item.title !== title);
+          let newHistory = [saveData, ...filtered].slice(0, 3); // 5개 → 3개로 축소
+          
+          // 저장 시도
+          let historyStr = JSON.stringify(newHistory);
+          if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
+            // 용량 초과 시 2개로 줄여서 재시도
+            newHistory = newHistory.slice(0, 2);
+            historyStr = JSON.stringify(newHistory);
+            if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
+              // 그래도 안 되면 1개만
+              newHistory = newHistory.slice(0, 1);
+              safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
+            }
+          }
+          return newHistory;
+        });
       }
     }, 5000);
     return () => clearInterval(saveTimer);
   }, [localHtml, currentTheme, content.postType, content.imageStyle]);
 
-  // 임시저장 불러오기
-  const loadAutoSave = () => {
-    try {
-      const saved = localStorage.getItem(AUTOSAVE_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.html) {
-          setLocalHtml(data.html);
-          if (data.theme) setCurrentTheme(data.theme);
-          alert('임시저장된 내용을 불러왔습니다!');
-        }
-      }
-    } catch (e) {
-      console.error('임시저장 불러오기 실패:', e);
-    }
+  // 특정 저장본 불러오기
+  const loadFromAutoSaveHistory = (item: AutoSaveHistoryItem) => {
+    setLocalHtml(item.html);
+    if (item.theme) setCurrentTheme(item.theme as any);
+    setShowAutoSaveDropdown(false);
+    alert(`"${item.title}" 불러왔습니다!`);
   };
 
   // 임시저장 삭제
   const clearAutoSave = () => {
     localStorage.removeItem(AUTOSAVE_KEY);
+    localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
+    setAutoSaveHistory([]);
     setLastSaved(null);
     alert('임시저장이 삭제되었습니다.');
   };
@@ -111,8 +399,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   // 임시저장 데이터 있는지 확인
   const hasAutoSave = () => {
     try {
-      const saved = localStorage.getItem(AUTOSAVE_KEY);
-      return !!saved;
+      return autoSaveHistory.length > 0;
     } catch {
       return false;
     }
@@ -143,13 +430,226 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     link.click();
     document.body.removeChild(link);
   };
+  
+  // 카드뉴스 1장씩 전체 다운로드 (html2canvas 사용)
+  const downloadCardAsImage = async (cardIndex: number) => {
+    const cardSlides = getCardElements();
+    if (!cardSlides || !cardSlides[cardIndex]) {
+      alert('카드를 찾을 수 없습니다. 카드뉴스를 먼저 생성해주세요.');
+      return;
+    }
+    
+    setDownloadingCard(true);
+    setCardDownloadProgress(`${cardIndex + 1}번 카드 이미지 생성 중...`);
+    
+    try {
+      const card = cardSlides[cardIndex] as HTMLElement;
+      const canvas = await html2canvas(card, {
+        scale: 2, // 고화질
+        backgroundColor: null,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+      });
+      
+      const link = document.createElement('a');
+      link.download = `card-news-${cardIndex + 1}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      setCardDownloadProgress('');
+    } catch (error) {
+      console.error('카드 다운로드 실패:', error);
+      alert('카드 다운로드 중 오류가 발생했습니다.');
+    } finally {
+      setDownloadingCard(false);
+    }
+  };
+  
+  // 카드 슬라이드 재생성
+  const handleCardRegenerate = async () => {
+    // 편집된 프롬프트가 있는지 확인
+    const hasEditedPrompt = editSubtitle || editMainTitle || editDescription || editImagePrompt || cardRegenRefImage;
+    
+    if (!hasEditedPrompt) {
+      alert('프롬프트를 수정하거나 참고 이미지를 업로드해주세요.');
+      return;
+    }
+    
+    setIsRegeneratingCard(true);
+    setCardRegenProgress(cardRegenRefImage ? '참고 이미지 스타일 분석 중...' : '편집된 프롬프트로 이미지 생성 중...');
+    
+    try {
+      // 편집된 이미지 프롬프트 구성
+      const style = content.imageStyle || 'illustration';
+      let imagePromptToUse = editImagePrompt || 
+        `1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진'}`;
+      
+      // 참고 이미지 모드에 따라 진행 메시지 설정
+      if (cardRegenRefImage) {
+        if (refImageMode === 'copy') {
+          setCardRegenProgress('📋 레이아웃 복제 중... (참고 이미지 분석)');
+        } else {
+          setCardRegenProgress('✨ 스타일 참고하여 생성 중...');
+        }
+      }
+      
+      // 참고 이미지와 복제 모드를 generateSingleImage에 직접 전달
+      const newImage = await generateSingleImage(
+        imagePromptToUse, 
+        style, 
+        '1:1', 
+        undefined, 
+        cardRegenRefImage && refImageMode === 'copy' ? cardRegenRefImage : undefined,
+        refImageMode === 'copy'
+      );
+      
+      if (newImage) {
+        // DOM 업데이트 - 이미지 교체
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = localHtml;
+        const cardsInHtml = tempDiv.querySelectorAll('.card-slide');
+        
+        if (cardsInHtml[cardRegenIndex]) {
+          // 새 이미지로 교체 (완성형 카드이므로 전체 이미지 교체)
+          const newCardHtml = `
+            <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+              <img src="${newImage}" alt="${imagePromptToUse}" data-index="${cardRegenIndex + 1}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>`;
+          
+          const newCardElement = document.createElement('div');
+          newCardElement.innerHTML = newCardHtml;
+          const newCard = newCardElement.firstElementChild;
+          
+          if (newCard) {
+            cardsInHtml[cardRegenIndex].replaceWith(newCard);
+            setLocalHtml(tempDiv.innerHTML);
+          }
+        }
+      }
+      
+      setCardRegenModalOpen(false);
+      setCardRegenInstruction('');
+      setCardRegenProgress('');
+      alert(`✅ ${cardRegenIndex + 1}번 카드가 재생성되었습니다!`);
+      
+    } catch (error) {
+      console.error('카드 재생성 실패:', error);
+      alert('카드 재생성 중 오류가 발생했습니다.');
+    } finally {
+      setIsRegeneratingCard(false);
+      setCardRegenProgress('');
+    }
+  };
+  
+  // 카드 재생성 모달 열기
+  const openCardRegenModal = (cardIndex: number) => {
+    setCardRegenIndex(cardIndex);
+    setCardRegenInstruction('');
+    setCardRegenRefImage(''); // 참고 이미지 초기화
+    
+    // 현재 카드의 이미지 URL 가져오기
+    const cards = getCardElements();
+    if (cards && cards[cardIndex]) {
+      const img = cards[cardIndex].querySelector('img');
+      if (img) {
+        setCurrentCardImage(img.src);
+      } else {
+        setCurrentCardImage('');
+      }
+    } else {
+      setCurrentCardImage('');
+    }
+    
+    // 기존 프롬프트 값으로 편집 state 초기화
+    const cardPrompt = content.cardPrompts?.[cardIndex];
+    if (cardPrompt) {
+      setEditSubtitle(cardPrompt.textPrompt.subtitle || '');
+      setEditMainTitle(cardPrompt.textPrompt.mainTitle || '');
+      setEditDescription(cardPrompt.textPrompt.description || '');
+      setEditTags(cardPrompt.textPrompt.tags?.join(', ') || '');
+      setEditImagePrompt(cardPrompt.imagePrompt || '');
+    } else {
+      setEditSubtitle('');
+      setEditMainTitle('');
+      setEditDescription('');
+      setEditTags('');
+      setEditImagePrompt('');
+    }
+    
+    setCardRegenModalOpen(true);
+  };
+
+  // 카드 요소들 가져오기 (여러 방법 시도)
+  const getCardElements = (): NodeListOf<Element> | null => {
+    // 1. editorRef에서 찾기
+    let cards = editorRef.current?.querySelectorAll('.card-slide');
+    if (cards && cards.length > 0) return cards;
+    
+    // 2. naver-preview 영역에서 찾기
+    cards = document.querySelector('.naver-preview')?.querySelectorAll('.card-slide');
+    if (cards && cards.length > 0) return cards;
+    
+    // 3. 전체 document에서 찾기
+    cards = document.querySelectorAll('.card-slide');
+    if (cards && cards.length > 0) return cards;
+    
+    return null;
+  };
+  
+  // 카드 수 가져오기
+  const getCardCount = () => {
+    return getCardElements()?.length || 0;
+  };
+  
+  // 모든 카드뉴스 일괄 다운로드
+  const downloadAllCards = async () => {
+    const cardSlides = getCardElements();
+    if (!cardSlides || cardSlides.length === 0) {
+      alert('다운로드할 카드가 없습니다. 카드뉴스를 먼저 생성해주세요.');
+      return;
+    }
+    
+    setDownloadingCard(true);
+    
+    try {
+      for (let i = 0; i < cardSlides.length; i++) {
+        setCardDownloadProgress(`${i + 1}/${cardSlides.length}장 다운로드 중...`);
+        
+        const card = cardSlides[i] as HTMLElement;
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          backgroundColor: null,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+        });
+        
+        const link = document.createElement('a');
+        link.download = `card-news-${i + 1}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        // 각 다운로드 사이 짧은 딜레이
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      setCardDownloadProgress('✅ 모든 카드 다운로드 완료!');
+      setTimeout(() => setCardDownloadProgress(''), 2000);
+    } catch (error) {
+      console.error('카드 다운로드 실패:', error);
+      alert('카드 다운로드 중 오류가 발생했습니다.');
+    } finally {
+      setDownloadingCard(false);
+    }
+  };
 
   // 이미지 클릭 핸들러 (다운로드 or 재생성 선택 모달)
   const handleImageClick = (imgSrc: string, imgAlt: string, index: number) => {
     setDownloadImgSrc(imgSrc);
     setDownloadImgIndex(index);
     setRegenIndex(index);
-    setRegenPrompt(imgAlt || 'professional illustration');
+    setRegenPrompt(imgAlt || '전문적인 의료 일러스트');
     setDownloadModalOpen(true);
   };
 
@@ -173,7 +673,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
   const openRegenModal = (imgIndex: number, currentPrompt: string) => {
     setRegenIndex(imgIndex);
-    setRegenPrompt(currentPrompt || 'professional illustration');
+    setRegenPrompt(currentPrompt || '전문적인 의료 일러스트');
     setRegenRefDataUrl(undefined);
     setRegenRefName('');
     setRegenOpen(true);
@@ -722,28 +1222,29 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     let styled = html;
     
     if (content.postType === 'card_news') {
+        // 카드뉴스: 클래스를 유지하면서 인라인 스타일 추가 (다운로드/재생성 기능 위해 클래스 필수)
         styled = styled
-            .replace(/<div class="card-news-container"/g, '<div style="max-width: 480px; margin: 0 auto; padding: 16px;"')
-            .replace(/<div class="card-grid-wrapper"/g, '<div style="display: flex; flex-direction: column; gap: 24px;"')
-            .replace(/<div class="card-slide"/g, '<div style="background: #f8fafc; border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); overflow: hidden; width: 100%; aspect-ratio: 1/1;"')
-            .replace(/<div class="card-border-box"/g, '<div style="border: 3px solid #1e293b; border-radius: 20px; margin: 16px; height: calc(100% - 32px); display: flex; flex-direction: column; background: #fff; overflow: hidden;"')
-            .replace(/<div class="card-header-row"/g, '<div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9;"')
-            .replace(/class="brand-text"/g, 'style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #1e293b;"')
-            .replace(/class="arrow-icon"/g, 'style="font-size: 16px; border: 2px solid #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1e293b;"')
-            .replace(/<div class="card-content-area"/g, '<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 24px; gap: 8px;"')
-            .replace(/class="card-subtitle"/g, 'style="font-size: 13px; font-weight: 700; color: #3b82f6; margin-bottom: 4px;"')
-            .replace(/class="card-divider-dotted"/g, 'style="width: 60%; border-bottom: 2px dotted #cbd5e1; margin: 8px 0 12px 0;"')
-            .replace(/class="card-main-title"/g, 'style="font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.3; margin: 0; word-break: keep-all; letter-spacing: -0.5px; display: block; text-align: center; max-width: 100%; padding: 0 8px;"')
+            .replace(/<div class="card-news-container"/g, '<div class="card-news-container" style="max-width: 480px; margin: 0 auto; padding: 16px;"')
+            .replace(/<div class="card-grid-wrapper"/g, '<div class="card-grid-wrapper" style="display: flex; flex-direction: column; gap: 24px;"')
+            .replace(/<div class="card-slide"/g, '<div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); overflow: hidden; width: 100%; aspect-ratio: 1/1;"')
+            .replace(/<div class="card-border-box"/g, '<div class="card-border-box" style="border: 3px solid #1e293b; border-radius: 20px; margin: 16px; height: calc(100% - 32px); display: flex; flex-direction: column; background: #fff; overflow: hidden;"')
+            .replace(/<div class="card-header-row"/g, '<div class="card-header-row" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9;"')
+            .replace(/class="brand-text"/g, 'class="brand-text" style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #1e293b;"')
+            .replace(/class="arrow-icon"/g, 'class="arrow-icon" style="font-size: 16px; border: 2px solid #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1e293b;"')
+            .replace(/<div class="card-content-area"/g, '<div class="card-content-area" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px 24px; gap: 8px;"')
+            .replace(/class="card-subtitle"/g, 'class="card-subtitle" style="font-size: 13px; font-weight: 700; color: #3b82f6; margin-bottom: 4px;"')
+            .replace(/class="card-divider-dotted"/g, 'class="card-divider-dotted" style="width: 60%; border-bottom: 2px dotted #cbd5e1; margin: 8px 0 12px 0;"')
+            .replace(/class="card-main-title"/g, 'class="card-main-title" style="font-size: 26px; font-weight: 900; color: #0f172a; line-height: 1.3; margin: 0; word-break: keep-all; letter-spacing: -0.5px; display: block; text-align: center; max-width: 100%; padding: 0 8px;"')
             .replace(/<h1([^>]*)>/g, '<p$1>')
             .replace(/<\/h1>/g, '</p>')
-            .replace(/class="card-highlight"/g, 'style="color: #3b82f6;"')
-            .replace(/<div class="card-img-container"/g, '<div style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 12px 0;"')
-            .replace(/class="card-inner-img"/g, 'style="width: 85%; max-height: 160px; object-fit: cover; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
-            .replace(/class="card-desc"/g, 'style="font-size: 13px; color: #475569; margin-top: 8px; font-weight: 600; line-height: 1.6; word-break: keep-all; max-width: 90%;"')
-            .replace(/<div class="card-footer-row"/g, '<div style="padding: 12px 20px 16px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #f1f5f9;"')
-            .replace(/class="pill-tag"/g, 'style="background: #f1f5f9; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; color: #475569;"')
-            .replace(/class="hidden-title"/g, 'style="display: none;"')
-            .replace(/class="legal-box-card"/g, 'style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 16px; line-height: 1.5;"');
+            .replace(/class="card-highlight"/g, 'class="card-highlight" style="color: #3b82f6;"')
+            .replace(/<div class="card-img-container"/g, '<div class="card-img-container" style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 12px 0;"')
+            .replace(/class="card-inner-img"/g, 'class="card-inner-img" style="width: 85%; max-height: 220px; object-fit: cover; object-position: center top; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
+            .replace(/class="card-desc"/g, 'class="card-desc" style="font-size: 15px; color: #475569; margin-top: 12px; font-weight: 500; line-height: 1.7; word-break: keep-all; max-width: 90%;"')
+            .replace(/<div class="card-footer-row"/g, '<div class="card-footer-row" style="padding: 12px 20px 16px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #f1f5f9;"')
+            .replace(/class="pill-tag"/g, 'class="pill-tag" style="background: #f1f5f9; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; color: #475569;"')
+            .replace(/class="hidden-title"/g, 'class="hidden-title" style="display: none;"')
+            .replace(/class="legal-box-card"/g, 'class="legal-box-card" style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 16px; line-height: 1.5;"');
     } else {
         styled = applyThemeToHtml(styled, theme);
     }
@@ -860,13 +1361,70 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         .card-grid-wrapper { display: flex; flex-direction: column; gap: 24px; }
         
         .card-slide { 
-           background: #f8fafc; 
+           background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); 
            border-radius: 24px; 
            box-shadow: 0 8px 32px rgba(0,0,0,0.06); 
            overflow: hidden; 
            position: relative; 
            width: 100%; 
-           aspect-ratio: 1/1; 
+           aspect-ratio: 1/1;
+           cursor: pointer;
+           transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-slide:hover {
+           transform: translateY(-4px);
+           box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+        .card-slide:hover .card-overlay {
+           opacity: 1;
+        }
+        .card-overlay {
+           position: absolute;
+           inset: 0;
+           background: rgba(0,0,0,0.5);
+           display: flex;
+           flex-direction: column;
+           justify-content: center;
+           align-items: center;
+           gap: 12px;
+           opacity: 0;
+           transition: opacity 0.2s;
+           z-index: 10;
+        }
+        .card-overlay-btn {
+           padding: 12px 24px;
+           border-radius: 12px;
+           font-weight: 700;
+           font-size: 14px;
+           border: none;
+           cursor: pointer;
+           transition: transform 0.1s;
+           display: flex;
+           align-items: center;
+           gap: 8px;
+        }
+        .card-overlay-btn:hover {
+           transform: scale(1.05);
+        }
+        .card-overlay-btn.regen {
+           background: linear-gradient(135deg, #8B5CF6, #6366F1);
+           color: white;
+        }
+        .card-overlay-btn.download {
+           background: white;
+           color: #1e293b;
+        }
+        .card-number-badge {
+           position: absolute;
+           top: 12px;
+           left: 12px;
+           background: rgba(0,0,0,0.6);
+           color: white;
+           padding: 4px 10px;
+           border-radius: 8px;
+           font-size: 12px;
+           font-weight: 700;
+           z-index: 5;
         }
 
         .card-border-box {
@@ -964,20 +1522,22 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         
         .card-inner-img {
             width: 85%;
-            max-height: 160px;
+            max-height: 220px;
             object-fit: cover;
+            object-position: center top;
             border-radius: 12px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         }
         
         .card-desc {
-            font-size: 13px;
+            font-size: 15px;
             color: #475569;
-            margin-top: 8px;
-            font-weight: 600;
-            line-height: 1.6;
+            margin-top: 12px;
+            font-weight: 500;
+            line-height: 1.7;
             word-break: keep-all;
             max-width: 90%;
+            min-height: 40px;
         }
 
         .card-footer-row {
@@ -1091,15 +1651,23 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                     )}
                   </button>
                 </div>
+                {/* 영어 프롬프트인 경우 안내 메시지 */}
+                {regenPrompt && /^[a-zA-Z\s,.\-:;'"!?()]+$/.test(regenPrompt.trim()) && (
+                  <div className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="text-xs text-amber-700 font-bold">
+                      ⚠️ 현재 영어 프롬프트입니다. 한글로 수정하거나 "AI 프롬프트 추천" 버튼을 눌러 새 프롬프트를 받아보세요!
+                    </div>
+                  </div>
+                )}
                 <textarea
                   value={regenPrompt}
                   onChange={(e) => setRegenPrompt(e.target.value)}
                   className="w-full h-32 p-4 rounded-2xl border border-slate-200 bg-slate-50 outline-none font-mono text-sm"
-                  placeholder="예: Korean professional doctor consultation scene..."
+                  placeholder="예: 병원에서 의사가 환자와 상담하는 따뜻한 장면, 밝은 조명..."
                   disabled={isRecommendingPrompt}
                 />
                 <div className="text-[11px] text-slate-500 mt-2">
-                  💡 팁: "프롬프트 추천" 버튼을 누르면 AI가 글 내용을 분석해서 최적의 이미지 프롬프트를 자동으로 생성해줍니다!
+                  💡 팁: 한글로 원하는 이미지를 설명하세요! "AI 프롬프트 추천" 버튼을 누르면 글 내용에 맞는 최적의 프롬프트를 자동 생성합니다.
                 </div>
               </div>
 
@@ -1187,12 +1755,457 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
           <div className="flex items-center gap-2">
              <span className="text-[10px] font-black uppercase text-slate-400 mr-2 hidden lg:inline">다운로드</span>
-             <button onClick={handleDownloadWord} disabled={isEditingAi} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
-                📄 Word
-             </button>
-             <button onClick={handleDownloadPDF} disabled={isEditingAi} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
-                📑 PDF
-             </button>
+             {content.postType === 'card_news' ? (
+               <>
+                 <button 
+                   onClick={() => setCardDownloadModalOpen(true)} 
+                   disabled={downloadingCard} 
+                   className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                 >
+                   📥 다운로드
+                 </button>
+               </>
+             ) : (
+               <>
+                 <button onClick={handleDownloadWord} disabled={isEditingAi} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    📄 Word
+                 </button>
+                 <button onClick={handleDownloadPDF} disabled={isEditingAi} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
+                    📑 PDF
+                 </button>
+               </>
+             )}
+          </div>
+        </div>
+      )}
+      
+      {/* 카드 재생성 모달 */}
+      {cardRegenModalOpen && content.postType === 'card_news' && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-6" onClick={() => setShowHistoryDropdown(false)}>
+          <div className={`w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-800' : 'bg-white'}`} onClick={(e) => e.stopPropagation()}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div>
+                <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🔄 {cardRegenIndex + 1}번 카드 재생성</div>
+                <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {cardRegenIndex === 0 ? '표지' : `${cardRegenIndex + 1}번째 슬라이드`}를 새롭게 만듭니다
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCardRegenModalOpen(false)}
+                disabled={isRegeneratingCard}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {cardRegenProgress && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-bold text-blue-700">{cardRegenProgress}</span>
+                </div>
+              )}
+              
+              {/* 실시간 미리보기 - 실제 이미지 위에 텍스트 오버레이 */}
+              <div className={`rounded-xl border overflow-hidden ${darkMode ? 'border-blue-600 bg-blue-900/30' : 'border-blue-200 bg-blue-50'}`}>
+                <div className={`px-4 py-2 text-xs font-black ${darkMode ? 'bg-blue-800 text-blue-200' : 'bg-blue-100 text-blue-700'}`}>
+                  👁️ 실시간 미리보기
+                </div>
+                <div className="p-4">
+                  <div className="relative aspect-square max-w-[220px] mx-auto rounded-xl overflow-hidden shadow-lg">
+                    {/* 배경 이미지 */}
+                    {currentCardImage ? (
+                      <img 
+                        src={currentCardImage} 
+                        alt="현재 카드" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-100 to-blue-200" />
+                    )}
+                    
+                    {/* 텍스트 오버레이 */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 bg-black/20">
+                      {editSubtitle && (
+                        <p className="text-[10px] text-white font-bold drop-shadow-lg bg-blue-500/80 px-2 py-0.5 rounded mb-1">
+                          {editSubtitle}
+                        </p>
+                      )}
+                      {editMainTitle && (
+                        <p className="text-sm font-black text-white leading-tight drop-shadow-lg bg-black/40 px-3 py-1.5 rounded-lg max-w-[90%]">
+                          {editMainTitle}
+                        </p>
+                      )}
+                      {editDescription && (
+                        <p className="text-[9px] text-white/90 leading-tight drop-shadow mt-2 max-w-[85%] bg-black/30 px-2 py-1 rounded">
+                          {editDescription}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <p className={`text-center text-[9px] mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    ※ 실제 카드와 다를 수 있습니다
+                  </p>
+                </div>
+              </div>
+              
+              {/* 📝 카드 프롬프트 편집 */}
+              <div className={`rounded-xl border overflow-hidden ${darkMode ? 'border-slate-600 bg-slate-700/50' : 'border-slate-200 bg-slate-50'}`}>
+                <div className={`px-4 py-2 text-xs font-black flex items-center justify-between ${darkMode ? 'bg-slate-600 text-slate-300' : 'bg-slate-200 text-slate-600'}`}>
+                  <span>✏️ 카드 프롬프트 편집</span>
+                  <div className="flex items-center gap-2 relative">
+                    {/* 불러오기 버튼 */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowHistoryDropdown(!showHistoryDropdown)}
+                        disabled={promptHistory.length === 0}
+                        className={`px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 ${
+                          darkMode 
+                            ? 'bg-amber-600 text-white hover:bg-amber-500' 
+                            : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                        }`}
+                      >
+                        📂 불러오기
+                      </button>
+                      
+                      {/* 히스토리 드롭다운 */}
+                      {showHistoryDropdown && promptHistory.length > 0 && (
+                        <div 
+                          className={`absolute top-full right-0 mt-2 w-72 rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
+                            darkMode ? 'bg-slate-800 border-amber-500' : 'bg-white border-amber-300'
+                          }`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className={`px-3 py-2 text-[10px] font-bold ${darkMode ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                            📂 저장된 프롬프트 ({promptHistory.length}개)
+                          </div>
+                          {promptHistory.map((item, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => loadFromHistory(item)}
+                              className={`w-full px-4 py-3 text-left text-xs transition-all border-b last:border-b-0 ${
+                                darkMode 
+                                  ? 'hover:bg-amber-900/50 text-slate-200 border-slate-700' 
+                                  : 'hover:bg-amber-50 text-slate-700 border-slate-100'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-black text-sm truncate flex-1">{item.mainTitle || '(제목 없음)'}</span>
+                                <span className={`text-[9px] ml-2 px-2 py-0.5 rounded-full ${darkMode ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                                  {item.savedAt}
+                                </span>
+                              </div>
+                              {item.subtitle && (
+                                <div className={`text-[10px] truncate ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                                  📌 {item.subtitle}
+                                </div>
+                              )}
+                              {item.description && (
+                                <div className={`text-[9px] truncate mt-0.5 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {item.description.slice(0, 50)}...
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* 저장 버튼 */}
+                    <button
+                      type="button"
+                      onClick={savePromptToHistory}
+                      disabled={!editSubtitle && !editMainTitle && !editDescription}
+                      className={`px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-40 ${
+                        darkMode 
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-500' 
+                          : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                      }`}
+                    >
+                      💾 저장
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  {/* 텍스트 프롬프트 편집 */}
+                  <div className="space-y-2">
+                    <div className={`text-xs font-bold ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>📝 텍스트 내용</div>
+                    
+                    <div>
+                      <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>부제</label>
+                      <input
+                        type="text"
+                        value={editSubtitle}
+                        onChange={(e) => setEditSubtitle(e.target.value)}
+                        disabled={isRegeneratingCard}
+                        placeholder="예: 놓치기 쉬운 신호"
+                        className={`w-full mt-1 px-3 py-2 rounded-lg text-xs border outline-none ${
+                          darkMode 
+                            ? 'bg-slate-600 border-slate-500 text-slate-100 placeholder-slate-400'
+                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                        }`}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>메인 제목</label>
+                      <input
+                        type="text"
+                        value={editMainTitle}
+                        onChange={(e) => setEditMainTitle(e.target.value)}
+                        disabled={isRegeneratingCard}
+                        placeholder="예: 심장이 보내는 경고"
+                        className={`w-full mt-1 px-3 py-2 rounded-lg text-xs border outline-none ${
+                          darkMode 
+                            ? 'bg-slate-600 border-slate-500 text-slate-100 placeholder-slate-400'
+                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                        }`}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>설명</label>
+                      <textarea
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        disabled={isRegeneratingCard}
+                        placeholder="예: 이런 증상이 나타나면 주의가 필요해요"
+                        rows={2}
+                        className={`w-full mt-1 px-3 py-2 rounded-lg text-xs border outline-none resize-none ${
+                          darkMode 
+                            ? 'bg-slate-600 border-slate-500 text-slate-100 placeholder-slate-400'
+                            : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                        }`}
+                      />
+                    </div>
+                    
+                  </div>
+                  
+                  {/* 이미지 프롬프트 편집 */}
+                  <div>
+                    <div className={`text-xs font-bold mb-1 flex items-center justify-between ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                      <span>🎨 이미지 프롬프트</span>
+                      <span className={`text-[9px] font-normal ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        텍스트 변경 시 자동 연동됨
+                      </span>
+                    </div>
+                    <textarea
+                      value={editImagePrompt}
+                      onChange={(e) => setEditImagePrompt(e.target.value)}
+                      disabled={isRegeneratingCard}
+                      placeholder="예: 1:1 정사각형 카드뉴스, 파란 배경, 심장 3D 일러스트..."
+                      rows={5}
+                      className={`w-full px-3 py-2 rounded-lg text-xs border outline-none resize-y min-h-[80px] ${
+                        darkMode 
+                          ? 'bg-slate-600 border-slate-500 text-slate-100 placeholder-slate-400'
+                          : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'
+                      }`}
+                    />
+                    <div className={`text-[9px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                      💡 위의 부제/메인제목/설명을 수정하면 이 프롬프트도 자동으로 업데이트됩니다
+                    </div>
+                  </div>
+                  
+                  {/* 🖼️ 참고 이미지 업로드 */}
+                  <div>
+                    <div className={`text-xs font-bold mb-1 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>🖼️ 참고 이미지 (선택)</div>
+                    <div className={`text-[10px] mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                      원하는 스타일의 이미지를 업로드하면 비슷하게 만들어드려요!
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            setCardRegenRefImage(ev.target?.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      disabled={isRegeneratingCard}
+                      className={`w-full text-xs file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold transition-all ${
+                        darkMode 
+                          ? 'file:bg-slate-600 file:text-slate-200 hover:file:bg-slate-500'
+                          : 'file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200'
+                      }`}
+                    />
+                    {cardRegenRefImage && (
+                      <>
+                        <div className="mt-2 relative">
+                          <img src={cardRegenRefImage} alt="참고 이미지" className="max-h-24 rounded-lg border border-slate-300" />
+                          <button
+                            type="button"
+                            onClick={() => setCardRegenRefImage('')}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        {/* 적용 방식 선택 */}
+                        <div className={`mt-3 p-3 rounded-lg ${darkMode ? 'bg-slate-600' : 'bg-orange-50'}`}>
+                          <div className={`text-[10px] font-bold mb-2 ${darkMode ? 'text-orange-300' : 'text-orange-700'}`}>
+                            🎨 스타일 적용 방식
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setRefImageMode('inspire')}
+                              className={`flex-1 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                                refImageMode === 'inspire'
+                                  ? 'bg-orange-500 text-white'
+                                  : darkMode 
+                                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-500' 
+                                    : 'bg-white text-slate-600 hover:bg-orange-100'
+                              }`}
+                            >
+                              ✨ 느낌만 참고
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRefImageMode('copy')}
+                              className={`flex-1 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
+                                refImageMode === 'copy'
+                                  ? 'bg-orange-500 text-white'
+                                  : darkMode 
+                                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-500' 
+                                    : 'bg-white text-slate-600 hover:bg-orange-100'
+                              }`}
+                            >
+                              📋 레이아웃 복제
+                            </button>
+                          </div>
+                          <div className={`text-[9px] mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            {refImageMode === 'inspire' 
+                              ? '색상, 분위기만 참고하고 레이아웃은 자유롭게' 
+                              : '텍스트 위치, 구도까지 최대한 동일하게'}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+            
+            <div className={`px-6 py-4 border-t flex justify-end gap-3 ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <button
+                type="button"
+                onClick={() => setCardRegenModalOpen(false)}
+                disabled={isRegeneratingCard}
+                className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  darkMode 
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleCardRegenerate}
+                disabled={isRegeneratingCard || (!editSubtitle && !editMainTitle && !editDescription && !editImagePrompt && !cardRegenRefImage)}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isRegeneratingCard ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    재생성 중...
+                  </>
+                ) : (
+                  cardRegenRefImage 
+                    ? (refImageMode === 'copy' ? '📋 레이아웃 복제' : '✨ 느낌 참고 재생성')
+                    : '🎨 이 카드 재생성'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 카드뉴스 다운로드 모달 */}
+      {cardDownloadModalOpen && content.postType === 'card_news' && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-6">
+          <div className={`w-full max-w-lg rounded-[28px] shadow-2xl overflow-hidden ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🖼️ 카드뉴스 다운로드</div>
+              <button
+                type="button"
+                onClick={() => setCardDownloadModalOpen(false)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {cardDownloadProgress && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm font-bold text-blue-700">{cardDownloadProgress}</span>
+                </div>
+              )}
+              
+              <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                <p className={`text-sm mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                  📌 카드뉴스 전체를 이미지로 다운로드합니다.<br/>
+                  각 카드가 PNG 이미지로 저장됩니다.
+                </p>
+                
+                {/* 개별 카드 다운로드 & 재생성 */}
+                <div className="space-y-2 mb-4">
+                  <div className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>개별 카드 다운로드</div>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {Array.from({ length: cardCount || 6 }, (_, i) => (
+                      <div key={i} className="flex">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadCardAsImage(i);
+                          }}
+                          disabled={downloadingCard}
+                          className={`flex-1 px-3 py-2.5 rounded-l-lg text-xs font-bold transition-all disabled:opacity-50 ${darkMode ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50 text-slate-700'}`}
+                        >
+                          📥 {i + 1}장
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCardDownloadModalOpen(false);
+                            setTimeout(() => openCardRegenModal(i), 100);
+                          }}
+                          disabled={downloadingCard}
+                          className={`px-3 py-2.5 rounded-r-lg text-xs font-bold transition-all disabled:opacity-50 ${darkMode ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-purple-100 border border-purple-200 hover:border-purple-400 hover:bg-purple-200 text-purple-700'}`}
+                          title="이 카드 재생성"
+                        >
+                          🔄
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* 전체 다운로드 버튼 */}
+              <button
+                type="button"
+                onClick={downloadAllCards}
+                disabled={downloadingCard}
+                className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                📥 모든 카드 일괄 다운로드
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1231,15 +2244,63 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           
           <div className="flex items-center gap-2">
             {/* 임시저장 버튼 */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 relative">
               {hasAutoSave() && (
-                <button 
-                  onClick={loadAutoSave}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-amber-900/50 text-amber-400 hover:bg-amber-900' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
-                  title="임시저장 불러오기"
-                >
-                  📂 불러오기
-                </button>
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowAutoSaveDropdown(!showAutoSaveDropdown)}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-amber-900/50 text-amber-400 hover:bg-amber-900' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+                    title="저장된 글 불러오기"
+                  >
+                    📂 불러오기
+                  </button>
+                  
+                  {/* 자동저장 히스토리 드롭다운 */}
+                  {showAutoSaveDropdown && autoSaveHistory.length > 0 && (
+                    <div 
+                      className={`absolute bottom-full right-0 mb-2 w-72 rounded-xl shadow-2xl z-[10000] overflow-hidden border-2 ${
+                        darkMode ? 'bg-slate-800 border-amber-500' : 'bg-white border-amber-300'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className={`px-3 py-2 text-[10px] font-bold flex items-center justify-between ${darkMode ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
+                        <span>📂 저장된 글 ({autoSaveHistory.length}개)</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setShowAutoSaveDropdown(false); }}
+                          className="text-xs hover:opacity-70"
+                        >✕</button>
+                      </div>
+                      {autoSaveHistory.map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => loadFromAutoSaveHistory(item)}
+                          className={`w-full px-4 py-3 text-left text-xs transition-all border-b last:border-b-0 ${
+                            darkMode 
+                              ? 'hover:bg-amber-900/50 text-slate-200 border-slate-700' 
+                              : 'hover:bg-amber-50 text-slate-700 border-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-black text-sm truncate flex-1">{item.title}</span>
+                            <span className={`text-[9px] ml-2 px-2 py-0.5 rounded-full ${
+                              item.postType === 'card_news' 
+                                ? 'bg-purple-100 text-purple-600' 
+                                : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {item.postType === 'card_news' ? '카드뉴스' : '블로그'}
+                            </span>
+                          </div>
+                          <div className={`text-[9px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                            🕐 {new Date(item.savedAt).toLocaleString('ko-KR', { 
+                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            })}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               {lastSaved && (
                 <span className={`text-[10px] hidden lg:inline ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
@@ -1254,34 +2315,37 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
         </div>
         
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`text-xs font-black ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>🎨 블로그 레이아웃 스타일:</span>
-            <span className={`text-[10px] font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{CSS_THEMES[currentTheme].description}</span>
+        {/* 블로그 레이아웃 스타일 (블로그만 표시) */}
+        {content.postType !== 'card_news' && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`text-xs font-black ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>🎨 블로그 레이아웃 스타일:</span>
+              <span className={`text-[10px] font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{CSS_THEMES[currentTheme].description}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {(['modern', 'premium', 'minimal', 'warm', 'professional'] as CssTheme[]).map((theme) => {
+                const themeInfo = CSS_THEMES[theme];
+                const isActive = currentTheme === theme;
+                return (
+                  <button
+                    key={theme}
+                    type="button"
+                    onClick={() => setCurrentTheme(theme)}
+                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border-2 ${
+                      isActive
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                        : darkMode 
+                          ? 'bg-slate-700 text-slate-300 border-slate-600 hover:border-slate-500'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                    }`}
+                  >
+                    {themeInfo.name}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {(['modern', 'premium', 'minimal', 'warm', 'professional'] as CssTheme[]).map((theme) => {
-              const themeInfo = CSS_THEMES[theme];
-              const isActive = currentTheme === theme;
-              return (
-                <button
-                  key={theme}
-                  type="button"
-                  onClick={() => setCurrentTheme(theme)}
-                  className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border-2 ${
-                    isActive
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                      : darkMode 
-                        ? 'bg-slate-700 text-slate-300 border-slate-600 hover:border-slate-500'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                  }`}
-                >
-                  {themeInfo.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
