@@ -25,6 +25,7 @@ const AI_PROMPT_TEMPLATES = [
 const AUTOSAVE_KEY = 'hospitalai_autosave';
 const AUTOSAVE_HISTORY_KEY = 'hospitalai_autosave_history'; // 여러 저장본 관리
 const CARD_PROMPT_HISTORY_KEY = 'hospitalai_card_prompt_history';
+const CARD_REF_IMAGE_KEY = 'hospitalai_card_ref_image'; // 카드뉴스 참고 이미지 고정용
 
 // 자동저장 히스토리 타입
 interface AutoSaveHistoryItem {
@@ -93,8 +94,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [currentCardImage, setCurrentCardImage] = useState(''); // 현재 카드의 이미지 URL
   const [promptHistory, setPromptHistory] = useState<CardPromptHistoryItem[]>([]); // 저장된 프롬프트 히스토리
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [isRefImageLocked, setIsRefImageLocked] = useState(false); // 참고 이미지 고정 여부
   
-  // 프롬프트 히스토리 불러오기
+  // 프롬프트 히스토리 및 참고 이미지 불러오기
   useEffect(() => {
     const saved = localStorage.getItem(CARD_PROMPT_HISTORY_KEY);
     if (saved) {
@@ -104,7 +106,38 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         console.error('히스토리 로드 실패:', e);
       }
     }
+    
+    // 저장된 참고 이미지 불러오기
+    const savedRefImage = localStorage.getItem(CARD_REF_IMAGE_KEY);
+    if (savedRefImage) {
+      try {
+        const parsed = JSON.parse(savedRefImage);
+        if (parsed.image) {
+          setCardRegenRefImage(parsed.image);
+          setRefImageMode(parsed.mode || 'copy');
+          setIsRefImageLocked(true);
+        }
+      } catch (e) {
+        console.error('참고 이미지 로드 실패:', e);
+      }
+    }
   }, []);
+  
+  // 참고 이미지 저장/삭제 함수
+  const saveRefImageToStorage = (image: string, mode: 'inspire' | 'copy') => {
+    try {
+      localStorage.setItem(CARD_REF_IMAGE_KEY, JSON.stringify({ image, mode }));
+      setIsRefImageLocked(true);
+    } catch (e) {
+      console.error('참고 이미지 저장 실패 (용량 초과):', e);
+      alert('참고 이미지가 너무 큽니다. 더 작은 이미지를 사용해주세요.');
+    }
+  };
+  
+  const clearRefImageFromStorage = () => {
+    localStorage.removeItem(CARD_REF_IMAGE_KEY);
+    setIsRefImageLocked(false);
+  };
   
   // 프롬프트 저장 함수
   const savePromptToHistory = () => {
@@ -494,14 +527,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         }
       }
       
-      // 참고 이미지와 복제 모드를 generateSingleImage에 직접 전달
+      // 참고 이미지와 모드를 generateSingleImage에 전달 (inspire/copy 모두 지원)
       const newImage = await generateSingleImage(
         imagePromptToUse, 
         style, 
         '1:1', 
         undefined, 
-        cardRegenRefImage && refImageMode === 'copy' ? cardRegenRefImage : undefined,
-        refImageMode === 'copy'
+        cardRegenRefImage || undefined,  // 참고 이미지가 있으면 항상 전달
+        refImageMode === 'copy'  // copy 모드인지 여부
       );
       
       if (newImage) {
@@ -546,7 +579,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const openCardRegenModal = (cardIndex: number) => {
     setCardRegenIndex(cardIndex);
     setCardRegenInstruction('');
-    setCardRegenRefImage(''); // 참고 이미지 초기화
+    // 참고 이미지가 고정되어 있지 않으면 초기화, 고정되어 있으면 유지
+    if (!isRefImageLocked) {
+      setCardRegenRefImage('');
+    }
     
     // 현재 카드의 이미지 URL 가져오기
     const cards = getCardElements();
@@ -2012,9 +2048,34 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   
                   {/* 🖼️ 참고 이미지 업로드 */}
                   <div>
-                    <div className={`text-xs font-bold mb-1 ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>🖼️ 참고 이미지 (선택)</div>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className={`text-xs font-bold ${darkMode ? 'text-orange-400' : 'text-orange-600'}`}>
+                        🖼️ 참고 이미지 {isRefImageLocked && <span className="text-emerald-500">🔒 고정됨</span>}
+                      </div>
+                      {cardRegenRefImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isRefImageLocked) {
+                              clearRefImageFromStorage();
+                            } else {
+                              saveRefImageToStorage(cardRegenRefImage, refImageMode);
+                            }
+                          }}
+                          className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                            isRefImageLocked
+                              ? (darkMode ? 'bg-emerald-600 text-white hover:bg-red-500' : 'bg-emerald-100 text-emerald-700 hover:bg-red-100 hover:text-red-700')
+                              : (darkMode ? 'bg-slate-600 text-slate-300 hover:bg-emerald-600' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700')
+                          }`}
+                        >
+                          {isRefImageLocked ? '🔓 고정 해제' : '🔒 이 이미지 고정'}
+                        </button>
+                      )}
+                    </div>
                     <div className={`text-[10px] mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                      원하는 스타일의 이미지를 업로드하면 비슷하게 만들어드려요!
+                      {isRefImageLocked 
+                        ? '✅ 다음 재생성에도 이 참고 이미지가 자동 적용됩니다!'
+                        : '원하는 스타일의 이미지를 업로드하면 비슷하게 만들어드려요!'}
                     </div>
                     <input
                       type="file"
@@ -2024,7 +2085,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                         if (file) {
                           const reader = new FileReader();
                           reader.onload = (ev) => {
-                            setCardRegenRefImage(ev.target?.result as string);
+                            const newImage = ev.target?.result as string;
+                            setCardRegenRefImage(newImage);
+                            // 새 이미지 업로드 시 고정 해제
+                            if (isRefImageLocked) {
+                              clearRefImageFromStorage();
+                            }
                           };
                           reader.readAsDataURL(file);
                         }
@@ -2042,11 +2108,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                           <img src={cardRegenRefImage} alt="참고 이미지" className="max-h-24 rounded-lg border border-slate-300" />
                           <button
                             type="button"
-                            onClick={() => setCardRegenRefImage('')}
+                            onClick={() => {
+                              setCardRegenRefImage('');
+                              if (isRefImageLocked) {
+                                clearRefImageFromStorage();
+                              }
+                            }}
                             className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold"
                           >
                             ✕
                           </button>
+                          {isRefImageLocked && (
+                            <div className="absolute -top-2 -left-2 w-5 h-5 bg-emerald-500 text-white rounded-full text-xs font-bold flex items-center justify-center">
+                              🔒
+                            </div>
+                          )}
                         </div>
                         
                         {/* 적용 방식 선택 */}
@@ -2057,7 +2133,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                           <div className="flex gap-2">
                             <button
                               type="button"
-                              onClick={() => setRefImageMode('inspire')}
+                              onClick={() => {
+                                setRefImageMode('inspire');
+                                if (isRefImageLocked) {
+                                  saveRefImageToStorage(cardRegenRefImage, 'inspire');
+                                }
+                              }}
                               className={`flex-1 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
                                 refImageMode === 'inspire'
                                   ? 'bg-orange-500 text-white'
@@ -2070,7 +2151,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                             </button>
                             <button
                               type="button"
-                              onClick={() => setRefImageMode('copy')}
+                              onClick={() => {
+                                setRefImageMode('copy');
+                                if (isRefImageLocked) {
+                                  saveRefImageToStorage(cardRegenRefImage, 'copy');
+                                }
+                              }}
                               className={`flex-1 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
                                 refImageMode === 'copy'
                                   ? 'bg-orange-500 text-white'

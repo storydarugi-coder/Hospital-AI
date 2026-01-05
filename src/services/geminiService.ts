@@ -957,8 +957,12 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 - ❌ 해시태그(#) 절대 넣지 마세요!
 ` : '';
 
-    // 참고 이미지 복제 모드일 때 강력한 지시
-    const copyModePrompt = (referenceImage && copyMode) ? `
+    // 참고 이미지 모드별 프롬프트
+    let refImagePrompt = '';
+    if (referenceImage) {
+      if (copyMode) {
+        // 복제 모드: 레이아웃을 정확히 복제
+        refImagePrompt = `
 🚨🚨🚨 [레이아웃 복제 모드 - 매우 중요!] 🚨🚨🚨
 첨부된 참고 이미지의 레이아웃을 **정확히 똑같이** 복제하세요!
 
@@ -974,10 +978,31 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 - 텍스트 내용만 제가 제공하는 내용으로 교체
 
 ⚠️ 창의적 재해석 금지! 참고 이미지를 보고 최대한 똑같이 만드세요!
-` : '';
+`;
+      } else {
+        // 영감 모드: 느낌만 참고하여 재창작
+        refImagePrompt = `
+✨ [스타일 영감 모드] ✨
+첨부된 참고 이미지에서 **느낌과 분위기만 참고**하여 새로운 디자인을 만드세요!
+
+✅ 참고할 것 (느낌만):
+1. 전체적인 색감과 분위기 (밝은지/어두운지, 따뜻한지/차가운지)
+2. 폰트 느낌 (굵은지/가는지, 둥근지/각진지)
+3. 일러스트 스타일 (3D인지/2D인지, 귀여운지/전문적인지)
+4. 전반적인 무드와 톤
+
+❌ 복제하지 말 것:
+- 정확한 레이아웃 위치
+- 정확한 색상 코드
+- 동일한 구도
+
+🎨 참고 이미지의 느낌을 살리되, 창의적으로 새롭게 재해석하세요!
+`;
+      }
+    }
 
     // 전체 한국어 프롬프트 - 의료법 위반 문구만 금지, 한글/숫자는 허용
-    const finalPrompt = `${copyModePrompt}${stylePrompt}. ${promptText}. 
+    const finalPrompt = `${refImagePrompt}${stylePrompt}. ${promptText}. 
 ${cardNewsPrompt}
 [이미지 내 텍스트 규칙]
 - ✅ 허용 (적극 사용): 
@@ -993,8 +1018,8 @@ ${cardNewsPrompt}
       // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
       let contentParts: any[] = [];
       
-      if (referenceImage && copyMode) {
-        // Base64 데이터 추출
+      if (referenceImage) {
+        // Base64 데이터 추출 (copyMode와 상관없이 참고 이미지가 있으면 전송)
         const base64Match = referenceImage.match(/^data:([^;]+);base64,(.+)$/);
         if (base64Match) {
           contentParts.push({
