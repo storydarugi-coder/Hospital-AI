@@ -1033,9 +1033,10 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     const cleanPromptText = promptText
       .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 전체 제거
       .replace(/https?:\/\/[^\s]+/g, '') // URL 전체 제거
-      .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거
-      .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
-      .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
+      .replace(/[A-Za-z0-9+/=_\-]{8,}/g, '') // 8자 이상 영숫자+특수문자 조합 제거 (더 엄격하게!)
+      .replace(/[a-zA-Z]{3,}[0-9]+[a-zA-Z0-9]*/g, '') // 영문+숫자 혼합 패턴 제거
+      .replace(/[0-9]+[a-zA-Z]+[a-zA-Z0-9]*/g, '') // 숫자+영문 혼합 패턴 제거
+      .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣\s.,!?~·…""''():\-\n0-9]+/g, '') // 한글, 숫자, 기본 문장부호만! (영문 제외!)
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
     
@@ -2134,9 +2135,10 @@ export const convertScriptToCardNews = async (
   const cleanImagePrompt = (prompt: string) => prompt
     .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 제거
     .replace(/https?:\/\/[^\s]+/g, '') // URL 제거
-    .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거
-    .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
-    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
+    .replace(/[A-Za-z0-9+/=_\-]{8,}/g, '') // 8자 이상 영숫자+특수문자 조합 제거 (더 엄격하게!)
+    .replace(/[a-zA-Z]{3,}[0-9]+[a-zA-Z0-9]*/g, '') // 영문+숫자 혼합 패턴 제거
+    .replace(/[0-9]+[a-zA-Z]+[a-zA-Z0-9]*/g, '') // 숫자+영문 혼합 패턴 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣\s.,!?~·…""''():\-\n0-9]+/g, '') // 한글, 숫자, 기본 문장부호만! (영문 제외!)
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -2231,9 +2233,10 @@ export const generateCardNewsWithAgents = async (
   const cleanImagePrompt = (prompt: string) => prompt
     .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 제거
     .replace(/https?:\/\/[^\s]+/g, '') // URL 제거
-    .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거 (경로 패턴 포함)
-    .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
-    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
+    .replace(/[A-Za-z0-9+/=_\-]{8,}/g, '') // 8자 이상 영숫자+특수문자 조합 제거 (더 엄격하게!)
+    .replace(/[a-zA-Z]{3,}[0-9]+[a-zA-Z0-9]*/g, '') // 영문+숫자 혼합 패턴 제거
+    .replace(/[0-9]+[a-zA-Z]+[a-zA-Z0-9]*/g, '') // 숫자+영문 혼합 패턴 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣\s.,!?~·…""''():\-\n0-9]+/g, '') // 한글, 숫자, 기본 문장부호만! (영문 제외!)
     .replace(/\s+/g, ' ')
     .trim();
   const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
