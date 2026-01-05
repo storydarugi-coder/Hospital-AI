@@ -2092,6 +2092,19 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
     
     const result = JSON.parse(response.text || "{}");
     
+    // 🚨 후처리: 1장(표지)과 마지막 장의 description 강제로 빈 문자열로!
+    if (result.slides && result.slides.length > 0) {
+      // 1장 (표지) description 제거
+      result.slides[0].description = "";
+      
+      // 마지막 장 description 제거
+      if (result.slides.length > 1) {
+        result.slides[result.slides.length - 1].description = "";
+      }
+      
+      console.log('🚨 [generateCardNewsScript] 표지/마지막 장 description 강제 제거 완료');
+    }
+    
     onProgress(`✅ 원고 생성 완료 (${result.slides?.length || 0}장)`);
     
     return result as CardNewsScript;
