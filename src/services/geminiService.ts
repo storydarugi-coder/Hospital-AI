@@ -1556,11 +1556,15 @@ const fullImageCardPromptAgent = async (
   slides: SlideStory[],
   imageStyle: ImageStyle,
   category: string,
-  styleConfig?: AnalyzedStyle
+  styleConfig?: AnalyzedStyle,
+  customImagePrompt?: string  // 커스텀 이미지 프롬프트 추가!
 ): Promise<CardPromptData[]> => {
   const ai = getAiClient();
   
-  const styleGuide = imageStyle === 'illustration' 
+  // 커스텀 프롬프트가 있으면 최우선 적용!
+  const styleGuide = customImagePrompt?.trim()
+    ? `커스텀 스타일: ${customImagePrompt}` // 커스텀 프롬프트 최우선!
+    : imageStyle === 'illustration' 
     ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽'
     : imageStyle === 'medical'
     ? '3D 해부학 일러스트, 인체 구조, 교육용'
@@ -1595,7 +1599,26 @@ ${keyFeatures ? `- 디자인 특징: ${keyFeatures}` : ''}
 [3번째 강조] ${bgColor} 배경 + ${accentColor} 강조색 조합 필수!
 ` : '';
 
+  // 커스텀 스타일 강조 (있으면 최우선 적용!)
+  const customStyleInfo = customImagePrompt?.trim() ? `
+████████████████████████████████████████████████████████████████████████████████
+🚨🚨🚨 최우선 규칙: 커스텀 이미지 스타일 적용! 🚨🚨🚨
+████████████████████████████████████████████████████████████████████████████████
+
+사용자가 "${customImagePrompt}" 스타일을 요청했습니다!
+
+[필수 적용]
+- 모든 카드 이미지에 이 스타일을 반드시 적용하세요!
+- 기본 3D 일러스트/실사 사진 대신 커스텀 스타일로!
+- 각 imagePrompt에 "${customImagePrompt}" 키워드 포함 필수!
+
+[예시]
+"1:1 정사각형 카드뉴스, ${customImagePrompt} 스타일, 배경색 ${bgColor}, ..."
+` : '';
+
   const prompt = `당신은 **소셜미디어 카드뉴스 디자이너**입니다.
+
+${customStyleInfo}
 
 ████████████████████████████████████████████████████████████████████████████████
 [🎯 핵심 미션] 이미지 1장 = 완성된 카드뉴스 1장
@@ -1706,14 +1729,26 @@ ${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑
     });
     
     const result = JSON.parse(response.text || '{"cards":[]}');
-    return result.cards || slides.map(s => ({
-      imagePrompt: `1:1 카드, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}, ${styleGuide}`,
+    // 결과에 커스텀 스타일이 누락되어 있으면 추가
+    const cards = result.cards || slides.map(s => ({
+      imagePrompt: `1:1 정사각형 카드뉴스, ${styleGuide}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}`,
       textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
     }));
+    
+    // 커스텀 스타일이 있으면 각 imagePrompt에 강제 추가
+    if (customImagePrompt?.trim()) {
+      console.log('🎨 카드뉴스 이미지에 커스텀 스타일 강제 적용:', customImagePrompt);
+      return cards.map((card: any) => ({
+        ...card,
+        imagePrompt: `${card.imagePrompt}, ${customImagePrompt} 스타일`
+      }));
+    }
+    return cards;
   } catch (error) {
     console.error('전체 이미지 카드 프롬프트 실패:', error);
+    const fallbackStyle = customImagePrompt?.trim() ? `${customImagePrompt} 스타일` : styleGuide;
     return slides.map(s => ({
-      imagePrompt: `1:1 카드, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}, ${styleGuide}`,
+      imagePrompt: `1:1 정사각형 카드뉴스, ${fallbackStyle}, ${bgColor} 배경, ${s.subtitle}, ${s.mainTitle}, ${s.imageKeyword}`,
       textPrompt: { subtitle: s.subtitle, mainTitle: s.mainTitle, description: s.description, tags: s.tags }
     }));
   }
@@ -1977,13 +2012,14 @@ export const convertScriptToCardNews = async (
   onProgress('🏗️ 카드 구조 생성 중...');
   const htmlContent = assembleCardNewsHtml({ ...script, slides }, styleConfig);
   
-  // 카드 프롬프트 생성
+  // 카드 프롬프트 생성 (커스텀 이미지 프롬프트 전달!)
   onProgress('🎨 카드 이미지 프롬프트 생성 중...');
   const cardPrompts = await fullImageCardPromptAgent(
     slides,
     request.imageStyle || 'illustration',
     request.category,
-    styleConfig
+    styleConfig,
+    request.customImagePrompt  // 커스텀 프롬프트 전달!
   );
   
   const imagePrompts = cardPrompts.map(c => c.imagePrompt);
@@ -2069,7 +2105,8 @@ export const generateCardNewsWithAgents = async (
     story.slides,
     request.imageStyle || 'illustration',
     request.category,
-    styleConfig
+    styleConfig,
+    request.customImagePrompt  // 커스텀 프롬프트 전달!
   );
   
   // 이미지 프롬프트만 추출 (기존 호환성)
