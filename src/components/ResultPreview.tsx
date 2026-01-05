@@ -362,55 +362,57 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  // 임시저장 (5초마다 자동저장 + 히스토리에 추가)
-  useEffect(() => {
-    const saveTimer = setInterval(() => {
-      if (localHtml && localHtml.trim()) {
-        const now = new Date();
-        const title = extractTitle(localHtml);
-        
-        const saveData = {
-          html: localHtml,
-          theme: currentTheme,
-          postType: content.postType,
-          imageStyle: content.imageStyle,
-          savedAt: now.toISOString(),
-          title: title
-        };
-        
-        // 현재 자동저장 (단일 저장은 항상 시도)
-        const saveDataStr = JSON.stringify(saveData);
-        if (!safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr)) {
-          // 용량 초과 시 히스토리 전체 삭제 후 재시도
-          localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
-          setAutoSaveHistory([]);
-          safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr);
+  // 수동 저장 함수 (사용자가 버튼 클릭 시 저장)
+  const saveManually = () => {
+    if (!localHtml || !localHtml.trim()) {
+      alert('저장할 내용이 없습니다.');
+      return;
+    }
+    
+    const now = new Date();
+    const title = extractTitle(localHtml);
+    
+    const saveData = {
+      html: localHtml,
+      theme: currentTheme,
+      postType: content.postType,
+      imageStyle: content.imageStyle,
+      savedAt: now.toISOString(),
+      title: title
+    };
+    
+    // 현재 저장 (단일 저장은 항상 시도)
+    const saveDataStr = JSON.stringify(saveData);
+    if (!safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr)) {
+      // 용량 초과 시 히스토리 전체 삭제 후 재시도
+      localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
+      setAutoSaveHistory([]);
+      safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr);
+    }
+    setLastSaved(now);
+    
+    // 히스토리에 추가 (최근 3개만 유지 - 용량 절약)
+    setAutoSaveHistory(prev => {
+      const filtered = prev.filter(item => item.title !== title);
+      let newHistory = [saveData, ...filtered].slice(0, 3);
+      
+      // 저장 시도
+      let historyStr = JSON.stringify(newHistory);
+      if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
+        // 용량 초과 시 2개로 줄여서 재시도
+        newHistory = newHistory.slice(0, 2);
+        historyStr = JSON.stringify(newHistory);
+        if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
+          // 그래도 안 되면 1개만
+          newHistory = newHistory.slice(0, 1);
+          safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
         }
-        setLastSaved(now);
-        
-        // 히스토리에 추가 (최근 3개만 유지 - 용량 절약)
-        setAutoSaveHistory(prev => {
-          const filtered = prev.filter(item => item.title !== title);
-          let newHistory = [saveData, ...filtered].slice(0, 3); // 5개 → 3개로 축소
-          
-          // 저장 시도
-          let historyStr = JSON.stringify(newHistory);
-          if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
-            // 용량 초과 시 2개로 줄여서 재시도
-            newHistory = newHistory.slice(0, 2);
-            historyStr = JSON.stringify(newHistory);
-            if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
-              // 그래도 안 되면 1개만
-              newHistory = newHistory.slice(0, 1);
-              safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
-            }
-          }
-          return newHistory;
-        });
       }
-    }, 5000);
-    return () => clearInterval(saveTimer);
-  }, [localHtml, currentTheme, content.postType, content.imageStyle]);
+      return newHistory;
+    });
+    
+    alert(`"${title}" 저장되었습니다!`);
+  };
 
   // 특정 저장본 불러오기
   const loadFromAutoSaveHistory = (item: AutoSaveHistoryItem) => {
@@ -2339,8 +2341,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
           
           <div className="flex items-center gap-2">
-            {/* 임시저장 버튼 */}
+            {/* 저장 버튼 */}
             <div className="flex items-center gap-1 relative">
+              {/* 수동 저장 버튼 */}
+              <button 
+                onClick={saveManually}
+                className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${darkMode ? 'bg-blue-900/50 text-blue-400 hover:bg-blue-900' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}
+                title="현재 내용 저장"
+              >
+                💾 저장
+              </button>
+              
               {hasAutoSave() && (
                 <div className="relative">
                   <button 
