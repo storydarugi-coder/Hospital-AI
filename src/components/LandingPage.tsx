@@ -230,7 +230,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">간단한 3단계</h2>
-            <p className="text-slate-500 font-medium">키워드 입력부터 완성까지, 단 30초</p>
+            <p className="text-slate-500 font-medium">키워드 입력부터 블로그/카드뉴스까지, 단 30초</p>
           </div>
 
           {/* Process Steps */}
@@ -238,17 +238,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all group">
               <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-6 group-hover:scale-110 transition-transform">1</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">키워드 입력</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">진료과 선택 후 원하는 키워드만 입력하세요. AI가 트렌드를 분석합니다.</p>
+              <p className="text-slate-500 font-medium leading-relaxed">진료과 선택 후 원하는 키워드만 입력하세요. AI가 실시간 트렌드를 분석해 제목을 추천합니다.</p>
             </div>
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all group">
               <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-6 group-hover:scale-110 transition-transform">2</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">AI 원고 생성</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">의료광고법을 100% 준수하는 SEO 최적화 원고가 자동 생성됩니다.</p>
+              <p className="text-slate-500 font-medium leading-relaxed">블로그 또는 카드뉴스 선택! 의료광고법 100% 준수 + SEO 최적화 원고가 자동 생성됩니다.</p>
             </div>
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xl shadow-slate-100/50 hover:shadow-2xl hover:shadow-emerald-100/50 transition-all group">
               <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center text-white font-black text-xl mb-6 group-hover:scale-110 transition-transform">3</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">이미지 자동 생성</h3>
-              <p className="text-slate-500 font-medium leading-relaxed">글에 맞는 AI 이미지까지 자동 생성. 바로 블로그에 복사하세요.</p>
+              <p className="text-slate-500 font-medium leading-relaxed">글에 맞는 AI 이미지까지 자동 생성. 카드뉴스는 원클릭 다운로드!</p>
             </div>
           </div>
         </div>
@@ -270,7 +270,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-3xl border border-red-100 hover:shadow-xl transition-all">
               <div className="text-4xl mb-4">⚖️</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">의료광고법 100% 준수</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">2025년 최신 가이드라인 기반, 금칙어/금지어 자동 필터링으로 안전한 콘텐츠만 생성</p>
+              <p className="text-slate-600 font-medium leading-relaxed">2026년 최신 가이드라인 기반, 금칙어/금지어 자동 필터링으로 안전한 콘텐츠만 생성</p>
             </div>
 
             <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-8 rounded-3xl border border-emerald-100 hover:shadow-xl transition-all">
@@ -282,7 +282,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-3xl border border-blue-100 hover:shadow-xl transition-all">
               <div className="text-4xl mb-4">🖼️</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">AI 이미지 자동 생성</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">실사/일러스트 선택 가능, 글 내용에 맞는 고품질 이미지 자동 생성</p>
+              <p className="text-slate-600 font-medium leading-relaxed">실사/일러스트/커스텀 스타일 선택 + 참고 이미지로 느낌 일관성 유지</p>
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-3xl border border-purple-100 hover:shadow-xl transition-all">
@@ -293,8 +293,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
 
             <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-8 rounded-3xl border border-amber-100 hover:shadow-xl transition-all">
               <div className="text-4xl mb-4">🎨</div>
-              <h3 className="text-xl font-black text-slate-800 mb-3">5가지 디자인 테마</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">모던, 프리미엄, 미니멀, 따뜻한, 의료전문 - 병원 분위기에 맞게 선택</p>
+              <h3 className="text-xl font-black text-slate-800 mb-3">블로그 + 카드뉴스</h3>
+              <p className="text-slate-600 font-medium leading-relaxed">블로그 글과 카드뉴스를 한 번에! 카드뉴스는 원고 미리보기 후 생성</p>
             </div>
 
             <div className="bg-gradient-to-br from-cyan-50 to-sky-50 p-8 rounded-3xl border border-cyan-100 hover:shadow-xl transition-all">
@@ -320,7 +320,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <span className="text-sm font-bold text-white">🪄 마법 같은 편집</span>
             </div>
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">생성 후 수정도 간단하게</h2>
-            <p className="text-purple-200 font-medium max-w-xl mx-auto">클릭 한 번으로 이미지 재생성, AI 채팅으로 글 수정</p>
+            <p className="text-purple-200 font-medium max-w-xl mx-auto">카드별 재생성, 참고 이미지 고정, AI 채팅으로 글 수정</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -354,13 +354,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               </div>
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-purple-200 text-sm">
-                  <span className="text-emerald-400">✓</span> 원하는 스타일로 즉시 교체
+                  <span className="text-emerald-400">✓</span> 카드뉴스: 개별 카드 재생성 가능
                 </li>
                 <li className="flex items-center gap-2 text-purple-200 text-sm">
-                  <span className="text-emerald-400">✓</span> 프롬프트 직접 수정 가능
+                  <span className="text-emerald-400">✓</span> 참고 이미지 고정으로 느낌 일관성 유지
                 </li>
                 <li className="flex items-center gap-2 text-purple-200 text-sm">
-                  <span className="text-emerald-400">✓</span> 실사 ↔ 일러스트 변경
+                  <span className="text-emerald-400">✓</span> 커스텀 스타일(색연필, 수채화 등) 지원
                 </li>
               </ul>
             </div>
