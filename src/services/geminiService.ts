@@ -971,11 +971,16 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     
     // 스타일별 한국어 프롬프트 (사용자가 바로 이해하고 수정 가능)
     let stylePrompt = "";
-    // 커스텀 프롬프트가 있으면 무조건 커스텀 프롬프트 사용! (style 값과 무관하게)
+    // 🎨 스타일 우선순위: 커스텀 > 참고 이미지 스타일 > 기본 스타일
     if (customStylePrompt && customStylePrompt.trim()) {
         // 사용자 커스텀 스타일 프롬프트 - 최우선 적용
         stylePrompt = customStylePrompt;
         console.log('🎨 커스텀 이미지 스타일 적용:', customStylePrompt.substring(0, 50) + '...');
+    } else if (referenceImage) {
+        // 🔴 참고 이미지가 있으면 기본 3D 스타일 적용 안 함!
+        // 참고 이미지의 스타일을 그대로 따라가도록 지시
+        stylePrompt = "참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트, 클레이 렌더, 아이소메트릭 등으로 강제 변환하지 마세요!";
+        console.log('🖼️ 참고 이미지 스타일 따라가기 모드');
     } else if (style === 'photo') {
         stylePrompt = "초고화질 실사 사진, 8K 해상도, 전문 DSLR 촬영, 부드러운 병원 조명, 신뢰감 있는 의료 분위기, 얕은 피사계 심도";
     } else if (style === 'medical') {
@@ -1057,8 +1062,11 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 - 참고 이미지의 일러스트 그대로 복사
 - 참고 이미지의 텍스트 그대로 복사
 - 완전히 다른 스타일로 만들기 (스타일은 유지!)
+- 🔴 참고 이미지가 2D 파스텔이면 → 3D/클레이/아이소메트릭으로 변환 금지!
+- 🔴 참고 이미지가 플랫 디자인이면 → 3D로 변환 금지!
+- 🔴 참고 이미지의 일러스트 기법을 반드시 따라가세요!
 
-🎯 목표: 같은 시리즈처럼 보이지만 새로운 카드!
+🎯 목표: 같은 시리즈처럼 보이지만 새로운 카드! (스타일/기법 동일!)
 `;
       }
     }

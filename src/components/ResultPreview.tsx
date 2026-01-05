@@ -521,20 +521,29 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const style = content.imageStyle || 'illustration';
       
       // 🎨 커스텀 스타일 프롬프트 우선순위:
-      // 1. content.customImagePrompt가 있으면 무조건 사용 (style이 'custom'이 아니어도!)
-      // 2. 참고 이미지가 있고 style이 'custom'이면 분석된 스타일 적용
-      // 3. 없으면 undefined
-      const customStylePrompt = content.customImagePrompt || undefined;
+      // 1. content.customImagePrompt가 있으면 무조건 사용
+      // 2. 참고 이미지가 있으면 "참고 이미지 스타일 그대로" 지시
+      // 3. 없으면 기본 스타일
+      let customStylePrompt = content.customImagePrompt || undefined;
       
-      // 🎨 스타일 결정: 커스텀 스타일 > 기본 스타일
-      const styleText = customStylePrompt 
-        ? customStylePrompt  // 커스텀 스타일 있으면 그대로 사용
-        : style === 'illustration' ? '3D 일러스트' 
-        : style === 'medical' ? '의학 3D' 
-        : '실사 사진';
+      // 🎨 스타일 결정: 커스텀 > 참고 이미지 스타일 > 기본 스타일
+      let styleText: string;
+      if (customStylePrompt) {
+        styleText = customStylePrompt;  // 커스텀 스타일 있으면 그대로 사용
+      } else if (cardRegenRefImage) {
+        // 🔴 참고 이미지가 있으면 스타일 강제 지정하지 않음!
+        // 참고 이미지의 스타일을 그대로 따라가도록 함
+        styleText = '참고 이미지와 동일한 스타일 (3D/2D/실사 등 참고 이미지의 기법 그대로 따라하기)';
+        // generateSingleImage에 전달할 customStylePrompt도 설정
+        customStylePrompt = '참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트로 변환하지 마세요!';
+      } else {
+        styleText = style === 'illustration' ? '3D 일러스트' 
+          : style === 'medical' ? '의학 3D' 
+          : '실사 사진';
+      }
       
       let imagePromptToUse = editImagePrompt || 
-        `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어 텍스트만`;
+        `전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 금지), 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어만`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
