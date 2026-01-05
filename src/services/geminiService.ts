@@ -1673,10 +1673,15 @@ const fullImageCardPromptAgent = async (
   const mood = styleConfig?.mood || '밝고 친근한';
   const keyFeatures = styleConfig?.keyFeatures?.join(', ') || '';
   
-  // 슬라이드 정보
-  const slideSummaries = slides.map((s, i) => 
-    `${i + 1}장: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" description="${s.description}" 이미지="${s.imageKeyword}"`
-  ).join('\n');
+  // 슬라이드 정보 (1장=표지, 마지막장은 description 제외!)
+  const slideSummaries = slides.map((s, i) => {
+    const isFirstOrLast = i === 0 || i === slides.length - 1;
+    // 표지(1장)와 마지막 장은 description 생략!
+    if (isFirstOrLast) {
+      return `${i + 1}장 (${i === 0 ? '표지' : '마지막'}): subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" ⚠️description 없음! 이미지="${s.imageKeyword}"`;
+    }
+    return `${i + 1}장: subtitle="${s.subtitle}" mainTitle="${s.mainTitle.replace(/<\/?highlight>/g, '')}" description="${s.description}" 이미지="${s.imageKeyword}"`;
+  }).join('\n');
 
   // 🎨 스타일 참고 이미지가 있으면 프롬프트 3회 반복 강조!
   const styleRefInfo = styleConfig ? `
@@ -1741,7 +1746,7 @@ ${slideSummaries}
 - 임팩트 있는 메인 제목이 화면 중앙에 크게!
 - 일러스트가 중앙을 차지하며 시선을 끔
 - 부제목은 상단에 작게
-- 본문 설명 텍스트는 최소화 또는 생략
+- 🚨🚨🚨 description 텍스트 절대 넣지 마세요! 표지는 제목+부제+일러스트만!
 - 전체적으로 "이 카드뉴스가 무엇에 관한 것인지" 한눈에 파악되게!
 
 [표지 프롬프트 예시]
@@ -1781,6 +1786,15 @@ ${hasWindowButtons ? '✅ 최상단: 브라우저 창 버튼 3개 (빨강/노랑
 [🚨 의료법 준수]
 ❌ 금지: "상담하세요", "방문하세요", "예약하세요", "완치", "보장"
 ✅ 허용: 증상명, 질환명, 정보성 키워드, 질문형
+
+████████████████████████████████████████████████████████████████████████████████
+[🎨 마지막 카드 = CTA 표지 - description 없음!]
+████████████████████████████████████████████████████████████████████████████████
+⭐ 마지막 카드도 표지처럼 만드세요!
+- 🚨🚨🚨 description 텍스트 절대 넣지 마세요! 마지막 장은 제목+부제+일러스트만!
+- 부제목 + 메인 제목 + 일러스트로 구성
+- "왜 지금이어야 하는지" 메시지 전달
+- 긴 설명 문장 ❌, 짧은 판단 유도 문구만!
 
 ████████████████████████████████████████████████████████████████████████████████
 [🇰🇷 언어 규칙] 모든 imagePrompt는 반드시 한국어로!
