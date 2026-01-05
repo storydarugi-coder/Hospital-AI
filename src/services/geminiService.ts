@@ -267,11 +267,11 @@ const getMedicalSafetyPrompt = () => {
 const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 
 // =============================================
-// 🎨 공통 이미지 프롬프트 상수 (중복 제거)
+// 🎨 공통 이미지 프롬프트 상수 (중복 제거) - export 포함
 // =============================================
 
 // 카드뉴스 레이아웃 규칙 (2단 분할 금지)
-const CARD_LAYOUT_RULE = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
+export const CARD_LAYOUT_RULE = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
 
 // 카드뉴스 레이아웃 상세 규칙
 const CARD_LAYOUT_PROMPT = `
@@ -318,11 +318,26 @@ const IMAGE_TEXT_RULES = `
 - ⚠️ 한국어 텍스트만!`;
 
 // 기본 스타일 프롬프트
-const DEFAULT_STYLE_PROMPTS = {
+export const DEFAULT_STYLE_PROMPTS = {
   illustration: '고품질 3D 의료 일러스트, 인포그래픽, 파란색/흰색, 아이소메트릭, 클레이 렌더',
   medical: '전문 3D 의학 해부학 일러스트, 단면도, 인체 내부, 과학적 시각화',
   photo: '초고화질 실사 사진, 8K, DSLR, 부드러운 병원 조명, 얕은 피사계 심도'
 };
+
+// 참고 이미지 스타일 따라가기 프롬프트
+export const REF_IMAGE_STYLE_FOLLOW_PROMPT = '참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트로 변환하지 마세요!';
+
+// =============================================
+// 📝 공통 텍스트 상수 (중복 제거)
+// =============================================
+
+// 콘텐츠 설명 (카드뉴스/블로그 공통)
+const CONTENT_DESCRIPTION = `이 콘텐츠는 의료정보 안내용 카드뉴스이며,
+네이버 병원 블로그 및 SNS에 사용됩니다.
+의료광고법을 준수하며, 직접적인 방문·예약 유도는 금지합니다.`;
+
+// 의료 면책 조항 (HTML)
+const MEDICAL_DISCLAIMER = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
 
 // 글 스타일별 프롬프트 (의료법 100% 준수)
 const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
@@ -1438,9 +1453,7 @@ const storyPlannerAgent = async (
 
 [🎯 미션] "${topic}" 주제로 ${slideCount}장짜리 **전환형** 카드뉴스를 기획하세요.
 
-이 콘텐츠는 의료정보 안내용 카드뉴스이며,
-네이버 병원 블로그 및 SNS에 사용됩니다.
-의료광고법을 준수하며, 직접적인 방문·예약 유도는 금지합니다.
+${CONTENT_DESCRIPTION}
 
 [📅 현재: ${currentYear}년 - 보수적 해석 원칙]
 - ${currentYear}년 기준 보건복지부·의료광고 심의 지침을 반영
@@ -2032,8 +2045,7 @@ ${PSYCHOLOGY_CTA_PROMPT}
 [진료과] ${request.category}
 [글 스타일] ${writingStyle === 'expert' ? '전문가형(신뢰·권위)' : writingStyle === 'empathy' ? '공감형(독자 공감)' : '전환형(정보→확인 유도)'}
 
-이 콘텐츠는 의료정보 안내용 카드뉴스이며,
-네이버 병원 블로그 및 SNS에 사용됩니다.
+${CONTENT_DESCRIPTION}
 
 [🧠 핵심 원칙: 카드뉴스는 "정보 나열"이 아니라 "심리 흐름"이다!]
 - 카드뉴스는 슬라이드형 설득 구조
@@ -3119,15 +3131,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
         return '';
       }).filter(Boolean).join('\n');
       
-      const disclaimer = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
-      
       const finalHtml = `
         <div class="card-news-container">
           <h2 class="hidden-title">${agentResult.title}</h2>
           <div class="card-grid-wrapper">
             ${cardSlides}
           </div>
-          <div class="legal-box-card">${disclaimer}</div>
+          <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
         </div>
       `.trim();
       
@@ -3306,8 +3316,6 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
     onProgress(`🎨 템플릿 색상(${bgColor}) 적용 완료`);
   }
 
-  const disclaimer = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
-
   let finalHtml = "";
   if (request.postType === 'card_news') {
       finalHtml = `
@@ -3316,7 +3324,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
          <div class="card-grid-wrapper">
             ${body}
          </div>
-         <div class="legal-box-card">${disclaimer}</div>
+         <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
       </div>
       `.trim();
   } else {

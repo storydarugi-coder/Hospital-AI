@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, recommendImagePrompt, regenerateCardSlide } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS, REF_IMAGE_STYLE_FOLLOW_PROMPT } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -176,9 +176,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     // 텍스트 내용이 하나라도 있으면 이미지 프롬프트 자동 생성
     if (editSubtitle || editMainTitle || editDescription) {
       const style = content.imageStyle || 'illustration';
-      const styleText = style === 'illustration' ? '3D 일러스트, 아이소메트릭, 클레이 렌더' 
-        : style === 'medical' ? '의학 3D 해부학 일러스트' 
-        : '실사 사진, 전문적인 의료 분위기';
+      const styleText = DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration;
       
       const newImagePrompt = `1:1 정사각형 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
       
@@ -533,17 +531,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else if (cardRegenRefImage) {
         // 🔴 참고 이미지가 있으면 스타일 강제 지정하지 않음!
         // 참고 이미지의 스타일을 그대로 따라가도록 함
-        styleText = '참고 이미지와 동일한 스타일 (3D/2D/실사 등 참고 이미지의 기법 그대로 따라하기)';
+        styleText = '참고 이미지와 동일한 스타일';
         // generateSingleImage에 전달할 customStylePrompt도 설정
-        customStylePrompt = '참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트로 변환하지 마세요!';
+        customStylePrompt = REF_IMAGE_STYLE_FOLLOW_PROMPT;
       } else {
-        styleText = style === 'illustration' ? '3D 일러스트' 
-          : style === 'medical' ? '의학 3D' 
-          : '실사 사진';
+        styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
       let imagePromptToUse = editImagePrompt || 
-        `전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 금지), 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어만`;
+        `${CARD_LAYOUT_RULE}, 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어만`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
