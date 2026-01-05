@@ -984,29 +984,18 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = "고품질 3D 의료 일러스트, 깔끔한 인포그래픽 스타일, 밝은 파란색과 흰색 팔레트, 친근하고 현대적인 느낌, 아이소메트릭 뷰, 부드러운 클레이 렌더 스타일";
     }
 
-    // 완성형 카드뉴스 모드일 때 추가 지시
+    // 완성형 카드뉴스 모드일 때 추가 지시 - 가장 간결하고 강력하게!
     const cardNewsPrompt = isCardNewsMode ? `
-████████████████████████████████████████████████████████████████████████████████
-🚨🚨🚨 [최우선] 레이아웃 규칙 - 반드시 지켜야 함! 🚨🚨🚨
-████████████████████████████████████████████████████████████████████████████████
+🔴🔴🔴 [절대 필수] 전체 배경 일러스트 + 텍스트 오버레이 구조! 🔴🔴🔴
 
-⛔⛔⛔ 절대 금지되는 레이아웃 ⛔⛔⛔
-- 상단에 흰색/단색 텍스트 영역 + 하단에 일러스트 영역 = 2개로 분리된 느낌 = 금지!
-- 텍스트 박스와 이미지 박스가 나뉘어 보이는 디자인 = 금지!
-- 위아래로 2등분된 듯한 구성 = 금지!
+⛔ 금지: 상단 흰색/회색 텍스트박스 + 하단 일러스트 분리 레이아웃
+✅ 필수: 일러스트가 화면 100% 채우고, 그 위에 텍스트 배치 (포스터 스타일)
 
-✅✅✅ 반드시 이렇게 만드세요 ✅✅✅
-- 일러스트/배경이 전체 화면을 채우고, 그 위에 텍스트가 오버레이!
-- 텍스트는 일러스트 위에 반투명 배경과 함께 자연스럽게 배치
-- 마치 영화 포스터, 앨범 커버, 인스타그램 카드처럼 하나의 통합된 디자인!
-- 일러스트가 전체 배경이고, 텍스트는 그 위의 레이어!
-
-예시 구조:
-- 배경: 전체를 채우는 일러스트 또는 그라데이션 + 일러스트
-- 텍스트: 상단 또는 중앙에 반투명 배경 위에 제목/부제
-
-- ❌ 해시태그(#) 절대 넣지 마세요!
-- ❌ 영어 텍스트 금지! 한국어만!
+[출력 이미지 구조]
+- 배경: 전체 화면을 채우는 일러스트 또는 그라데이션+일러스트
+- 텍스트: 일러스트 위에 반투명 배경과 함께 오버레이
+- 참고: 영화 포스터, 뮤직 앨범 커버처럼 통합된 디자인
+- 해시태그 금지, 한국어만!
 ` : '';
 
     // 참고 이미지 모드별 프롬프트
@@ -1077,20 +1066,23 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     // 공통 함수로 프롬프트 정리
     const cleanPromptText = cleanImagePromptText(promptText);
     
-    // 전체 한국어 프롬프트 - 의료법 위반 문구만 금지, 한글/숫자는 허용
-    const finalPrompt = `${refImagePrompt}${stylePrompt}. ${cleanPromptText}. 
-${cardNewsPrompt}
+    // 커스텀 스타일이 있으면 [스타일] 섹션 생략 (프롬프트에 이미 스타일 포함되어 있음)
+    const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
+    const styleSection = hasCustomStyle 
+      ? `[🎨 커스텀 스타일 필수] "${customStylePrompt}" 스타일로만 생성! 3D/클레이/아이소메트릭 등 다른 스타일 금지!` 
+      : `[스타일] ${stylePrompt}`;
+    
+    // 전체 한국어 프롬프트 - 카드뉴스 레이아웃 규칙을 맨 앞에!
+    const finalPrompt = `${cardNewsPrompt}
+${refImagePrompt}
+${styleSection}
+
+[요청 내용] ${cleanPromptText}
+
 [이미지 내 텍스트 규칙]
-- ✅ 허용 (적극 사용): 
-  - 모든 질환명: 혈액암, 백혈병, 당뇨병, 고혈압, 암, 종양 등
-  - 모든 증상명: 멍, 출혈, 피로, 부종, 통증, 발열 등
-  - 의학 용어: 림프절, 혈소판, 백혈구, 적혤구 등
-  - 정보성 키워드, 질문형 문구, 숫자/통계
-- ❌ 금지 (광고성 문구만): "즉시 상담", "병원 방문", "예약하세요", "내원하세요", "완치 보장", "최고", "100% 효과"
-- ❌ 금지 (디자인): 로고, 워터마크, 말풍선, 공포 유발 요소
-- ❌ 절대 금지 (데이터): base64 문자열, 코드, 알파벳+숫자 조합의 무의미한 문자열
-- ⚠️ 이미지 안에는 오직 의미있는 한국어 텍스트만 포함! 영어/숫자 조합의 코드 문자열 절대 금지!
-전문적인 한국 의료 정보 카드뉴스.`;
+- ✅ 허용: 질환명, 증상명, 의학 용어, 정보성 키워드
+- ❌ 금지: 광고성 문구, 로고, 워터마크, base64 문자열
+- ⚠️ 한국어 텍스트만!`;
 
     try {
       // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
@@ -1915,7 +1907,9 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
       
       // imagePrompt 직접 조합 (AI 결과 무시!)
-      const imagePrompt = `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`;
+      // 🔴 레이아웃 규칙을 프롬프트 앞에 명시!
+      const layoutRule = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
+      const imagePrompt = `${layoutRule}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -1944,8 +1938,9 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const isLast = idx === slides.length - 1;
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
+      const layoutRule = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
       return {
-        imagePrompt: `전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`,
+        imagePrompt: `${layoutRule}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
