@@ -324,6 +324,20 @@ export const DEFAULT_STYLE_PROMPTS = {
   photo: '초고화질 실사 사진, 8K, DSLR, 부드러운 병원 조명, 얕은 피사계 심도'
 };
 
+// 스타일 이름 (UI 표시용)
+export const STYLE_NAMES = {
+  illustration: '3D 일러스트',
+  medical: '의학 3D',
+  photo: '실사 사진'
+};
+
+// 짧은 스타일 키워드 (프롬프트용)
+export const STYLE_KEYWORDS = {
+  illustration: '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽',
+  medical: '3D 해부학 일러스트, 인체 구조, 교육용',
+  photo: '실사 사진, DSLR 촬영'
+};
+
 // 참고 이미지 스타일 따라가기 프롬프트
 export const REF_IMAGE_STYLE_FOLLOW_PROMPT = '참고 이미지의 일러스트 스타일/기법/색감을 그대로 따라하세요. 3D 일러스트로 변환하지 마세요!';
 
@@ -1774,12 +1788,8 @@ const fullImageCardPromptAgent = async (
   // 커스텀 프롬프트가 있으면 최우선 적용! (기본 스타일 완전 대체!)
   const hasCustomStyle = customImagePrompt?.trim();
   const styleGuide = hasCustomStyle
-    ? customImagePrompt!.trim() // 커스텀 프롬프트만 사용! ("커스텀 스타일:" 접두어 제거)
-    : imageStyle === 'illustration' 
-    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽'
-    : imageStyle === 'medical'
-    ? '3D 해부학 일러스트, 인체 구조, 교육용'
-    : '실사 사진, DSLR 촬영';
+    ? customImagePrompt!.trim()
+    : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration;
   
   // 🎨 스타일 참고 이미지가 있으면 해당 색상 사용, 없으면 기본값
   const bgColor = styleConfig?.backgroundColor || '#E8F4FD';
@@ -1966,11 +1976,7 @@ const imagePromptAgent = async (
 ): Promise<string[]> => {
   const ai = getAiClient();
   
-  const styleGuide = imageStyle === 'illustration' 
-    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽, 파란색 흰색 팔레트'
-    : imageStyle === 'medical'
-    ? '3D 해부학 일러스트, 인체 구조, 교육용 의학 이미지'
-    : '실사 사진, DSLR 촬영, 전문적인 분위기';
+  const styleGuide = STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration;
   
   const slideSummaries = slides.map((s, i) => `${i + 1}장: ${s.slideType} - ${s.imageKeyword}`).join('\n');
   
@@ -3094,9 +3100,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       const agentResult = await generateCardNewsWithAgents(request, onProgress);
       
       // 이미지 생성
-      const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' 
-        : request.imageStyle === 'medical' ? '의학 3D' 
-        : '실사 촬영';
+      const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
       onProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
       
       // 🎨 이미지 = 카드 전체! (텍스트가 이미지 안에 포함된 완성형)
@@ -3191,9 +3195,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   const textData = await generateBlogPostText(request);
   
-  const styleName = request.imageStyle === 'illustration' ? '3D 일러스트' 
-    : request.imageStyle === 'medical' ? '의학 3D' 
-    : '실사 촬영';
+  const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
   const imgRatio = request.postType === 'card_news' ? "4:3" : "16:9";
   
   onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
@@ -3376,11 +3378,7 @@ export const regenerateCardSlide = async (
     ? '마무리 (마지막 장)' 
     : `본문 (${cardIndex + 1}장)`;
   
-  const imageStyleGuide = context.imageStyle === 'illustration' 
-    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트'
-    : context.imageStyle === 'medical'
-    ? '3D 해부학 일러스트, 인체 구조, 의학 이미지'
-    : '실사 사진, DSLR 촬영, 전문적인 분위기';
+  const imageStyleGuide = STYLE_KEYWORDS[context.imageStyle] || STYLE_KEYWORDS.illustration;
   
   // 현재 HTML에서 이미지를 마커로 교체 (기존 이미지 제거)
   const cleanedHtml = currentCardHtml
