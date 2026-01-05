@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { CardNewsScript, CardNewsSlideScript } from '../types';
-import { regenerateSlideContent } from '../services/geminiService';
+import { regenerateSlideContent, SlideRegenMode } from '../services/geminiService';
+
+// AI 재생성 옵션 정의
+const REGEN_OPTIONS: { mode: SlideRegenMode; label: string; emoji: string; desc: string }[] = [
+  { mode: 'rewrite', label: '완전 새로 쓰기', emoji: '🔄', desc: '새로운 관점으로 다시 작성' },
+  { mode: 'strengthen', label: '전환력 강화', emoji: '💪', desc: '행동 유도력 극대화' },
+  { mode: 'simplify', label: '더 간결하게', emoji: '✂️', desc: '핵심만 남기고 압축' },
+  { mode: 'empathy', label: '공감 강화', emoji: '💕', desc: '독자 공감 요소 추가' },
+  { mode: 'professional', label: '전문성 강화', emoji: '🏥', desc: '의학적 신뢰감 강화' },
+];
 
 interface ScriptPreviewProps {
   script: CardNewsScript;
@@ -36,6 +45,19 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
   const [editingSlide, setEditingSlide] = useState<number | null>(null);
   const [tempEdit, setTempEdit] = useState<CardNewsSlideScript | null>(null);
   const [regeneratingSlide, setRegeneratingSlide] = useState<number | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // 슬라이드 편집 시작
   const startEditing = (slideIndex: number) => {
@@ -43,10 +65,11 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
     setTempEdit({ ...script.slides[slideIndex] });
   };
   
-  // AI로 슬라이드 재생성
-  const handleAiRegenerate = async (slideIndex: number) => {
+  // AI로 슬라이드 재생성 (모드 선택 가능)
+  const handleAiRegenerate = async (slideIndex: number, mode: SlideRegenMode = 'rewrite') => {
     if (regeneratingSlide !== null) return;
     
+    setOpenDropdown(null);
     setRegeneratingSlide(slideIndex);
     try {
       const currentSlide = script.slides[slideIndex];
@@ -64,6 +87,7 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
         },
         prevSlide: slideIndex > 0 ? script.slides[slideIndex - 1] : undefined,
         nextSlide: slideIndex < script.slides.length - 1 ? script.slides[slideIndex + 1] : undefined,
+        mode,
       });
       
       const updatedSlides = [...script.slides];
@@ -192,27 +216,70 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
                 
                 {!isEditing && (
                   <div className="flex items-center gap-2">
-                    {/* AI 재생성 버튼 */}
-                    <button
-                      onClick={() => handleAiRegenerate(index)}
-                      disabled={regeneratingSlide !== null || isLoading}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${
-                        regeneratingSlide === index
-                          ? 'bg-purple-500 text-white'
-                          : darkMode 
-                            ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/50 border border-purple-500/50'
-                            : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
-                      }`}
-                    >
-                      {regeneratingSlide === index ? (
-                        <span className="flex items-center gap-1">
-                          <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          AI 작성중...
-                        </span>
-                      ) : (
-                        '🤖 AI 재작성'
+                    {/* AI 재생성 드롭다운 */}
+                    <div className="relative" ref={openDropdown === index ? dropdownRef : null}>
+                      <button
+                        onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
+                        disabled={regeneratingSlide !== null || isLoading}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1 ${
+                          regeneratingSlide === index
+                            ? 'bg-purple-500 text-white'
+                            : darkMode 
+                              ? 'bg-purple-600/30 text-purple-300 hover:bg-purple-600/50 border border-purple-500/50'
+                              : 'bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200'
+                        }`}
+                      >
+                        {regeneratingSlide === index ? (
+                          <span className="flex items-center gap-1">
+                            <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            AI 작성중...
+                          </span>
+                        ) : (
+                          <>
+                            🤖 AI 재작성
+                            <svg className={`w-3 h-3 transition-transform ${openDropdown === index ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </>
+                        )}
+                      </button>
+                      
+                      {/* 드롭다운 메뉴 */}
+                      {openDropdown === index && (
+                        <div className={`absolute right-0 mt-2 w-56 rounded-xl shadow-xl z-50 overflow-hidden border ${
+                          darkMode ? 'bg-slate-800 border-slate-600' : 'bg-white border-slate-200'
+                        }`}>
+                          <div className={`px-3 py-2 border-b ${darkMode ? 'bg-slate-700 border-slate-600' : 'bg-slate-50 border-slate-100'}`}>
+                            <span className={`text-xs font-bold ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                              🤖 AI 재작성 옵션 선택
+                            </span>
+                          </div>
+                          {REGEN_OPTIONS.map((option) => (
+                            <button
+                              key={option.mode}
+                              onClick={() => handleAiRegenerate(index, option.mode)}
+                              className={`w-full px-3 py-2.5 text-left transition-all ${
+                                darkMode 
+                                  ? 'hover:bg-slate-700 text-slate-200' 
+                                  : 'hover:bg-purple-50 text-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{option.emoji}</span>
+                                <div>
+                                  <div className={`text-sm font-bold ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
+                                    {option.label}
+                                  </div>
+                                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                    {option.desc}
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       )}
-                    </button>
+                    </div>
                     
                     {/* 수정 버튼 */}
                     <button
