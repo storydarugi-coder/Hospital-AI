@@ -1033,8 +1033,9 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     const cleanPromptText = promptText
       .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 전체 제거
       .replace(/https?:\/\/[^\s]+/g, '') // URL 전체 제거
-      .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상의 영숫자+특수문자 조합 제거
-      .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '') // 한글, 영문, 숫자, 기본 문장부호만 허용
+      .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거
+      .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
+      .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
       .replace(/\s+/g, ' ') // 연속 공백 정리
       .trim();
     
@@ -2126,10 +2127,11 @@ export const convertScriptToCardNews = async (
   
   // 🚨 imagePrompt에서 base64/URL 패턴 필터링 (이미지에 코드 렌더링 방지)
   const cleanImagePrompt = (prompt: string) => prompt
-    .replace(/data:[^;]+;base64,[^\s]+/g, '')
-    .replace(/https?:\/\/[^\s]+/g, '')
-    .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상 영숫자 조합 제거
-    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '')
+    .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 제거
+    .replace(/https?:\/\/[^\s]+/g, '') // URL 제거
+    .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거
+    .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
     .replace(/\s+/g, ' ')
     .trim();
   
@@ -2222,10 +2224,11 @@ export const generateCardNewsWithAgents = async (
   
   // 이미지 프롬프트만 추출 (기존 호환성) - 🚨 base64/URL 필터링!
   const cleanImagePrompt = (prompt: string) => prompt
-    .replace(/data:[^;]+;base64,[^\s]+/g, '')
-    .replace(/https?:\/\/[^\s]+/g, '')
-    .replace(/[A-Za-z0-9+/=]{15,}/g, '') // 15자 이상 영숫자 조합 제거
-    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n<>\/]+/g, '')
+    .replace(/data:[^;]+;base64,[^\s]+/g, '') // base64 데이터 제거
+    .replace(/https?:\/\/[^\s]+/g, '') // URL 제거
+    .replace(/[A-Za-z0-9+/=_-]{10,}/g, '') // 10자 이상 영숫자+특수문자 조합 제거 (경로 패턴 포함)
+    .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '') // 슬래시로 연결된 경로 패턴 제거
+    .replace(/[^\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F가-힣a-zA-Z0-9\s.,!?~·…""''():\-\n]+/g, '') // 허용 문자만 (슬래시 제외!)
     .replace(/\s+/g, ' ')
     .trim();
   const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
@@ -2996,11 +2999,20 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       ));
       
       // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
+      // 🚨 alt 속성에도 코드 문자열이 들어가지 않도록 필터링!
+      const cleanAltText = (text: string) => text
+        .replace(/[A-Za-z0-9+/=_-]{10,}/g, '')
+        .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '')
+        .replace(/[^\uAC00-\uD7AF가-힣a-zA-Z0-9\s.,!?~():\-]+/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 100); // alt 텍스트 길이 제한
+      
       const cardSlides = images.map((img, idx) => {
         if (img.data) {
           return `
             <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
-              <img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+              <img src="${img.data}" alt="${cleanAltText(img.prompt)}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
             </div>`;
         }
         return '';
