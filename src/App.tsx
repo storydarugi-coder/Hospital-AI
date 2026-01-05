@@ -423,18 +423,37 @@ const App: React.FC = () => {
       setScriptProgress('🖼️ 이미지 생성 중...');
       const imageStyle = pendingRequest.imageStyle || 'illustration';
       
-      // 이미지 생성 (병렬 처리)
+      // 참고 이미지 설정 (원고 확인 후에도 스타일 참고 이미지 적용!)
+      const referenceImage = pendingRequest.coverStyleImage || pendingRequest.contentStyleImage;
+      const copyMode = pendingRequest.styleCopyMode;
+      
+      // 이미지 생성 (병렬 처리) - 참고 이미지와 커스텀 스타일 전달!
       const imagePromises = designResult.imagePrompts.map((prompt, i) => {
         setScriptProgress(`🖼️ 이미지 ${i + 1}/${designResult.imagePrompts.length}장 생성 중...`);
-        return generateSingleImage(prompt, imageStyle, '1:1');
+        return generateSingleImage(
+          prompt, 
+          imageStyle, 
+          '1:1', 
+          pendingRequest.customImagePrompt,  // 커스텀 스타일 프롬프트
+          referenceImage,  // 참고 이미지
+          copyMode  // 레이아웃 복제 모드
+        );
       });
       
       const images = await Promise.all(imagePromises);
       
-      // HTML에 이미지 삽입
+      // HTML에 이미지 삽입 (이미지가 있으면 img 태그로, 없으면 플레이스홀더)
       let finalHtml = designResult.content;
       images.forEach((imgUrl, i) => {
-        finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgUrl || '');
+        if (imgUrl) {
+          // 이미지가 성공적으로 생성된 경우 img 태그로 교체
+          const imgTag = `<img src="${imgUrl}" alt="카드 ${i + 1}" class="card-inner-img" style="width: 100%; height: auto; border-radius: 12px;" />`;
+          finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgTag);
+        } else {
+          // 이미지 생성 실패 시 플레이스홀더
+          const placeholder = `<div style="width: 100%; height: 200px; background: #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #64748B;">이미지 생성 대기중</div>`;
+          finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, placeholder);
+        }
       });
       
       // 결과 저장
