@@ -1023,8 +1023,16 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
       }
     }
 
+    // 🚨 프롬프트에서 base64/URL 패턴 필터링 (이미지에 코드가 렌더링되는 것 방지)
+    const cleanPromptText = promptText
+      .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '') // base64 데이터 제거
+      .replace(/https?:\/\/[^\s"'<>]+/g, '') // URL 제거
+      .replace(/[A-Za-z0-9+/]{30,}/g, '') // 30자 이상의 알파벳+숫자 조합 제거 (코드 패턴)
+      .replace(/\s+/g, ' ') // 연속 공백 정리
+      .trim();
+    
     // 전체 한국어 프롬프트 - 의료법 위반 문구만 금지, 한글/숫자는 허용
-    const finalPrompt = `${refImagePrompt}${stylePrompt}. ${promptText}. 
+    const finalPrompt = `${refImagePrompt}${stylePrompt}. ${cleanPromptText}. 
 ${cardNewsPrompt}
 [이미지 내 텍스트 규칙]
 - ✅ 허용 (적극 사용): 
@@ -2110,7 +2118,15 @@ export const convertScriptToCardNews = async (
     request.customImagePrompt  // 커스텀 프롬프트 전달!
   );
   
-  const imagePrompts = cardPrompts.map(c => c.imagePrompt);
+  // 🚨 imagePrompt에서 base64/URL 패턴 필터링 (이미지에 코드 렌더링 방지)
+  const cleanImagePrompt = (prompt: string) => prompt
+    .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
+    .replace(/https?:\/\/[^\s"'<>]+/g, '')
+    .replace(/[A-Za-z0-9+/]{30,}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
   onProgress(`✅ 카드뉴스 디자인 변환 완료 (${cardPrompts.length}장)`);
   
   return {
@@ -2197,8 +2213,14 @@ export const generateCardNewsWithAgents = async (
     request.customImagePrompt  // 커스텀 프롬프트 전달!
   );
   
-  // 이미지 프롬프트만 추출 (기존 호환성)
-  const imagePrompts = cardPrompts.map(c => c.imagePrompt);
+  // 이미지 프롬프트만 추출 (기존 호환성) - 🚨 base64/URL 필터링!
+  const cleanImagePrompt = (prompt: string) => prompt
+    .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
+    .replace(/https?:\/\/[^\s"'<>]+/g, '')
+    .replace(/[A-Za-z0-9+/]{30,}/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const imagePrompts = cardPrompts.map(c => cleanImagePrompt(c.imagePrompt));
   onProgress(`✅ 카드 프롬프트 ${cardPrompts.length}개 생성 완료`);
   
   return {
