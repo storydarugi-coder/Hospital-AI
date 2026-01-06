@@ -498,21 +498,24 @@ const normalizePromptTextForImage = (raw: string): string => {
 };
 
 const buildStyleBlock = (style: ImageStyle, customStylePrompt?: string): string => {
-  // 🚨 photo/medical 스타일 선택 시 커스텀 프롬프트 무시! (스타일 버튼 우선)
-  if (style === 'photo') {
-    console.log('📸 실사 사진 스타일 강제 적용 (커스텀 프롬프트 무시)');
-    return PHOTO_STYLE_RULE;
-  }
-  if (style === 'medical') {
-    console.log('🫀 의학 3D 스타일 강제 적용 (커스텀 프롬프트 무시)');
-    return MEDICAL_3D_STYLE_RULE;
-  }
-  // custom 스타일이거나 illustration일 때만 커스텀 프롬프트 적용
-  if (style === 'custom' && customStylePrompt && customStylePrompt.trim()) {
+  // 🎨 커스텀 프롬프트가 있으면 최우선 적용! (재생성 시에도 유지)
+  if (customStylePrompt && customStylePrompt.trim()) {
     console.log('✏️ 커스텀 스타일 적용:', customStylePrompt.substring(0, 50));
     return CUSTOM_STYLE_RULE(customStylePrompt.trim());
   }
-  return ILLUSTRATION_3D_STYLE_RULE; // illustration 기본
+  
+  // 🚨 photo/medical 스타일 선택 시 고정 스타일 적용
+  if (style === 'photo') {
+    console.log('📸 실사 사진 스타일 적용');
+    return PHOTO_STYLE_RULE;
+  }
+  if (style === 'medical') {
+    console.log('🫀 의학 3D 스타일 적용');
+    return MEDICAL_3D_STYLE_RULE;
+  }
+  
+  // 기본: 3D 일러스트
+  return ILLUSTRATION_3D_STYLE_RULE;
 };
 
 const buildFrameBlock = (referenceImage?: string, copyMode?: boolean): string => {
