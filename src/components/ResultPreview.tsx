@@ -539,7 +539,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       }
       
       let imagePromptToUse = editImagePrompt || 
-        `${CARD_LAYOUT_RULE}, 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어만`;
+        `${CARD_LAYOUT_RULE}, 1:1 정사각형 카드뉴스, "${editSubtitle}", "${editMainTitle}", "${editDescription}", ${styleText}, 한국어 텍스트만`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {

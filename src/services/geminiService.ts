@@ -270,8 +270,8 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 // 🎨 공통 이미지 프롬프트 상수 (중복 제거) - export 포함
 // =============================================
 
-// 카드뉴스 레이아웃 규칙 (2단 분할 금지)
-export const CARD_LAYOUT_RULE = '전체화면 일러스트+텍스트 오버레이 (상단텍스트박스+하단이미지 분리 구조 절대금지)';
+// 카드뉴스 레이아웃 규칙 (원래 잘 작동하던 형식)
+export const CARD_LAYOUT_RULE = '전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이';
 
 // 카드뉴스 레이아웃 상세 규칙
 const CARD_LAYOUT_PROMPT = `
@@ -1923,8 +1923,8 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 🎨 스타일 결정: 커스텀 > 기본
       const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
       
-      // imagePrompt 직접 조합 (상수 사용)
-      const imagePrompt = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`;
+      // imagePrompt 직접 조합 (원래 잘 작동하던 형식으로 복원)
+      const imagePrompt = `${CARD_LAYOUT_RULE}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -1954,7 +1954,7 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       return {
-        imagePrompt: `${CARD_LAYOUT_RULE}, 1:1 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어만`,
+        imagePrompt: `${CARD_LAYOUT_RULE}, 1:1 정사각형 카드뉴스, "${s.subtitle}", "${mainTitleClean}"${descPart}, ${finalStyle}, ${bgColor} 배경, ${s.imageKeyword}, 한국어 텍스트만`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
