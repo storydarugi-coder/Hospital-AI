@@ -389,14 +389,16 @@ Only render the actual content text (subtitle, mainTitle, description).`;
 // - TEXT: 카드에 들어갈 문구만
 // =============================================
 
-// 기본 프레임: Hospital AI 브라우저 창 레이아웃(고정)
+// 기본 프레임: 보라색 테두리 + 흰색 배경 (참고 이미지 사용)
 // ⚠️ 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
 const CARD_FRAME_RULE = `
-[FRAME LAYOUT]
-1:1 square card format.
-Include browser window frame at top: 3 buttons (red/yellow/green circles) on left, blue title bar.
-Keep consistent frame/margin/rounded corners/text placement structure.
-Do NOT change to other device frames (phone/laptop).
+[FRAME LAYOUT - FOLLOW REFERENCE IMAGE EXACTLY]
+Copy the EXACT frame layout from the reference image:
+- Purple/violet colored border around the edges
+- White content area inside the border
+- Rounded corners
+- Clean minimal design
+Keep the same frame thickness, padding, and proportions as reference.
 `;
 
 // 참고 프레임 이미지가 있을 때: 프레임/레이아웃만 복제
@@ -1408,7 +1410,33 @@ ${promptText}
   return `data:image/svg+xml;base64,${base64Placeholder}`;
 };
 
-// 🎴 카드뉴스용 이미지 생성 함수 (텍스트 포함, 브라우저 프레임)
+// 🎴 기본 프레임 이미지 URL (보라색 테두리 + 흰색 배경)
+const DEFAULT_FRAME_IMAGE_URL = 'https://www.genspark.ai/api/files/s/R8v4us3T';
+
+// 기본 프레임 이미지 로드 (캐싱)
+let defaultFrameImageCache: string | null = null;
+const loadDefaultFrameImage = async (): Promise<string | null> => {
+  if (defaultFrameImageCache) return defaultFrameImageCache;
+  
+  try {
+    const response = await fetch(DEFAULT_FRAME_IMAGE_URL);
+    if (!response.ok) throw new Error('Failed to fetch default frame');
+    const blob = await response.blob();
+    const base64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+    defaultFrameImageCache = base64;
+    console.log('✅ 기본 프레임 이미지 로드 완료');
+    return base64;
+  } catch (error) {
+    console.warn('⚠️ 기본 프레임 이미지 로드 실패:', error);
+    return null;
+  }
+};
+
+// 🎴 카드뉴스용 이미지 생성 함수 (텍스트 포함, 보라색 프레임)
 export const generateSingleImage = async (
   promptText: string,
   style: ImageStyle,
@@ -1421,9 +1449,16 @@ export const generateSingleImage = async (
 
   // 1) 입력 정리: 충돌 문구 제거
   const cleanPromptText = normalizePromptTextForImage(promptText);
+  
+  // 🎨 참고 이미지가 없으면 기본 프레임 이미지 사용
+  let effectiveReferenceImage = referenceImage;
+  if (!referenceImage) {
+    effectiveReferenceImage = await loadDefaultFrameImage() || undefined;
+    console.log('🖼️ 기본 프레임 이미지 사용:', !!effectiveReferenceImage);
+  }
 
   // 2) 프레임/스타일 블록 분리 (프레임은 레이아웃, 스타일은 렌더링)
-  const frameBlock = buildFrameBlock(referenceImage, copyMode);
+  const frameBlock = buildFrameBlock(effectiveReferenceImage, copyMode);
   const styleBlock = buildStyleBlock(style, customStylePrompt);
 
   // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
@@ -1466,6 +1501,7 @@ A single complete card image with Korean text visually rendered inside.
     style,
     hasCustomStyle: !!(customStylePrompt && customStylePrompt.trim()),
     hasReferenceImage: !!referenceImage,
+    usingDefaultFrame: !referenceImage && !!effectiveReferenceImage,
     copyMode: !!copyMode,
     finalPromptHead: finalPrompt.slice(0, 200),
   });
@@ -1474,10 +1510,10 @@ A single complete card image with Korean text visually rendered inside.
   const MAX_RETRIES = 2;
   let lastError: any = null;
 
-  // 참고 이미지 파트 준비
-  const refImagePart = referenceImage && referenceImage.startsWith('data:') 
+  // 참고 이미지 파트 준비 (기본 프레임 포함)
+  const refImagePart = effectiveReferenceImage && effectiveReferenceImage.startsWith('data:') 
     ? (() => {
-        const [meta, base64] = referenceImage.split(',');
+        const [meta, base64] = effectiveReferenceImage.split(',');
         const mimeType = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
         return { inlineData: { data: base64, mimeType } };
       })()
