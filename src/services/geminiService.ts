@@ -1249,7 +1249,6 @@ ${cleanPromptText}
   }
 };
 
-};
 
 export const getTrendingTopics = async (category: string): Promise<TrendingItem[]> => {
   const ai = getAiClient();
