@@ -96,6 +96,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const [isRefImageLocked, setIsRefImageLocked] = useState(false); // 참고 이미지 고정 여부
   
+  // 🎨 커스텀 스타일 프롬프트 저장 (재생성 시에도 유지)
+  const [savedCustomStylePrompt, setSavedCustomStylePrompt] = useState<string | undefined>(content.customImagePrompt);
+  
   // 프롬프트 히스토리 및 참고 이미지 불러오기
   useEffect(() => {
     const saved = localStorage.getItem(CARD_PROMPT_HISTORY_KEY);
@@ -200,6 +203,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   useEffect(() => {
     setLocalHtml(content.fullHtml);
   }, [content.fullHtml]);
+
+  // 🎨 content.customImagePrompt가 변경되면 저장된 값도 업데이트
+  useEffect(() => {
+    if (content.customImagePrompt) {
+      setSavedCustomStylePrompt(content.customImagePrompt);
+      console.log('🎨 커스텀 스타일 저장됨:', content.customImagePrompt);
+    }
+  }, [content.customImagePrompt]);
 
   // 글자 수 계산 (실제 보이는 텍스트만) + 카드 수 업데이트
   useEffect(() => {
@@ -519,10 +530,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const style = content.imageStyle || 'illustration';
       
       // 🎨 커스텀 스타일 프롬프트 우선순위:
-      // 1. content.customImagePrompt가 있으면 무조건 사용
+      // 1. savedCustomStylePrompt (state에 저장된 값) 사용 - 재생성 시에도 유지됨!
       // 2. 참고 이미지가 있으면 "참고 이미지 스타일 그대로" 지시
       // 3. 없으면 기본 스타일
-      let customStylePrompt = content.customImagePrompt || undefined;
+      let customStylePrompt = savedCustomStylePrompt || undefined;
+      console.log('🎨 재생성 시 커스텀 스타일:', customStylePrompt);
       
       // 🎨 스타일 결정: 커스텀 > 참고 이미지 스타일 > 기본 스타일
       let styleText: string;
@@ -790,9 +802,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       const style = content.imageStyle || 'illustration';
       const imgRatio = content.postType === 'card_news' ? "1:1" : "16:9";
-      // 🎨 커스텀 스타일 프롬프트: content.customImagePrompt가 있으면 무조건 사용!
-      // (style이 'custom'이 아니어도 적용 - 일관성 유지)
-      const customStylePrompt = content.customImagePrompt || undefined;
+      // 🎨 커스텀 스타일 프롬프트: savedCustomStylePrompt 사용 (재생성 시에도 유지!)
+      const customStylePrompt = savedCustomStylePrompt || undefined;
       console.log('🔄 블로그 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
       const newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
       if (newImageData) {
@@ -1373,8 +1384,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   const targetIdx = idxList[i];
                   if (!targetIdx) return;
                   const style = content.imageStyle || 'illustration';
-                  // 🎨 커스텀 스타일 프롬프트: content.customImagePrompt가 있으면 무조건 사용!
-                  const customStylePrompt = content.customImagePrompt || undefined;
+                  // 🎨 커스텀 스타일 프롬프트: savedCustomStylePrompt 사용 (재생성 시에도 유지!)
+                  const customStylePrompt = savedCustomStylePrompt || undefined;
                   console.log('🔄 AI 보정 이미지 재생성:', { targetIdx, style, customStylePrompt: customStylePrompt?.substring(0, 50) });
                   newImageMap[targetIdx] = await generateSingleImage(prompt, style, '16:9', customStylePrompt);
                 })
