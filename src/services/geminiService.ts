@@ -1981,14 +1981,11 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 표지/마지막은 description 없음
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
-      // 🎨 스타일 결정: 커스텀 > 기본
-      const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
-      
-      // imagePrompt 직접 조합 (한국어만, 스타일 고정)
+      // 🔧 imagePrompt: 텍스트 정보만! 스타일은 generateSingleImage에서 결정!
+      // 재생성 로직과 동일하게 맞춤 (스타일 중복 방지)
       const imagePrompt = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
 [텍스트] "${s.subtitle}", "${mainTitleClean}"${descPart}
 [일러스트] ${s.imageKeyword}
-[스타일] ${finalStyle}
 [배경색] ${bgColor}
 [규칙] 한국어만, 해시태그/워터마크 금지`;
       
@@ -2013,7 +2010,7 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
     return cards;
   } catch (error) {
     console.error('전체 이미지 카드 프롬프트 실패:', error);
-    const finalStyle = hasCustomStyle ? customImagePrompt!.trim() : styleGuide;
+    // 🔧 fallback도 동일하게: 스타일은 generateSingleImage에서 결정!
     const fallbackCards = slides.map((s, idx) => {
       const isFirst = idx === 0;
       const isLast = idx === slides.length - 1;
@@ -2023,7 +2020,6 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
         imagePrompt: `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
 [텍스트] "${s.subtitle}", "${mainTitleClean}"${descPart}
 [일러스트] ${s.imageKeyword}
-[스타일] ${finalStyle}
 [배경색] ${bgColor}
 [규칙] 한국어만, 해시태그/워터마크 금지`,
         textPrompt: { 
