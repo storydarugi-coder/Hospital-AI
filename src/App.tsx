@@ -170,31 +170,6 @@ const App: React.FC = () => {
       setIsAdmin(true);
     }
     
-    // 현재 세션 확인
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session check result:', session?.user?.email);
-      if (session?.user) {
-        console.log('User found, setting isLoggedIn to true');
-        setSupabaseUser(session.user);
-        setIsLoggedIn(true);
-        // 프로필 정보 설정 (저장된 크레딧 불러오기)
-        const { plan, remainingCredits } = loadSavedCredits(session.user);
-        setUserProfile({
-          id: session.user.id,
-          email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
-          plan,
-          remainingCredits
-        });
-      }
-      setAuthLoading(false);
-    };
-    
-    checkSession();
-
-    console.log('Initial auth check started');
-    
     // 저장된 크레딧 불러오기 함수
     const loadSavedCredits = (user: User) => {
       const savedCredits = loadUserCredits(user.id);
@@ -211,6 +186,38 @@ const App: React.FC = () => {
       };
     };
     
+    // 현재 세션 확인
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Session check result:', session?.user?.email);
+      if (session?.user) {
+        console.log('User found, setting isLoggedIn to true');
+        setSupabaseUser(session.user);
+        setIsLoggedIn(true);
+        // 프로필 정보 설정 (저장된 크레딧 불러오기)
+        const { plan, remainingCredits } = loadSavedCredits(session.user);
+        setUserProfile({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
+          plan,
+          remainingCredits
+        });
+        
+        // OAuth 로그인 후 리다이렉트된 경우 앱으로 이동
+        const hash = window.location.hash;
+        if (hash === '#app' || hash.includes('access_token') || hash.includes('refresh_token')) {
+          window.location.hash = 'app';
+          setCurrentPage('app');
+        }
+      }
+      setAuthLoading(false);
+    };
+    
+    checkSession();
+
+    console.log('Initial auth check started');
+    
     // 인증 상태 변경 감시
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
@@ -223,13 +230,14 @@ const App: React.FC = () => {
         setUserProfile({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '사용자',
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
           plan,
           remainingCredits
         });
         
         // 로그인 성공 시 앱으로 이동
-        if (event === 'SIGNED_IN' && currentPage === 'auth') {
+        if (event === 'SIGNED_IN') {
+          console.log('SIGNED_IN event detected, navigating to app');
           window.location.hash = 'app';
           setCurrentPage('app');
         }
@@ -255,9 +263,15 @@ const App: React.FC = () => {
       
       if (hash === '#admin') {
         setCurrentPage('admin');
-      } else if (hash === '#app') {
+      } else if (hash === '#app' || hash.includes('access_token')) {
+        // OAuth 리다이렉트 후이거나 로그인 완료된 경우
+        // authLoading 중이면 기다림 (세션 확인 후 처리)
+        if (authLoading) {
+          setCurrentPage('app'); // 일단 app으로 설정, 세션 확인 후 처리
+          return;
+        }
         // 비로그인 시 #app 접근 차단 (관리자는 예외)
-        if (!isLoggedIn && !isAdmin && !authLoading) {
+        if (!isLoggedIn && !isAdmin) {
           window.location.hash = 'auth';
           setCurrentPage('auth');
           return;
