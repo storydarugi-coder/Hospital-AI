@@ -656,19 +656,24 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     
     // 기존 프롬프트 값으로 편집 state 초기화
     const cardPrompt = content.cardPrompts?.[cardIndex];
-    if (cardPrompt) {
-      setEditSubtitle(cardPrompt.textPrompt.subtitle || '');
-      setEditMainTitle(cardPrompt.textPrompt.mainTitle || '');
-      setEditDescription(cardPrompt.textPrompt.description || '');
-      setEditTags(cardPrompt.textPrompt.tags?.join(', ') || '');
-      setEditImagePrompt(cardPrompt.imagePrompt || '');
-    } else {
-      setEditSubtitle('');
-      setEditMainTitle('');
-      setEditDescription('');
-      setEditTags('');
-      setEditImagePrompt('');
-    }
+    
+    // 먼저 모든 값을 초기화하여 useEffect가 새 값으로 트리거되도록 함
+    setEditSubtitle('');
+    setEditMainTitle('');
+    setEditDescription('');
+    setEditTags('');
+    setEditImagePrompt('');
+    
+    // 다음 렌더링 사이클에서 실제 값 설정 (useEffect 트리거 보장)
+    setTimeout(() => {
+      if (cardPrompt) {
+        setEditSubtitle(cardPrompt.textPrompt.subtitle || '');
+        setEditMainTitle(cardPrompt.textPrompt.mainTitle || '');
+        setEditDescription(cardPrompt.textPrompt.description || '');
+        setEditTags(cardPrompt.textPrompt.tags?.join(', ') || '');
+        // imagePrompt는 useEffect에서 자동 생성됨 (일관된 간단한 형식)
+      }
+    }, 0);
     
     setCardRegenModalOpen(true);
   };
