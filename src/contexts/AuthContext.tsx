@@ -88,7 +88,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { session } } = await newClient.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        await loadProfile(session.user.id, newClient);
+        
+        // 사용자 정보 추출
+        const userEmail = session.user.email;
+        const userName = session.user.user_metadata?.full_name || 
+                        session.user.user_metadata?.name ||
+                        session.user.email?.split('@')[0] || null;
+        
+        await loadProfile(session.user.id, newClient, userEmail, userName);
         await loadSubscription(session.user.id, newClient);
       }
 
@@ -101,9 +108,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Auth 상태 변경 리스너
       const { data: { subscription: authSub } } = newClient.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
         if (session?.user) {
           setUser(session.user);
-          await loadProfile(session.user.id, newClient);
+          
+          // OAuth 로그인 시 사용자 정보 추출
+          const userEmail = session.user.email;
+          const userName = session.user.user_metadata?.full_name || 
+                          session.user.user_metadata?.name ||
+                          session.user.email?.split('@')[0] || null;
+          
+          await loadProfile(session.user.id, newClient, userEmail, userName);
           await loadSubscription(session.user.id, newClient);
         } else {
           setUser(null);
@@ -120,8 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     init();
   }, [ipHash]);
 
-  const loadProfile = async (userId: string, supabaseClient: typeof supabase) => {
-    const { data } = await supabaseClient
+  const loadProfile = async (userId: string, supabaseClient: typeof supabase, userEmail?: string, userName?: string) => {
+    const { data, error } = await supabaseClient
       .from('profiles')
       .select('*')
       .eq('id', userId)
@@ -129,11 +145,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (data) {
       setProfile(data as UserProfile);
+    } else if (error?.code === 'PGRST116') {
+      // 프로필이 없으면 생성 (OAuth 로그인 시)
+      const newProfile = {
+        id: userId,
+        email: userEmail || null,
+        full_name: userName || null,
+        avatar_url: null
+      };
+      
+      const { error: insertError } = await supabaseClient
+        .from('profiles')
+        .insert(newProfile);
+      
+      if (!insertError) {
+        setProfile(newProfile);
+      }
     }
   };
 
   const loadSubscription = async (userId: string, supabaseClient: typeof supabase) => {
-    const { data } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -153,6 +185,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         expires_at: data.expires_at,
         is_expired: isExpired
       });
+    } else if (error?.code === 'PGRST116') {
+      // 구독이 없으면 무료 플랜 생성 (OAuth 로그인 시)
+      const newSubscription = {
+        user_id: userId,
+        plan_type: 'free' as PlanType,
+        credits_total: 3,
+        credits_used: 0,
+        expires_at: null
+      };
+      
+      const { error: insertError } = await supabaseClient
+        .from('subscriptions')
+        .insert(newSubscription);
+      
+      if (!insertError) {
+        setSubscription({
+          plan_type: 'free',
+          credits_total: 3,
+          credits_used: 0,
+          credits_remaining: 3,
+          expires_at: null,
+          is_expired: false
+        });
+      }
     }
   };
 
