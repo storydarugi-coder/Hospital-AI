@@ -160,20 +160,23 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
     setIsLoading(false);
   };
 
-  // OAuth 로그인
+  // OAuth 로그인 (현재 Google만 지원)
   const handleOAuthLogin = async (provider: 'google' | 'kakao' | 'naver') => {
     setError(null);
     setIsLoading(true);
     
+    // 현재 Google만 지원
+    if (provider !== 'google') {
+      setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} 로그인은 준비 중입니다.`);
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const { error } = await signInWithOAuth(provider);
+      const { error } = await signInWithOAuth('google');
       
       if (error) {
-        if (provider === 'google') {
-          setError('Google 로그인 설정이 필요합니다. Supabase 대시보드에서 Google OAuth를 활성화해주세요.');
-        } else {
-          setError(`${provider.charAt(0).toUpperCase() + provider.slice(1)} 로그인은 추가 설정이 필요합니다.`);
-        }
+        setError('Google 로그인 설정이 필요합니다. Supabase 대시보드에서 Google OAuth를 활성화해주세요.');
       }
       // OAuth는 리다이렉트되므로 여기서 로딩 해제 안함
     } catch (err: any) {

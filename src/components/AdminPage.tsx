@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Database } from '../lib/database.types';
 
 // Admin 비밀번호 - 실제로는 환경변수나 Supabase로 관리해야 함
 const ADMIN_PASSWORD = 'rosmrtl718';
+
+// Supabase 테이블 타입
+type ProfileRow = Database['public']['Tables']['profiles']['Row'] & { plan?: string };
+type PaymentRow = Database['public']['Tables']['payments']['Row'];
 
 interface UserData {
   id: string;
@@ -91,7 +96,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: ProfileRow[] | null; error: any };
       
       if (profilesError) {
         console.error('프로필 로드 에러:', profilesError);
@@ -117,20 +122,29 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           setStats(prev => ({ ...prev, totalUsers: 1, todaySignups: 1 }));
         }
       } else {
-        setUsers(profilesData || []);
+        // ProfileRow를 UserData로 변환
+        const mappedUsers: UserData[] = (profilesData || []).map(p => ({
+          id: p.id,
+          email: p.email || '',
+          name: p.full_name || p.email?.split('@')[0] || '사용자',
+          plan: (p as any).plan || 'free',
+          remaining_credits: 999, // 기본값
+          created_at: p.created_at
+        }));
+        setUsers(mappedUsers);
         
         // 통계 계산
         const today = new Date().toISOString().split('T')[0];
-        const todayUsers = (profilesData || []).filter(u => 
+        const todayUsers = mappedUsers.filter(u => 
           u.created_at?.startsWith(today)
         ).length;
-        const paidCount = (profilesData || []).filter(u => 
+        const paidCount = mappedUsers.filter(u => 
           u.plan && u.plan !== 'free'
         ).length;
         
         setStats(prev => ({
           ...prev,
-          totalUsers: profilesData?.length || 0,
+          totalUsers: mappedUsers.length,
           paidUsers: paidCount,
           todaySignups: todayUsers
         }));
@@ -140,16 +154,25 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }) as { data: PaymentRow[] | null; error: any };
       
       if (paymentsError) {
         console.error('결제 로드 에러:', paymentsError);
         // payments 테이블 에러는 무시 (아직 결제가 없을 수 있음)
       } else {
-        setPayments(paymentsData || []);
+        // PaymentRow를 PaymentData로 변환
+        const mappedPayments: PaymentData[] = (paymentsData || []).map(p => ({
+          id: p.id,
+          user_id: p.user_id,
+          amount: p.amount,
+          plan: p.plan_type,
+          status: p.status,
+          created_at: p.created_at
+        }));
+        setPayments(mappedPayments);
         
         // 총 매출 계산
-        const totalRev = (paymentsData || [])
+        const totalRev = mappedPayments
           .filter(p => p.status === 'completed')
           .reduce((sum, p) => sum + (p.amount || 0), 0);
         

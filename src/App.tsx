@@ -402,7 +402,7 @@ const App: React.FC = () => {
       try {
         const res = await fetch('/api/config');
         if (res.ok) {
-          const config = await res.json();
+          const config = await res.json() as { geminiKey?: string; naverClientId?: string; naverClientSecret?: string };
           // 서버에서 받은 키를 localStorage에 저장
           if (config.geminiKey) {
             localStorage.setItem('GEMINI_API_KEY', config.geminiKey);

@@ -2,6 +2,12 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, reinitializeSupabase, isSupabaseConfigured, getUserIP, hashIP } from '../lib/supabase';
 import { PLANS, PlanType } from '../lib/database.types';
+import type { Database } from '../lib/database.types';
+
+// Supabase 테이블 타입
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type SubscriptionRow = Database['public']['Tables']['subscriptions']['Row'];
+type IpLimitRow = Database['public']['Tables']['ip_limits']['Row'];
 
 interface UserProfile {
   id: string;
@@ -147,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(data as UserProfile);
     } else if (error?.code === 'PGRST116') {
       // 프로필이 없으면 생성 (OAuth 로그인 시)
-      const newProfile = {
+      const newProfile: Omit<ProfileRow, 'created_at' | 'updated_at'> = {
         id: userId,
         email: userEmail || null,
         full_name: userName || null,
@@ -156,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { error: insertError } = await supabaseClient
         .from('profiles')
-        .insert(newProfile);
+        .insert(newProfile as any);
       
       if (!insertError) {
         setProfile(newProfile);
@@ -169,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .from('subscriptions')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .single() as { data: SubscriptionRow | null; error: any };
 
     if (data) {
       const isExpired = data.expires_at ? new Date(data.expires_at) < new Date() : false;
@@ -187,9 +193,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } else if (error?.code === 'PGRST116') {
       // 구독이 없으면 무료 플랜 생성 (OAuth 로그인 시)
-      const newSubscription = {
+      const newSubscription: Omit<SubscriptionRow, 'id' | 'created_at' | 'updated_at'> = {
         user_id: userId,
-        plan_type: 'free' as PlanType,
+        plan_type: 'free',
         credits_total: 3,
         credits_used: 0,
         expires_at: null
@@ -197,7 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { error: insertError } = await supabaseClient
         .from('subscriptions')
-        .insert(newSubscription);
+        .insert(newSubscription as any);
       
       if (!insertError) {
         setSubscription({
@@ -217,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .from('ip_limits')
       .select('free_uses')
       .eq('ip_hash', hash)
-      .single();
+      .single() as { data: Pick<IpLimitRow, 'free_uses'> | null; error: any };
 
     if (data) {
       setFreeUsesRemaining(Math.max(0, 3 - data.free_uses));
@@ -245,7 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.user.id,
         email: email,
         full_name: fullName || null
-      });
+      } as any);
 
       // 무료 구독 생성
       await client.from('subscriptions').insert({
@@ -253,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         plan_type: 'free',
         credits_total: 3,
         credits_used: 0
-      });
+      } as any);
     }
 
     return { error: null };
@@ -305,7 +311,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (subscription.credits_total !== -1) {
         const { error } = await client
           .from('subscriptions')
-          .update({ credits_used: subscription.credits_used + 1 })
+          .update({ credits_used: subscription.credits_used + 1 } as any)
           .eq('user_id', user.id);
 
         if (error) return false;
@@ -322,7 +328,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_id: user.id,
         ip_hash: ipHash || 'unknown',
         action_type: 'generate_blog'
-      });
+      } as any);
 
     } else if (ipHash) {
       // 비로그인 - IP 기반 무료 사용량 차감
@@ -330,18 +336,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('ip_limits')
         .select('*')
         .eq('ip_hash', ipHash)
-        .single();
+        .single() as { data: IpLimitRow | null; error: any };
 
       if (existing) {
         await client
           .from('ip_limits')
-          .update({ free_uses: existing.free_uses + 1 })
+          .update({ free_uses: existing.free_uses + 1 } as any)
           .eq('ip_hash', ipHash);
       } else {
         await client.from('ip_limits').insert({
           ip_hash: ipHash,
           free_uses: 1
-        });
+        } as any);
       }
 
       setFreeUsesRemaining(prev => Math.max(0, prev - 1));
@@ -351,7 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_id: null,
         ip_hash: ipHash,
         action_type: 'generate_blog'
-      });
+      } as any);
     }
 
     return true;
