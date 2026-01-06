@@ -96,10 +96,20 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
       }
       
       if (data.user) {
-        // 이메일 인증이 필요한 경우
+        // 이미 가입된 이메일인 경우
         if (data.user.identities?.length === 0) {
           setError('이미 가입된 이메일입니다.');
-        } else {
+        } 
+        // 세션이 있으면 바로 로그인 성공 (이메일 확인 비활성화 시)
+        else if (data.session) {
+          setMessage('회원가입이 완료되었습니다!');
+          // 약간의 딜레이 후 앱으로 이동
+          setTimeout(() => {
+            onNavigate('app');
+          }, 500);
+        }
+        // 이메일 확인이 필요한 경우
+        else {
           setMessage('회원가입이 완료되었습니다! 이메일을 확인해주세요.');
           setMode('login');
           setEmail('');

@@ -25,6 +25,24 @@ export type PostType = 'blog' | 'card_news';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
 export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
 
+// 말투 학습 데이터 타입
+export interface LearnedWritingStyle {
+  id: string;
+  name: string;
+  description: string;
+  sampleText: string; // 학습에 사용된 원본 텍스트
+  analyzedStyle: {
+    tone: string; // 어조 (친근한, 전문적인, 유머러스 등)
+    sentenceEndings: string[]; // 문장 마무리 패턴 ("~요", "~습니다" 등)
+    vocabulary: string[]; // 자주 사용하는 단어/표현
+    structure: string; // 글 구조 특징
+    emotionLevel: 'low' | 'medium' | 'high'; // 감정 표현 정도
+    formalityLevel: 'casual' | 'neutral' | 'formal'; // 격식 수준
+  };
+  stylePrompt: string; // AI에게 전달할 스타일 프롬프트
+  createdAt: string;
+}
+
 export interface GenerationRequest {
   category: ContentCategory;
   topic: string;
@@ -44,6 +62,7 @@ export interface GenerationRequest {
   contentStyleImage?: string; // 카드뉴스 본문 스타일 참고 이미지 (Base64)
   customImagePrompt?: string; // 커스텀 이미지 스타일 프롬프트
   styleCopyMode?: boolean; // true=레이아웃 복제, false=느낌만 참고
+  learnedStyleId?: string; // 학습된 말투 스타일 ID
 }
 
 export interface FactCheckReport {

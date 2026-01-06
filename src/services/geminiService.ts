@@ -1469,33 +1469,12 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
   const hour = koreaTime.getHours();
   const dateStr = `${year}년 ${month}월 ${day}일 ${hour}시`;
   
-  // 1단계: 네이버 뉴스 API로 실시간 뉴스 수집
-  let newsData: any = null;
-  try {
-    const newsResponse = await fetch(`/api/naver/news?query=${encodeURIComponent(category + ' 건강')}&display=30&sort=date`);
-    if (newsResponse.ok) {
-      newsData = await newsResponse.json();
-    }
-  } catch (e) {
-    console.warn('네이버 뉴스 API 호출 실패, Gemini 분석으로 대체:', e);
-  }
-  
-  // 2단계: 뉴스 데이터를 Gemini로 분석
-  let newsContext = '';
-  if (newsData?.items?.length > 0) {
-    newsContext = `[네이버 뉴스 실시간 검색 결과 - ${dateStr} 기준]
-${newsData.items.slice(0, 20).map((item: any, i: number) => 
-  `${i+1}. ${item.title.replace(/<[^>]*>/g, '')} (${item.pubDate})`
-).join('\n')}
-
-위 실시간 뉴스를 기반으로 `;
-  }
-  
+  // Gemini AI 기반 트렌드 분석 (구글 검색 기반)
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `[현재 시각: ${dateStr} (한국 표준시)]
 
-${newsContext}'${category}' 진료과와 관련된 건강/의료 트렌드 5가지를 분석해주세요.
+'${category}' 진료과와 관련된 건강/의료 트렌드 5가지를 분석해주세요.
 
 [점수 산정 기준]
 1. SEO 적합도 점수(0~100): 뉴스 보도량 + 대중적 관심도가 높을수록, 블로그 경쟁도가 낮을수록 높은 점수
@@ -2911,6 +2890,29 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
   
+  // 학습된 말투 스타일 적용
+  let learnedStyleInstruction = '';
+  if (request.learnedStyleId) {
+    try {
+      const { getStyleById, getStylePromptForGeneration } = await import('./writingStyleService');
+      const learnedStyle = getStyleById(request.learnedStyleId);
+      if (learnedStyle) {
+        learnedStyleInstruction = `
+[🎓🎓🎓 학습된 말투 적용 - 최우선 적용! 🎓🎓🎓]
+${getStylePromptForGeneration(learnedStyle)}
+
+⚠️ 위 학습된 말투를 반드시 적용하세요!
+- 문장 끝 패턴을 정확히 따라하세요
+- 자주 사용하는 표현을 자연스럽게 활용하세요
+- 전체적인 어조와 분위기를 일관되게 유지하세요
+`;
+        console.log('📝 학습된 말투 적용:', learnedStyle.name);
+      }
+    } catch (e) {
+      console.warn('학습된 말투 로드 실패:', e);
+    }
+  }
+  
   // 현재 한국 시간 정보 (최신 정보 기반 글 작성용)
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -2938,6 +2940,7 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
     ${medicalSafetyPrompt}
     ${writingStylePrompt}
     ${WRITING_STYLE_COMMON_RULES}
+    ${learnedStyleInstruction}
     ${benchmarkingInstruction}
     
     [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]

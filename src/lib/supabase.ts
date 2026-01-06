@@ -43,9 +43,33 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     email,
     password,
     options: {
-      data: { name }
+      data: { name },
+      // 이메일 확인 없이 바로 로그인 (Supabase 대시보드에서도 설정 필요)
+      emailRedirectTo: window.location.origin + '/#app'
     }
   });
+  
+  // 회원가입 성공 & 세션이 있으면 (이메일 확인이 비활성화된 경우)
+  // 프로필과 구독 정보 생성
+  if (data.user && data.session) {
+    // profiles 테이블에 사용자 정보 생성
+    await supabase.from('profiles').upsert({
+      id: data.user.id,
+      email: email,
+      full_name: name,
+      avatar_url: null
+    }, { onConflict: 'id' });
+    
+    // subscriptions 테이블에 무료 플랜 생성
+    await supabase.from('subscriptions').upsert({
+      user_id: data.user.id,
+      plan_type: 'free',
+      credits_total: 3,
+      credits_used: 0,
+      expires_at: null
+    }, { onConflict: 'user_id' });
+  }
+  
   return { data, error };
 };
 

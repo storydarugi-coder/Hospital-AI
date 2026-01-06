@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CATEGORIES, TONES, PERSONAS } from '../constants';
 import { GenerationRequest, ContentCategory, TrendingItem, SeoTitleItem, AudienceMode, ImageStyle, PostType, CssTheme, WritingStyle } from '../types';
 import { getTrendingTopics, recommendSeoTitles } from '../services/geminiService';
+import WritingStyleLearner from './WritingStyleLearner';
 
 // localStorage 키
 const CUSTOM_PROMPT_KEY = 'hospital_custom_image_prompt';
@@ -41,6 +42,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [imageCount, setImageCount] = useState<number>(3);
   const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
   
+  // 말투 학습 스타일
+  const [learnedStyleId, setLearnedStyleId] = useState<string | undefined>(undefined);
+  
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
@@ -69,7 +73,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         const result = imageStyle === 'custom' ? (customPrompt?.trim() || undefined) : undefined;
         console.log('📤 InputForm 전송 - imageStyle:', imageStyle, ', customPrompt:', customPrompt?.substring(0, 30), ', 전달값:', result?.substring(0, 30));
         return result;
-      })()
+      })(),
+      // 📝 학습된 말투 스타일 ID
+      learnedStyleId
     });
   };
 
@@ -231,7 +237,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
              <div className="flex items-center justify-between gap-3">
                 <div>
                   <span className="text-sm font-black text-emerald-700">🔍 인기 키워드</span>
-                  <p className="text-[10px] text-emerald-600 font-medium mt-1">네이버 기사 및 뉴스 데이터 분석</p>
+                  <p className="text-[10px] text-emerald-600 font-medium mt-1">AI 트렌드 키워드 분석</p>
                 </div>
                 <button type="button" onClick={handleRecommendTrends} disabled={isLoadingTrends} className="text-xs font-black text-white bg-emerald-600 px-4 py-2.5 rounded-xl hover:bg-emerald-700 shadow-md transition-all active:scale-95 whitespace-nowrap">
                   {isLoadingTrends ? '분석 중...' : '키워드 찾기'}
@@ -436,28 +442,22 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
 
         {/* 4단계: 블로그만 스타일 설정 표시 (카드뉴스는 숨김) */}
         {postType === 'blog' && (
-          <div className="border-t border-slate-100 pt-6 mt-2">
+          <div className="border-t border-slate-100 pt-6 mt-2 space-y-6">
             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex justify-between">
                4단계. 스타일 설정 (선택사항)
-               <span className="text-emerald-600 font-bold">벤치마킹 URL 입력 시 자동 적용</span>
+               <span className="text-emerald-600 font-bold">말투 학습으로 나만의 스타일 적용</span>
             </label>
             
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2">
-                 <span className="text-lg">🔗</span>
-                 <span className="text-sm font-bold text-slate-700">경쟁사/우수 블로그 스타일 벤치마킹</span>
-              </div>
-              <input 
-                type="url" 
-                value={referenceUrl} 
-                onChange={(e) => setReferenceUrl(e.target.value)}
-                placeholder="따라하고 싶은 네이버 블로그 URL을 입력하세요 (말투/로직 복사)"
-                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium focus:border-emerald-500 outline-none text-sm"
-              />
-              {referenceUrl && <p className="text-[11px] text-emerald-600 mt-2 font-bold px-2">✅ URL이 입력되었습니다. 기존 페르소나 설정 대신 해당 블로그의 말투와 논리를 모방합니다.</p>}
-            </div>
+            {/* 말투 학습 섹션 */}
+            <WritingStyleLearner
+              onStyleSelect={(styleId) => {
+                setLearnedStyleId(styleId);
+              }}
+              selectedStyleId={learnedStyleId}
+            />
 
-            {!referenceUrl && (
+            {/* 학습된 말투가 없을 때만 기본 페르소나/말투 선택 표시 */}
+            {!learnedStyleId && (
               <div className="grid grid-cols-2 gap-4 animate-fadeIn">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 mb-2">페르소나 직접 선택</label>

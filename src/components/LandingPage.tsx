@@ -288,7 +288,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-8 rounded-3xl border border-purple-100 hover:shadow-xl transition-all">
               <div className="text-4xl mb-4">📊</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">실시간 트렌드 분석</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">네이버 뉴스 기반 실시간 인기 키워드 분석으로 핫한 주제 선점</p>
+              <p className="text-slate-600 font-medium leading-relaxed">AI 기반 실시간 인기 키워드 분석으로 핫한 주제 선점</p>
             </div>
 
             <div className="bg-gradient-to-br from-amber-50 to-yellow-50 p-8 rounded-3xl border border-amber-100 hover:shadow-xl transition-all">
