@@ -1315,39 +1315,39 @@ export const generateBlogImage = async (
   // 스타일 블록만 사용 (카드뉴스 프레임 없음!)
   const styleBlock = buildStyleBlock(style, customStylePrompt);
 
-  // 블로그용 프롬프트: 텍스트 없는 순수 이미지!
+  // 블로그용 프롬프트: 텍스트 없는 순수 이미지! (한국어로 생성)
   const finalPrompt = `
-Generate a professional medical/healthcare illustration for a blog post.
+블로그 포스트용 전문적인 의료/건강 이미지를 생성해주세요.
 
 ${styleBlock}
 
-[IMAGE CONTENT]
+[이미지 내용]
 ${promptText}
 
-[DESIGN SPECIFICATIONS]
-- Aspect ratio: ${aspectRatio} (horizontal/landscape format for blog)
-- Style: Professional healthcare/medical imagery
-- Mood: Trustworthy, clean, modern hospital environment
-- NO text, NO titles, NO captions, NO watermarks, NO logos
-- Pure visual content only - this will be used as a blog post image
+[디자인 사양]
+- 비율: ${aspectRatio} (가로형/랜드스케이프 블로그 형식)
+- 스타일: 전문적인 의료/건강 이미지
+- 분위기: 신뢰감 있고, 깔끔하며, 현대적인 병원 환경
+- 텍스트 없음, 제목 없음, 캡션 없음, 워터마크 없음, 로고 없음
+- 순수한 시각적 콘텐츠만 - 블로그 게시물 이미지로 사용됩니다
 
-[MANDATORY REQUIREMENTS]
-✅ Generate a clean visual without any text overlay
-✅ Professional medical/healthcare imagery suitable for hospital blog
-✅ High quality, detailed illustration or photo depending on style
-✅ Horizontal 16:9 format optimized for blog posts
+[필수 요구사항]
+✅ 텍스트 오버레이 없는 깔끔한 이미지 생성
+✅ 병원 블로그에 적합한 전문적인 의료/건강 이미지
+✅ 스타일에 따라 고품질, 상세한 일러스트 또는 사진
+✅ 블로그 게시물에 최적화된 가로형 16:9 형식
 
-⛔ FORBIDDEN:
-- NO Korean text
-- NO English text
-- NO titles or captions
-- NO browser window frames
-- NO card news style layouts
-- NO watermarks or logos
-- NO infographic elements with text
+⛔ 금지사항:
+- 한국어 텍스트 금지
+- 영어 텍스트 금지
+- 제목이나 캡션 금지
+- 브라우저 창 프레임 금지
+- 카드뉴스 스타일 레이아웃 금지
+- 워터마크나 로고 금지
+- 텍스트가 포함된 인포그래픽 요소 금지
 
-[OUTPUT]
-A single clean image without any text, suitable for a medical blog post.
+[출력]
+의료 블로그 게시물에 적합한 텍스트 없는 깔끔한 단일 이미지.
 `.trim();
 
   console.log('📷 generateBlogImage - 블로그용 이미지 생성 (텍스트 없음, 16:9)');
