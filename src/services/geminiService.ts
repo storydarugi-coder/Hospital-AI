@@ -2075,9 +2075,7 @@ const assembleCardNewsHtml = (
     // 🎨 이미지에 텍스트가 렌더링되므로, HTML에서는 이미지만 표시 (텍스트 레이어 제거)
     return `
       <div class="card-slide" style="background: ${bgGradient}; border-radius: ${borderRadius}; ${borderStyle} box-shadow: ${boxShadow}; overflow: hidden; aspect-ratio: 1/1; position: relative;">
-        <div class="card-img-container" style="position: absolute; inset: 0; width: 100%; height: 100%;">
-          <img class="card-inner-img" src="[IMG_${idx + 1}]" style="width: 100%; height: 100%; object-fit: cover;" alt="${slide.mainTitle.replace(/<[^>]*>/g, '')}" />
-        </div>
+        <div class="card-img-container" style="position: absolute; inset: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">[IMG_${idx + 1}]</div>
         <!-- 텍스트 데이터는 숨김 처리 (편집/검색용) -->
         <div class="card-text-data" style="display: none;" data-subtitle="${slide.subtitle}" data-title="${slide.mainTitle.replace(/"/g, '&quot;')}" data-desc="${slide.description.replace(/"/g, '&quot;')}"></div>
       </div>`;
