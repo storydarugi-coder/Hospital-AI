@@ -2151,7 +2151,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                     <div className={`text-[10px] mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                       {isRefImageLocked 
                         ? '✅ 다음 재생성에도 이 참고 이미지가 자동 적용됩니다!'
-                        : '원하는 스타일의 이미지를 업로드하면 비슷하게 만들어드려요!'}
+                        : '💡 카드 프레임이 마음에 안 드시나요? 원하는 스타일의 카드를 참고 이미지로 첨부하면 동일한 레이아웃으로 생성됩니다!'}
                     </div>
                     <input
                       type="file"
