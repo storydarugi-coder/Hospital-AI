@@ -980,7 +980,7 @@ export const recommendImagePrompt = async (blogContent: string, currentImageAlt:
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: `다음은 병원 블로그 글 내용입니다:
 
 ${blogContent.substring(0, 3000)}
@@ -1162,7 +1162,7 @@ ${newsData.items.slice(0, 20).map((item: any, i: number) =>
   }
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3-pro-preview',
     contents: `[현재 시각: ${dateStr} (한국 표준시)]
 
 ${newsContext}'${category}' 진료과와 관련된 건강/의료 트렌드 5가지를 분석해주세요.
@@ -1265,7 +1265,7 @@ export const recommendSeoTitles = async (topic: string, keywords: string): Promi
 - type: 위 5가지 트리거 중 하나 (호기심/공감/판단유도/시기고정/구분구조)`;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
       responseMimeType: "application/json",
@@ -1292,7 +1292,7 @@ export const analyzeStyleReferenceImage = async (base64Image: string, isCover: b
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: [
         {
           role: 'user',
@@ -1597,7 +1597,7 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 시점 고정 (🔥 핵심! 🔥)*
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -1855,7 +1855,7 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -1978,7 +1978,7 @@ const imagePromptAgent = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -2119,7 +2119,7 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -3411,7 +3411,7 @@ JSON 형식으로 답변:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -3572,7 +3572,7 @@ JSON 형식:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -3626,7 +3626,7 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
     
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",  // 빠른 모델로 변경 (pro보다 훨씬 빠름)
+        model: "gemini-3-pro-preview",  // 고품질 글쓰기용 pro 모델
         contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${sanitizedHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지하세요.`,
         config: { 
           responseMimeType: "application/json", 
