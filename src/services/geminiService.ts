@@ -1433,38 +1433,53 @@ export const generateSingleImage = async (
   const styleBlock = buildStyleBlock(style, customStylePrompt);
 
   // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
+  // 🔧 핵심 텍스트를 프롬프트 상단에 배치하여 모델이 반드시 인식하도록!
+  
+  // cleanPromptText에서 핵심 텍스트 추출
+  const subtitleMatch = cleanPromptText.match(/subtitle:\s*"([^"]+)"/);
+  const mainTitleMatch = cleanPromptText.match(/mainTitle:\s*"([^"]+)"/);
+  const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/);
+  
+  const extractedSubtitle = subtitleMatch?.[1] || '';
+  const extractedMainTitle = mainTitleMatch?.[1] || '';
+  const extractedDescription = descriptionMatch?.[1] || '';
+  
   const finalPrompt = `
-Generate a complete social media card image with Korean text rendered directly into the image pixels.
+🚨🚨🚨 EXACT TEXT TO RENDER IN IMAGE (DO NOT CHANGE!) 🚨🚨🚨
+subtitle: "${extractedSubtitle}"
+mainTitle: "${extractedMainTitle}"
+${extractedDescription ? `description: "${extractedDescription}"` : ''}
 
-🚨 CRITICAL: The Korean text MUST be rendered as part of the image itself, not as separate HTML/overlay!
+Generate a 1:1 square card news image with the EXACT Korean text above rendered directly into the image pixels.
 
 ${frameBlock}
 ${styleBlock}
 
-[CARD CONTENT TO RENDER]
+[VISUAL STYLE FROM CONTENT]
 ${cleanPromptText}
 
 [DESIGN SPECIFICATIONS]
 - Aspect ratio: 1:1 square
-- Background: Soft gradient (#E8F4FD to #F0F9FF) or as specified in content
+- Background: Soft gradient (#E8F4FD to #F0F9FF)
 - Typography: Clean, readable Korean fonts (Noto Sans KR style)
 - Text must be BURNED INTO the image pixels
 
-[MANDATORY REQUIREMENTS]
-✅ Render ALL Korean text directly into the image
-✅ Text should be clearly readable with good contrast
+[MANDATORY - READ CAREFULLY]
+✅ You MUST render the EXACT Korean text shown at the top of this prompt
+✅ subtitle "${extractedSubtitle}" must appear in the image
+✅ mainTitle "${extractedMainTitle}" must appear in the image
+${extractedDescription ? `✅ description "${extractedDescription}" must appear in the image` : ''}
 ✅ Professional card news design like Instagram infographic
 ✅ Full-bleed design - illustration/background fills entire canvas
-✅ Text overlaid on top with subtle shadow or semi-transparent backing for readability
 
 ⛔ FORBIDDEN:
-- Do NOT generate image without text
-- Do NOT use placeholders like [TEXT] or [TITLE]
+- Do NOT generate different text than what is specified above
+- Do NOT use generic placeholder text like "오늘의 꿀팁" or "정보 공유"
+- Do NOT use [TEXT] or [TITLE] placeholders
 - No hashtags, watermarks, or logos
-- No separate text layer - text must be part of the image
 
 [OUTPUT]
-A single complete card image with Korean text visually rendered inside.
+A complete card image with the EXACT Korean text specified above.
 `.trim();
 
   // 🔍 디버그 - 프롬프트 전체 내용 확인!
@@ -3591,6 +3606,9 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
       const referenceImage = request.coverStyleImage || request.contentStyleImage;
       const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
+      
+      // 🔍 디버그: imagePrompts 내용 확인
+      console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
       
       const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
         generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt, referenceImage, copyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
