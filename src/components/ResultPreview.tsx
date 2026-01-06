@@ -593,8 +593,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         if (cardsInHtml[cardRegenIndex]) {
           // 새 이미지로 교체 (완성형 카드이므로 전체 이미지 교체)
           const newCardHtml = `
-            <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
-              <img src="${newImage}" alt="${imagePromptToUse}" data-index="${cardRegenIndex + 1}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+            <div class="card-slide" style="border-radius: 24px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+              <img src="${newImage}" alt="${imagePromptToUse}" data-index="${cardRegenIndex + 1}" class="card-full-img" style="width: 100%; height: auto; display: block;" />
             </div>`;
           
           const newCardElement = document.createElement('div');
@@ -1312,8 +1312,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         styled = styled
             .replace(/<div class="card-news-container"/g, '<div class="card-news-container" style="max-width: 480px; margin: 0 auto; padding: 16px;"')
             .replace(/<div class="card-grid-wrapper"/g, '<div class="card-grid-wrapper" style="display: flex; flex-direction: column; gap: 24px;"')
-            .replace(/<div class="card-slide"/g, '<div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); overflow: hidden; width: 100%; aspect-ratio: 1/1;"')
-            .replace(/<div class="card-border-box"/g, '<div class="card-border-box" style="border: 3px solid #1e293b; border-radius: 20px; margin: 16px; height: calc(100% - 32px); display: flex; flex-direction: column; background: #fff; overflow: hidden;"')
+            .replace(/<div class="card-slide"/g, '<div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); overflow: hidden; width: 100%;"')
+            .replace(/<div class="card-border-box"/g, '<div class="card-border-box" style="border: 3px solid #1e293b; border-radius: 20px; margin: 16px; display: flex; flex-direction: column; background: #fff; overflow: hidden;"')
             .replace(/<div class="card-header-row"/g, '<div class="card-header-row" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9;"')
             .replace(/class="brand-text"/g, 'class="brand-text" style="font-size: 10px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #1e293b;"')
             .replace(/class="arrow-icon"/g, 'class="arrow-icon" style="font-size: 16px; border: 2px solid #1e293b; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #1e293b;"')
@@ -1456,8 +1456,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            overflow: hidden; 
            position: relative; 
            width: 100%; 
-           aspect-ratio: 1/1;
-           cursor: pointer;
+                      cursor: pointer;
            transition: transform 0.2s, box-shadow 0.2s;
         }
         .card-slide:hover {
@@ -1616,6 +1615,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             object-position: center top;
             border-radius: 12px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .card-full-img {
+            width: 100%;
+            height: auto;
+            display: block;
         }
         
         .card-desc {
