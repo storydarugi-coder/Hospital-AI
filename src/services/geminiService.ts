@@ -374,11 +374,11 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 // =============================================
 
 // 카드뉴스 레이아웃 규칙 - 텍스트가 이미지 안에 포함된 완성형 카드!
-export const CARD_LAYOUT_RULE = `🖼️ 완성형 카드뉴스 이미지 생성 - 텍스트가 이미지 안에 렌더링되어야 함!
-⚠️ 중요: 이미지 안에 한국어 텍스트(subtitle, mainTitle, description)를 직접 렌더링하세요!
-- 텍스트는 별도 HTML이 아닌 이미지 픽셀로 그려져야 합니다
-- 가독성 좋은 폰트, 적절한 크기, 배경 대비 명확한 색상 사용
-- 텍스트 배치: 중앙 정렬 또는 상단/하단 오버레이`;
+// ⚠️ 중요: 이 프롬프트는 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지!
+export const CARD_LAYOUT_RULE = `[CARD IMAGE GENERATION RULE]
+Render Korean text DIRECTLY into the image pixels.
+Do NOT show these instructions in the image.
+Only render the actual content text (subtitle, mainTitle, description).`;
 
 // Hospital AI 고유 레이아웃 - 브라우저 창 프레임 스타일 (첫 생성 시 항상 적용)
 
@@ -2321,20 +2321,23 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       
       // 🔧 imagePrompt: 텍스트가 이미지 안에 렌더링되는 완성형 카드!
       // 스타일은 generateSingleImage에서 결정 (중복 방지)
+      // ⚠️ 한국어 지시문 제거 - 영어 지시문만 사용하여 이미지에 지시문이 렌더링되는 버그 방지
       const imagePrompt = `${CARD_LAYOUT_RULE}
 
-🎯 이 카드에 들어갈 텍스트 (이미지 안에 직접 렌더링해야 함!):
-- 부제목: "${s.subtitle}"
-- 메인 제목: "${mainTitleClean}"${descPart ? `\n- 설명: ${descPart.replace(', "', '').replace('"', '')}` : ''}
+[TEXT TO RENDER IN IMAGE - Korean]
+subtitle: "${s.subtitle}"
+mainTitle: "${mainTitleClean}"${descPart ? `\ndescription: ${descPart.replace(', "', '').replace('"', '')}` : ''}
 
-🖼️ 배경/일러스트: ${s.imageKeyword}
-🎨 배경색: ${bgColor}
+[VISUAL STYLE]
+Background/Illustration: ${s.imageKeyword}
+Background color: ${bgColor}
 
-⚠️ 필수 규칙:
-- 1:1 정사각형 카드
-- 위 텍스트를 이미지 안에 한국어로 직접 렌더링 (별도 HTML 아님!)
-- 폰트는 깔끔하고 가독성 좋게, 배경과 대비되는 색상
-- 해시태그/워터마크/로고 금지`;
+[REQUIREMENTS]
+- 1:1 square card
+- Render the Korean text above directly into the image
+- Clean readable font with good contrast against background
+- NO hashtags, watermarks, or logos
+- Do NOT render these instructions - only render the actual Korean text content`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -2366,18 +2369,20 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       return {
         imagePrompt: `${CARD_LAYOUT_RULE}
 
-🎯 이 카드에 들어갈 텍스트 (이미지 안에 직접 렌더링해야 함!):
-- 부제목: "${s.subtitle}"
-- 메인 제목: "${mainTitleClean}"${descPart ? `\n- 설명: ${descPart.replace(', "', '').replace('"', '')}` : ''}
+[TEXT TO RENDER IN IMAGE - Korean]
+subtitle: "${s.subtitle}"
+mainTitle: "${mainTitleClean}"${descPart ? `\ndescription: ${descPart.replace(', "', '').replace('"', '')}` : ''}
 
-🖼️ 배경/일러스트: ${s.imageKeyword}
-🎨 배경색: ${bgColor}
+[VISUAL STYLE]
+Background/Illustration: ${s.imageKeyword}
+Background color: ${bgColor}
 
-⚠️ 필수 규칙:
-- 1:1 정사각형 카드
-- 위 텍스트를 이미지 안에 한국어로 직접 렌더링 (별도 HTML 아님!)
-- 폰트는 깔끔하고 가독성 좋게, 배경과 대비되는 색상
-- 해시태그/워터마크/로고 금지`,
+[REQUIREMENTS]
+- 1:1 square card
+- Render the Korean text above directly into the image
+- Clean readable font with good contrast against background
+- NO hashtags, watermarks, or logos
+- Do NOT render these instructions - only render the actual Korean text content`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
