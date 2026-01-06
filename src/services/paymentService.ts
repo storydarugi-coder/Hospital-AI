@@ -65,34 +65,25 @@ export const PLANS: Record<string, PlanInfo> = {
     price: 15900,
     originalPrice: 25000,
     duration: 'once',
-    description: '블로그 원고 10회 생성권'
+    description: '블로그 원고 10회 생성권 (건당 1,590원)'
   },
-  'standard-20': {
-    id: 'standard-20',
-    name: '스탠다드 20건',
+  'basic-20': {
+    id: 'basic-20',
+    name: '베이직 20건',
     credits: 20,
     price: 29900,
     originalPrice: 45000,
     duration: 'once',
-    description: '블로그 원고 20회 생성권'
+    description: '블로그 원고 20회 생성권 (건당 1,495원)'
   },
-  'premium-monthly': {
-    id: 'premium-monthly',
-    name: '프리미엄 월간',
-    credits: -1, // 무제한
-    price: 69900,
-    originalPrice: 99000,
-    duration: 'monthly',
-    description: '무제한 원고 생성 (월 구독)'
-  },
-  'premium-yearly': {
-    id: 'premium-yearly',
-    name: '프리미엄 연간',
-    credits: -1, // 무제한
-    price: 599000,
-    originalPrice: 838800,
-    duration: 'yearly',
-    description: '무제한 원고 생성 (연 구독)'
+  'basic-50': {
+    id: 'basic-50',
+    name: '베이직 50건',
+    credits: 50,
+    price: 55900,
+    originalPrice: 95000,
+    duration: 'once',
+    description: '블로그 원고 50회 생성권 (건당 1,118원) 🏆 BEST'
   }
 };
 

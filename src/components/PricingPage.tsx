@@ -20,20 +20,15 @@ export const PricingPage: React.FC<PricingPageProps> = ({
   userEmail,
   userName
 }) => {
-  const [selectedBasic, setSelectedBasic] = useState<10 | 20>(10);
-  const [selectedPremium, setSelectedPremium] = useState<'monthly' | 'yearly'>('monthly');
+  const [selectedBasic, setSelectedBasic] = useState<10 | 20 | 50>(10);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // 가격 계산
   const basicPrices = {
-    10: { price: 10000, original: 15000, perUnit: 1000 },
-    20: { price: 19900, original: 30000, perUnit: 995 }
-  };
-
-  const premiumPrices = {
-    monthly: { price: 59900, original: 99000 },
-    yearly: { price: 499000, original: 718800, monthly: 41583 }
+    10: { price: 15900, original: 25000, perUnit: 1590 },
+    20: { price: 29900, original: 45000, perUnit: 1495 },
+    50: { price: 55900, original: 95000, perUnit: 1118 }
   };
 
   const handlePurchase = async (planType: 'basic' | 'premium') => {
@@ -45,9 +40,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
     // 요금제 ID 결정
     let planId: string;
     if (planType === 'basic') {
-      planId = selectedBasic === 10 ? 'basic-10' : 'basic-20';
+      planId = selectedBasic === 10 ? 'basic-10' : selectedBasic === 20 ? 'basic-20' : 'basic-50';
     } else {
-      planId = selectedPremium === 'monthly' ? 'premium-monthly' : 'premium-yearly';
+      return; // premium 제거됨
     }
 
     const plan = PLANS[planId];
@@ -197,16 +192,16 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             {/* HospitalAI */}
             <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-3xl p-8 relative overflow-hidden text-white shadow-2xl shadow-emerald-200">
               <div className="absolute top-4 right-4 px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full">
-                🚀 89% 절약!
+                🚀 94% 절약!
               </div>
-              <h3 className="text-xl font-black mb-6">HospitalAI 프리미엄</h3>
-              <div className="text-4xl font-black mb-2">월 69,900원</div>
-              <p className="text-emerald-100 text-sm mb-6">무제한 사용 (월 구독)</p>
+              <h3 className="text-xl font-black mb-6">HospitalAI</h3>
+              <div className="text-4xl font-black mb-2">건당 1,118원~</div>
+              <p className="text-emerald-100 text-sm mb-6">50건 기준 (55,900원)</p>
               
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between text-emerald-50">
                   <span>포스팅 1건당</span>
-                  <span className="font-bold">💎 무제한</span>
+                  <span className="font-bold">💎 1,118원~</span>
                 </div>
                 <div className="flex justify-between text-emerald-50">
                   <span>소요 시간</span>
@@ -223,8 +218,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </div>
 
               <div className="mt-6 pt-6 border-t border-white/20 text-center">
-                <div className="text-2xl font-black">연간 1,440만원 절약!</div>
-                <p className="text-emerald-200 text-sm">기존 방식 대비 월 120만원 절약</p>
+                <div className="text-2xl font-black">건당 18,882원 절약!</div>
+                <p className="text-emerald-200 text-sm">외주 대비 94% 비용 절감</p>
               </div>
             </div>
           </div>
@@ -242,7 +237,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
             <p className="text-slate-500 font-medium">필요한 만큼만 선택하세요</p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* 무료 체험 */}
             <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-lg">
               <div className="text-center mb-6">
@@ -319,6 +314,19 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 >
                   20건
                 </button>
+                <button
+                  onClick={() => setSelectedBasic(50)}
+                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all relative ${
+                    selectedBasic === 50
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  50건
+                  <span className="absolute -top-2 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                    BEST
+                  </span>
+                </button>
               </div>
 
               <div className="text-center mb-6">
@@ -367,108 +375,28 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </button>
             </div>
 
-            {/* 프리미엄 */}
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-3xl p-8 shadow-2xl shadow-emerald-200 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span className="px-4 py-1 bg-yellow-400 text-yellow-900 text-xs font-black rounded-full shadow-lg">
-                  🏆 BEST
-                </span>
-              </div>
-
-              <div className="text-center mb-6">
-                <span className="inline-block px-3 py-1 bg-white/20 text-white text-xs font-bold rounded-full mb-4">
-                  🚀 무제한
-                </span>
-                <h3 className="text-2xl font-black text-white mb-2">프리미엄</h3>
-                <p className="text-emerald-100 text-sm">대형 병원 / 대행사용</p>
-              </div>
-
-              {/* 기간 선택 */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setSelectedPremium('monthly')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
-                    selectedPremium === 'monthly'
-                      ? 'bg-white text-emerald-600'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
-                >
-                  월간
-                </button>
-                <button
-                  onClick={() => setSelectedPremium('yearly')}
-                  className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${
-                    selectedPremium === 'yearly'
-                      ? 'bg-white text-emerald-600'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                  }`}
-                >
-                  연간 (30% 할인)
-                </button>
-              </div>
-
-              <div className="text-center mb-6">
-                <div className="text-white/60 line-through text-sm">
-                  ₩{premiumPrices[selectedPremium].original.toLocaleString()}
-                </div>
-                <div className="text-4xl font-black text-white">
-                  ₩{premiumPrices[selectedPremium].price.toLocaleString()}
-                </div>
-                <p className="text-emerald-200 font-bold text-sm mt-2">
-                  {selectedPremium === 'monthly' ? '무제한 · 월 구독' : `월 ₩${premiumPrices.yearly.monthly.toLocaleString()} · 연간 결제`}
-                </p>
-              </div>
-
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 무제한 원고 생성
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> AI 이미지 생성
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 카드뉴스 생성
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 의료광고법 준수 검사
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 5가지 디자인 테마
-                </li>
-                <li className="flex items-center gap-2 text-sm text-white">
-                  <span>✓</span> 모든 기능 동일
-                </li>
-              </ul>
-
-              <button
-                onClick={() => handlePurchase('premium')}
-                disabled={isProcessing}
-                className={`w-full py-4 font-bold rounded-2xl transition-all ${
-                  isProcessing 
-                    ? 'bg-white/50 text-emerald-400 cursor-not-allowed' 
-                    : 'bg-white text-emerald-600 hover:bg-emerald-50'
-                }`}
-              >
-                {isProcessing ? '처리 중...' : '구독하기'}
-              </button>
-            </div>
+            
           </div>
 
           {/* 플랜 선택 가이드 */}
           <div className="max-w-3xl mx-auto mt-12 bg-white rounded-2xl p-6 border border-slate-200">
             <h4 className="font-black text-slate-800 mb-4">💡 어떤 플랜을 선택해야 할까요?</h4>
-            <div className="grid sm:grid-cols-3 gap-4 text-sm">
+            <div className="grid sm:grid-cols-4 gap-4 text-sm">
               <div className="p-4 bg-slate-50 rounded-xl">
                 <div className="font-bold text-slate-800 mb-1">맛보기</div>
                 <p className="text-slate-500">처음 사용해보시는 분</p>
               </div>
               <div className="p-4 bg-blue-50 rounded-xl">
-                <div className="font-bold text-blue-800 mb-1">베이직</div>
-                <p className="text-blue-600">개인 블로거, 소규모 병원</p>
+                <div className="font-bold text-blue-800 mb-1">10건</div>
+                <p className="text-blue-600">개인 블로거</p>
               </div>
-              <div className="p-4 bg-emerald-50 rounded-xl">
-                <div className="font-bold text-emerald-800 mb-1">프리미엄</div>
-                <p className="text-emerald-600">대형 병원, 마케팅 대행사</p>
+              <div className="p-4 bg-blue-50 rounded-xl">
+                <div className="font-bold text-blue-800 mb-1">20건</div>
+                <p className="text-blue-600">소규모 병원</p>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-xl border-2 border-emerald-300">
+                <div className="font-bold text-emerald-800 mb-1">50건 🏆</div>
+                <p className="text-emerald-600">대형 병원, 대행사</p>
               </div>
             </div>
           </div>
