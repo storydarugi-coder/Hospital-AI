@@ -304,46 +304,99 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 // =============================================
 
 // 카드뉴스 레이아웃 규칙 (간결하게)
-export const CARD_LAYOUT_RULE = '브라우저 창 프레임 스타일 카드뉴스';
+export const CARD_LAYOUT_RULE = 'Hospital AI 고정 카드 프레임(브라우저 창 레이아웃)';
 
 // Hospital AI 고유 레이아웃 - 브라우저 창 프레임 스타일 (첫 생성 시 항상 적용)
-const CARD_LAYOUT_PROMPT = `
-[Hospital AI 레이아웃 - 브라우저 창 프레임 스타일]
 
-반드시 이 레이아웃으로 생성하세요:
-┌─────────────────────────────────────┐
-│ ● ■ ▲  (창 버튼)     [파란색 상단바] │
-├─────────────────────────────────────┤
-│                                     │
-│     서브타이틀 (작은 회색 글씨)       │
-│                                     │
-│     메인 타이틀                      │
-│     (큰 굵은 검은 글씨)              │
-│     강조 부분은 파란색               │
-│                                     │
-│         🎨 일러스트                  │
-│        (하단 중앙 배치)              │
-│        (귀여운 2D 스타일)            │
-│                                     │
-└─────────────────────────────────────┘
+// =============================================
+// 🧩 프레임/스타일/텍스트 블록 분리 (중요)
+// - FRAME: 레이아웃/프레임만. (스타일 단어 금지: photo/3D/illustration 등)
+// - STYLE: 렌더링/질감/기법만. (프레임 단어 최소화)
+// - TEXT: 카드에 들어갈 문구만
+// =============================================
 
-[필수 요소]
-1. 상단: 파란색 바 + 빨강/노랑/초록 또는 회색 창 버튼 (● ■ ▲)
-2. 배경: 연한 파란색 (#E8F4FD) 또는 흰색
-3. 서브타이틀: 상단에 작은 회색 글씨
-4. 메인 타이틀: 중앙에 큰 굵은 글씨, 핵심 단어는 파란색으로 강조
-5. 일러스트: 하단 중앙에 귀여운 2D 일러스트 (주제 관련)
+// 기본 프레임: Hospital AI 브라우저 창 레이아웃(고정)
+const CARD_FRAME_RULE = `
+[FRAME]
+1:1 정사각형 카드뉴스.
+상단에 브라우저 창 프레임을 포함하세요: 좌측에 ● ■ ▲ 버튼 3개, 파란색 상단바.
+프레임/여백/모서리 둥글기/텍스트 배치 구조는 항상 동일하게 유지하세요.
+프레임 구조를 임의로 바꾸거나, 다른 기기 프레임(휴대폰/노트북)으로 바꾸지 마세요.
+`;
 
-[스타일]
-- 깔끔하고 미니멀한 디자인
-- 둥근 모서리의 브라우저 창 프레임
-- 그림자 효과로 입체감
-- 일러스트는 플랫/2D 스타일 (3D 아님!)
+// 참고 프레임 이미지가 있을 때: 프레임/레이아웃만 복제
+const FRAME_FROM_REFERENCE_COPY = `
+[FRAME]
+참고 이미지의 프레임/레이아웃/텍스트 배치만 "정확히" 복제하세요.
+참고 이미지 안의 그림/주제/내용물은 무시하고, 새로운 주제로 교체하세요.
+`;
 
-[금지]
-- 3D 일러스트, 아이소메트릭
-- 일러스트가 화면 전체를 덮는 레이아웃
-- 영어 텍스트, 해시태그, 워터마크`;
+// 참고 프레임 이미지 + 색상 변경 모드(레이아웃 유지)
+const FRAME_FROM_REFERENCE_RECOLOR = `
+[FRAME]
+참고 이미지의 프레임/레이아웃/텍스트 배치를 최대한 유지하되,
+전체 톤은 요청된 배경색에 맞춰 조정하세요.
+참고 이미지 안의 그림/주제/내용물은 무시하고, 새로운 주제로 교체하세요.
+`;
+
+// 스타일 블록: 버튼별로 단 하나만 선택
+const PHOTO_STYLE_RULE = `
+[STYLE]
+실사 촬영(리얼 포토). 전문 의료 사진(병원/진료실/의료진/진단도구).
+자연스러운 조명, 사실적인 질감, DSLR 사진 품질.
+※ 프레임(브라우저 창 상단바/버튼)은 단순한 그래픽 요소로 유지 가능.
+금지: 일러스트/만화/3D 렌더/클레이/아이소메트릭/인포그래픽.
+`;
+
+const ILLUSTRATION_3D_STYLE_RULE = `
+[STYLE]
+부드럽고 친근한 3D 일러스트(설명용). 깔끔한 형태, 은은한 조명.
+금지: 실사 사진 느낌.
+`;
+
+const MEDICAL_3D_STYLE_RULE = `
+[STYLE]
+의학 3D 렌더. 해부학/의료 오브젝트가 정확하고 전문적으로 보이게.
+임상적이고 신뢰감 있는 질감/조명.
+`;
+
+const CUSTOM_STYLE_RULE = (prompt: string) => `
+[STYLE]
+${prompt}
+`;
+
+// promptText에서 서로 충돌하는 키워드/섹션을 제거(특히 photo에서 [일러스트] 같은 것)
+const normalizePromptTextForImage = (raw: string): string => {
+  if (!raw) return '';
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const dropPatterns: RegExp[] = [
+    /브라우저\s*창\s*프레임\s*스타일\s*카드뉴스/i,
+    /^\[일러스트\]/i,
+    /^\[스타일\]/i,
+    /^\s*CARD_LAYOUT_RULE\s*:/i,
+  ];
+
+  const cleaned = lines
+    .filter(l => !dropPatterns.some(rx => rx.test(l)))
+    .join('\n')
+    .trim();
+
+  return cleaned;
+};
+
+const buildStyleBlock = (style: ImageStyle, customStylePrompt?: string): string => {
+  if (customStylePrompt && customStylePrompt.trim()) return CUSTOM_STYLE_RULE(customStylePrompt.trim());
+  if (style === 'photo') return PHOTO_STYLE_RULE;
+  if (style === 'medical') return MEDICAL_3D_STYLE_RULE;
+  return ILLUSTRATION_3D_STYLE_RULE; // illustration 기본
+};
+
+const buildFrameBlock = (referenceImage?: string, copyMode?: boolean): string => {
+  if (!referenceImage) return CARD_FRAME_RULE;
+  return copyMode ? FRAME_FROM_REFERENCE_COPY : FRAME_FROM_REFERENCE_RECOLOR;
+};
+
 
 // 참고 이미지 완전 복제 모드 - 레이아웃만! 내용물은 무시!
 const REF_IMAGE_COPY_MODE_PROMPT = `
@@ -1119,140 +1172,83 @@ const cleanImagePromptText = (prompt: string): string => {
 export const generateSingleImage = async (
   promptText: string,
   style: ImageStyle,
-  aspectRatio: string = "1:1",
+  aspectRatio: string,
   customStylePrompt?: string,
   referenceImage?: string,
-  copyMode: boolean = false
+  copyMode?: boolean
 ): Promise<string> => {
-    const ai = getAiClient();
-    
-    // 🔍 디버그: 입력 파라미터 확인
-    console.log('🔍 generateSingleImage 호출됨:', {
-      style,
-      customStylePrompt: customStylePrompt?.substring(0, 50) || 'undefined',
-      hasRefImage: !!referenceImage
-    });
-    
-    // 🎨 스타일 우선순위: 커스텀 > 참고 이미지 스타일 > 기본 스타일
-    let stylePrompt = "";
-    if (customStylePrompt && customStylePrompt.trim()) {
-        stylePrompt = customStylePrompt;
-        console.log('✅ 커스텀 스타일 적용:', customStylePrompt.substring(0, 50));
-    } else if (referenceImage) {
-        stylePrompt = "참고 이미지 스타일 그대로";
-        console.log('🖼️ 참고 이미지 스타일 모드');
-    } else {
-        stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
-        console.log('⚠️ 기본 스타일 사용:', stylePrompt);
-    }
+  const ai = getAiClient();
 
-    // 공통 함수로 프롬프트 정리 + 기존 스타일 관련 텍스트 모두 제거!
-    let cleanPromptText = cleanImagePromptText(promptText);
-    // 기존 [스타일] 섹션 제거 (중복 방지)
-    cleanPromptText = cleanPromptText.replace(/\[스타일\][^\[]*(?=\[|$)/gi, '').trim();
-    // 🚨 기본 스타일 키워드들도 제거! (커스텀 스타일 적용 시 충돌 방지)
-    const styleKeywordsToRemove = [
-      '고품질 3D 의료 일러스트',
-      '3D 의료 일러스트',
-      '3D 일러스트',
-      '인포그래픽',
-      '아이소메트릭',
-      '클레이 렌더',
-      '파란색/흰색',
-      '파란색 흰색',
-      '밝고 친근한 분위기',
-      '전문 3D 의학 해부학',
-      '의학 3D',
-      '실사 사진',
-      'DSLR',
-      '8K'
-    ];
-    for (const keyword of styleKeywordsToRemove) {
-      cleanPromptText = cleanPromptText.replace(new RegExp(keyword + ',?\\s*', 'gi'), '');
-    }
-    cleanPromptText = cleanPromptText.replace(/,\s*,/g, ',').replace(/,\s*$/,'').trim();
-    
-    // 🎨 커스텀 스타일이 최우선! (강제 적용)
-    const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
-    
-    // 🚨 커스텀 스타일을 프롬프트 맨 앞에 강조!
-    const styleEmphasis = hasCustomStyle 
-      ? `🎨🎨🎨 [필수 스타일 지시] 🎨🎨🎨
-반드시 다음 스타일로만 그려주세요: ${customStylePrompt.trim()}
-⛔ 금지: 3D 일러스트, 클레이 렌더, 아이소메트릭, 인포그래픽 스타일
-✅ 필수: ${customStylePrompt.trim()}
-🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨
+  // 1) 입력 정리: 충돌 문구 제거
+  const cleanPromptText = normalizePromptTextForImage(promptText);
 
-` 
-      : '';
-    
-    const styleSection = hasCustomStyle 
-      ? `[스타일] ${customStylePrompt.trim()} (다른 스타일 절대 금지!)` 
-      : `[스타일] ${stylePrompt}`;
-    
-    console.log('🎨 generateSingleImage - customStylePrompt:', customStylePrompt ? customStylePrompt.substring(0, 50) : 'undefined');
-    console.log('📝 최종 스타일 섹션:', styleSection.substring(0, 100));
-    
-    // 전체 프롬프트 조합 - 스타일 강조를 맨 앞에!
-    // 🧱 스타일 도망 방지
+  // 2) 프레임/스타일 블록 분리 (프레임은 레이아웃, 스타일은 렌더링)
+  const frameBlock = buildFrameBlock(referenceImage, copyMode);
+  const styleBlock = buildStyleBlock(style, customStylePrompt);
 
-    let finalPrompt: string;
-    
-    if (referenceImage) {
-      // 참고 이미지 모드
-      const refRule = copyMode ? REF_IMAGE_COPY_MODE_PROMPT : REF_IMAGE_RECOLOR_MODE_PROMPT;
-      finalPrompt = `${styleEmphasis}${refRule}
-[요청] ${cleanPromptText}
-${styleSection}
-${IMAGE_TEXT_RULES}`;
-    } else {
-      // 일반 모드 - 스타일 강조 + 레이아웃 + 요청
-      finalPrompt = `${styleEmphasis}${CARD_LAYOUT_PROMPT}
-[요청] ${cleanPromptText}
-${styleSection}
-${IMAGE_TEXT_RULES}`;
-    }
+  // 3) 최종 프롬프트 조립: FRAME -> STYLE -> TEXT 순서 고정
+  const finalPrompt = `
+${frameBlock}
+${styleBlock}
 
-    try {
-      // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
-      let contentParts: any[] = [];
-      
-      if (referenceImage) {
-        // Base64 데이터 추출 (copyMode와 상관없이 참고 이미지가 있으면 전송)
-        const base64Match = referenceImage.match(/^data:([^;]+);base64,(.+)$/);
-        if (base64Match) {
-          contentParts.push({
-            inlineData: {
-              mimeType: base64Match[1],
-              data: base64Match[2]
-            }
-          });
-        }
-      }
-      
-      contentParts.push({ text: finalPrompt });
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3-pro-image-preview",
-        contents: { parts: contentParts },
-        config: { imageConfig: { aspectRatio: aspectRatio, imageSize: "1K" } }
+[TEXT]
+${cleanPromptText}
+
+[BACKGROUND]
+#E8F4FD (요청에 배경색이 있으면 그 값을 우선)
+
+[RULE]
+한국어만 사용.
+해시태그/워터마크/로고 금지.
+텍스트는 명확히 읽히도록 배치.
+`.trim();
+
+  // 🔍 디버그
+  console.log('🧩 generateSingleImage prompt blocks:', {
+    style,
+    hasCustomStyle: !!(customStylePrompt && customStylePrompt.trim()),
+    hasReferenceImage: !!referenceImage,
+    copyMode: !!copyMode,
+    finalPromptHead: finalPrompt.slice(0, 200),
+  });
+
+  try {
+    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+    const parts: any[] = [{ text: finalPrompt }];
+
+    if (referenceImage && referenceImage.startsWith('data:')) {
+      const [meta, base64] = referenceImage.split(',');
+      const mimeType = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
+      parts.unshift({
+        inlineData: { data: base64, mimeType }
       });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          console.log('✅ 이미지 생성 성공');
-          return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-        }
-      }
-      // 이미지 데이터가 없는 경우 상세 로깅
-      console.warn('⚠️ 이미지 생성 실패 - 응답에 이미지 데이터 없음');
-      console.warn('📝 사용된 프롬프트 (앞 200자):', cleanPromptText.substring(0, 200));
-      console.warn('📦 AI 응답:', JSON.stringify(response.candidates?.[0]?.content?.parts?.map(p => p.text || '[이미지/기타]')));
-      return "";
-    } catch (error: any) { 
-      console.error('❌ 이미지 생성 에러:', error?.message || error);
-      console.error('📝 사용된 프롬프트 (앞 200자):', cleanPromptText.substring(0, 200));
-      return ""; 
     }
+
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        temperature: 0.7,
+      },
+    });
+
+    const candidates: any = (result as any)?.response?.candidates || (result as any)?.candidates;
+    const first = candidates?.[0];
+    const partsOut: any[] = first?.content?.parts || [];
+
+    const inline = partsOut.find(p => p.inlineData && p.inlineData.data);
+    if (!inline) return "";
+
+    const mimeType = inline.inlineData.mimeType || 'image/png';
+    const data = inline.inlineData.data;
+    return `data:${mimeType};base64,${data}`;
+  } catch (error: any) {
+    console.error('❌ 이미지 생성 에러:', error?.message || error);
+    console.error('📝 사용된 프롬프트 (앞 250자):', finalPrompt.slice(0, 250));
+    return "";
+  }
+};
+
 };
 
 export const getTrendingTopics = async (category: string): Promise<TrendingItem[]> => {
@@ -3400,7 +3396,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
     if (img.data) {
       let imgHtml = "";
       if (request.postType === 'card_news') {
-          imgHtml = `<img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-inner-img" />`;
+          imgHtml = `<img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: auto; display: block;" />`;
       } else {
           imgHtml = `<div class="content-image-wrapper"><img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" /></div>`;
       }
