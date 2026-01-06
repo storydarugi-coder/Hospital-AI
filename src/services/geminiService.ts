@@ -1376,15 +1376,15 @@ A single complete card image with Korean text visually rendered inside.
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES} (gemini-3-pro-image)...`);
+      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES} (gemini-3-pro-image-preview)...`);
       
-      // Gemini 3 Pro Image - 이미지 생성 전용 모델
+      // Gemini 3 Pro Image Preview - 이미지 생성 전용 모델 (공식 API 모델명)
       const contents: any[] = refImagePart 
         ? [refImagePart, { text: finalPrompt }]
         : [{ text: finalPrompt }];
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-pro-image",
+        model: "gemini-3-pro-image-preview",
         contents: contents,
         config: {
           responseModalities: ["IMAGE", "TEXT"],
