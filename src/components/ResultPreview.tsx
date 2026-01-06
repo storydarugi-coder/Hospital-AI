@@ -542,8 +542,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       if (customStylePrompt) {
         styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
       } else {
-        // 기본 스타일 (2D 일러스트)
-        styleText = style === 'illustration' ? '귀여운 플랫 2D 일러스트' : style === 'medical' ? '의료 인포그래픽 2D' : '실사 사진';
+        // 기본 스타일 (3D 일러스트)
+        styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
       // 🔧 재생성 프롬프트: editImagePrompt가 있어도 스타일은 고정!

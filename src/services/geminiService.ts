@@ -382,24 +382,24 @@ const REF_IMAGE_RECOLOR_MODE_PROMPT = `
 // 공통 규칙 (간결화)
 const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
-// 기본 스타일 프롬프트 (브라우저 창 프레임에 맞는 2D 스타일)
+// 기본 스타일 프롬프트
 export const DEFAULT_STYLE_PROMPTS = {
-  illustration: '귀여운 플랫 2D 일러스트, 심플하고 깔끔한 벡터 스타일, 밝고 친근한 색감',
-  medical: '의료 인포그래픽 2D 일러스트, 인체 도식화, 깔끔한 교육용 그래픽',
+  illustration: '고품질 3D 의료 일러스트, 인포그래픽, 파란색/흰색, 아이소메트릭, 클레이 렌더',
+  medical: '전문 3D 의학 해부학 일러스트, 단면도, 인체 내부, 과학적 시각화',
   photo: '초고화질 실사 사진, 8K, DSLR, 부드러운 병원 조명, 얕은 피사계 심도'
 };
 
 // 스타일 이름 (UI 표시용)
 export const STYLE_NAMES = {
-  illustration: '2D 일러스트',
-  medical: '의료 인포그래픽',
+  illustration: '3D 일러스트',
+  medical: '의학 3D',
   photo: '실사 사진'
 };
 
 // 짧은 스타일 키워드 (프롬프트용)
 export const STYLE_KEYWORDS = {
-  illustration: '플랫 2D 일러스트, 벡터 스타일, 귀여운 캐릭터',
-  medical: '2D 의료 인포그래픽, 인체 도식화, 교육용',
+  illustration: '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽',
+  medical: '3D 해부학 일러스트, 인체 구조, 교육용',
   photo: '실사 사진, DSLR 촬영'
 };
 
