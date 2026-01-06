@@ -533,21 +533,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 1. savedCustomStylePrompt (state에 저장된 값) 사용 - 재생성 시에도 유지됨!
       // 2. 참고 이미지가 있으면 "참고 이미지 스타일 그대로" 지시
       // 3. 없으면 기본 스타일
-      let customStylePrompt = savedCustomStylePrompt || undefined;
+      // 🎨 커스텀 스타일은 항상 최우선! (참고 이미지가 있어도 유지)
+      const customStylePrompt = savedCustomStylePrompt || undefined;
       console.log('🎨 재생성 시 커스텀 스타일:', customStylePrompt);
       
-      // 🎨 스타일 결정: 커스텀 > 참고 이미지 스타일 > 기본 스타일
+      // 🎨 스타일 결정: 커스텀 > 기본 스타일 (참고 이미지는 레이아웃만!)
       let styleText: string;
       if (customStylePrompt) {
-        styleText = customStylePrompt;  // 커스텀 스타일 있으면 그대로 사용
-      } else if (cardRegenRefImage) {
-        // 🔴 참고 이미지가 있으면 스타일 강제 지정하지 않음!
-        // 참고 이미지의 스타일을 그대로 따라가도록 함
-        styleText = '참고 이미지와 동일한 스타일';
-        // generateSingleImage에 전달할 customStylePrompt도 설정
-        customStylePrompt = REF_IMAGE_STYLE_FOLLOW_PROMPT;
+        styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
       } else {
-        styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
+        // 기본 스타일 (2D 일러스트)
+        styleText = style === 'illustration' ? '귀여운 플랫 2D 일러스트' : style === 'medical' ? '의료 인포그래픽 2D' : '실사 사진';
       }
       
       // 🔧 재생성 프롬프트: editImagePrompt가 있어도 스타일은 고정!
