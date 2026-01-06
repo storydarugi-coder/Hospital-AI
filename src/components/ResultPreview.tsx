@@ -207,11 +207,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   }, [content.fullHtml]);
 
   // 🎨 content.customImagePrompt가 변경되면 저장된 값도 업데이트
+  // 실사/3D일러스트/의학3D 선택 시 undefined가 전달되므로 초기화됨
   useEffect(() => {
-    if (content.customImagePrompt) {
-      setSavedCustomStylePrompt(content.customImagePrompt);
-      console.log('🎨 커스텀 스타일 저장됨:', content.customImagePrompt);
-    }
+    setSavedCustomStylePrompt(content.customImagePrompt);
+    console.log('🎨 커스텀 스타일 업데이트:', content.customImagePrompt || '(없음 - 기본 스타일 사용)');
   }, [content.customImagePrompt]);
 
   // 글자 수 계산 (실제 보이는 텍스트만) + 카드 수 업데이트
