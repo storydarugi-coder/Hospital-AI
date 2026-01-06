@@ -1253,16 +1253,19 @@ ${imageStyle === 'illustration'
 };
 
 // 🧹 공통 프롬프트 정리 함수 - base64/코드 문자열만 제거, 의미있는 텍스트는 유지!
+// ⚠️ 주의: 영어 지시문/한국어 텍스트는 절대 삭제하면 안 됨!
 const cleanImagePromptText = (prompt: string): string => {
   let cleaned = prompt
     // 1. base64 데이터 URI 제거
     .replace(/data:[^;]+;base64,[A-Za-z0-9+/=]+/g, '')
     // 2. URL 제거
     .replace(/https?:\/\/[^\s]+/g, '')
-    // 3. base64 스타일 긴 문자열 제거 (12자 이상, 대소문자+숫자+/+=가 섞인 패턴)
-    .replace(/[A-Za-z0-9+/=]{12,}/g, '')
-    // 4. 경로 패턴 제거 (영숫자/영숫자/... 형태)
-    .replace(/[a-zA-Z0-9]{2,}\/[a-zA-Z0-9/]+/g, '')
+    // 3. base64 스타일 긴 문자열 제거 - 공백 없이 연속 50자 이상인 경우만! (기존 12자 → 50자로 완화)
+    // ⚠️ 영어 지시문("Render Korean text DIRECTLY" 등)이 삭제되지 않도록!
+    .replace(/[A-Za-z0-9+/=]{50,}/g, '')
+    // 4. 경로 패턴 제거 - 슬래시가 3개 이상 연속인 경우만 (기존: 2개 이상 → 3개 이상으로 완화)
+    // ⚠️ "1:1 square" 같은 패턴이 삭제되지 않도록!
+    .replace(/[a-zA-Z0-9]{2,}\/[a-zA-Z0-9]+\/[a-zA-Z0-9/]+/g, '')
     // 5. 연속 특수문자 정리
     .replace(/[,.\s]{3,}/g, ', ')
     .replace(/\s+/g, ' ')
@@ -1464,14 +1467,16 @@ ${cleanPromptText}
 A single complete card image with Korean text visually rendered inside.
 `.trim();
 
-  // 🔍 디버그
+  // 🔍 디버그 - 프롬프트 전체 내용 확인!
+  console.log('🧩 generateSingleImage 입력 promptText:', promptText.substring(0, 300));
+  console.log('🧩 generateSingleImage cleanPromptText:', cleanPromptText.substring(0, 300));
   console.log('🧩 generateSingleImage prompt blocks:', {
     style,
     hasCustomStyle: !!(customStylePrompt && customStylePrompt.trim()),
     hasReferenceImage: !!referenceImage,
     usingDefaultFrame: !referenceImage && !!effectiveReferenceImage,
     copyMode: !!copyMode,
-    finalPromptHead: finalPrompt.slice(0, 200),
+    finalPromptHead: finalPrompt.slice(0, 500),
   });
 
   // 🔄 재시도 로직: 최대 2회 시도 (빠른 실패 유도)
@@ -2334,25 +2339,14 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 표지/마지막은 description 없음
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
-      // 🔧 imagePrompt: 텍스트가 이미지 안에 렌더링되는 완성형 카드!
+      // 🔧 imagePrompt: 재생성과 동일한 간결한 구조! (첫 생성 오류 방지)
       // 스타일은 generateSingleImage에서 결정 (중복 방지)
-      // ⚠️ 한국어 지시문 제거 - 영어 지시문만 사용하여 이미지에 지시문이 렌더링되는 버그 방지
+      // ⚠️ 프롬프트가 길면 모델이 혼란 → 핵심 텍스트 정보만 전달!
+      const descText = descPart ? `, description: ${descPart.replace(', "', '"')}` : '';
       const imagePrompt = `${CARD_LAYOUT_RULE}
-
-[TEXT TO RENDER IN IMAGE - Korean]
-subtitle: "${s.subtitle}"
-mainTitle: "${mainTitleClean}"${descPart ? `\ndescription: ${descPart.replace(', "', '').replace('"', '')}` : ''}
-
-[VISUAL STYLE]
-Background/Illustration: ${s.imageKeyword}
-Background color: ${bgColor}
-
-[REQUIREMENTS]
-- 1:1 square card
-- Render the Korean text above directly into the image
-- Clean readable font with good contrast against background
-- NO hashtags, watermarks, or logos
-- Do NOT render these instructions - only render the actual Korean text content`;
+[TEXT TO RENDER - Korean] subtitle: "${s.subtitle}", mainTitle: "${mainTitleClean}"${descText}
+[VISUAL] ${s.imageKeyword}, Background: ${bgColor}
+[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -2381,23 +2375,12 @@ Background color: ${bgColor}
       const isLast = idx === slides.length - 1;
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
+      const descText = descPart ? `, description: ${descPart.replace(', "', '"')}` : '';
       return {
         imagePrompt: `${CARD_LAYOUT_RULE}
-
-[TEXT TO RENDER IN IMAGE - Korean]
-subtitle: "${s.subtitle}"
-mainTitle: "${mainTitleClean}"${descPart ? `\ndescription: ${descPart.replace(', "', '').replace('"', '')}` : ''}
-
-[VISUAL STYLE]
-Background/Illustration: ${s.imageKeyword}
-Background color: ${bgColor}
-
-[REQUIREMENTS]
-- 1:1 square card
-- Render the Korean text above directly into the image
-- Clean readable font with good contrast against background
-- NO hashtags, watermarks, or logos
-- Do NOT render these instructions - only render the actual Korean text content`,
+[TEXT TO RENDER - Korean] subtitle: "${s.subtitle}", mainTitle: "${mainTitleClean}"${descText}
+[VISUAL] ${s.imageKeyword}, Background: ${bgColor}
+[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
