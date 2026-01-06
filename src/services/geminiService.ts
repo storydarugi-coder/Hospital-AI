@@ -2072,15 +2072,14 @@ const assembleCardNewsHtml = (
     // 프레임 스타일에 따른 border 적용
     const borderStyle = borderWidth !== '0' ? `border: ${borderWidth} solid ${accentColor};` : '';
     
+    // 🎨 이미지에 텍스트가 렌더링되므로, HTML에서는 이미지만 표시 (텍스트 레이어 제거)
     return `
-      <div class="card-slide" style="background: ${bgGradient}; border-radius: ${borderRadius}; ${borderStyle} box-shadow: ${boxShadow}; overflow: hidden; aspect-ratio: 1/1;">
-        ${windowButtonsHtml}
-        <div class="card-content-area" style="padding: ${padding}; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%; justify-content: center; gap: 12px;">
-          <p class="card-subtitle" style="font-size: ${subtitle.fontSize}; font-weight: ${subtitle.fontWeight}; color: ${subtitle.color}; margin-bottom: 4px;">${slide.subtitle}</p>
-          <p class="card-main-title" style="font-size: ${mainTitle.fontSize}; font-weight: ${mainTitle.fontWeight}; color: ${mainTitle.color}; line-height: 1.3; margin: 0; word-break: keep-all;">${formattedTitle}</p>
-          <div class="card-img-container" style="width: 100%; display: flex; justify-content: center; padding: 16px 0;">[IMG_${idx + 1}]</div>
-          <p class="card-desc" style="font-size: ${desc.fontSize}; color: ${desc.color}; line-height: 1.7; font-weight: 500; max-width: 90%;">${slide.description}</p>
+      <div class="card-slide" style="background: ${bgGradient}; border-radius: ${borderRadius}; ${borderStyle} box-shadow: ${boxShadow}; overflow: hidden; aspect-ratio: 1/1; position: relative;">
+        <div class="card-img-container" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+          <img class="card-inner-img" src="[IMG_${idx + 1}]" style="width: 100%; height: 100%; object-fit: cover;" alt="${slide.mainTitle.replace(/<[^>]*>/g, '')}" />
         </div>
+        <!-- 텍스트 데이터는 숨김 처리 (편집/검색용) -->
+        <div class="card-text-data" style="display: none;" data-subtitle="${slide.subtitle}" data-title="${slide.mainTitle.replace(/"/g, '&quot;')}" data-desc="${slide.description.replace(/"/g, '&quot;')}"></div>
       </div>`;
   });
   
