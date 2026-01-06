@@ -49,16 +49,19 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
     setTempPrompt('');
   };
 
-  // 프롬프트에서 핵심 텍스트 추출해서 보여주기
-  const extractDisplayText = (prompt: string): { subtitle: string; mainTitle: string; description: string } => {
-    const subtitleMatch = prompt.match(/subtitle[:\s]*["']?([^"'\n,}]+)/i);
-    const mainTitleMatch = prompt.match(/mainTitle[:\s]*["']?([^"'\n,}]+)/i);
-    const descMatch = prompt.match(/description[:\s]*["']?([^"'\n,}]+)/i);
+  // 프롬프트에서 핵심 텍스트 추출해서 보여주기 (""안의 텍스트만!)
+  const extractDisplayText = (prompt: string): { subtitle: string; mainTitle: string; description: string; visual: string } => {
+    // "" 안의 텍스트만 추출
+    const subtitleMatch = prompt.match(/subtitle:\s*"([^"]+)"/i);
+    const mainTitleMatch = prompt.match(/mainTitle:\s*"([^"]+)"/i);
+    const descMatch = prompt.match(/description:\s*"([^"]+)"/i);
+    const visualMatch = prompt.match(/비주얼:\s*(.+)/i) || prompt.match(/\[VISUAL\]\s*(.+)/i);
     
     return {
       subtitle: subtitleMatch?.[1]?.trim() || '',
       mainTitle: mainTitleMatch?.[1]?.trim() || '',
       description: descMatch?.[1]?.trim() || '',
+      visual: visualMatch?.[1]?.trim().replace(/,?\s*Background:.*$/i, '') || '',
     };
   };
 
@@ -212,40 +215,39 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
                     </div>
                   </>
                 ) : (
-                  // 보기 모드
+                  // 보기 모드 - 핵심 정보만 깔끔하게!
                   <>
-                    {/* 미리보기: 핵심 텍스트 */}
+                    {/* 📝 렌더링될 텍스트 */}
                     <div className={`p-4 rounded-xl border ${darkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100'}`}>
                       <div className={`text-[10px] font-bold mb-2 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                         📝 이미지에 렌더링될 텍스트
                       </div>
                       {displayText.subtitle && (
                         <div className={`text-xs mb-1 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                          {displayText.subtitle}
+                          "{displayText.subtitle}"
                         </div>
                       )}
                       <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>
-                        {displayText.mainTitle || '(메인 제목 없음)'}
+                        "{displayText.mainTitle || '(메인 제목 없음)'}"
                       </div>
                       {displayText.description && (
                         <div className={`text-sm mt-1 ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
-                          {displayText.description}
+                          "{displayText.description}"
                         </div>
                       )}
                     </div>
                     
-                    {/* 전체 프롬프트 (접힘 가능) */}
-                    <details className="group">
-                      <summary className={`cursor-pointer text-xs font-bold flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                        <span className="transition-transform group-open:rotate-90">▶</span>
-                        전체 프롬프트 보기
-                      </summary>
-                      <div className={`mt-2 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap overflow-auto max-h-32 ${
-                        darkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {promptData.imagePrompt}
+                    {/* 🎨 비주얼 키워드 */}
+                    {displayText.visual && (
+                      <div className={`p-3 rounded-xl border ${darkMode ? 'bg-emerald-900/30 border-emerald-700/50' : 'bg-emerald-50 border-emerald-100'}`}>
+                        <div className={`text-[10px] font-bold mb-1 ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                          🎨 비주얼 키워드
+                        </div>
+                        <div className={`text-sm ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
+                          {displayText.visual}
+                        </div>
                       </div>
-                    </details>
+                    )}
                   </>
                 )}
               </div>

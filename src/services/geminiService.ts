@@ -2441,14 +2441,13 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 표지/마지막은 description 없음
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
-      // 🔧 imagePrompt: 재생성과 동일한 간결한 구조! (첫 생성 오류 방지)
+      // 🔧 imagePrompt: 사용자에게 보여줄 핵심 정보만! (영어 지시문은 생성 시 자동 추가)
       // 스타일은 generateSingleImage에서 결정 (중복 방지)
-      // ⚠️ 프롬프트가 길면 모델이 혼란 → 핵심 텍스트 정보만 전달!
-      const descText = descPart ? `, description: ${descPart.replace(', "', '"')}` : '';
-      const imagePrompt = `${CARD_LAYOUT_RULE}
-[TEXT TO RENDER - Korean] subtitle: "${s.subtitle}", mainTitle: "${mainTitleClean}"${descText}
-[VISUAL] ${s.imageKeyword}, Background: ${bgColor}
-[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`;
+      const descText = (isFirst || isLast) ? '' : (s.description ? `\ndescription: "${s.description}"` : '');
+      const imagePrompt = `subtitle: "${s.subtitle}"
+mainTitle: "${mainTitleClean}"${descText}
+비주얼: ${s.imageKeyword}
+배경색: ${bgColor}`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -2476,13 +2475,12 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const isFirst = idx === 0;
       const isLast = idx === slides.length - 1;
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
-      const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
-      const descText = descPart ? `, description: ${descPart.replace(', "', '"')}` : '';
+      const descText = (isFirst || isLast) ? '' : (s.description ? `\ndescription: "${s.description}"` : '');
       return {
-        imagePrompt: `${CARD_LAYOUT_RULE}
-[TEXT TO RENDER - Korean] subtitle: "${s.subtitle}", mainTitle: "${mainTitleClean}"${descText}
-[VISUAL] ${s.imageKeyword}, Background: ${bgColor}
-[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`,
+        imagePrompt: `subtitle: "${s.subtitle}"
+mainTitle: "${mainTitleClean}"${descText}
+비주얼: ${s.imageKeyword}
+배경색: ${bgColor}`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
