@@ -532,20 +532,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               </a>
             </div>
 
-            {/* Premium Plan */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
-              <h3 className="text-xl font-black text-slate-800 mb-1">프리미엄</h3>
+            {/* Premium Plan - 50건 */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all relative">
+              <div className="absolute -top-3 right-4 px-3 py-1 bg-red-500 text-white text-xs font-black rounded-full">BEST</div>
+              <h3 className="text-xl font-black text-slate-800 mb-1">베이직 50</h3>
               <p className="text-sm text-slate-400 mb-4">대형 병원/대행사용</p>
-              <div className="text-3xl font-black text-slate-900 mb-1">₩69,900</div>
-              <p className="text-sm text-emerald-600 font-medium mb-6">무제한 | 월 구독</p>
+              <div className="text-3xl font-black text-slate-900 mb-1">₩55,900</div>
+              <p className="text-sm text-emerald-600 font-medium mb-6">원고 50회 | 건당 1,118원</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>무제한</b></li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>50회</b></li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
               <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">
-                구독하기
+                구매하기
               </a>
             </div>
           </div>
@@ -634,15 +635,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <div>
                 <h4 className="font-bold text-white mb-2">서비스 안내</h4>
                 <p>서비스 제공기간: 결제 즉시 ~ 이용권 기간 만료일</p>
-                <p>베이직/스탠다드: 결제일로부터 90일</p>
-                <p>프리미엄 월간: 결제일로부터 30일</p>
-                <p>프리미엄 연간: 결제일로부터 365일</p>
+                <p>베이직 10/20/50건: 결제일로부터 90일</p>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">환불 규정</h4>
                 <p>• 미사용 시: 결제 후 7일 이내 전액 환불</p>
                 <p>• 사용 시: 잔여 이용권 수에 비례하여 환불</p>
-                <p>• 프리미엄: 잔여 일수 비례 환불</p>
                 <p>환불 문의: story.darugi@gmail.com</p>
               </div>
             </div>
@@ -653,9 +651,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <p>1. 디지털 콘텐츠 서비스 특성상 교환은 불가하며, 환불만 가능합니다.</p>
               <p>2. 결제 후 7일 이내, 서비스 미사용 시 전액 환불 가능합니다.</p>
               <p>3. 서비스 사용(원고 생성 1회 이상) 후에는 잔여 이용권 수에 비례하여 부분 환불됩니다.</p>
-              <p>4. 프리미엄(월간/연간) 구독 상품은 잔여 일수에 비례하여 환불 금액이 산정됩니다.</p>
-              <p>5. 환불 신청: story.darugi@gmail.com으로 [환불신청] 제목으로 메일 발송 (처리기간: 영업일 기준 3~5일)</p>
-              <p>6. 쿠폰/프로모션으로 충전된 무료 이용권은 환불 대상에서 제외됩니다.</p>
+              <p>4. 환불 신청: story.darugi@gmail.com으로 [환불신청] 제목으로 메일 발송 (처리기간: 영업일 기준 3~5일)</p>
+              <p>5. 쿠폰/프로모션으로 충전된 무료 이용권은 환불 대상에서 제외됩니다.</p>
             </div>
           </div>
           
