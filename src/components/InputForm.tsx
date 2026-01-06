@@ -295,7 +295,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'photo' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">📸</span>
-                 <span className="text-xs font-black">실사 촬영</span>
+                 <span className="text-xs font-black leading-tight">실사<br/>촬영</span>
               </button>
               <button
                 type="button"
@@ -303,7 +303,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'illustration' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🎨</span>
-                 <span className="text-xs font-black">3D 일러스트</span>
+                 <span className="text-xs font-black leading-tight">3D<br/>일러스트</span>
               </button>
               <button
                 type="button"
@@ -311,7 +311,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'medical' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🫀</span>
-                 <span className="text-xs font-black">의학 3D</span>
+                 <span className="text-xs font-black leading-tight">의학<br/>3D</span>
               </button>
               <button
                 type="button"

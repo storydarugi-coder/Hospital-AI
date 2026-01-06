@@ -863,7 +863,7 @@ const App: React.FC = () => {
               <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
                 {pendingRequest?.postType === 'card_news' 
                   ? '카드뉴스 원고를 생성하고 있습니다...' 
-                  : '네이버 스마트블록 노출을 위한\n최적의 의료 콘텐츠를 생성하고 있습니다.'}
+                  : '네이버 스마트블록 노출을 위한 최적의\n의료 콘텐츠를 생성하고 있습니다.'}
               </p>
             </div>
           ) : state.data ? (

@@ -282,7 +282,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
                       : 'bg-white text-slate-600 hover:bg-violet-50 border border-slate-200'
                 }`}
               >
-                <span>✏️</span> 직접 입력
+                <span>✏️</span> <span className="leading-tight">직접<br/>입력</span>
               </button>
               <button
                 type="button"
