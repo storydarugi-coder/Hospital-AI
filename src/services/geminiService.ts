@@ -1130,10 +1130,31 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
     }
 
-    // 공통 함수로 프롬프트 정리 + 기존 스타일 태그 제거
+    // 공통 함수로 프롬프트 정리 + 기존 스타일 관련 텍스트 모두 제거!
     let cleanPromptText = cleanImagePromptText(promptText);
     // 기존 [스타일] 섹션 제거 (중복 방지)
     cleanPromptText = cleanPromptText.replace(/\[스타일\][^\[]*(?=\[|$)/gi, '').trim();
+    // 🚨 기본 스타일 키워드들도 제거! (커스텀 스타일 적용 시 충돌 방지)
+    const styleKeywordsToRemove = [
+      '고품질 3D 의료 일러스트',
+      '3D 의료 일러스트',
+      '3D 일러스트',
+      '인포그래픽',
+      '아이소메트릭',
+      '클레이 렌더',
+      '파란색/흰색',
+      '파란색 흰색',
+      '밝고 친근한 분위기',
+      '전문 3D 의학 해부학',
+      '의학 3D',
+      '실사 사진',
+      'DSLR',
+      '8K'
+    ];
+    for (const keyword of styleKeywordsToRemove) {
+      cleanPromptText = cleanPromptText.replace(new RegExp(keyword + ',?\\s*', 'gi'), '');
+    }
+    cleanPromptText = cleanPromptText.replace(/,\s*,/g, ',').replace(/,\s*$/,'').trim();
     
     // 🎨 커스텀 스타일이 최우선! (강제 적용)
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
