@@ -1303,6 +1303,109 @@ const cleanImagePromptText = (prompt: string): string => {
   return cleaned;
 };
 
+// 🖼️ 블로그용 일반 이미지 생성 함수 (텍스트 없는 순수 이미지)
+export const generateBlogImage = async (
+  promptText: string,
+  style: ImageStyle,
+  aspectRatio: string = "16:9",
+  customStylePrompt?: string
+): Promise<string> => {
+  const ai = getAiClient();
+
+  // 스타일 블록만 사용 (카드뉴스 프레임 없음!)
+  const styleBlock = buildStyleBlock(style, customStylePrompt);
+
+  // 블로그용 프롬프트: 텍스트 없는 순수 이미지!
+  const finalPrompt = `
+Generate a professional medical/healthcare illustration for a blog post.
+
+${styleBlock}
+
+[IMAGE CONTENT]
+${promptText}
+
+[DESIGN SPECIFICATIONS]
+- Aspect ratio: ${aspectRatio} (horizontal/landscape format for blog)
+- Style: Professional healthcare/medical imagery
+- Mood: Trustworthy, clean, modern hospital environment
+- NO text, NO titles, NO captions, NO watermarks, NO logos
+- Pure visual content only - this will be used as a blog post image
+
+[MANDATORY REQUIREMENTS]
+✅ Generate a clean visual without any text overlay
+✅ Professional medical/healthcare imagery suitable for hospital blog
+✅ High quality, detailed illustration or photo depending on style
+✅ Horizontal 16:9 format optimized for blog posts
+
+⛔ FORBIDDEN:
+- NO Korean text
+- NO English text
+- NO titles or captions
+- NO browser window frames
+- NO card news style layouts
+- NO watermarks or logos
+- NO infographic elements with text
+
+[OUTPUT]
+A single clean image without any text, suitable for a medical blog post.
+`.trim();
+
+  console.log('📷 generateBlogImage - 블로그용 이미지 생성 (텍스트 없음, 16:9)');
+
+  // 재시도 로직
+  const MAX_RETRIES = 2;
+  let lastError: any = null;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`🎨 블로그 이미지 생성 시도 ${attempt}/${MAX_RETRIES}...`);
+      
+      const result = await ai.models.generateContent({
+        model: "gemini-3-pro-image-preview",
+        contents: [{ text: finalPrompt }],
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
+          temperature: 0.7 + (attempt * 0.1),
+        },
+      });
+
+      const parts = result?.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((p: any) => p.inlineData?.data);
+      
+      if (imagePart) {
+        const mimeType = imagePart.inlineData.mimeType || 'image/png';
+        const data = imagePart.inlineData.data;
+        console.log(`✅ 블로그 이미지 생성 성공`);
+        return `data:${mimeType};base64,${data}`;
+      }
+      
+      lastError = new Error('이미지 데이터를 받지 못했습니다.');
+      if (attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+      
+    } catch (error: any) {
+      lastError = error;
+      console.error(`❌ 블로그 이미지 생성 에러:`, error?.message || error);
+      if (attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+
+  // 실패 시 플레이스홀더
+  console.error('❌ 블로그 이미지 생성 최종 실패:', lastError?.message || lastError);
+  const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+    <rect fill="#E8F4FD" width="1600" height="900"/>
+    <rect fill="#fff" x="40" y="40" width="1520" height="820" rx="24"/>
+    <text x="800" y="430" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#64748b">이미지 생성에 실패했습니다</text>
+    <text x="800" y="470" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#94a3b8">이미지를 클릭하여 재생성해주세요</text>
+  </svg>`;
+  const base64Placeholder = btoa(unescape(encodeURIComponent(placeholderSvg)));
+  return `data:image/svg+xml;base64,${base64Placeholder}`;
+};
+
+// 🎴 카드뉴스용 이미지 생성 함수 (텍스트 포함, 브라우저 프레임)
 export const generateSingleImage = async (
   promptText: string,
   style: ImageStyle,
@@ -3561,9 +3664,20 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   const fallbackReferenceImage = request.coverStyleImage || request.contentStyleImage;
   const fallbackCopyMode = request.styleCopyMode;
   
-  const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => 
-     generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
-  ));
+  // 🖼️ 블로그 vs 카드뉴스 이미지 생성 분기
+  // 블로그: generateBlogImage (텍스트 없는 순수 이미지, 16:9)
+  // 카드뉴스: generateSingleImage (텍스트 포함, 브라우저 프레임, 1:1)
+  const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
+    if (request.postType === 'card_news') {
+      // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
+      return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
+        .then(img => ({ index: i + 1, data: img, prompt: p }));
+    } else {
+      // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
+      return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
+        .then(img => ({ index: i + 1, data: img, prompt: p }));
+    }
+  }));
 
   let body = textData.content;
   
