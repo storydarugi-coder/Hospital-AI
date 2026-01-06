@@ -111,31 +111,32 @@ Disallow: /#admin
 `);
 });
 
-// sitemap.xml
+// sitemap.xml - 동적으로 현재 날짜 생성
 app.get('/sitemap.xml', (c) => {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   return c.body(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://story-darugi.com/</loc>
-    <lastmod>2026-01-03</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://story-darugi.com/#app</loc>
-    <lastmod>2026-01-03</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://story-darugi.com/#pricing</loc>
-    <lastmod>2026-01-03</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://story-darugi.com/#auth</loc>
-    <lastmod>2026-01-03</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -167,30 +168,30 @@ app.get('*', (c) => {
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://story-darugi.com">
     
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Facebook (PNG 이미지 우선 - 호환성 향상) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://story-darugi.com">
     <meta property="og:title" content="HospitalAI - 병원 블로그 AI 자동 생성">
     <meta property="og:description" content="30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하세요.">
-    <meta property="og:image" content="https://story-darugi.com/static/og-image.svg">
-    <meta property="og:image:type" content="image/svg+xml">
+    <meta property="og:image" content="https://story-darugi.com/static/og-image.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ko_KR">
     <meta property="og:site_name" content="HospitalAI">
     
-    <!-- Twitter -->
+    <!-- Twitter (PNG 이미지 우선) -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://story-darugi.com">
     <meta name="twitter:title" content="HospitalAI - 병원 블로그 AI 자동 생성">
     <meta name="twitter:description" content="30초 만에 의료광고법을 준수하는 병원 블로그 원고와 AI 이미지를 자동 생성하세요.">
-    <meta name="twitter:image" content="https://story-darugi.com/static/og-image.svg">
+    <meta name="twitter:image" content="https://story-darugi.com/static/og-image.png">
     
-    <!-- Naver - 네이버 Search Advisor에서 인증 코드 발급 후 입력 -->
-    <meta name="naver-site-verification" content="NAVER_VERIFICATION_CODE">
+    <!-- Naver Search Advisor 인증 (환경변수 NAVER_SITE_VERIFICATION 설정 필요) -->
+    <!-- 설정 방법: Cloudflare Pages > Settings > Environment Variables에 추가 -->
     
-    <!-- Google - Google Search Console에서 인증 코드 발급 후 입력 -->
-    <meta name="google-site-verification" content="GOOGLE_VERIFICATION_CODE">
+    <!-- Google Search Console 인증 (환경변수 GOOGLE_SITE_VERIFICATION 설정 필요) -->
+    <!-- 설정 방법: Cloudflare Pages > Settings > Environment Variables에 추가 -->
     
     <!-- Structured Data - JSON-LD -->
     <script type="application/ld+json">
@@ -221,8 +222,9 @@ app.get('*', (c) => {
     }
     </script>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+    <!-- Favicon (파일로 분리 - 캐싱 가능) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PortOne V2 SDK -->
