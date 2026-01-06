@@ -378,6 +378,37 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       return false;
     }
   };
+  
+  // 🔧 localStorage 용량 확인 함수
+  const getLocalStorageUsage = (): { used: number; total: number; percent: number } => {
+    let total = 0;
+    for (let key in localStorage) {
+      if (localStorage.hasOwnProperty(key)) {
+        total += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
+      }
+    }
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    return { used: total, total: maxSize, percent: Math.round((total / maxSize) * 100) };
+  };
+  
+  // 🔧 히스토리에서 가장 오래된 항목 삭제
+  const removeOldestFromHistory = (): boolean => {
+    try {
+      const historyStr = localStorage.getItem(AUTOSAVE_HISTORY_KEY);
+      if (!historyStr) return false;
+      
+      const history = JSON.parse(historyStr);
+      if (history.length === 0) return false;
+      
+      // 가장 오래된 것 제거 (배열 마지막)
+      history.pop();
+      localStorage.setItem(AUTOSAVE_HISTORY_KEY, JSON.stringify(history));
+      console.log('🗑️ 오래된 저장본 1개 삭제, 남은 개수:', history.length);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
 
   // 수동 저장 함수 (사용자가 버튼 클릭 시 저장)
   const saveManually = () => {
@@ -405,13 +436,32 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       title: `${title} (${timeStr})` // 시간 포함하여 구분
     };
     
-    // 현재 저장 (단일 저장은 항상 시도)
+    // 🔧 저장할 데이터 크기 확인
     const saveDataStr = JSON.stringify(saveData);
+    const dataSize = saveDataStr.length * 2; // UTF-16
+    const usage = getLocalStorageUsage();
+    
+    console.log(`💾 저장 시도: ${Math.round(dataSize/1024)}KB, 현재 사용량: ${usage.percent}%`);
+    
+    // 🔧 용량 부족 시 오래된 것 자동 삭제 (최대 3번 시도)
+    let retryCount = 0;
+    while (usage.used + dataSize > usage.total * 0.9 && retryCount < 3) {
+      console.warn(`⚠️ 용량 부족 (${usage.percent}%), 오래된 저장본 삭제 중...`);
+      if (!removeOldestFromHistory()) break;
+      retryCount++;
+    }
+    
+    // 현재 저장 (단일 저장은 항상 시도)
     if (!safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr)) {
       // 용량 초과 시 히스토리 전체 삭제 후 재시도
+      console.warn('🗑️ 히스토리 전체 삭제 후 재시도...');
       localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
       setAutoSaveHistory([]);
-      safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr);
+      
+      if (!safeLocalStorageSet(AUTOSAVE_KEY, saveDataStr)) {
+        alert('⚠️ 저장 용량이 부족합니다.\n\n이미지가 많은 콘텐츠는 용량을 많이 차지합니다.\n기존 저장본을 모두 삭제 후 다시 시도해주세요.');
+        return;
+      }
     }
     setLastSaved(now);
     
@@ -420,17 +470,28 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 🔧 같은 제목 필터링 제거 - 시간이 다르면 별도 저장
       let newHistory = [saveData, ...prev].slice(0, 3);
       
-      // 저장 시도
+      // 저장 시도 (용량 초과 시 오래된 것부터 삭제)
       let historyStr = JSON.stringify(newHistory);
-      if (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
-        // 용량 초과 시 경고 표시
-        alert('⚠️ 저장 용량이 초과되었습니다.\n\n기존 저장본을 삭제하고 다시 시도해주세요.');
-        return prev; // 기존 상태 유지
+      
+      // 🔧 저장 실패 시 오래된 것 하나씩 삭제하며 재시도
+      while (!safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr) && newHistory.length > 1) {
+        console.warn(`⚠️ 히스토리 저장 실패, 오래된 항목 삭제 중... (${newHistory.length}개 → ${newHistory.length - 1}개)`);
+        newHistory.pop(); // 가장 오래된 것 삭제
+        historyStr = JSON.stringify(newHistory);
       }
+      
+      if (newHistory.length === 1 && !safeLocalStorageSet(AUTOSAVE_HISTORY_KEY, historyStr)) {
+        // 그래도 실패하면 경고
+        alert('⚠️ 저장 용량이 부족하여 이전 저장본이 삭제되었습니다.');
+        newHistory = [saveData]; // 현재 것만 유지
+        localStorage.setItem(AUTOSAVE_HISTORY_KEY, JSON.stringify(newHistory));
+      }
+      
       return newHistory;
     });
     
-    alert(`✅ "${title}" 저장되었습니다! (${autoSaveHistory.length + 1}/3)`);
+    const finalUsage = getLocalStorageUsage();
+    alert(`✅ "${title}" 저장되었습니다! (${autoSaveHistory.length + 1}/3)\n\n💾 저장 공간: ${finalUsage.percent}% 사용 중`);
   };
 
   // 특정 저장본 불러오기
