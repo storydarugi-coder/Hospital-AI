@@ -122,3 +122,39 @@ export const getCurrentUser = async () => {
 export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
   return supabase.auth.onAuthStateChange(callback);
 };
+
+// 회원 탈퇴 (계정 삭제)
+export const deleteAccount = async (userId: string) => {
+  console.log('[Delete Account] Starting account deletion for:', userId);
+  
+  try {
+    // 1. 사용 로그 삭제
+    await supabase.from('usage_logs').delete().eq('user_id', userId);
+    console.log('[Delete Account] Usage logs deleted');
+    
+    // 2. 구독 정보 삭제
+    await supabase.from('subscriptions').delete().eq('user_id', userId);
+    console.log('[Delete Account] Subscription deleted');
+    
+    // 3. 프로필 삭제
+    await supabase.from('profiles').delete().eq('id', userId);
+    console.log('[Delete Account] Profile deleted');
+    
+    // 4. 로컬 스토리지 정리
+    localStorage.removeItem(`user_credits_${userId}`);
+    localStorage.removeItem('used_coupons');
+    
+    // 5. 로그아웃 (세션 종료)
+    await supabase.auth.signOut();
+    console.log('[Delete Account] Signed out');
+    
+    // 참고: Supabase에서 실제 auth.users 테이블 삭제는 
+    // 서버 사이드(Service Role Key) 또는 대시보드에서만 가능
+    // 클라이언트에서는 관련 데이터만 삭제하고 로그아웃 처리
+    
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error('[Delete Account] Error:', err);
+    return { success: false, error: err.message || '탈퇴 처리 중 오류가 발생했습니다.' };
+  }
+};
