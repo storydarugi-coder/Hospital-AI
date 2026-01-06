@@ -480,6 +480,7 @@ const App: React.FC = () => {
           },
           postType: 'card_news',
           imageStyle: pendingRequest.imageStyle,
+          customImagePrompt: pendingRequest.customImagePrompt,  // 🎨 커스텀 스타일 유지!
           cardPrompts: designResult.cardPrompts
         },
         progress: ''
