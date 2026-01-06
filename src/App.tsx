@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { GenerationRequest, GenerationState, CardNewsScript } from './types';
+import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import InputForm from './components/InputForm';
 import ResultPreview from './components/ResultPreview';
 import ScriptPreview from './components/ScriptPreview';
+import PromptPreview from './components/PromptPreview';
 import AdminPage from './components/AdminPage';
 import LandingPage from './components/LandingPage';
 import { AuthPage } from './components/AuthPage';
@@ -42,11 +43,14 @@ const App: React.FC = () => {
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
-  // 카드뉴스 2단계 워크플로우 상태
+  // 카드뉴스 3단계 워크플로우 상태
+  // 1단계: 원고 생성 → 2단계: 프롬프트 확인 → 3단계: 이미지 생성
   const [cardNewsScript, setCardNewsScript] = useState<CardNewsScript | null>(null);
+  const [cardNewsPrompts, setCardNewsPrompts] = useState<CardPromptData[] | null>(null); // 🆕 프롬프트 확인 단계
   const [pendingRequest, setPendingRequest] = useState<GenerationRequest | null>(null);
   const [scriptProgress, setScriptProgress] = useState<string>('');
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
   
   // 쿠폰 모달 상태
   const [showCouponModal, setShowCouponModal] = useState(false);
@@ -499,61 +503,93 @@ const App: React.FC = () => {
     }
   };
 
-  // 카드뉴스 원고 승인 → 디자인 변환
+  // 🆕 카드뉴스 원고 승인 → 프롬프트 확인 단계로 이동 (2단계)
   const handleApproveScript = async () => {
     if (!cardNewsScript || !pendingRequest) return;
     
     setIsGeneratingScript(true);
-    setScriptProgress('🎨 [2단계] 카드뉴스 디자인 및 이미지 생성 중...');
+    setScriptProgress('🎨 [2단계] 이미지 프롬프트 생성 중...');
     
     try {
-      // 원고를 디자인으로 변환
+      // 원고를 디자인으로 변환 (프롬프트만 생성, 이미지는 아직!)
       const designResult = await convertScriptToCardNews(
         cardNewsScript, 
         pendingRequest, 
         setScriptProgress
       );
       
-      // 이미지 생성
-      setScriptProgress('🖼️ 이미지 생성 중...');
-      const imageStyle = pendingRequest.imageStyle || 'illustration';
+      // 🆕 프롬프트 저장 → 사용자에게 확인받기!
+      setCardNewsPrompts(designResult.cardPrompts);
+      setCurrentStep(2);
+      setScriptProgress('');
       
-      // 참고 이미지 설정 (원고 확인 후에도 스타일 참고 이미지 적용!)
+    } catch (err: any) {
+      setScriptProgress('');
+      setState(prev => ({ ...prev, error: err.message }));
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+  
+  // 🆕 프롬프트 수정
+  const handleEditPrompts = (updatedPrompts: CardPromptData[]) => {
+    setCardNewsPrompts(updatedPrompts);
+  };
+  
+  // 🆕 프롬프트 승인 → 이미지 생성 (3단계)
+  const handleApprovePrompts = async () => {
+    if (!cardNewsPrompts || !pendingRequest || !cardNewsScript) return;
+    
+    setIsGeneratingScript(true);
+    setScriptProgress('🖼️ [3단계] 이미지 생성 중...');
+    setCurrentStep(3);
+    
+    try {
+      const imageStyle = pendingRequest.imageStyle || 'illustration';
       const referenceImage = pendingRequest.coverStyleImage || pendingRequest.contentStyleImage;
       const copyMode = pendingRequest.styleCopyMode;
       
-      // 이미지 생성 (병렬 처리) - 참고 이미지와 커스텀 스타일 전달!
-      const imagePromises = designResult.imagePrompts.map((prompt, i) => {
-        setScriptProgress(`🖼️ 이미지 ${i + 1}/${designResult.imagePrompts.length}장 생성 중...`);
+      // 🆕 확인된 프롬프트로 이미지 생성!
+      const imagePromises = cardNewsPrompts.map((promptData, i) => {
+        setScriptProgress(`🖼️ 이미지 ${i + 1}/${cardNewsPrompts.length}장 생성 중...`);
         return generateSingleImage(
-          prompt, 
+          promptData.imagePrompt, 
           imageStyle, 
           '1:1', 
-          pendingRequest.customImagePrompt,  // 커스텀 스타일 프롬프트
-          referenceImage,  // 참고 이미지
-          copyMode  // 레이아웃 복제 모드
+          pendingRequest.customImagePrompt,
+          referenceImage,
+          copyMode
         );
       });
       
       const images = await Promise.all(imagePromises);
       
-      // HTML에 이미지 삽입 (이미지가 있으면 img 태그로, 없으면 클릭 가능한 재생성 버튼)
-      let finalHtml = designResult.content;
-      images.forEach((imgUrl, i) => {
+      // HTML 생성 (카드 슬라이드 형식)
+      const cardSlides = images.map((imgUrl, i) => {
         if (imgUrl) {
-          // 이미지가 성공적으로 생성된 경우 img 태그로 교체
-          const imgTag = `<img src="${imgUrl}" alt="카드 ${i + 1}" class="card-inner-img" style="width: 100%; height: auto; border-radius: 12px;" />`;
-          finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgTag);
-        } else {
-          // 이미지 생성 실패 시 재생성 안내 플레이스홀더 (hover 시 재생성 버튼 표시)
-          const placeholder = `<div class="card-image-placeholder" style="width: 85%; aspect-ratio: 1; margin: 0 auto; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748B; cursor: pointer; border: 2px dashed #cbd5e1; transition: all 0.2s;" data-card-index="${i}">
-            <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
-            <div style="font-weight: 700; font-size: 14px;">이미지를 생성하지 못했습니다</div>
-            <div style="font-size: 12px; margin-top: 4px; color: #94a3b8;">카드를 클릭하여 재생성해주세요</div>
-          </div>`;
-          finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, placeholder);
+          return `
+            <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+              <img src="${imgUrl}" alt="카드 ${i + 1}" data-index="${i + 1}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+            </div>`;
         }
-      });
+        return `
+          <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08); background: #f1f5f9; display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center; color: #64748B;">
+              <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
+              <div>이미지 생성 실패</div>
+              <div style="font-size: 12px;">카드 클릭하여 재생성</div>
+            </div>
+          </div>`;
+      }).join('\n');
+      
+      const finalHtml = `
+        <div class="card-news-container">
+          <h2 class="hidden-title">${cardNewsScript.title}</h2>
+          <div class="card-grid-wrapper">
+            ${cardSlides}
+          </div>
+        </div>
+      `.trim();
       
       // 결과 저장
       setState({
@@ -561,7 +597,7 @@ const App: React.FC = () => {
         error: null,
         data: {
           htmlContent: finalHtml,
-          title: designResult.title,
+          title: cardNewsScript.title,
           imageUrl: images[0] || '',
           fullHtml: finalHtml,
           tags: [],
@@ -575,8 +611,8 @@ const App: React.FC = () => {
           },
           postType: 'card_news',
           imageStyle: pendingRequest.imageStyle,
-          customImagePrompt: pendingRequest.customImagePrompt,  // 🎨 커스텀 스타일 유지!
-          cardPrompts: designResult.cardPrompts
+          customImagePrompt: pendingRequest.customImagePrompt,
+          cardPrompts: cardNewsPrompts
         },
         progress: ''
       });
@@ -589,10 +625,12 @@ const App: React.FC = () => {
         saveUserCredits(userProfile.id, newCredits, userProfile.plan);
       }
       
-      // 원고 상태 초기화
+      // 상태 초기화
       setCardNewsScript(null);
+      setCardNewsPrompts(null);
       setPendingRequest(null);
       setScriptProgress('');
+      setCurrentStep(1);
       
     } catch (err: any) {
       setScriptProgress('');
@@ -600,6 +638,12 @@ const App: React.FC = () => {
     } finally {
       setIsGeneratingScript(false);
     }
+  };
+  
+  // 🆕 이전 단계로 돌아가기
+  const handleBackToScript = () => {
+    setCardNewsPrompts(null);
+    setCurrentStep(1);
   };
 
   // 원고 수정
@@ -838,8 +882,20 @@ const App: React.FC = () => {
         </div>
 
         <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
-          {/* 카드뉴스 원고 미리보기 (2단계 워크플로우) */}
-          {cardNewsScript ? (
+          {/* 카드뉴스 3단계 워크플로우 */}
+          {/* 2단계: 프롬프트 확인 */}
+          {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
+            <PromptPreview
+              prompts={cardNewsPrompts}
+              onApprove={handleApprovePrompts}
+              onBack={handleBackToScript}
+              onEditPrompts={handleEditPrompts}
+              isLoading={isGeneratingScript}
+              progress={scriptProgress}
+              darkMode={darkMode}
+            />
+          ) : cardNewsScript ? (
+            /* 1단계: 원고 확인 */
             <ScriptPreview
               script={cardNewsScript}
               onApprove={handleApproveScript}
