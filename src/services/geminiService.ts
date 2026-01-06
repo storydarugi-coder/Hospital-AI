@@ -1464,51 +1464,66 @@ export const generateSingleImage = async (
   // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
   // 🔧 핵심 텍스트를 프롬프트 상단에 배치하여 모델이 반드시 인식하도록!
   
-  // cleanPromptText에서 핵심 텍스트 추출
-  const subtitleMatch = cleanPromptText.match(/subtitle:\s*"([^"]+)"/);
-  const mainTitleMatch = cleanPromptText.match(/mainTitle:\s*"([^"]+)"/);
-  const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/);
+  // cleanPromptText에서 핵심 텍스트 추출 (다양한 패턴 지원)
+  const subtitleMatch = cleanPromptText.match(/subtitle:\s*"([^"]+)"/i) || 
+                        cleanPromptText.match(/subtitle:\s*([^\n,]+)/i);
+  const mainTitleMatch = cleanPromptText.match(/mainTitle:\s*"([^"]+)"/i) || 
+                         cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i);
+  const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/i) ||
+                           cleanPromptText.match(/description:\s*([^\n]+)/i);
   
-  const extractedSubtitle = subtitleMatch?.[1] || '';
-  const extractedMainTitle = mainTitleMatch?.[1] || '';
-  const extractedDescription = descriptionMatch?.[1] || '';
+  const extractedSubtitle = (subtitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
+  const extractedMainTitle = (mainTitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
+  const extractedDescription = (descriptionMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
   
-  const finalPrompt = `
-🚨🚨🚨 EXACT TEXT TO RENDER IN IMAGE (DO NOT CHANGE!) 🚨🚨🚨
-subtitle: "${extractedSubtitle}"
-mainTitle: "${extractedMainTitle}"
-${extractedDescription ? `description: "${extractedDescription}"` : ''}
+  // 🚨 추출 실패 시 로그 및 원본 사용
+  const hasValidText = extractedSubtitle.length > 0 || extractedMainTitle.length > 0;
+  if (!hasValidText) {
+    console.warn('⚠️ 텍스트 추출 실패! cleanPromptText:', cleanPromptText.substring(0, 200));
+  }
+  
+  // 🔧 텍스트가 없으면 원본 프롬프트 그대로 사용 (라벨 없이!)
+  const finalPrompt = hasValidText ? `
+🚨🚨🚨 RENDER THIS EXACT KOREAN TEXT IN THE IMAGE 🚨🚨🚨
 
-Generate a 1:1 square card news image with the EXACT Korean text above rendered directly into the image pixels.
+"${extractedSubtitle}"
+"${extractedMainTitle}"
+${extractedDescription ? `"${extractedDescription}"` : ''}
+
+Generate a 1:1 square social media card with the Korean text above rendered directly into the image.
 
 ${frameBlock}
 ${styleBlock}
 
-[VISUAL STYLE FROM CONTENT]
+[DESIGN]
+- 1:1 square, background: #E8F4FD gradient
+- Korean text rendered with clean readable font
+- Professional Instagram-style card news design
+- Full-bleed illustration with text overlay
+
+[RULES]
+✅ Render ONLY the Korean text in quotes above
+✅ Do NOT add "subtitle:" or "mainTitle:" labels - just the actual text
+✅ Do NOT use placeholder text like "오늘의 꿀팁"
+⛔ No hashtags, watermarks, logos
+`.trim() : `
+Generate a 1:1 square social media card image.
+
+${frameBlock}
+${styleBlock}
+
+[CONTENT TO RENDER]
 ${cleanPromptText}
 
-[DESIGN SPECIFICATIONS]
-- Aspect ratio: 1:1 square
-- Background: Soft gradient (#E8F4FD to #F0F9FF)
-- Typography: Clean, readable Korean fonts (Noto Sans KR style)
-- Text must be BURNED INTO the image pixels
+[DESIGN]
+- 1:1 square, background: #E8F4FD gradient
+- Korean text rendered with clean readable font
+- Professional Instagram-style card news design
 
-[MANDATORY - READ CAREFULLY]
-✅ You MUST render the EXACT Korean text shown at the top of this prompt
-✅ subtitle "${extractedSubtitle}" must appear in the image
-✅ mainTitle "${extractedMainTitle}" must appear in the image
-${extractedDescription ? `✅ description "${extractedDescription}" must appear in the image` : ''}
-✅ Professional card news design like Instagram infographic
-✅ Full-bleed design - illustration/background fills entire canvas
-
-⛔ FORBIDDEN:
-- Do NOT generate different text than what is specified above
-- Do NOT use generic placeholder text like "오늘의 꿀팁" or "정보 공유"
-- Do NOT use [TEXT] or [TITLE] placeholders
-- No hashtags, watermarks, or logos
-
-[OUTPUT]
-A complete card image with the EXACT Korean text specified above.
+[RULES]
+✅ Render the Korean text from the content above
+⛔ Do NOT render instruction text like "subtitle:" or "mainTitle:"
+⛔ No hashtags, watermarks, logos
 `.trim();
 
   // 🔍 디버그 - 프롬프트 전체 내용 확인!
