@@ -556,10 +556,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       // 🔧 재생성 프롬프트: 첫 생성과 동일한 구조로!
       // 스타일은 geminiService의 generateSingleImage에서 결정
-      let imagePromptToUse = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
-[텍스트] "${editSubtitle}", "${editMainTitle}"${editDescription ? `, "${editDescription}"` : ''}
-[배경색] #E8F4FD
-[규칙] 한국어만, 해시태그/워터마크 금지`;
+      // ⚠️ 영어 지시문 사용 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
+      let imagePromptToUse = `${CARD_LAYOUT_RULE}
+[TEXT TO RENDER - Korean] subtitle: "${editSubtitle}", mainTitle: "${editMainTitle}"${editDescription ? `, description: "${editDescription}"` : ''}
+[BACKGROUND] #E8F4FD
+[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {

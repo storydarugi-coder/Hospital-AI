@@ -390,27 +390,30 @@ Only render the actual content text (subtitle, mainTitle, description).`;
 // =============================================
 
 // 기본 프레임: Hospital AI 브라우저 창 레이아웃(고정)
+// ⚠️ 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
 const CARD_FRAME_RULE = `
-[FRAME]
-1:1 정사각형 카드뉴스.
-상단에 브라우저 창 프레임을 포함하세요: 좌측에 ● ■ ▲ 버튼 3개, 파란색 상단바.
-프레임/여백/모서리 둥글기/텍스트 배치 구조는 항상 동일하게 유지하세요.
-프레임 구조를 임의로 바꾸거나, 다른 기기 프레임(휴대폰/노트북)으로 바꾸지 마세요.
+[FRAME LAYOUT]
+1:1 square card format.
+Include browser window frame at top: 3 buttons (red/yellow/green circles) on left, blue title bar.
+Keep consistent frame/margin/rounded corners/text placement structure.
+Do NOT change to other device frames (phone/laptop).
 `;
 
 // 참고 프레임 이미지가 있을 때: 프레임/레이아웃만 복제
+// ⚠️ 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
 const FRAME_FROM_REFERENCE_COPY = `
-[FRAME]
-참고 이미지의 프레임/레이아웃/텍스트 배치만 "정확히" 복제하세요.
-참고 이미지 안의 그림/주제/내용물은 무시하고, 새로운 주제로 교체하세요.
+[FRAME LAYOUT]
+Copy EXACTLY the frame/layout/text placement from the reference image.
+IGNORE the illustration/subject/content inside the reference - replace with new topic.
 `;
 
 // 참고 프레임 이미지 + 색상 변경 모드(레이아웃 유지)
+// ⚠️ 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
 const FRAME_FROM_REFERENCE_RECOLOR = `
-[FRAME]
-참고 이미지의 프레임/레이아웃/텍스트 배치를 최대한 유지하되,
-전체 톤은 요청된 배경색에 맞춰 조정하세요.
-참고 이미지 안의 그림/주제/내용물은 무시하고, 새로운 주제로 교체하세요.
+[FRAME LAYOUT]
+Keep the frame/layout/text placement from reference image as much as possible.
+Adjust overall color tone to match the requested background color.
+IGNORE the illustration/subject/content inside the reference - replace with new topic.
 `;
 
 // 스타일 블록: 버튼별로 단 하나만 선택
