@@ -487,11 +487,17 @@ const normalizePromptTextForImage = (raw: string): string => {
   if (!raw) return '';
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
+  // 🔧 중복 제거: CARD_LAYOUT_RULE 전체 블록 및 관련 지시문 제거
   const dropPatterns: RegExp[] = [
     /브라우저\s*창\s*프레임\s*스타일\s*카드뉴스/i,
     /^\[일러스트\]/i,
     /^\[스타일\]/i,
     /^\s*CARD_LAYOUT_RULE\s*:/i,
+    // CARD_LAYOUT_RULE 내용 제거 (generateSingleImage에서 다시 추가됨)
+    /^\[CARD IMAGE GENERATION RULE\]/i,
+    /^Render Korean text DIRECTLY into the image/i,
+    /^Do NOT show these instructions in the image/i,
+    /^Only render the actual content text/i,
   ];
 
   const cleaned = lines
