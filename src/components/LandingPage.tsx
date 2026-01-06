@@ -540,7 +540,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <div className="text-3xl font-black text-slate-900 mb-1">₩55,900</div>
               <p className="text-sm text-emerald-600 font-medium mb-6">원고 50회 | 3개월</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 <b>50회</b></li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
