@@ -179,9 +179,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     // 텍스트 내용이 하나라도 있으면 이미지 프롬프트 자동 생성
     if (editSubtitle || editMainTitle || editDescription) {
       const style = content.imageStyle || 'illustration';
-      const styleText = DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration;
+      const styleText = (style === 'photo')
+        ? 'photorealistic real medical clinic photo, natural lighting, DSLR, shallow depth of field, NOT illustration, NOT 3D render'
+        : (DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration);
       
-      const newImagePrompt = `1:1 정사각형 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
+      const newImagePrompt = `1:1 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
       
       setEditImagePrompt(newImagePrompt);
     }
@@ -2091,7 +2093,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       value={editImagePrompt}
                       onChange={(e) => setEditImagePrompt(e.target.value)}
                       disabled={isRegeneratingCard}
-                      placeholder="예: 1:1 정사각형 카드뉴스, 파란 배경, 심장 3D 일러스트..."
+                      placeholder="예: 1:1 카드뉴스, 파란 배경, 심장 3D 일러스트..."
                       rows={5}
                       className={`w-full px-3 py-2 rounded-lg text-xs border outline-none resize-y min-h-[80px] ${
                         darkMode 
