@@ -1630,7 +1630,14 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 시점 고정 (🔥 핵심! 🔥)*
   - "지금의 불편함을 넘기면\\n더 긴 관리가 필요해질 수 있습니다"
 ✅ description: "" (빈 문자열 - 표지처럼!)
 → 명령 ❌ / 판단 ⭕
-→ "왜 지금?" 이유 필수!`;
+→ "왜 지금?" 이유 필수!
+
+[📋 출력 필드]
+- topic: 주제 (한국어)
+- totalSlides: 총 슬라이드 수
+- overallTheme: 전체 구조 설명 (한국어 20자 이내)
+  예: "오해 깨기 → 증상 체크 → 확인 시점 안내"
+- slides: 슬라이드 배열`;
 
   try {
     const response = await ai.models.generateContent({
