@@ -303,8 +303,12 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 // 🎨 공통 이미지 프롬프트 상수 (중복 제거) - export 포함
 // =============================================
 
-// 카드뉴스 레이아웃 규칙 (간결하게)
-export const CARD_LAYOUT_RULE = 'Hospital AI 고정 카드 프레임(브라우저 창 레이아웃)';
+// 카드뉴스 레이아웃 규칙 - 텍스트가 이미지 안에 포함된 완성형 카드!
+export const CARD_LAYOUT_RULE = `🖼️ 완성형 카드뉴스 이미지 생성 - 텍스트가 이미지 안에 렌더링되어야 함!
+⚠️ 중요: 이미지 안에 한국어 텍스트(subtitle, mainTitle, description)를 직접 렌더링하세요!
+- 텍스트는 별도 HTML이 아닌 이미지 픽셀로 그려져야 합니다
+- 가독성 좋은 폰트, 적절한 크기, 배경 대비 명확한 색상 사용
+- 텍스트 배치: 중앙 정렬 또는 상단/하단 오버레이`;
 
 // Hospital AI 고유 레이아웃 - 브라우저 창 프레임 스타일 (첫 생성 시 항상 적용)
 
@@ -1213,21 +1217,25 @@ export const generateSingleImage = async (
   const frameBlock = buildFrameBlock(referenceImage, copyMode);
   const styleBlock = buildStyleBlock(style, customStylePrompt);
 
-  // 3) 최종 프롬프트 조립: FRAME -> STYLE -> TEXT 순서 고정
+  // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 안에 렌더링!)
   const finalPrompt = `
+🖼️ 완성형 카드뉴스 이미지 생성 - 한국어 텍스트가 이미지 안에 직접 렌더링되어야 합니다!
+
 ${frameBlock}
 ${styleBlock}
 
-[TEXT]
+[카드 내용]
 ${cleanPromptText}
 
-[BACKGROUND]
+[배경색]
 #E8F4FD (요청에 배경색이 있으면 그 값을 우선)
 
-[RULE]
-한국어만 사용.
-해시태그/워터마크/로고 금지.
-텍스트는 명확히 읽히도록 배치.
+[필수 규칙]
+✅ 한국어 텍스트를 이미지 안에 직접 렌더링 (HTML 별도 아님!)
+✅ 가독성 좋은 폰트, 적절한 크기, 배경과 대비되는 색상
+✅ 텍스트 배치: 중앙 또는 상단/하단 오버레이
+⛔ 해시태그/워터마크/로고 금지
+⛔ 텍스트 없이 일러스트만 생성하지 말 것!
 `.trim();
 
   // 🔍 디버그
@@ -1243,38 +1251,40 @@ ${cleanPromptText}
   const MAX_RETRIES = 3;
   let lastError: any = null;
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES}...`);
-      
-      const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
-
-      const parts: any[] = [{ text: finalPrompt }];
-
-      if (referenceImage && referenceImage.startsWith('data:')) {
+  // 참고 이미지 파트 준비
+  const refImagePart = referenceImage && referenceImage.startsWith('data:') 
+    ? (() => {
         const [meta, base64] = referenceImage.split(',');
         const mimeType = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
-        parts.unshift({
-          inlineData: { data: base64, mimeType }
-        });
-      }
+        return { inlineData: { data: base64, mimeType } };
+      })()
+    : null;
 
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts }],
-        generationConfig: {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES} (gemini-3-pro-preview)...`);
+      
+      // Gemini 3 Pro Preview - 이미지 생성용 API
+      const contents: any[] = refImagePart 
+        ? [refImagePart, { text: finalPrompt }]
+        : [{ text: finalPrompt }];
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: contents,
+        config: {
+          responseModalities: ["IMAGE", "TEXT"],
           temperature: 0.7 + (attempt * 0.1), // 재시도마다 온도 약간 증가
         },
       });
 
-      const candidates: any = (result as any)?.response?.candidates || (result as any)?.candidates;
-      const first = candidates?.[0];
-      const partsOut: any[] = first?.content?.parts || [];
-
-      const inline = partsOut.find(p => p.inlineData && p.inlineData.data);
+      // 응답에서 이미지 데이터 추출
+      const parts = result?.candidates?.[0]?.content?.parts || [];
+      const imagePart = parts.find((p: any) => p.inlineData?.data);
       
-      if (inline) {
-        const mimeType = inline.inlineData.mimeType || 'image/png';
-        const data = inline.inlineData.data;
+      if (imagePart) {
+        const mimeType = imagePart.inlineData.mimeType || 'image/png';
+        const data = imagePart.inlineData.data;
         console.log(`✅ 이미지 생성 성공 (시도 ${attempt}/${MAX_RETRIES})`);
         return `data:${mimeType};base64,${data}`;
       }
@@ -2086,13 +2096,22 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       // 표지/마지막은 description 없음
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
-      // 🔧 imagePrompt: 텍스트 정보만! 스타일은 generateSingleImage에서 결정!
-      // 재생성 로직과 동일하게 맞춤 (스타일 중복 방지)
-      const imagePrompt = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
-[텍스트] "${s.subtitle}", "${mainTitleClean}"${descPart}
-[일러스트] ${s.imageKeyword}
-[배경색] ${bgColor}
-[규칙] 한국어만, 해시태그/워터마크 금지`;
+      // 🔧 imagePrompt: 텍스트가 이미지 안에 렌더링되는 완성형 카드!
+      // 스타일은 generateSingleImage에서 결정 (중복 방지)
+      const imagePrompt = `${CARD_LAYOUT_RULE}
+
+🎯 이 카드에 들어갈 텍스트 (이미지 안에 직접 렌더링해야 함!):
+- 부제목: "${s.subtitle}"
+- 메인 제목: "${mainTitleClean}"${descPart ? `\n- 설명: ${descPart.replace(', "', '').replace('"', '')}` : ''}
+
+🖼️ 배경/일러스트: ${s.imageKeyword}
+🎨 배경색: ${bgColor}
+
+⚠️ 필수 규칙:
+- 1:1 정사각형 카드
+- 위 텍스트를 이미지 안에 한국어로 직접 렌더링 (별도 HTML 아님!)
+- 폰트는 깔끔하고 가독성 좋게, 배경과 대비되는 색상
+- 해시태그/워터마크/로고 금지`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
       const aiCard = result.cards?.[idx];
@@ -2122,11 +2141,20 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       return {
-        imagePrompt: `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
-[텍스트] "${s.subtitle}", "${mainTitleClean}"${descPart}
-[일러스트] ${s.imageKeyword}
-[배경색] ${bgColor}
-[규칙] 한국어만, 해시태그/워터마크 금지`,
+        imagePrompt: `${CARD_LAYOUT_RULE}
+
+🎯 이 카드에 들어갈 텍스트 (이미지 안에 직접 렌더링해야 함!):
+- 부제목: "${s.subtitle}"
+- 메인 제목: "${mainTitleClean}"${descPart ? `\n- 설명: ${descPart.replace(', "', '').replace('"', '')}` : ''}
+
+🖼️ 배경/일러스트: ${s.imageKeyword}
+🎨 배경색: ${bgColor}
+
+⚠️ 필수 규칙:
+- 1:1 정사각형 카드
+- 위 텍스트를 이미지 안에 한국어로 직접 렌더링 (별도 HTML 아님!)
+- 폰트는 깔끔하고 가독성 좋게, 배경과 대비되는 색상
+- 해시태그/워터마크/로고 금지`,
         textPrompt: { 
           subtitle: s.subtitle, 
           mainTitle: s.mainTitle, 
