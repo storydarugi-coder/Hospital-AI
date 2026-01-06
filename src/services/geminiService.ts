@@ -273,85 +273,28 @@ const MEDICAL_SAFETY_SYSTEM_PROMPT = getMedicalSafetyPrompt();
 // 카드뉴스 레이아웃 규칙 (원래 잘 작동하던 형식)
 export const CARD_LAYOUT_RULE = '전체 화면을 채우는 일러스트 배경 위에 텍스트 오버레이';
 
-// 카드뉴스 레이아웃 상세 규칙 (실시간 미리보기와 동일한 스타일!)
+// 카드뉴스 레이아웃 (참고 이미지 없을 때만 사용)
 const CARD_LAYOUT_PROMPT = `
-🚨 [텍스트 오버레이 레이아웃 - 반드시 준수!]
+[카드 레이아웃]
+- 배경: 일러스트가 화면 100% 채움
+- 텍스트: 중앙에 반투명 박스 + 흰색 글씨
+- 금지: 상단 흰색박스+하단 일러스트 분리, 영어, 해시태그`;
 
-📐 [전체 구조]
-- 배경: 일러스트가 화면 100% 채움 (전체 화면 배경)
-- 텍스트: 배경 위에 오버레이 (포스터/인스타 카드 스타일)
-
-📍 [텍스트 배치 - 3단 구조]
-1️⃣ 서브타이틀 (상단 or 중앙 위)
-   - 위치: 카드 중앙 상단
-   - 배경: 포인트 컬러 (파란색/강조색) 반투명 박스
-   - 폰트: 작고 굵음, 흰색, 4-8글자
-   - 예: "겨울철에 유독?" "혹시 나도?"
-
-2️⃣ 메인 타이틀 (중앙)
-   - 위치: 카드 정중앙
-   - 배경: 검정/어두운색 반투명 박스 (둥근 모서리)
-   - 폰트: 크고 아주 굵음, 흰색, 10-18글자
-   - 핵심 메시지, 한 줄 또는 두 줄
-
-3️⃣ 설명문 (중앙 아래)
-   - 위치: 메인 타이틀 바로 아래
-   - 배경: 검정 반투명 박스 (약함)
-   - 폰트: 작고 얇음, 흰색/밝은 회색
-   - 부연 설명, 1-2줄
-
-⛔ [금지]
-- 상단 흰색/회색 박스 + 하단 일러스트 분리
-- 텍스트 없는 빈 공간만 있는 이미지
-- 영어 텍스트, 해시태그
-- 텍스트가 일러스트에 가려지는 배치`;
-
-// 참고 이미지 완전 복제 모드 (레이아웃+색상 동일, 내용만 교체)
+// 참고 이미지 완전 복제 모드 (간결화)
 const REF_IMAGE_COPY_MODE_PROMPT = `
-[참고 이미지 완전 복제 모드]
+[완전 복제] 참고 이미지와 똑같이!
+- 복제: 레이아웃, 색상, 스타일 전부 동일
+- 교체: 그림 내용과 텍스트만 새로 (요청 주제로)`;
 
-✅ 복제할 것:
-- 레이아웃 구조 (텍스트 위치, 여백, 정렬)
-- 색상 팔레트 (배경색, 강조색 동일)
-- 일러스트 스타일 (2D면 2D, 파스텔이면 파스텔)
-- 폰트 느낌 (굵기, 크기 비율)
-
-🔄 교체할 것:
-- 일러스트 내용 → 요청 주제에 맞는 새 그림
-- 텍스트 내용 → 요청 주제에 맞는 새 텍스트
-
-⛔ 금지:
-- 참고 이미지의 일러스트를 그대로 사용 (새로 그려야 함!)
-- 참고 이미지의 텍스트를 그대로 사용 (새로 작성!)`;
-
-// 참고 이미지 복제+색상변경 모드 (레이아웃 동일, 색상만 변경)
+// 참고 이미지 복제+색상변경 모드 (간결화)
 const REF_IMAGE_RECOLOR_MODE_PROMPT = `
-[참고 이미지 복제 + 색상 변경 모드]
+[복제+색상변경] 레이아웃만 복제, 색상은 다르게!
+- 복제: 레이아웃, 스타일 동일
+- 변경: 배경색/강조색을 완전히 다른 색으로! (예: 파랑→분홍)
+- 교체: 그림 내용과 텍스트는 새로 (요청 주제로)`;
 
-✅ 복제할 것:
-- 레이아웃 구조 (텍스트 위치, 여백, 정렬) - 동일!
-- 일러스트 스타일 (2D면 2D, 파스텔이면 파스텔) - 동일!
-- 폰트 느낌 (굵기, 크기 비율) - 동일!
-
-🎨 변경할 것 - 색상!
-- 배경색: 완전히 다른 색상으로! (파랑→분홍, 초록→보라 등)
-- 강조색: 새로운 포인트 컬러로!
-- 전체 분위기: 다른 색감으로 변환!
-
-🔄 교체할 것:
-- 일러스트 내용 → 요청 주제에 맞는 새 그림
-- 텍스트 내용 → 요청 주제에 맞는 새 텍스트
-
-⛔ 금지:
-- 참고 이미지와 같은 색상 사용 (반드시 다른 색!)
-- 참고 이미지의 일러스트를 그대로 사용 (새로 그려야 함!)`;
-
-// 이미지 내 텍스트 규칙
-const IMAGE_TEXT_RULES = `
-[이미지 내 텍스트 규칙]
-- ✅ 허용: 질환명, 증상명, 의학 용어, 정보성 키워드
-- ❌ 금지: 광고성 문구, 로고, 워터마크, base64 문자열
-- ⚠️ 한국어 텍스트만!`;
+// 공통 규칙 (간결화)
+const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
 // 기본 스타일 프롬프트
 export const DEFAULT_STYLE_PROMPTS = {
@@ -1089,9 +1032,6 @@ const cleanImagePromptText = (prompt: string): string => {
 export const generateSingleImage = async (promptText: string, style: ImageStyle = 'illustration', aspectRatio: string = "16:9", customStylePrompt?: string, referenceImage?: string, copyMode?: boolean): Promise<string> => {
     const ai = getAiClient();
     
-    // 1:1 비율이면 완성형 카드뉴스 모드
-    const isCardNewsMode = aspectRatio === "1:1";
-    
     // 🎨 스타일 우선순위: 커스텀 > 참고 이미지 스타일 > 기본 스타일
     let stylePrompt = "";
     if (customStylePrompt && customStylePrompt.trim()) {
@@ -1104,56 +1044,32 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
     }
 
-    // 완성형 카드뉴스 모드
-    const cardNewsPrompt = isCardNewsMode ? `
-🔴 [필수] ${CARD_LAYOUT_PROMPT}
-
-[출력 이미지 구조]
-- 배경: 전체 화면을 채우는 일러스트 또는 그라데이션+일러스트
-- 텍스트: 일러스트 위에 반투명 배경과 함께 오버레이
-- 참고: 영화 포스터, 뮤직 앨범 커버처럼 통합된 디자인
-- 해시태그 금지, 한국어만!
-` : '';
-
-    // 참고 이미지 모드별 프롬프트 (상수 사용)
-    // copyMode=true: 완전 복제 (레이아웃+색상 동일)
-    // copyMode=false: 복제+색상변경 (레이아웃 동일, 색상만 변경)
-    let refImagePrompt = '';
-    if (referenceImage) {
-      if (copyMode) {
-        refImagePrompt = REF_IMAGE_COPY_MODE_PROMPT;
-      } else {
-        refImagePrompt = REF_IMAGE_RECOLOR_MODE_PROMPT;
-      }
-    }
-
     // 공통 함수로 프롬프트 정리
     const cleanPromptText = cleanImagePromptText(promptText);
     
-    // 커스텀 스타일이 있으면 [스타일] 섹션 생략 (프롬프트에 이미 스타일 포함되어 있음)
+    // 커스텀 스타일이 있으면 스타일 섹션 변경
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
     const styleSection = hasCustomStyle 
-      ? `[🎨 커스텀 스타일 필수] "${customStylePrompt}" 스타일로만 생성! 3D/클레이/아이소메트릭 등 다른 스타일 금지!` 
+      ? `[스타일] ${customStylePrompt} (다른 스타일 금지)` 
       : `[스타일] ${stylePrompt}`;
     
-    // 전체 프롬프트 조합 (참고 이미지가 있으면 최우선!)
-    const finalPrompt = referenceImage 
-      ? `🚨🚨🚨 [최우선 규칙 - 참고 이미지 사용] 🚨🚨🚨
-${refImagePrompt}
-
-⚠️ 중요: 참고 이미지의 일러스트(그림)는 절대 그대로 사용하지 마세요!
-반드시 아래 [요청 내용]에 맞는 새로운 일러스트를 그리세요!
-
-[요청 내용] ${cleanPromptText}
-
+    // 전체 프롬프트 조합 (간결하게!)
+    let finalPrompt: string;
+    
+    if (referenceImage) {
+      // 참고 이미지 모드: 참고 이미지 규칙 + 요청 내용
+      const refRule = copyMode ? REF_IMAGE_COPY_MODE_PROMPT : REF_IMAGE_RECOLOR_MODE_PROMPT;
+      finalPrompt = `${refRule}
+[요청] ${cleanPromptText}
 ${styleSection}
-${IMAGE_TEXT_RULES}`
-      : `${cardNewsPrompt}
-${styleSection}
-
-[요청 내용] ${cleanPromptText}
-
 ${IMAGE_TEXT_RULES}`;
+    } else {
+      // 일반 모드: 카드 레이아웃 + 요청 내용
+      finalPrompt = `${CARD_LAYOUT_PROMPT}
+[요청] ${cleanPromptText}
+${styleSection}
+${IMAGE_TEXT_RULES}`;
+    }
 
     try {
       // 참고 이미지가 있으면 이미지와 함께 전송 (image-to-image)
