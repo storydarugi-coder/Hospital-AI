@@ -1801,7 +1801,8 @@ interface AnalyzedStyle {
 // [2단계] HTML 조립 함수 (분석된 스타일 전체 적용)
 const assembleCardNewsHtml = (
   story: CardNewsStory,
-  styleConfig?: AnalyzedStyle
+  styleConfig?: AnalyzedStyle,
+  renderMode: 'template' | 'image_only' = 'template'
 ): string => {
   const bgColor = styleConfig?.backgroundColor || '#E8F4FD';
   const bgGradient = `linear-gradient(180deg, ${bgColor} 0%, ${bgColor}dd 100%)`;
@@ -1849,6 +1850,24 @@ const assembleCardNewsHtml = (
       <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[2] || '#28CA41'};"></span>
     </div>` : '';
   
+
+  // ✅ 생성된 '완성형 카드 이미지'를 사용할 때는 텍스트 레이아웃을 렌더링하지 않고,
+  //    이미지 마커만 포함한 최소 HTML을 생성합니다. (중복 텍스트/설명 출력 방지)
+  if (renderMode === 'image_only') {
+    const slidesHtml = story.slides.map((_, idx) => {
+      const n = idx + 1;
+      return `
+      <div class="card-slide">
+        <div class="card-img-container">[IMG_${n}]</div>
+      </div>`;
+    }).join('\n');
+
+    return `
+    <div class="card-news-container">
+      ${slidesHtml}
+    </div>`;
+  }
+
   const slides = story.slides.map((slide, idx) => {
     // mainTitle에서 <highlight> 태그를 실제 span으로 변환 (분석된 highlight 스타일 적용)
     const highlightBg = highlight.backgroundColor !== 'transparent' 
@@ -2343,7 +2362,7 @@ export const convertScriptToCardNews = async (
   
   // HTML 조립
   onProgress('🏗️ 카드 구조 생성 중...');
-  const htmlContent = assembleCardNewsHtml({ ...script, slides }, styleConfig);
+  const htmlContent = assembleCardNewsHtml({ ...script, slides }, styleConfig, 'image_only');
   
   // 카드 프롬프트 생성 (커스텀 이미지 프롬프트 전달!)
   onProgress('🎨 카드 이미지 프롬프트 생성 중...');
@@ -2430,7 +2449,7 @@ export const generateCardNewsWithAgents = async (
     }
   }
   
-  const htmlContent = assembleCardNewsHtml(story, styleConfig);
+  const htmlContent = assembleCardNewsHtml(story, styleConfig, 'image_only');
   onProgress('✅ 카드 구조 생성 완료');
   
   // 3단계: 전체 이미지 카드 프롬프트 생성 (텍스트 + 이미지 통합)
@@ -3527,6 +3546,7 @@ ${userInstruction}
 5. ${slidePosition === '표지 (1장)' ? '주제 소개 + 흥미 유발 문구' : slidePosition === '마무리 (마지막 장)' ? '행동 유도 + 감성적 마무리' : '구체적인 정보/방법 제시'}
 
 ⚠️⚠️⚠️ 중요: newCardHtml에 <img> 태그 넣지 마세요! [IMG_${cardIndex + 1}] 마커만!
+⚠️⚠️⚠️ 또한 newCardHtml에는 제목/부제/설명 등 텍스트 콘텐츠를 작성하지 마세요. (완성형 이미지에 텍스트가 포함되므로 중복됩니다)
 예시: <div class="card-img-container">[IMG_${cardIndex + 1}]</div>
 
 [이미지 프롬프트 규칙]
