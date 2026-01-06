@@ -1332,15 +1332,15 @@ ${cleanPromptText}
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES} (gemini-3-pro-preview)...`);
+      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES} (gemini-3-pro-image)...`);
       
-      // Gemini 3 Pro Preview - 이미지 생성용 API
+      // Gemini 3 Pro Image - 이미지 생성 전용 모델
       const contents: any[] = refImagePart 
         ? [refImagePart, { text: finalPrompt }]
         : [{ text: finalPrompt }];
 
       const result = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
+        model: "gemini-3-pro-image",
         contents: contents,
         config: {
           responseModalities: ["IMAGE", "TEXT"],
