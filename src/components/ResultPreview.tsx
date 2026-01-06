@@ -179,15 +179,22 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     // 텍스트 내용이 하나라도 있으면 이미지 프롬프트 자동 생성
     if (editSubtitle || editMainTitle || editDescription) {
       const style = content.imageStyle || 'illustration';
-      const styleText = (style === 'photo')
-        ? 'photorealistic real medical clinic photo, natural lighting, DSLR, shallow depth of field, NOT illustration, NOT 3D render'
-        : (DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration);
+      
+      // 🎨 커스텀 스타일일 때는 savedCustomStylePrompt 사용, 아니면 기본 스타일
+      let styleText: string;
+      if (style === 'custom' && savedCustomStylePrompt) {
+        styleText = savedCustomStylePrompt;
+      } else if (style === 'photo') {
+        styleText = 'photorealistic real medical clinic photo, natural lighting, DSLR, shallow depth of field, NOT illustration, NOT 3D render';
+      } else {
+        styleText = DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration;
+      }
       
       const newImagePrompt = `1:1 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
       
       setEditImagePrompt(newImagePrompt);
     }
-  }, [editSubtitle, editMainTitle, editDescription, content.imageStyle]);
+  }, [editSubtitle, editMainTitle, editDescription, content.imageStyle, savedCustomStylePrompt]);
   
   // 카드 수 (localHtml 변경 시 업데이트)
   const [cardCount, setCardCount] = useState(0);
