@@ -383,10 +383,11 @@ const REF_IMAGE_RECOLOR_MODE_PROMPT = `
 const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
 // 기본 스타일 프롬프트
-export const DEFAULT_STYLE_PROMPTS = {
+export const DEFAULT_STYLE_PROMPTS: Record<string, string> = {
   illustration: '귀여운 일러스트, 밝고 친근한 분위기',
   medical: '의학 일러스트, 교육용 그래픽',
-  photo: '실사 사진, 자연스러운 조명'
+  photo: '실사 사진, 자연스러운 조명',
+  custom: '사용자 지정 스타일'  // custom 선택 시 customStylePrompt가 없으면 이게 사용됨 (fallback)
 };
 
 // 스타일 이름 (UI 표시용)
@@ -1118,16 +1119,24 @@ const cleanImagePromptText = (prompt: string): string => {
 export const generateSingleImage = async (promptText: string, style: ImageStyle = 'illustration', aspectRatio: string = "16:9", customStylePrompt?: string, referenceImage?: string, copyMode?: boolean): Promise<string> => {
     const ai = getAiClient();
     
+    // 🔍 디버그: 입력 파라미터 확인
+    console.log('🔍 generateSingleImage 호출됨:', {
+      style,
+      customStylePrompt: customStylePrompt?.substring(0, 50) || 'undefined',
+      hasRefImage: !!referenceImage
+    });
+    
     // 🎨 스타일 우선순위: 커스텀 > 참고 이미지 스타일 > 기본 스타일
     let stylePrompt = "";
     if (customStylePrompt && customStylePrompt.trim()) {
         stylePrompt = customStylePrompt;
-        console.log('🎨 커스텀 스타일:', customStylePrompt.substring(0, 50));
+        console.log('✅ 커스텀 스타일 적용:', customStylePrompt.substring(0, 50));
     } else if (referenceImage) {
-        stylePrompt = "참고 이미지 스타일 그대로 (3D 변환 금지!)";
+        stylePrompt = "참고 이미지 스타일 그대로";
         console.log('🖼️ 참고 이미지 스타일 모드');
     } else {
         stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
+        console.log('⚠️ 기본 스타일 사용:', stylePrompt);
     }
 
     // 공통 함수로 프롬프트 정리 + 기존 스타일 관련 텍스트 모두 제거!
@@ -1158,26 +1167,32 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     
     // 🎨 커스텀 스타일이 최우선! (강제 적용)
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
+    
+    // 🚨 스타일을 프롬프트 맨 앞에 강조!
+    const styleEmphasis = hasCustomStyle 
+      ? `🎨🎨🎨 반드시 "${customStylePrompt.trim()}" 스타일로 그려주세요! 3D/클레이/아이소메트릭 금지! 🎨🎨🎨\n\n` 
+      : '';
+    
     const styleSection = hasCustomStyle 
-      ? `[스타일] ${customStylePrompt.trim()} (이 스타일만 적용!)` 
+      ? `[스타일] ${customStylePrompt.trim()} - 이 스타일 필수!` 
       : `[스타일] ${stylePrompt}`;
     
     console.log('🎨 generateSingleImage - customStylePrompt:', customStylePrompt ? customStylePrompt.substring(0, 50) : 'undefined');
     console.log('📝 최종 스타일 섹션:', styleSection.substring(0, 100));
     
-    // 전체 프롬프트 조합 (간결하게!)
+    // 전체 프롬프트 조합 - 스타일 강조를 맨 앞에!
     let finalPrompt: string;
     
     if (referenceImage) {
-      // 참고 이미지 모드: 참고 이미지 규칙 + 요청 내용
+      // 참고 이미지 모드
       const refRule = copyMode ? REF_IMAGE_COPY_MODE_PROMPT : REF_IMAGE_RECOLOR_MODE_PROMPT;
-      finalPrompt = `${refRule}
+      finalPrompt = `${styleEmphasis}${refRule}
 [요청] ${cleanPromptText}
 ${styleSection}
 ${IMAGE_TEXT_RULES}`;
     } else {
-      // 일반 모드: 카드 레이아웃 + 요청 내용
-      finalPrompt = `${CARD_LAYOUT_PROMPT}
+      // 일반 모드 - 스타일 강조 + 레이아웃 + 요청
+      finalPrompt = `${styleEmphasis}${CARD_LAYOUT_PROMPT}
 [요청] ${cleanPromptText}
 ${styleSection}
 ${IMAGE_TEXT_RULES}`;

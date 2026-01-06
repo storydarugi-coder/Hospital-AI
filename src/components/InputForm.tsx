@@ -65,7 +65,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       imageCount,
       writingStyle,
       // 🎨 커스텀 스타일 선택 시에만 커스텀 프롬프트 전달!
-      customImagePrompt: imageStyle === 'custom' ? (customPrompt?.trim() || undefined) : undefined
+      customImagePrompt: (() => {
+        const result = imageStyle === 'custom' ? (customPrompt?.trim() || undefined) : undefined;
+        console.log('📤 InputForm 전송 - imageStyle:', imageStyle, ', customPrompt:', customPrompt?.substring(0, 30), ', 전달값:', result?.substring(0, 30));
+        return result;
+      })()
     });
   };
 
