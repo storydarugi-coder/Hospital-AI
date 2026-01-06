@@ -558,12 +558,12 @@ const REF_IMAGE_RECOLOR_MODE_PROMPT = `
 // 공통 규칙 (간결화)
 const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
-// 기본 스타일 프롬프트 - 구체적으로 개선!
+// 기본 스타일 프롬프트 - 한국어로 통일!
 export const DEFAULT_STYLE_PROMPTS: Record<string, string> = {
-  illustration: '3D rendered illustration, Blender style, soft studio lighting, pastel colors, rounded shapes, friendly character design, clean gradient background',
-  medical: 'medical 3D illustration, anatomical render, scientific visualization, clinical lighting, detailed organ structures, educational diagram, professional healthcare style',
-  photo: 'photorealistic DSLR photography, natural soft lighting, shallow depth of field, realistic textures, professional hospital environment, trustworthy atmosphere',
-  custom: '사용자 지정 스타일'  // custom 선택 시 customStylePrompt가 없으면 이게 사용됨 (fallback)
+  illustration: '3D 렌더 일러스트, Blender 스타일, 부드러운 스튜디오 조명, 파스텔 색상, 둥근 형태, 친근한 캐릭터 디자인, 깔끔한 그라데이션 배경',
+  medical: '의학 3D 일러스트, 해부학적 렌더링, 과학적 시각화, 임상 조명, 상세한 장기 구조, 교육용 다이어그램, 전문 의료 스타일',
+  photo: '실사 DSLR 사진, 자연스러운 부드러운 조명, 얕은 피사계심도, 사실적인 질감, 전문 병원 환경, 신뢰감 있는 분위기',
+  custom: '사용자 지정 스타일'
 };
 
 // 스타일 이름 (UI 표시용)
@@ -2923,10 +2923,10 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   const imageStyleGuide = customImagePrompt
     ? `커스텀 스타일: ${customImagePrompt}` // 커스텀 프롬프트 최우선!
     : imageStyle === 'illustration' 
-    ? '3D rendered illustration, Blender style, soft studio lighting, 파스텔 색상, 둥근 형태, 친근한 캐릭터, 깔끔한 배경 (⛔금지: photorealistic, real photo, DSLR)'
+    ? '3D 렌더 일러스트, Blender 스타일, 부드러운 스튜디오 조명, 파스텔 색상, 둥근 형태, 친근한 캐릭터, 깔끔한 배경 (⛔금지: 실사, 사진, DSLR)'
     : imageStyle === 'medical'
-    ? 'medical 3D illustration, anatomical render, 해부학적 구조, 장기 단면도, semi-transparent organs, clinical lighting, 의료 색상 팔레트 (⛔금지: cute cartoon, realistic face)'
-    : 'photorealistic DSLR photography, real photo, 35mm lens, natural soft lighting, shallow depth of field, 전문 병원 환경 (⛔금지: 3D render, illustration, cartoon, anime)';
+    ? '의학 3D 일러스트, 해부학적 렌더링, 해부학적 구조, 장기 단면도, 반투명 장기, 임상 조명, 의료 색상 팔레트 (⛔금지: 귀여운 만화, 실사 얼굴)'
+    : '실사 DSLR 사진, 진짜 사진, 35mm 렌즈, 자연스러운 부드러운 조명, 얕은 피사계심도, 전문 병원 환경 (⛔금지: 3D 렌더, 일러스트, 만화, 애니메이션)';
   
   // 동적으로 최신 의료광고법 프롬프트 생성
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
