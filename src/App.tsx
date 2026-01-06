@@ -789,15 +789,13 @@ const App: React.FC = () => {
                      👑 관리자
                    </span>
                  )}
-                 <span className="text-sm text-slate-600 hidden sm:block">
-                   {userProfile.name} 님
-                 </span>
-                 {/* 사용자 메뉴 드롭다운 */}
+                 {/* 사용자 이름 클릭 시 드롭다운 */}
                  <div className="relative group">
                    <button 
-                     className={`px-3 py-2 rounded-xl text-sm font-bold transition-all ${darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                     className={`px-3 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                    >
-                     ⚙️ 설정
+                     <span>{userProfile.name} 님</span>
+                     <span className="text-xs">▼</span>
                    </button>
                    <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                      <div className="py-2">
@@ -813,7 +811,7 @@ const App: React.FC = () => {
                        </button>
                        <button 
                          onClick={() => setShowDeleteModal(true)}
-                         className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+                         className={`w-full px-4 py-2.5 text-left text-sm font-medium text-red-500 transition-all ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
                        >
                          ⚠️ 회원 탈퇴
                        </button>
