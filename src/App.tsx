@@ -451,7 +451,7 @@ const App: React.FC = () => {
           finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgTag);
         } else {
           // 이미지 생성 실패 시 재생성 안내 플레이스홀더 (hover 시 재생성 버튼 표시)
-          const placeholder = `<div class="card-image-placeholder" style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748B; cursor: pointer; border: 2px dashed #cbd5e1; transition: all 0.2s;" data-card-index="${i}">
+          const placeholder = `<div class="card-image-placeholder" style="width: 85%; aspect-ratio: 1; margin: 0 auto; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748B; cursor: pointer; border: 2px dashed #cbd5e1; transition: all 0.2s;" data-card-index="${i}">
             <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
             <div style="font-weight: 700; font-size: 14px;">이미지를 생성하지 못했습니다</div>
             <div style="font-size: 12px; margin-top: 4px; color: #94a3b8;">카드를 클릭하여 재생성해주세요</div>

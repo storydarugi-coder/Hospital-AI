@@ -1327,7 +1327,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             .replace(/<\/h1>/g, '</p>')
             .replace(/class="card-highlight"/g, 'class="card-highlight" style="color: #3b82f6;"')
             .replace(/<div class="card-img-container"/g, '<div class="card-img-container" style="width: 100%; display: flex; justify-content: center; align-items: center; padding: 12px 0;"')
-            .replace(/class="card-inner-img"/g, 'class="card-inner-img" style="width: 85%; max-height: 220px; object-fit: cover; object-position: center top; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
+            .replace(/class="card-inner-img"/g, 'class="card-inner-img" style="width: 85%; aspect-ratio: 1; object-fit: cover; object-position: center top; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08);"')
             .replace(/class="card-desc"/g, 'class="card-desc" style="font-size: 15px; color: #475569; margin-top: 12px; font-weight: 500; line-height: 1.7; word-break: keep-all; max-width: 90%;"')
             .replace(/<div class="card-footer-row"/g, '<div class="card-footer-row" style="padding: 12px 20px 16px; display: flex; justify-content: center; gap: 8px; border-top: 1px solid #f1f5f9;"')
             .replace(/class="pill-tag"/g, 'class="pill-tag" style="background: #f1f5f9; padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 700; color: #475569;"')
@@ -1612,7 +1612,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         
         .card-inner-img {
             width: 85%;
-            max-height: 220px;
+            aspect-ratio: 1;
             object-fit: cover;
             object-position: center top;
             border-radius: 12px;
@@ -2541,11 +2541,41 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 onInput={handleHtmlChange}
                 onClick={(e) => {
                    const target = e.target as HTMLElement;
+                   
+                   // 1. 이미지 클릭 처리
                    if (target.tagName === 'IMG') {
                       const imgElement = target as HTMLImageElement;
                       const allImgs = Array.from(editorRef.current?.querySelectorAll('img') || []);
                       const index = allImgs.indexOf(imgElement) + 1;
                       handleImageClick(imgElement.src, imgElement.alt, index);
+                      return;
+                   }
+
+                   // 2. 카드뉴스 재생성 플레이스홀더 클릭 처리
+                   const placeholder = target.closest('.card-image-placeholder');
+                   if (placeholder) {
+                      const indexStr = placeholder.getAttribute('data-card-index');
+                      if (indexStr) {
+                        const index = parseInt(indexStr, 10);
+                        openCardRegenModal(index);
+                      }
+                      return;
+                   }
+
+                   // 3. 오버레이 버튼 클릭 처리 (이벤트 위임 - 안전장치)
+                   const overlayBtn = target.closest('.card-overlay-btn');
+                   if (overlayBtn) {
+                      const btn = overlayBtn as HTMLElement;
+                      const indexStr = btn.getAttribute('data-index');
+                      if (indexStr) {
+                         const index = parseInt(indexStr, 10);
+                         if (btn.classList.contains('regen')) {
+                            openCardRegenModal(index);
+                         } else if (btn.classList.contains('download')) {
+                            handleSingleCardDownload(index);
+                         }
+                      }
+                      return;
                    }
                 }}
                 className="focus:outline-none"
