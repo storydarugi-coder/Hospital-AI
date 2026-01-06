@@ -90,7 +90,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [editTags, setEditTags] = useState('');
   const [editImagePrompt, setEditImagePrompt] = useState('');
   const [cardRegenRefImage, setCardRegenRefImage] = useState(''); // 참고 이미지
-  const [refImageMode, setRefImageMode] = useState<'inspire' | 'copy'>('copy'); // 참고 이미지 적용 방식
+  const [refImageMode, setRefImageMode] = useState<'recolor' | 'copy'>('copy'); // 참고 이미지 적용 방식: recolor=복제+색상변경, copy=완전복제
   const [currentCardImage, setCurrentCardImage] = useState(''); // 현재 카드의 이미지 URL
   const [promptHistory, setPromptHistory] = useState<CardPromptHistoryItem[]>([]); // 저장된 프롬프트 히스토리
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
@@ -127,7 +127,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   }, []);
   
   // 참고 이미지 저장/삭제 함수
-  const saveRefImageToStorage = (image: string, mode: 'inspire' | 'copy') => {
+  const saveRefImageToStorage = (image: string, mode: 'recolor' | 'copy') => {
     try {
       localStorage.setItem(CARD_REF_IMAGE_KEY, JSON.stringify({ image, mode }));
       setIsRefImageLocked(true);
@@ -556,9 +556,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
         if (refImageMode === 'copy') {
-          setCardRegenProgress('📋 레이아웃 복제 중... (참고 이미지 분석)');
+          setCardRegenProgress('📋 레이아웃 완전 복제 중...');
         } else {
-          setCardRegenProgress('✨ 스타일 참고하여 생성 중...');
+          setCardRegenProgress('🎨 레이아웃 복제 + 색상 변경 중...');
         }
       } else if (customStylePrompt) {
         setCardRegenProgress('🎨 커스텀 스타일로 이미지 생성 중...');
@@ -2187,20 +2187,20 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                             <button
                               type="button"
                               onClick={() => {
-                                setRefImageMode('inspire');
+                                setRefImageMode('recolor');
                                 if (isRefImageLocked) {
-                                  saveRefImageToStorage(cardRegenRefImage, 'inspire');
+                                  saveRefImageToStorage(cardRegenRefImage, 'recolor');
                                 }
                               }}
                               className={`flex-1 px-3 py-2 rounded-lg text-[11px] font-bold transition-all ${
-                                refImageMode === 'inspire'
-                                  ? 'bg-orange-500 text-white'
+                                refImageMode === 'recolor'
+                                  ? 'bg-purple-500 text-white'
                                   : darkMode 
                                     ? 'bg-slate-700 text-slate-300 hover:bg-slate-500' 
-                                    : 'bg-white text-slate-600 hover:bg-orange-100'
+                                    : 'bg-white text-slate-600 hover:bg-purple-100'
                               }`}
                             >
-                              ✨ 느낌만 참고
+                              🎨 복제+색상변경
                             </button>
                             <button
                               type="button"
@@ -2222,9 +2222,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                             </button>
                           </div>
                           <div className={`text-[9px] mt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                            {refImageMode === 'inspire' 
-                              ? '색상, 분위기만 참고하고 레이아웃은 자유롭게' 
-                              : '텍스트 위치, 구도까지 최대한 동일하게'}
+                            {refImageMode === 'recolor' 
+                              ? '레이아웃은 그대로, 색상만 다르게!' 
+                              : '텍스트 위치, 구도, 색상까지 동일하게'}
                           </div>
                         </div>
                       </>
@@ -2261,7 +2261,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   </>
                 ) : (
                   cardRegenRefImage 
-                    ? (refImageMode === 'copy' ? '📋 레이아웃 복제' : '✨ 느낌 참고 재생성')
+                    ? (refImageMode === 'copy' ? '📋 완전 복제' : '🎨 복제+색상변경')
                     : '🎨 이 카드 재생성'
                 )}
               </button>

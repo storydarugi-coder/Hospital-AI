@@ -296,19 +296,28 @@ const REF_IMAGE_COPY_MODE_PROMPT = `
 - 영역 분리 방식, 여백, 정렬
 - 폰트 스타일 느낌, UI 구조`;
 
-// 참고 이미지 스타일 참고 모드 규칙
-const REF_IMAGE_INSPIRE_MODE_PROMPT = `
-[레이아웃 재가공 모드] 참고 이미지를 "적당히" 재해석!
+// 참고 이미지 복제+색상변경 모드 규칙 (레이아웃은 완전 복제, 색상만 변경)
+const REF_IMAGE_RECOLOR_MODE_PROMPT = `
+🚨 [최우선 규칙] 참고 이미지의 레이아웃/구도를 100% 동일하게 복제하세요!
 
-🎨 [70% 유지] 색상 팔레트, 분위기/톤, 일러스트 기법, 레이아웃 구조, 폰트 느낌
-🔄 [30% 변형] 일러스트 내용을 새 주제로, 텍스트 내용 교체, 배치 미세 조정
+✅ [완전히 복제할 것 - 레이아웃/구도]
+- 텍스트 위치, 크기, 정렬 방식
+- 일러스트 배치 위치와 크기
+- 여백, 간격, 비율
+- 전체 구도와 레이아웃 구조
+- 폰트 스타일 느낌
+
+🎨 [변경할 것 - 색상만!]
+- 배경색을 새로운 색상으로 변경
+- 강조색/포인트색 변경 가능
+- 전체 색상 팔레트 변경
 
 ⛔ [절대 금지]
-- 참고 이미지 일러스트/텍스트 그대로 복사
-- 완전히 다른 스타일로 만들기
-- 참고 이미지가 2D 파스텔이면 → 3D로 변환 금지!
+- 레이아웃/구도 변경
+- 텍스트 위치 이동
+- 일러스트 스타일 변경 (2D→3D 금지!)
 
-🎯 목표: 같은 시리즈처럼 보이지만 새로운 카드!`;
+🎯 목표: 똑같은 레이아웃, 다른 색감!`;
 
 // 이미지 내 텍스트 규칙
 const IMAGE_TEXT_RULES = `
@@ -1080,12 +1089,14 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
 ` : '';
 
     // 참고 이미지 모드별 프롬프트 (상수 사용)
+    // copyMode=true: 완전 복제 (레이아웃+색상 동일)
+    // copyMode=false: 복제+색상변경 (레이아웃 동일, 색상만 변경)
     let refImagePrompt = '';
     if (referenceImage) {
       if (copyMode) {
         refImagePrompt = REF_IMAGE_COPY_MODE_PROMPT;
       } else {
-        refImagePrompt = REF_IMAGE_INSPIRE_MODE_PROMPT;
+        refImagePrompt = REF_IMAGE_RECOLOR_MODE_PROMPT;
       }
     }
 
