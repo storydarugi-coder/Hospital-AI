@@ -23,15 +23,29 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  // 이미 로그인된 경우 앱으로 이동
+  // 이미 로그인된 경우 또는 OAuth 콜백 처리
   useEffect(() => {
-    const checkSession = async () => {
+    const checkSessionAndOAuth = async () => {
+      const hash = window.location.hash;
+      console.log('[AuthPage] Checking session, hash:', hash);
+      
+      // OAuth 토큰이 URL에 있는 경우 (콜백)
+      if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
+        console.log('[AuthPage] OAuth callback detected, redirecting to app');
+        // URL 정리 후 앱으로
+        window.history.replaceState(null, '', window.location.pathname + '#app');
+        onNavigate('app');
+        return;
+      }
+      
+      // 일반 세션 체크
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('[AuthPage] Session check:', session?.user?.email);
       if (session) {
         onNavigate('app');
       }
     };
-    checkSession();
+    checkSessionAndOAuth();
   }, [onNavigate]);
 
   // 이메일 로그인

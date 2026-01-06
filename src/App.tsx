@@ -186,12 +186,54 @@ const App: React.FC = () => {
       };
     };
     
+    // OAuth 콜백 처리 (URL hash에 access_token이 있는 경우)
+    const handleOAuthCallback = async () => {
+      const hash = window.location.hash;
+      console.log('[OAuth Callback] Current hash:', hash);
+      
+      // OAuth 토큰이 URL에 있는지 확인
+      if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+        console.log('[OAuth Callback] Detected OAuth callback in URL');
+        
+        // Supabase가 자동으로 세션을 설정할 때까지 대기
+        // getSession()이 토큰을 파싱하고 세션을 생성함
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('[OAuth Callback] Error getting session:', error);
+          // 에러 시 hash 정리 후 auth 페이지로
+          window.location.hash = 'auth';
+          return null;
+        }
+        
+        if (session?.user) {
+          console.log('[OAuth Callback] Session established:', session.user.email);
+          // 성공 - hash를 정리하고 app으로
+          window.history.replaceState(null, '', window.location.pathname + '#app');
+          return session;
+        }
+      }
+      return null;
+    };
+    
     // 현재 세션 확인
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Session check result:', session?.user?.email);
+      // 먼저 OAuth 콜백인지 확인
+      const oauthSession = await handleOAuthCallback();
+      
+      // OAuth 세션이 있으면 그걸 사용, 아니면 기존 세션 확인
+      let session;
+      if (oauthSession) {
+        session = oauthSession;
+      } else {
+        const { data } = await supabase.auth.getSession();
+        session = data.session;
+      }
+      
+      console.log('[Session Check] Session result:', session?.user?.email);
+      
       if (session?.user) {
-        console.log('User found, setting isLoggedIn to true');
+        console.log('[Session Check] User found, setting isLoggedIn to true');
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
         // 프로필 정보 설정 (저장된 크레딧 불러오기)
@@ -204,10 +246,12 @@ const App: React.FC = () => {
           remainingCredits
         });
         
-        // OAuth 로그인 후 리다이렉트된 경우 앱으로 이동
-        const hash = window.location.hash;
-        if (hash === '#app' || hash.includes('access_token') || hash.includes('refresh_token')) {
+        // 세션이 있고 현재 auth 페이지면 app으로 이동
+        const currentHash = window.location.hash;
+        if (currentHash === '#auth' || currentHash === '' || currentHash === '#') {
           window.location.hash = 'app';
+          setCurrentPage('app');
+        } else if (currentHash === '#app' || !currentHash.includes('#')) {
           setCurrentPage('app');
         }
       }
@@ -216,11 +260,11 @@ const App: React.FC = () => {
     
     checkSession();
 
-    console.log('Initial auth check started');
+    console.log('[Auth] Initial auth check started');
     
     // 인증 상태 변경 감시
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event);
+      console.log('[Auth Event]', event, session?.user?.email);
       
       if (session?.user) {
         setSupabaseUser(session.user);
@@ -235,9 +279,13 @@ const App: React.FC = () => {
           remainingCredits
         });
         
-        // 로그인 성공 시 앱으로 이동
-        if (event === 'SIGNED_IN') {
-          console.log('SIGNED_IN event detected, navigating to app');
+        // 로그인 성공 시 앱으로 이동 (OAuth 리다이렉트 포함)
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('[Auth Event] Login success, navigating to app');
+          // URL 정리 후 앱으로 이동
+          if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token')) {
+            window.history.replaceState(null, '', window.location.pathname + '#app');
+          }
           window.location.hash = 'app';
           setCurrentPage('app');
         }

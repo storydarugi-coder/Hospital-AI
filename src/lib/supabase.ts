@@ -82,12 +82,23 @@ export const signInWithEmail = async (email: string, password: string) => {
 };
 
 export const signInWithOAuth = async (provider: 'google') => {
+  // OAuth 리다이렉트 URL - Supabase가 콜백 시 #access_token을 추가함
+  // 따라서 baseURL만 지정하고, 인증 후 App.tsx에서 hash를 파싱
+  const redirectUrl = window.location.origin;
+  console.log('[OAuth] Starting Google login, redirectTo:', redirectUrl);
+  
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + '/#app'
+      redirectTo: redirectUrl,
+      skipBrowserRedirect: false
     }
   });
+  
+  if (error) {
+    console.error('[OAuth] Error:', error);
+  }
+  
   return { data, error };
 };
 
