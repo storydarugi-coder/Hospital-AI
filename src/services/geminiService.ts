@@ -415,16 +415,35 @@ const FRAME_FROM_REFERENCE_RECOLOR = `
 
 // 스타일 블록: 버튼별로 단 하나만 선택
 const PHOTO_STYLE_RULE = `
-[STYLE - 실사 촬영 (PHOTOREALISTIC)]
-⚠️ 필수: 실제 DSLR 카메라로 촬영한 것 같은 실사 사진 스타일!
-- 렌더링: photorealistic, real photography, DSLR shot, 35mm lens
-- 조명: natural soft lighting, studio lighting, professional photography lighting
-- 피사체: 실제 병원 환경, 실제 의료진, 실제 진료 도구, 실제 환자
-- 질감: realistic skin texture, fabric texture, realistic materials
-- 깊이: shallow depth of field, bokeh background
-- 분위기: professional, trustworthy, clean modern hospital
-※ 프레임(브라우저 창 상단바/버튼)은 그래픽 요소로 유지.
-⛔ 절대 금지: 3D render, illustration, cartoon, anime, vector, clay, isometric, infographic, digital art, painting
+[STYLE - 실사 촬영 (PHOTOREALISTIC PHOTOGRAPHY)]
+🚨🚨🚨 최우선 규칙: 반드시 실제 사진처럼 보여야 합니다! 🚨🚨🚨
+
+✅ 필수 스타일 키워드 (모두 적용!):
+- photorealistic, real photograph, DSLR camera shot, 35mm lens
+- natural lighting, soft studio lighting, professional photography
+- shallow depth of field, bokeh background, lens blur
+- realistic skin texture, real fabric texture, authentic materials
+- high resolution, 8K quality, professional stock photo style
+
+✅ 피사체 표현:
+- 실제 한국인 인물 (의료진, 환자 등)
+- 실제 병원/진료실/의료 환경
+- 실제 의료 장비, 진료 도구
+- 자연스러운 표정과 포즈
+
+✅ 분위기:
+- professional, trustworthy, clean, modern
+- 밝고 깨끗한 병원 느낌
+- 신뢰감 있는 의료 환경
+
+⛔⛔⛔ 절대 금지 (이것들은 사용하지 마세요!):
+- 3D render, 3D illustration, Blender, Cinema4D
+- cartoon, anime, vector art, flat illustration
+- clay render, isometric, infographic style
+- digital art, painting, watercolor, sketch
+- 파스텔톤 일러스트, 귀여운 캐릭터
+
+※ 프레임(브라우저 창 상단바/버튼)만 그래픽 요소로 유지, 나머지는 모두 실사!
 `;
 
 const ILLUSTRATION_3D_STYLE_RULE = `
@@ -479,9 +498,20 @@ const normalizePromptTextForImage = (raw: string): string => {
 };
 
 const buildStyleBlock = (style: ImageStyle, customStylePrompt?: string): string => {
-  if (customStylePrompt && customStylePrompt.trim()) return CUSTOM_STYLE_RULE(customStylePrompt.trim());
-  if (style === 'photo') return PHOTO_STYLE_RULE;
-  if (style === 'medical') return MEDICAL_3D_STYLE_RULE;
+  // 🚨 photo/medical 스타일 선택 시 커스텀 프롬프트 무시! (스타일 버튼 우선)
+  if (style === 'photo') {
+    console.log('📸 실사 사진 스타일 강제 적용 (커스텀 프롬프트 무시)');
+    return PHOTO_STYLE_RULE;
+  }
+  if (style === 'medical') {
+    console.log('🫀 의학 3D 스타일 강제 적용 (커스텀 프롬프트 무시)');
+    return MEDICAL_3D_STYLE_RULE;
+  }
+  // custom 스타일이거나 illustration일 때만 커스텀 프롬프트 적용
+  if (style === 'custom' && customStylePrompt && customStylePrompt.trim()) {
+    console.log('✏️ 커스텀 스타일 적용:', customStylePrompt.substring(0, 50));
+    return CUSTOM_STYLE_RULE(customStylePrompt.trim());
+  }
   return ILLUSTRATION_3D_STYLE_RULE; // illustration 기본
 };
 
@@ -2069,11 +2099,14 @@ const fullImageCardPromptAgent = async (
 ): Promise<CardPromptData[]> => {
   const ai = getAiClient();
   
-  // 커스텀 프롬프트가 있으면 최우선 적용! (기본 스타일 완전 대체!)
-  const hasCustomStyle = customImagePrompt?.trim();
-  const styleGuide = hasCustomStyle
-    ? customImagePrompt!.trim()
-    : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration;
+  // 🚨 photo/medical 스타일 선택 시 커스텀 프롬프트 무시! (스타일 버튼 우선)
+  const isFixedStyle = imageStyle === 'photo' || imageStyle === 'medical';
+  const hasCustomStyle = !isFixedStyle && customImagePrompt?.trim();
+  const styleGuide = isFixedStyle
+    ? STYLE_KEYWORDS[imageStyle]  // photo/medical은 고정 스타일 사용
+    : (hasCustomStyle ? customImagePrompt!.trim() : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration);
+  
+  console.log('🎨 fullImageCardPromptAgent 스타일:', imageStyle, '/ 커스텀 적용:', hasCustomStyle ? 'YES' : 'NO (고정 스타일)');
   
   // 🎨 스타일 참고 이미지가 있으면 해당 색상 사용, 없으면 기본값
   const bgColor = styleConfig?.backgroundColor || '#E8F4FD';
