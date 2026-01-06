@@ -384,9 +384,9 @@ const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금�
 
 // 기본 스타일 프롬프트
 export const DEFAULT_STYLE_PROMPTS = {
-  illustration: '고품질 3D 의료 일러스트, 인포그래픽, 파란색/흰색, 아이소메트릭, 클레이 렌더',
-  medical: '전문 3D 의학 해부학 일러스트, 단면도, 인체 내부, 과학적 시각화',
-  photo: '초고화질 실사 사진, 8K, DSLR, 부드러운 병원 조명, 얕은 피사계 심도'
+  illustration: '귀여운 일러스트, 밝고 친근한 분위기',
+  medical: '의학 일러스트, 교육용 그래픽',
+  photo: '실사 사진, 자연스러운 조명'
 };
 
 // 스타일 이름 (UI 표시용)
@@ -398,9 +398,9 @@ export const STYLE_NAMES = {
 
 // 짧은 스타일 키워드 (프롬프트용)
 export const STYLE_KEYWORDS = {
-  illustration: '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽',
-  medical: '3D 해부학 일러스트, 인체 구조, 교육용',
-  photo: '실사 사진, DSLR 촬영'
+  illustration: '귀여운 일러스트, 밝은 색감',
+  medical: '의학 일러스트, 교육용',
+  photo: '실사 사진'
 };
 
 // 참고 이미지 스타일 따라가기 프롬프트
