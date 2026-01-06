@@ -1159,10 +1159,11 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     // 🎨 커스텀 스타일이 최우선! (강제 적용)
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
     const styleSection = hasCustomStyle 
-      ? `[스타일] ${customStylePrompt.trim()} (이 스타일만 적용! 3D 변환 금지!)` 
+      ? `[스타일] ${customStylePrompt.trim()} (이 스타일만 적용!)` 
       : `[스타일] ${stylePrompt}`;
     
-    console.log('📝 최종 스타일 섹션:', styleSection.substring(0, 80));
+    console.log('🎨 generateSingleImage - customStylePrompt:', customStylePrompt ? customStylePrompt.substring(0, 50) : 'undefined');
+    console.log('📝 최종 스타일 섹션:', styleSection.substring(0, 100));
     
     // 전체 프롬프트 조합 (간결하게!)
     let finalPrompt: string;
