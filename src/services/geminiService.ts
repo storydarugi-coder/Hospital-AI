@@ -341,23 +341,42 @@ const FRAME_FROM_REFERENCE_RECOLOR = `
 
 // 스타일 블록: 버튼별로 단 하나만 선택
 const PHOTO_STYLE_RULE = `
-[STYLE]
-실사 촬영(리얼 포토). 전문 의료 사진(병원/진료실/의료진/진단도구).
-자연스러운 조명, 사실적인 질감, DSLR 사진 품질.
-※ 프레임(브라우저 창 상단바/버튼)은 단순한 그래픽 요소로 유지 가능.
-금지: 일러스트/만화/3D 렌더/클레이/아이소메트릭/인포그래픽.
+[STYLE - 실사 촬영 (PHOTOREALISTIC)]
+⚠️ 필수: 실제 DSLR 카메라로 촬영한 것 같은 실사 사진 스타일!
+- 렌더링: photorealistic, real photography, DSLR shot, 35mm lens
+- 조명: natural soft lighting, studio lighting, professional photography lighting
+- 피사체: 실제 병원 환경, 실제 의료진, 실제 진료 도구, 실제 환자
+- 질감: realistic skin texture, fabric texture, realistic materials
+- 깊이: shallow depth of field, bokeh background
+- 분위기: professional, trustworthy, clean modern hospital
+※ 프레임(브라우저 창 상단바/버튼)은 그래픽 요소로 유지.
+⛔ 절대 금지: 3D render, illustration, cartoon, anime, vector, clay, isometric, infographic, digital art, painting
 `;
 
 const ILLUSTRATION_3D_STYLE_RULE = `
-[STYLE]
-부드럽고 친근한 3D 일러스트(설명용). 깔끔한 형태, 은은한 조명.
-금지: 실사 사진 느낌.
+[STYLE - 3D 일러스트 (3D ILLUSTRATION)]
+⚠️ 필수: 친근하고 부드러운 3D 일러스트 스타일!
+- 렌더링: 3D rendered illustration, Blender/Cinema4D style, soft 3D render
+- 조명: soft studio lighting, ambient occlusion, gentle shadows
+- 질감: smooth plastic-like surfaces, matte finish, rounded edges
+- 색상: 밝은 파스텔 톤, 파란색/흰색/연한 색상 팔레트
+- 캐릭터: cute stylized characters, friendly expressions, simple features
+- 배경: clean gradient background, soft color transitions
+- 분위기: friendly, approachable, modern, educational
+⛔ 절대 금지: photorealistic, real photo, DSLR, realistic texture, photograph
 `;
 
 const MEDICAL_3D_STYLE_RULE = `
-[STYLE]
-의학 3D 렌더. 해부학/의료 오브젝트가 정확하고 전문적으로 보이게.
-임상적이고 신뢰감 있는 질감/조명.
+[STYLE - 의학 3D (MEDICAL 3D RENDER)]
+⚠️ 필수: 전문적인 의학/해부학 3D 일러스트 스타일!
+- 렌더링: medical 3D illustration, anatomical render, scientific visualization
+- 조명: clinical lighting, x-ray style glow, translucent organs
+- 피사체: 인체 해부학, 장기 단면도, 뼈/근육/혈관 구조, 의료 도구
+- 질감: semi-transparent organs, detailed anatomical structures
+- 색상: 의료용 색상 팔레트 (파란색, 흰색, 빨간색 혈관/동맥)
+- 레이블: anatomical labels, educational diagram style
+- 분위기: clinical, professional, educational, trustworthy
+⛔ 절대 금지: cute cartoon, photorealistic photo, realistic human face
 `;
 
 const CUSTOM_STYLE_RULE = (prompt: string) => `
@@ -435,11 +454,11 @@ const REF_IMAGE_RECOLOR_MODE_PROMPT = `
 // 공통 규칙 (간결화)
 const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
-// 기본 스타일 프롬프트
+// 기본 스타일 프롬프트 - 구체적으로 개선!
 export const DEFAULT_STYLE_PROMPTS: Record<string, string> = {
-  illustration: '귀여운 일러스트, 밝고 친근한 분위기',
-  medical: '의학 일러스트, 교육용 그래픽',
-  photo: '실사 사진, 자연스러운 조명',
+  illustration: '3D rendered illustration, Blender style, soft studio lighting, pastel colors, rounded shapes, friendly character design, clean gradient background',
+  medical: 'medical 3D illustration, anatomical render, scientific visualization, clinical lighting, detailed organ structures, educational diagram, professional healthcare style',
+  photo: 'photorealistic DSLR photography, natural soft lighting, shallow depth of field, realistic textures, professional hospital environment, trustworthy atmosphere',
   custom: '사용자 지정 스타일'  // custom 선택 시 customStylePrompt가 없으면 이게 사용됨 (fallback)
 };
 
@@ -450,11 +469,11 @@ export const STYLE_NAMES = {
   photo: '실사 사진'
 };
 
-// 짧은 스타일 키워드 (프롬프트용)
+// 짧은 스타일 키워드 (프롬프트용) - 구체적으로 개선!
 export const STYLE_KEYWORDS = {
-  illustration: '귀여운 일러스트, 밝은 색감',
-  medical: '의학 일러스트, 교육용',
-  photo: '실사 사진'
+  illustration: '3D 렌더 일러스트, Blender 스타일, 부드러운 조명, 파스텔 색상, 친근한 캐릭터, 깔끔한 배경',
+  medical: '의학 3D 일러스트, 해부학적 구조, 장기 단면도, 임상 조명, 교육용 다이어그램, 전문적 분위기',
+  photo: '실사 사진, DSLR 촬영, 자연스러운 조명, 얕은 피사계심도, 전문 병원 환경, 사실적 질감'
 };
 
 // 참고 이미지 스타일 따라가기 프롬프트
@@ -1082,25 +1101,33 @@ const PSYCHOLOGY_CTA_PROMPT = `
 export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration'): Promise<string> => {
   const ai = getAiClient();
   
-  // 스타일에 따른 프롬프트 가이드 (한국어)
+  // 스타일에 따른 프롬프트 가이드 (구체적으로 개선!)
   const styleGuide = imageStyle === 'illustration' 
-    ? `**중요: 3D 일러스트/인포그래픽 스타일로 생성해야 합니다!**
-       - 반드시 "3D 일러스트", "아이소메트릭", "클레이 렌더", "인포그래픽 스타일" 키워드 포함
-       - 실사 사진 스타일 금지 (사진, 실사, DSLR 등 금지)
-       - 밝고 깔끔한 파란색/흰색 색상 팔레트
-       - 친근하고 현대적인 느낌`
+    ? `**중요: 3D 렌더 일러스트 스타일로 생성해야 합니다!**
+       - 렌더링 스타일: "3D rendered illustration", "Blender style", "soft 3D render"
+       - 조명: 부드러운 스튜디오 조명, 은은한 그림자
+       - 질감: 매끄러운 플라스틱 느낌, 무광 마감, 둥근 모서리
+       - 색상: 밝은 파스텔 톤, 파란색/흰색/연한 색상 팔레트
+       - 캐릭터: 친근한 표정, 단순화된 디자인
+       - 배경: 깔끔한 그라데이션 배경
+       ⛔ 금지: photorealistic, real photo, DSLR, realistic texture`
     : imageStyle === 'medical'
-    ? `**중요: 3D 의학/해부학 일러스트 스타일로 생성해야 합니다!**
-       - 반드시 "3D 해부학", "의학 일러스트", "인체 구조", "장기 단면도" 키워드 포함
-       - 인체 내부 구조, 장기, 뼈, 근육, 혈관 등을 과학적으로 표현
-       - 깔끔한 배경에 투명/반투명 효과로 내부 구조 시각화
-       - 교육용/의료용 전문 일러스트 느낌
-       - 파란색/흰색/빨간색 의료 색상 팔레트`
+    ? `**중요: 의학 3D 일러스트 스타일로 생성해야 합니다!**
+       - 렌더링 스타일: "medical 3D illustration", "anatomical render", "scientific visualization"
+       - 피사체: 인체 해부학, 장기 단면도, 뼈/근육/혈관 구조
+       - 조명: 임상적 조명, X-ray 스타일 글로우, 반투명 장기
+       - 질감: semi-transparent organs, detailed anatomical structures
+       - 색상: 의료용 팔레트 (파란색, 흰색, 빨간색 혈관)
+       - 분위기: clinical, professional, educational
+       ⛔ 금지: cute cartoon, photorealistic human face`
     : `**중요: 실사 사진 스타일로 생성해야 합니다!**
-       - 반드시 "실사 사진", "전문 사진", "DSLR 촬영" 키워드 포함
-       - 일러스트/3D 스타일 금지 (일러스트, 만화, 3D 렌더 등 금지)
-       - 자연스러운 병원 조명
-       - 전문적이고 신뢰감 있는 분위기`;
+       - 렌더링 스타일: "photorealistic", "real photography", "DSLR shot", "35mm lens"
+       - 피사체: 실제 병원 환경, 실제 의료진, 실제 진료 도구
+       - 조명: 자연스러운 소프트 조명, 스튜디오 조명, 전문 사진 조명
+       - 질감: realistic skin texture, fabric texture, realistic materials
+       - 깊이: shallow depth of field, bokeh background
+       - 분위기: professional, trustworthy, clean modern hospital
+       ⛔ 금지: 3D render, illustration, cartoon, anime, vector, clay`;
   
   try {
     const response = await ai.models.generateContent({
@@ -2693,10 +2720,10 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   const imageStyleGuide = customImagePrompt
     ? `커스텀 스타일: ${customImagePrompt}` // 커스텀 프롬프트 최우선!
     : imageStyle === 'illustration' 
-    ? '3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 인포그래픽 스타일, 파란색 흰색 팔레트, 친근하고 현대적인 느낌'
+    ? '3D rendered illustration, Blender style, soft studio lighting, 파스텔 색상, 둥근 형태, 친근한 캐릭터, 깔끔한 배경 (⛔금지: photorealistic, real photo, DSLR)'
     : imageStyle === 'medical'
-    ? '3D 해부학 일러스트, 인체 구조 단면도, 장기/뼈/근육/혈관 시각화, 투명/반투명 효과, 교육용 의학 이미지, 파란색 흰색 빨간색 의료 팔레트'
-    : '실사 사진, DSLR 촬영, 자연스러운 병원 조명, 전문적이고 신뢰감 있는 분위기';
+    ? 'medical 3D illustration, anatomical render, 해부학적 구조, 장기 단면도, semi-transparent organs, clinical lighting, 의료 색상 팔레트 (⛔금지: cute cartoon, realistic face)'
+    : 'photorealistic DSLR photography, real photo, 35mm lens, natural soft lighting, shallow depth of field, 전문 병원 환경 (⛔금지: 3D render, illustration, cartoon, anime)';
   
   // 동적으로 최신 의료광고법 프롬프트 생성
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
