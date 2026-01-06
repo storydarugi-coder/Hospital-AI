@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS, REF_IMAGE_STYLE_FOLLOW_PROMPT } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
