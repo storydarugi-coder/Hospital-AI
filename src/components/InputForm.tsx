@@ -32,7 +32,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     const saved = localStorage.getItem(CUSTOM_PROMPT_KEY);
     if (saved) {
       setCustomPrompt(saved);
-      setShowCustomInput(true); // 저장된 값이 있으면 UI도 보여주기
+      // UI는 imageStyle === 'custom'일 때만 보여주므로 여기서 setShowCustomInput 안 함
     }
   }, []);
   
@@ -64,8 +64,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       slideCount,
       imageCount,
       writingStyle,
-      // 🎨 커스텀 프롬프트가 있으면 항상 전달! (스타일 선택과 무관하게)
-      customImagePrompt: customPrompt?.trim() || undefined
+      // 🎨 커스텀 스타일 선택 시에만 커스텀 프롬프트 전달!
+      customImagePrompt: imageStyle === 'custom' ? (customPrompt?.trim() || undefined) : undefined
     });
   };
 
@@ -313,8 +313,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
            </div>
            
-           {/* 커스텀 프롬프트 입력 영역 - 스타일 선택과 무관하게 표시 */}
-           {showCustomInput && (
+           {/* 커스텀 프롬프트 입력 영역 - 커스텀 스타일 선택 시에만 표시 */}
+           {showCustomInput && imageStyle === 'custom' && (
              <div className="mt-3 p-4 bg-orange-50 rounded-2xl border border-orange-200 animate-fadeIn">
                <div className="flex items-center justify-between mb-2">
                  <label className="text-xs font-black text-orange-700">✨ 나만의 이미지 스타일 프롬프트</label>
