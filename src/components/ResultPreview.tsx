@@ -587,6 +587,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       );
       
       if (newImage) {
+        // 플레이스홀더 이미지인지 확인 (SVG 플레이스홀더는 재시도 필요)
+        const isPlaceholder = newImage.includes('이미지 생성에 실패했습니다') || newImage.includes('data:image/svg+xml');
+        
         // DOM 업데이트 - 이미지 교체
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = localHtml;
@@ -609,7 +612,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           }
         }
         
-        alert(`✅ ${cardRegenIndex + 1}번 카드가 재생성되었습니다!`);
+        if (isPlaceholder) {
+          alert(`⚠️ ${cardRegenIndex + 1}번 카드 이미지 생성에 실패했습니다.\nAI가 요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.`);
+        } else {
+          alert(`✅ ${cardRegenIndex + 1}번 카드가 재생성되었습니다!`);
+        }
         setCardRegenModalOpen(false);
         setCardRegenInstruction('');
         setCardRegenProgress('');

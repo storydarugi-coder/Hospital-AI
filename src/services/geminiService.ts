@@ -1326,10 +1326,19 @@ ${cleanPromptText}
     }
   }
 
-  // 모든 재시도 실패 시
-  console.error('❌ 이미지 생성 최종 실패 (3회 재시도 후):', lastError?.message || lastError);
+  // 모든 재시도 실패 시 - 플레이스홀더 이미지 반환 (에러 방지)
+  console.error('❌ 이미지 생성 최종 실패 (재시도 후):', lastError?.message || lastError);
   console.error('📝 사용된 프롬프트 (앞 250자):', finalPrompt.slice(0, 250));
-  return "";
+  
+  // 플레이스홀더 SVG 이미지 (빈 문자열 대신 반환하여 UI 오류 방지)
+  const placeholderSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+    <rect fill="#E8F4FD" width="800" height="800"/>
+    <rect fill="#fff" x="40" y="40" width="720" height="720" rx="24"/>
+    <text x="400" y="380" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#64748b">이미지 생성에 실패했습니다</text>
+    <text x="400" y="420" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#94a3b8">카드를 클릭하여 재생성해주세요</text>
+  </svg>`;
+  const base64Placeholder = btoa(unescape(encodeURIComponent(placeholderSvg)));
+  return `data:image/svg+xml;base64,${base64Placeholder}`;
 };
 
 
