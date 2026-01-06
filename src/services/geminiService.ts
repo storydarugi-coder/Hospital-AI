@@ -3202,6 +3202,10 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
 export const generateFullPost = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
   const isCardNews = request.postType === 'card_news';
   
+  // 🔍 디버그: request에 customImagePrompt가 있는지 확인
+  console.log('🔍 generateFullPost 시작 - request.imageStyle:', request.imageStyle);
+  console.log('🔍 generateFullPost 시작 - request.customImagePrompt:', request.customImagePrompt ? request.customImagePrompt.substring(0, 50) : 'undefined/없음');
+  
   // 🤖 카드뉴스: 미니 에이전트 방식 사용
   if (isCardNews) {
     onProgress('🤖 미니 에이전트 방식으로 카드뉴스 생성 시작...');
