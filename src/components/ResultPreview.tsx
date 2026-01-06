@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS, REF_IMAGE_STYLE_FOLLOW_PROMPT } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS, REF_IMAGE_STYLE_FOLLOW_PROMPT } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -823,11 +823,23 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setEditProgress(`${regenIndex}번 이미지를 다시 생성 중...`);
     try {
       const style = content.imageStyle || 'illustration';
-      const imgRatio = content.postType === 'card_news' ? "1:1" : "16:9";
+      const isCardNews = content.postType === 'card_news';
+      const imgRatio = isCardNews ? "1:1" : "16:9";
       // 🎨 커스텀 스타일 프롬프트: savedCustomStylePrompt 사용 (재생성 시에도 유지!)
       const customStylePrompt = savedCustomStylePrompt || undefined;
-      console.log('🔄 블로그 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
-      const newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
+      
+      let newImageData: string;
+      
+      if (isCardNews) {
+        // 🎴 카드뉴스: generateSingleImage 사용 (텍스트 포함, 브라우저 프레임, 1:1)
+        console.log('🔄 카드뉴스 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
+        newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
+      } else {
+        // 📝 블로그: generateBlogImage 사용 (텍스트 없는 순수 이미지, 16:9)
+        console.log('🔄 블로그 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
+        newImageData = await generateBlogImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
+      }
+      
       if (newImageData) {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = localHtml;
@@ -1404,6 +1416,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               const promptList = result.newImagePrompts.slice(0, idxList.length);
               const newImageMap: Record<number, string> = {};
 
+              const isCardNews = content.postType === 'card_news';
               await Promise.all(
                 promptList.map(async (prompt, i) => {
                   const targetIdx = idxList[i];
@@ -1411,8 +1424,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   const style = content.imageStyle || 'illustration';
                   // 🎨 커스텀 스타일 프롬프트: savedCustomStylePrompt 사용 (재생성 시에도 유지!)
                   const customStylePrompt = savedCustomStylePrompt || undefined;
-                  console.log('🔄 AI 보정 이미지 재생성:', { targetIdx, style, customStylePrompt: customStylePrompt?.substring(0, 50) });
-                  newImageMap[targetIdx] = await generateSingleImage(prompt, style, '16:9', customStylePrompt);
+                  console.log('🔄 AI 보정 이미지 재생성:', { targetIdx, style, isCardNews, customStylePrompt: customStylePrompt?.substring(0, 50) });
+                  
+                  if (isCardNews) {
+                    // 🎴 카드뉴스: generateSingleImage 사용 (텍스트 포함, 1:1)
+                    newImageMap[targetIdx] = await generateSingleImage(prompt, style, '1:1', customStylePrompt);
+                  } else {
+                    // 📝 블로그: generateBlogImage 사용 (텍스트 없는 순수 이미지, 16:9)
+                    newImageMap[targetIdx] = await generateBlogImage(prompt, style, '16:9', customStylePrompt);
+                  }
                 })
               );
 
