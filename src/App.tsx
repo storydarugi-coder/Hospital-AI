@@ -442,7 +442,7 @@ const App: React.FC = () => {
       
       const images = await Promise.all(imagePromises);
       
-      // HTML에 이미지 삽입 (이미지가 있으면 img 태그로, 없으면 플레이스홀더)
+      // HTML에 이미지 삽입 (이미지가 있으면 img 태그로, 없으면 클릭 가능한 재생성 버튼)
       let finalHtml = designResult.content;
       images.forEach((imgUrl, i) => {
         if (imgUrl) {
@@ -450,8 +450,12 @@ const App: React.FC = () => {
           const imgTag = `<img src="${imgUrl}" alt="카드 ${i + 1}" class="card-inner-img" style="width: 100%; height: auto; border-radius: 12px;" />`;
           finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, imgTag);
         } else {
-          // 이미지 생성 실패 시 플레이스홀더
-          const placeholder = `<div style="width: 100%; height: 200px; background: #E2E8F0; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #64748B;">이미지 생성 대기중</div>`;
+          // 이미지 생성 실패 시 재생성 안내 플레이스홀더 (hover 시 재생성 버튼 표시)
+          const placeholder = `<div class="card-image-placeholder" style="width: 100%; aspect-ratio: 1; background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748B; cursor: pointer; border: 2px dashed #cbd5e1; transition: all 0.2s;" data-card-index="${i}">
+            <div style="font-size: 32px; margin-bottom: 8px;">🖼️</div>
+            <div style="font-weight: 700; font-size: 14px;">이미지를 생성하지 못했습니다</div>
+            <div style="font-size: 12px; margin-top: 4px; color: #94a3b8;">카드를 클릭하여 재생성해주세요</div>
+          </div>`;
           finalHtml = finalHtml.replace(`[IMG_${i + 1}]`, placeholder);
         }
       });

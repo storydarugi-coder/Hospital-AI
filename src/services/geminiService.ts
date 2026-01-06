@@ -1239,41 +1239,72 @@ ${cleanPromptText}
     finalPromptHead: finalPrompt.slice(0, 200),
   });
 
-  try {
-    const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+  // 🔄 재시도 로직: 최대 3회 시도
+  const MAX_RETRIES = 3;
+  let lastError: any = null;
 
-    const parts: any[] = [{ text: finalPrompt }];
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`🎨 이미지 생성 시도 ${attempt}/${MAX_RETRIES}...`);
+      
+      const model = ai.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
-    if (referenceImage && referenceImage.startsWith('data:')) {
-      const [meta, base64] = referenceImage.split(',');
-      const mimeType = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
-      parts.unshift({
-        inlineData: { data: base64, mimeType }
+      const parts: any[] = [{ text: finalPrompt }];
+
+      if (referenceImage && referenceImage.startsWith('data:')) {
+        const [meta, base64] = referenceImage.split(',');
+        const mimeType = (meta.match(/data:(.*?);base64/) || [])[1] || 'image/png';
+        parts.unshift({
+          inlineData: { data: base64, mimeType }
+        });
+      }
+
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts }],
+        generationConfig: {
+          temperature: 0.7 + (attempt * 0.1), // 재시도마다 온도 약간 증가
+        },
       });
+
+      const candidates: any = (result as any)?.response?.candidates || (result as any)?.candidates;
+      const first = candidates?.[0];
+      const partsOut: any[] = first?.content?.parts || [];
+
+      const inline = partsOut.find(p => p.inlineData && p.inlineData.data);
+      
+      if (inline) {
+        const mimeType = inline.inlineData.mimeType || 'image/png';
+        const data = inline.inlineData.data;
+        console.log(`✅ 이미지 생성 성공 (시도 ${attempt}/${MAX_RETRIES})`);
+        return `data:${mimeType};base64,${data}`;
+      }
+      
+      // inlineData가 없으면 재시도
+      console.warn(`⚠️ 이미지 데이터 없음, 재시도 중... (${attempt}/${MAX_RETRIES})`);
+      lastError = new Error('이미지 데이터를 받지 못했습니다.');
+      
+      // 재시도 전 짧은 대기
+      if (attempt < MAX_RETRIES) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+      
+    } catch (error: any) {
+      lastError = error;
+      console.error(`❌ 이미지 생성 에러 (시도 ${attempt}/${MAX_RETRIES}):`, error?.message || error);
+      
+      // 재시도 전 짧은 대기 (지수 백오프)
+      if (attempt < MAX_RETRIES) {
+        const waitTime = 1000 * Math.pow(2, attempt - 1); // 1초, 2초, 4초
+        console.log(`⏳ ${waitTime/1000}초 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
     }
-
-    const result = await model.generateContent({
-      contents: [{ role: "user", parts }],
-      generationConfig: {
-        temperature: 0.7,
-      },
-    });
-
-    const candidates: any = (result as any)?.response?.candidates || (result as any)?.candidates;
-    const first = candidates?.[0];
-    const partsOut: any[] = first?.content?.parts || [];
-
-    const inline = partsOut.find(p => p.inlineData && p.inlineData.data);
-    if (!inline) return "";
-
-    const mimeType = inline.inlineData.mimeType || 'image/png';
-    const data = inline.inlineData.data;
-    return `data:${mimeType};base64,${data}`;
-  } catch (error: any) {
-    console.error('❌ 이미지 생성 에러:', error?.message || error);
-    console.error('📝 사용된 프롬프트 (앞 250자):', finalPrompt.slice(0, 250));
-    return "";
   }
+
+  // 모든 재시도 실패 시
+  console.error('❌ 이미지 생성 최종 실패 (3회 재시도 후):', lastError?.message || lastError);
+  console.error('📝 사용된 프롬프트 (앞 250자):', finalPrompt.slice(0, 250));
+  return "";
 };
 
 
