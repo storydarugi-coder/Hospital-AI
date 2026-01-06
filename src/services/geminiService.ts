@@ -1168,13 +1168,19 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
     // 🎨 커스텀 스타일이 최우선! (강제 적용)
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
     
-    // 🚨 스타일을 프롬프트 맨 앞에 강조!
+    // 🚨 커스텀 스타일을 프롬프트 맨 앞에 강조!
     const styleEmphasis = hasCustomStyle 
-      ? `🎨🎨🎨 반드시 "${customStylePrompt.trim()}" 스타일로 그려주세요! 3D/클레이/아이소메트릭 금지! 🎨🎨🎨\n\n` 
+      ? `🎨🎨🎨 [필수 스타일 지시] 🎨🎨🎨
+반드시 다음 스타일로만 그려주세요: ${customStylePrompt.trim()}
+⛔ 금지: 3D 일러스트, 클레이 렌더, 아이소메트릭, 인포그래픽 스타일
+✅ 필수: ${customStylePrompt.trim()}
+🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨🎨
+
+` 
       : '';
     
     const styleSection = hasCustomStyle 
-      ? `[스타일] ${customStylePrompt.trim()} - 이 스타일 필수!` 
+      ? `[스타일] ${customStylePrompt.trim()} (다른 스타일 절대 금지!)` 
       : `[스타일] ${stylePrompt}`;
     
     console.log('🎨 generateSingleImage - customStylePrompt:', customStylePrompt ? customStylePrompt.substring(0, 50) : 'undefined');
