@@ -1614,13 +1614,21 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
   return JSON.parse(response.text || "[]");
 };
 
-export const recommendSeoTitles = async (topic: string, keywords: string): Promise<SeoTitleItem[]> => {
+export const recommendSeoTitles = async (topic: string, keywords: string, postType: 'blog' | 'card_news' = 'blog'): Promise<SeoTitleItem[]> => {
   const ai = getAiClient();
   
-  const prompt = `너는 대한민국 의료광고법을 숙지한 '네이버 공식 병원 블로그' 전문 에디터다.
+  const contentTypeDesc = postType === 'card_news' 
+    ? '인스타그램/네이버 카드뉴스' 
+    : '네이버 블로그';
+  
+  const lengthGuide = postType === 'card_news'
+    ? '15~25자 이내 (카드뉴스 표지 최적화)'
+    : '28~38자 이내 (모바일 최적화)';
+  
+  const prompt = `너는 대한민국 의료광고법을 숙지한 '${contentTypeDesc}' 전문 에디터다.
 
 [🎯 미션]
-의료광고법을 100% 준수하면서 네이버 검색 클릭률이 높은 블로그 제목을 생성한다.
+의료광고법을 100% 준수하면서 검색 클릭률이 높은 ${postType === 'card_news' ? '카드뉴스 표지' : '블로그'} 제목을 생성한다.
 
 [📌 주제] ${topic}
 [📌 SEO 키워드] ${keywords}
@@ -1662,7 +1670,7 @@ export const recommendSeoTitles = async (topic: string, keywords: string): Promi
    ✅ "피부건조 원인, 겨울철에 심해지는 이유"
    ❌ "겨울철에 심해지는 피부건조 원인"
 
-8️⃣ 제목 길이: 28~38자 이내 (모바일 최적화)
+8️⃣ 제목 길이: ${lengthGuide}
 
 9️⃣ 감정 어휘는 사용하되 자극적으로 쓰지 않는다
    ✅ 답답한, 찝찝한, 불편한, 반복되는 (허용)
@@ -2563,6 +2571,25 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
 - speakingNote: "직접 권유 없이 행동을 유도하는 부드러운 마무리"
 
 ████████████████████████████████████████████████████████████████████████████████
+🔍 SEO 최적화 - 네이버/인스타그램 노출용
+████████████████████████████████████████████████████████████████████████████████
+
+1. **표지 제목 SEO**
+   - 핵심 키워드를 제목 앞부분에 배치
+   - 검색 의도에 맞는 질문형/호기심형 제목
+   ✅ "피부건조 원인, 겨울에 더 심해지는 이유"
+   ❌ "피부에 대해 알아봐요"
+
+2. **해시태그 전략 (마지막 카드)**
+   - 검색량 높은 키워드 5-7개
+   - 롱테일 키워드 포함
+   ✅ #피부건조 #겨울철피부관리 #피부보습 #건조한피부케어
+
+3. **각 카드 mainTitle에 키워드 자연스럽게 포함**
+   - 핵심 키워드가 전체 카드에 3-5회 분산
+   - 동의어/유사어 함께 사용
+
+████████████████████████████████████████████████████████████████████████████████
 ⚠️ 최종 체크리스트
 ████████████████████████████████████████████████████████████████████████████████
 □ 제목에 '치료/항암/전문의 권장/총정리' 없는지?
@@ -2571,6 +2598,7 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
 □ 증상 설명 후 '다른 원인 가능성' 문장 있는지?
 □ CTA가 직접 권유 없이 완곡하게 작성되었는지?
 □ 연도/월이 계절 표현으로 일반화되었는지?
+□ 핵심 키워드가 표지 제목 앞부분에 배치되었는지? (SEO)
 
 [📋 출력 필드 - 모든 필드는 한국어로 작성!]
 - title: 제목 (한국어)

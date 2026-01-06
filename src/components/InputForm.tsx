@@ -97,7 +97,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     setIsLoadingTitles(true);
     setSeoTitles([]);
     try {
-        const titles = await recommendSeoTitles(topic, keywords);
+        // postType에 따라 블로그/카드뉴스용 제목 추천
+        const titles = await recommendSeoTitles(topic, keywords, postType);
         const sortedTitles = titles.sort((a, b) => b.score - a.score);
         setSeoTitles(sortedTitles);
     } catch (e) {
