@@ -1287,25 +1287,39 @@ export const generateSingleImage = async (
   const frameBlock = buildFrameBlock(referenceImage, copyMode);
   const styleBlock = buildStyleBlock(style, customStylePrompt);
 
-  // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 안에 렌더링!)
+  // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
   const finalPrompt = `
-🖼️ 완성형 카드뉴스 이미지 생성 - 한국어 텍스트가 이미지 안에 직접 렌더링되어야 합니다!
+Generate a complete social media card image with Korean text rendered directly into the image pixels.
+
+🚨 CRITICAL: The Korean text MUST be rendered as part of the image itself, not as separate HTML/overlay!
 
 ${frameBlock}
 ${styleBlock}
 
-[카드 내용]
+[CARD CONTENT TO RENDER]
 ${cleanPromptText}
 
-[배경색]
-#E8F4FD (요청에 배경색이 있으면 그 값을 우선)
+[DESIGN SPECIFICATIONS]
+- Aspect ratio: 1:1 square
+- Background: Soft gradient (#E8F4FD to #F0F9FF) or as specified in content
+- Typography: Clean, readable Korean fonts (Noto Sans KR style)
+- Text must be BURNED INTO the image pixels
 
-[필수 규칙]
-✅ 한국어 텍스트를 이미지 안에 직접 렌더링 (HTML 별도 아님!)
-✅ 가독성 좋은 폰트, 적절한 크기, 배경과 대비되는 색상
-✅ 텍스트 배치: 중앙 또는 상단/하단 오버레이
-⛔ 해시태그/워터마크/로고 금지
-⛔ 텍스트 없이 일러스트만 생성하지 말 것!
+[MANDATORY REQUIREMENTS]
+✅ Render ALL Korean text directly into the image
+✅ Text should be clearly readable with good contrast
+✅ Professional card news design like Instagram infographic
+✅ Full-bleed design - illustration/background fills entire canvas
+✅ Text overlaid on top with subtle shadow or semi-transparent backing for readability
+
+⛔ FORBIDDEN:
+- Do NOT generate image without text
+- Do NOT use placeholders like [TEXT] or [TITLE]
+- No hashtags, watermarks, or logos
+- No separate text layer - text must be part of the image
+
+[OUTPUT]
+A single complete card image with Korean text visually rendered inside.
 `.trim();
 
   // 🔍 디버그
