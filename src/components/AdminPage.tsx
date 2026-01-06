@@ -508,13 +508,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-black text-white">회원 목록</h2>
-                <button 
-                  onClick={loadUsersAndPayments}
-                  disabled={loadingData}
-                  className="px-4 py-2 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-colors text-sm disabled:opacity-50"
-                >
-                  {loadingData ? '로딩...' : '🔄 새로고침'}
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={loadUsersAndPayments}
+                    disabled={loadingData}
+                    className="px-4 py-2 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-colors text-sm disabled:opacity-50"
+                  >
+                    {loadingData ? '로딩...' : '🔄 새로고침'}
+                  </button>
+                </div>
               </div>
               
               {/* 에러 메시지 */}
@@ -555,6 +557,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                         <th className="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">요금제</th>
                         <th className="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">크레딧</th>
                         <th className="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">가입일</th>
+                        <th className="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">관리</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -565,6 +568,36 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                           <td className="py-3 px-4">{getPlanBadge(user.plan)}</td>
                           <td className="py-3 px-4 text-sm text-slate-300">{user.remaining_credits}</td>
                           <td className="py-3 px-4 text-sm text-slate-400">{formatDate(user.created_at)}</td>
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`정말 ${user.email} 프로필을 삭제하시겠습니까?\n(탈퇴한 사용자 정리용)`)) return;
+                                try {
+                                  // profiles 테이블에서 삭제
+                                  const { error: profileError } = await supabase
+                                    .from('profiles')
+                                    .delete()
+                                    .eq('id', user.id);
+                                  if (profileError) throw profileError;
+                                  
+                                  // subscriptions 테이블에서도 삭제
+                                  await supabase
+                                    .from('subscriptions')
+                                    .delete()
+                                    .eq('user_id', user.id);
+                                  
+                                  alert('프로필이 삭제되었습니다.');
+                                  loadUsersAndPayments(); // 새로고침
+                                } catch (err) {
+                                  console.error('삭제 오류:', err);
+                                  alert(`삭제 실패: ${String(err)}`);
+                                }
+                              }}
+                              className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded hover:bg-red-500/30 transition-colors"
+                            >
+                              🗑️ 삭제
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
