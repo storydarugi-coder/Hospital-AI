@@ -1247,8 +1247,8 @@ ${cleanPromptText}
     finalPromptHead: finalPrompt.slice(0, 200),
   });
 
-  // 🔄 재시도 로직: 최대 3회 시도
-  const MAX_RETRIES = 3;
+  // 🔄 재시도 로직: 최대 2회 시도 (빠른 실패 유도)
+  const MAX_RETRIES = 2;
   let lastError: any = null;
 
   // 참고 이미지 파트 준비
@@ -1278,6 +1278,15 @@ ${cleanPromptText}
         },
       });
 
+      // 안전 필터 등으로 인한 차단 확인
+      const finishReason = result?.candidates?.[0]?.finishReason;
+      if (finishReason && finishReason !== 'STOP' && finishReason !== 'MAX_TOKENS') {
+        console.warn(`⚠️ 이미지 생성 중단됨 (이유: ${finishReason})`);
+        if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+           throw new Error(`이미지 생성이 안전 정책에 의해 차단되었습니다. (${finishReason})`);
+        }
+      }
+
       // 응답에서 이미지 데이터 추출
       const parts = result?.candidates?.[0]?.content?.parts || [];
       const imagePart = parts.find((p: any) => p.inlineData?.data);
@@ -1289,6 +1298,12 @@ ${cleanPromptText}
         return `data:${mimeType};base64,${data}`;
       }
       
+      // 텍스트 응답만 온 경우 (거절 메시지 등)
+      const textPart = parts.find((p: any) => p.text)?.text;
+      if (textPart) {
+        console.warn(`⚠️ 이미지 대신 텍스트 응답 수신: "${textPart.substring(0, 100)}..."`);
+      }
+
       // inlineData가 없으면 재시도
       console.warn(`⚠️ 이미지 데이터 없음, 재시도 중... (${attempt}/${MAX_RETRIES})`);
       lastError = new Error('이미지 데이터를 받지 못했습니다.');

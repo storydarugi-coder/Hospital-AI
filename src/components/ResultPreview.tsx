@@ -608,12 +608,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             setLocalHtml(tempDiv.innerHTML);
           }
         }
+        
+        alert(`✅ ${cardRegenIndex + 1}번 카드가 재생성되었습니다!`);
+        setCardRegenModalOpen(false);
+        setCardRegenInstruction('');
+        setCardRegenProgress('');
+      } else {
+        throw new Error('이미지가 생성되지 않았습니다. 잠시 후 다시 시도해주세요.');
       }
-      
-      setCardRegenModalOpen(false);
-      setCardRegenInstruction('');
-      setCardRegenProgress('');
-      alert(`✅ ${cardRegenIndex + 1}번 카드가 재생성되었습니다!`);
       
     } catch (error) {
       console.error('카드 재생성 실패:', error);
@@ -817,8 +819,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           imgs[regenIndex - 1].alt = regenPrompt.trim();
           setLocalHtml(tempDiv.innerHTML);
         }
+        alert('✅ 이미지가 재생성되었습니다!');
+        setRegenOpen(false);
+      } else {
+        alert('이미지를 생성하지 못했습니다. 다시 시도해주세요.');
       }
-      setRegenOpen(false);
     } catch (err) {
       alert('이미지 생성 중 오류가 발생했습니다.');
     } finally {
