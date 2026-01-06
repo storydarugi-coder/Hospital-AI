@@ -535,12 +535,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             {/* Premium Plan - 50건 */}
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all relative">
               <div className="absolute -top-3 right-4 px-3 py-1 bg-red-500 text-white text-xs font-black rounded-full">BEST</div>
-              <h3 className="text-xl font-black text-slate-800 mb-1">베이직 50</h3>
+              <h3 className="text-xl font-black text-slate-800 mb-1">프리미엄</h3>
               <p className="text-sm text-slate-400 mb-4">대형 병원/대행사용</p>
               <div className="text-3xl font-black text-slate-900 mb-1">₩55,900</div>
-              <p className="text-sm text-emerald-600 font-medium mb-6">원고 50회 | 건당 1,118원</p>
+              <p className="text-sm text-emerald-600 font-medium mb-6">원고 50회 | 3개월</p>
               <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 <b>50회</b></li>
+                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 원고 생성 <b>50회</b></li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 카드뉴스 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
