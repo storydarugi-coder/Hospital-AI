@@ -1130,14 +1130,18 @@ export const generateSingleImage = async (promptText: string, style: ImageStyle 
         stylePrompt = DEFAULT_STYLE_PROMPTS[style] || DEFAULT_STYLE_PROMPTS.illustration;
     }
 
-    // 공통 함수로 프롬프트 정리
-    const cleanPromptText = cleanImagePromptText(promptText);
+    // 공통 함수로 프롬프트 정리 + 기존 스타일 태그 제거
+    let cleanPromptText = cleanImagePromptText(promptText);
+    // 기존 [스타일] 섹션 제거 (중복 방지)
+    cleanPromptText = cleanPromptText.replace(/\[스타일\][^\[]*(?=\[|$)/gi, '').trim();
     
-    // 커스텀 스타일이 있으면 스타일 섹션 변경
+    // 🎨 커스텀 스타일이 최우선! (강제 적용)
     const hasCustomStyle = customStylePrompt && customStylePrompt.trim();
     const styleSection = hasCustomStyle 
-      ? `[스타일] ${customStylePrompt} (다른 스타일 금지)` 
+      ? `[스타일] ${customStylePrompt.trim()} (이 스타일만 적용! 3D 변환 금지!)` 
       : `[스타일] ${stylePrompt}`;
+    
+    console.log('📝 최종 스타일 섹션:', styleSection.substring(0, 80));
     
     // 전체 프롬프트 조합 (간결하게!)
     let finalPrompt: string;

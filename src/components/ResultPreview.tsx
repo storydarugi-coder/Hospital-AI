@@ -546,11 +546,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
-      // 🔧 재생성 프롬프트: editImagePrompt가 있어도 스타일은 고정!
-      // editImagePrompt에 영어가 섞여있을 수 있으므로, 항상 새로 구성
+      // 🔧 재생성 프롬프트: 텍스트 정보만! 스타일은 geminiService에서 결정!
+      // 스타일 중복 방지: ResultPreview에서는 내용만, generateSingleImage에서 스타일 적용
       let imagePromptToUse = `${CARD_LAYOUT_RULE}, 1:1 카드뉴스
 [텍스트] "${editSubtitle}", "${editMainTitle}"${editDescription ? `, "${editDescription}"` : ''}
-[스타일] ${styleText}
 [규칙] 한국어만, 해시태그/워터마크 금지`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
