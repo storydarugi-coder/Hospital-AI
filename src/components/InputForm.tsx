@@ -63,7 +63,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       slideCount,
       imageCount,
       writingStyle,
-      customImagePrompt: imageStyle === 'custom' ? customPrompt : undefined
+      // 🎨 커스텀 프롬프트가 있으면 항상 전달! (스타일 선택과 무관하게)
+      customImagePrompt: customPrompt?.trim() || undefined
     });
   };
 
