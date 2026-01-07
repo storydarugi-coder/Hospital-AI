@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import TermsPage from './TermsPage';
+import PrivacyPage from './PrivacyPage';
+import PaymentModal from './PaymentModal';
 
 interface LandingPageProps {
   isLoggedIn?: boolean;
@@ -10,6 +13,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
   const [scrollY, setScrollY] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -18,13 +24,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
   }, []);
   
   useEffect(() => {
-    if (mobileMenuOpen || showHelp) {
+    if (mobileMenuOpen || showHelp || showTerms || showPrivacy || showPayment) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [mobileMenuOpen, showHelp]);
+  }, [mobileMenuOpen, showHelp, showTerms, showPrivacy, showPayment]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
@@ -364,7 +370,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
-              <a href="#pricing" className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">구매하기</a>
+              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">구매하기</button>
             </div>
 
             {/* Standard */}
@@ -379,7 +385,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
                 <li className="flex items-center gap-2"><span>✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span>✓</span> 모든 기능 동일</li>
               </ul>
-              <a href="#pricing" className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">구매하기</a>
+              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">구매하기</button>
             </div>
 
             {/* Premium */}
@@ -394,7 +400,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
                 <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
               </ul>
-              <a href="#pricing" className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">구매하기</a>
+              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">구매하기</button>
             </div>
           </div>
 
@@ -452,9 +458,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
                 <p>상호명: 미쁘다</p>
                 <p>대표자: 이지안</p>
                 <p>사업자등록번호: 677-45-01149</p>
+                <p>통신판매업신고: 준비중</p>
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">연락처</h4>
+                <p>전화: 010-3238-8284</p>
                 <p>이메일: story.darugi@gmail.com</p>
                 <p>서울특별시 송파구 거마로 56 17층</p>
               </div>
@@ -468,6 +476,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
                 <p>미사용 시: 7일 이내 전액 환불</p>
                 <p>사용 시: 잔여분 비례 환불</p>
               </div>
+            </div>
+            
+            {/* 약관 링크 */}
+            <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-500 mb-6">
+              <button onClick={() => setShowTerms(true)} className="hover:text-white transition-colors">이용약관</button>
+              <span>|</span>
+              <button onClick={() => setShowPrivacy(true)} className="hover:text-white transition-colors">개인정보처리방침</button>
             </div>
           </div>
           
@@ -580,6 +595,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
           </div>
         </div>
       )}
+
+      {/* 이용약관 모달 */}
+      {showTerms && <TermsPage onClose={() => setShowTerms(false)} />}
+
+      {/* 개인정보처리방침 모달 */}
+      {showPrivacy && <PrivacyPage onClose={() => setShowPrivacy(false)} />}
+
+      {/* 결제 모달 */}
+      <PaymentModal 
+        isOpen={showPayment} 
+        onClose={() => setShowPayment(false)}
+        onSuccess={(credits) => {
+          console.log(`${credits} 크레딧 충전 완료!`);
+        }}
+      />
     </div>
   );
 };
