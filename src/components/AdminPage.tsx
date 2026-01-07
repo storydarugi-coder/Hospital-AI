@@ -55,6 +55,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     totalRevenue: 0,
     todaySignups: 0
   });
+  
+  // SQL 힌트 모달
+  const [sqlModal, setSqlModal] = useState<{ show: boolean; sql: string; title: string }>({
+    show: false,
+    sql: '',
+    title: ''
+  });
 
   // 관리자 인증 확인
   useEffect(() => {
@@ -629,14 +636,33 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                                   
                                   // RLS가 조용히 실패하면 count가 0
                                   if (profileError || (profileCount === 0)) {
-                                    const sqlHint = `DELETE FROM profiles WHERE id = '${user.id}';`;
-                                    alert(`❌ 프로필 삭제 실패! (삭제된 행: ${profileCount ?? 0}개)\n\n` +
-                                          `🔒 RLS 정책이 삭제를 차단하고 있습니다.\n\n` +
-                                          `💡 해결 방법 (Supabase SQL Editor에서 실행):\n\n` +
-                                          `-- 방법 1: 관리자 삭제 정책 추가\n` +
-                                          `CREATE POLICY "Allow authenticated delete" ON profiles\n` +
-                                          `FOR DELETE USING (auth.role() = 'authenticated');\n\n` +
-                                          `-- 방법 2: 직접 삭제\n${sqlHint}`);
+                                    const sql = `-- 🔧 Supabase SQL Editor에서 실행하세요
+-- https://supabase.com/dashboard/project/giiatpxkhponcbduyzci/sql
+
+-- 방법 1: 관리자 삭제 정책 추가 (권장)
+CREATE POLICY "Allow authenticated delete" ON profiles
+FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated delete" ON subscriptions
+FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated delete" ON usage_logs
+FOR DELETE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Allow authenticated delete" ON payments
+FOR DELETE USING (auth.role() = 'authenticated');
+
+-- 방법 2: 이 회원만 직접 삭제
+DELETE FROM usage_logs WHERE user_id = '${user.id}';
+DELETE FROM payments WHERE user_id = '${user.id}';
+DELETE FROM subscriptions WHERE user_id = '${user.id}';
+DELETE FROM profiles WHERE id = '${user.id}';`;
+                                    
+                                    setSqlModal({
+                                      show: true,
+                                      sql,
+                                      title: `🔒 RLS 정책이 삭제를 차단 (${user.email})`
+                                    });
                                     return;
                                   }
                                   
@@ -738,6 +764,58 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           </p>
         </div>
       </div>
+      
+      {/* SQL 힌트 모달 */}
+      {sqlModal.show && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden border border-slate-600">
+            <div className="p-4 border-b border-slate-600 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white">{sqlModal.title}</h3>
+              <button
+                onClick={() => setSqlModal({ show: false, sql: '', title: '' })}
+                className="text-slate-400 hover:text-white text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-yellow-400 text-sm mb-3">
+                💡 아래 SQL을 복사해서 Supabase SQL Editor에서 실행하세요
+              </p>
+              <div className="relative">
+                <pre className="bg-slate-900 p-4 rounded-lg text-green-400 text-sm overflow-auto max-h-[50vh] whitespace-pre-wrap">
+                  {sqlModal.sql}
+                </pre>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(sqlModal.sql);
+                    alert('✅ SQL이 클립보드에 복사되었습니다!');
+                  }}
+                  className="absolute top-2 right-2 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded transition-colors"
+                >
+                  📋 복사
+                </button>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <a
+                  href="https://supabase.com/dashboard/project/giiatpxkhponcbduyzci/sql"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-center font-bold rounded-lg transition-colors"
+                >
+                  🔗 Supabase SQL Editor 열기
+                </a>
+                <button
+                  onClick={() => setSqlModal({ show: false, sql: '', title: '' })}
+                  className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white font-bold rounded-lg transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
