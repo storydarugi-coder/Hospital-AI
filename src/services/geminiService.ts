@@ -5387,6 +5387,10 @@ ${getStylePromptForGeneration(learnedStyle)}
   try {
     // AI Provider 설정 확인
     const providerSettings = getAiProviderSettings();
+    console.log('🔧 AI Provider 설정:', providerSettings);
+    console.log('🔑 OpenAI 키 존재 여부:', !!getOpenAIKey());
+    console.log('📦 LocalStorage AI_PROVIDER_SETTINGS:', localStorage.getItem('AI_PROVIDER_SETTINGS'));
+    
     let result: any;
 
     if (providerSettings.textGeneration === 'openai') {
