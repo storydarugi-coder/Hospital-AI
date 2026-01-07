@@ -58,13 +58,17 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 Form Submit 시작 - topic:', topic, 'postType:', postType);
+    console.log('🔵 Form Submit 시작');
+    console.log('  - topic:', topic);
+    console.log('  - postType:', postType, '(type:', typeof postType, ')');
+    console.log('  - category:', category);
+    
     if (!topic.trim()) {
       console.warn('⚠️ topic이 비어있어 중단');
       return;
     }
-    console.log('✅ onSubmit 호출');
-    onSubmit({ 
+    
+    const requestData = { 
       category, 
       topic, 
       keywords, 
@@ -92,7 +96,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       doctorName: postType === 'press_release' ? doctorName : undefined,
       doctorTitle: postType === 'press_release' ? doctorTitle : undefined,
       pressType: postType === 'press_release' ? pressType : undefined,
-    });
+    };
+    
+    console.log('📦 전송할 requestData:', JSON.stringify(requestData, null, 2));
+    console.log('✅ onSubmit 호출');
+    onSubmit(requestData);
   };
 
   const handleRecommendTrends = async () => {

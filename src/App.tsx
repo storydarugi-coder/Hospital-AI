@@ -489,23 +489,28 @@ const App: React.FC = () => {
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
     
-    // 🔧 postType 안전장치: undefined면 'blog'로 기본 설정
-    const safePostType = request.postType || 'blog';
-    console.log('📋 postType 확인 - 원본:', request.postType, '→ 안전값:', safePostType);
+    console.log('📋 postType 확인:', request.postType);
     
-    // request 객체에 안전한 postType 적용
-    const safeRequest = { ...request, postType: safePostType };
+    // 🚨 postType이 undefined면 에러 발생시키기 (디버깅용)
+    if (!request.postType) {
+      console.error('❌ postType이 undefined입니다! request:', request);
+      setState(prev => ({ 
+        ...prev, 
+        error: '콘텐츠 타입이 선택되지 않았습니다. 페이지를 새로고침 후 다시 시도해주세요.' 
+      }));
+      return;
+    }
     
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
-    if (safeRequest.postType === 'card_news') {
+    if (request.postType === 'card_news') {
       console.log('🎴 카드뉴스 모드 시작');
       setIsGeneratingScript(true);
       setCardNewsScript(null);
-      setPendingRequest(safeRequest);
+      setPendingRequest(request);
       setState(prev => ({ ...prev, isLoading: false, data: null, error: null }));
       
       try {
-        const script = await generateCardNewsScript(safeRequest, setScriptProgress);
+        const script = await generateCardNewsScript(request, setScriptProgress);
         setCardNewsScript(script);
         setScriptProgress('');
       } catch (err: any) {
@@ -518,12 +523,12 @@ const App: React.FC = () => {
     }
 
     // 블로그: 기존 플로우 (한 번에 생성)
-    console.log('📝 블로그 모드 시작');
+    console.log('📝 블로그/보도자료 모드 시작');
     setState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
     
     console.log('🚀 generateFullPost 호출 시작');
     try {
-      const result = await generateFullPost(safeRequest, (p) => setState(prev => ({ ...prev, progress: p })));
+      const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 크레딧 차감 (로그인 시에만, 프리미엄/관리자 제외)
