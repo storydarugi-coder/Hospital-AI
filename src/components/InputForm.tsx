@@ -495,7 +495,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               <div className="flex-1 flex gap-2">
                  <button
                    type="button"
-                   onClick={() => setWritingStyle('expert')}
+                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('expert'); }}
                    className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'expert' ? 'border-blue-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
                  >
                     <span className="text-lg">📚</span>
@@ -503,7 +503,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                  </button>
                  <button
                    type="button"
-                   onClick={() => setWritingStyle('empathy')}
+                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('empathy'); }}
                    className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 relative ${writingStyle === 'empathy' ? 'border-pink-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
                  >
                     <div className="absolute -top-1.5 right-1 bg-pink-500 text-white text-[7px] font-black px-1 py-0.5 rounded">추천</div>
@@ -512,7 +512,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                  </button>
                  <button
                    type="button"
-                   onClick={() => setWritingStyle('conversion')}
+                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('conversion'); }}
                    className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'conversion' ? 'border-amber-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
                  >
                     <span className="text-lg">🎯</span>
