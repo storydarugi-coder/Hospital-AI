@@ -5418,11 +5418,14 @@ ${getStylePromptForGeneration(learnedStyle)}
     if (providerSettings.textGeneration === 'openai') {
       // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
       console.log('🔄 2-Stage Process: Gemini Search → GPT-5.2 Writing');
+      console.log('📍 Step 1 시작 준비...');
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      console.log('📍 onProgress 호출 직전...');
       onProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+      console.log('📍 onProgress 호출 완료, searchPrompt 생성 시작...');
       
       const searchPrompt = `
 당신은 의료 정보 검색 전문가입니다.
@@ -5476,7 +5479,9 @@ ${getStylePromptForGeneration(learnedStyle)}
       // 🔵 1차 시도: Gemini로 검색
       try {
         console.log('🔵 1차 시도: Gemini로 검색 중...');
+        console.log('🔑 Gemini API 키 확인 중...');
         const ai = getAiClient();
+        console.log('✅ Gemini API 클라이언트 생성 완료');
         const searchResponse = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
           contents: searchPrompt,
