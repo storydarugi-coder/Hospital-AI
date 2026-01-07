@@ -322,6 +322,27 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                       ))}
                     </div>
                   </div>
+                  
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-xs font-black text-slate-400 uppercase tracking-widest">최대 글자 수</label>
+                      <span className="text-xs font-bold text-purple-600">{textLength}자</span>
+                    </div>
+                    <input 
+                      type="range" 
+                      min="800" 
+                      max="2000" 
+                      step="200" 
+                      value={textLength} 
+                      onChange={(e) => setTextLength(parseInt(e.target.value))}
+                      className="w-full accent-purple-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
+                       <span>800자 (짧게)</span>
+                       <span>1400자</span>
+                       <span>2000자 (상세)</span>
+                    </div>
+                  </div>
                </div>
            ) : null}
         </div>

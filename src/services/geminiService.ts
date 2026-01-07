@@ -3788,6 +3788,7 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
   const hospitalName = request.hospitalName || 'OO병원';
   const doctorName = request.doctorName || '홍길동';
   const doctorTitle = request.doctorTitle || '원장';
+  const maxLength = request.textLength || 1400;
   
   onProgress('🗞️ 보도자료 작성 중...');
   
@@ -3803,6 +3804,7 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
 - 보도 유형: ${pressTypeLabel}
 - 주제: ${request.topic}
 - 키워드: ${request.keywords}
+- ⚠️ 최대 글자 수: ${maxLength}자 (반드시 이 글자 수를 넘지 마세요!)
 
 [필수 포함 문구 - 반드시 보도자료 하단에 포함]
 ⚠️ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.
