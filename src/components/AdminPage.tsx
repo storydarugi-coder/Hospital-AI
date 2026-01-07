@@ -594,26 +594,51 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                           <td className="py-3 px-4">
                             <button
                               onClick={async () => {
-                                if (!confirm(`정말 ${user.email} 프로필을 삭제하시겠습니까?\n(탈퇴한 사용자 정리용)`)) return;
+                                if (!confirm(`정말 ${user.email} 회원을 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없습니다.`)) return;
+                                
+                                console.log('[Admin] 회원 삭제 시작:', user.id, user.email);
+                                
                                 try {
-                                  // profiles 테이블에서 삭제
-                                  const { error: profileError } = await supabase
-                                    .from('profiles')
+                                  // 1. usage_logs 테이블에서 삭제
+                                  const { error: logsError } = await supabase
+                                    .from('usage_logs')
                                     .delete()
-                                    .eq('id', user.id);
-                                  if (profileError) throw profileError;
+                                    .eq('user_id', user.id);
+                                  console.log('[Admin] usage_logs 삭제:', logsError ? logsError.message : '성공');
                                   
-                                  // subscriptions 테이블에서도 삭제
-                                  await supabase
+                                  // 2. subscriptions 테이블에서 삭제
+                                  const { error: subError } = await supabase
                                     .from('subscriptions')
                                     .delete()
                                     .eq('user_id', user.id);
+                                  console.log('[Admin] subscriptions 삭제:', subError ? subError.message : '성공');
                                   
-                                  alert('프로필이 삭제되었습니다.');
-                                  loadUsersAndPayments(); // 새로고침
-                                } catch (err) {
-                                  console.error('삭제 오류:', err);
-                                  alert(`삭제 실패: ${String(err)}`);
+                                  // 3. profiles 테이블에서 삭제
+                                  const { error: profileError, count } = await supabase
+                                    .from('profiles')
+                                    .delete()
+                                    .eq('id', user.id)
+                                    .select();
+                                  console.log('[Admin] profiles 삭제:', profileError ? profileError.message : '성공', 'count:', count);
+                                  
+                                  if (profileError) {
+                                    // RLS 정책 문제일 가능성
+                                    if (profileError.message?.includes('policy') || profileError.code === '42501') {
+                                      alert(`삭제 권한이 없습니다.\n\nSupabase Dashboard → Authentication → Policies에서\nprofiles 테이블의 DELETE 정책을 확인해주세요.\n\n또는 SQL Editor에서 직접 삭제:\nDELETE FROM profiles WHERE id = '${user.id}';`);
+                                    } else {
+                                      throw profileError;
+                                    }
+                                    return;
+                                  }
+                                  
+                                  // UI에서 즉시 제거 (새로고침 없이)
+                                  setUsers(prev => prev.filter(u => u.id !== user.id));
+                                  setStats(prev => ({ ...prev, totalUsers: prev.totalUsers - 1 }));
+                                  
+                                  alert('✅ 회원이 삭제되었습니다.');
+                                } catch (err: any) {
+                                  console.error('[Admin] 삭제 오류:', err);
+                                  alert(`삭제 실패: ${err.message || String(err)}\n\n콘솔(F12)에서 자세한 오류를 확인하세요.`);
                                 }
                               }}
                               className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded hover:bg-red-500/30 transition-colors"
