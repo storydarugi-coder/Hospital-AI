@@ -1,6 +1,7 @@
 export enum ContentCategory {
   INTERNAL_MEDICINE = '내과',
   SURGERY = '외과',
+  BREAST_SURGERY = '유방외과',
   OBGYN = '산부인과',
   DERMATOLOGY = '피부과',
   DENTAL = '치과',
