@@ -1863,10 +1863,14 @@ export const generateSingleImage = async (
                          cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i);
   const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/i) ||
                            cleanPromptText.match(/description:\s*([^\n]+)/i);
+  // 🎨 비주얼 지시문 추출
+  const visualMatch = cleanPromptText.match(/비주얼:\s*([^\n]+)/i) ||
+                      cleanPromptText.match(/visual:\s*([^\n]+)/i);
   
   const extractedSubtitle = (subtitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
   const extractedMainTitle = (mainTitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
   const extractedDescription = (descriptionMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
+  const extractedVisual = (visualMatch?.[1] || '').trim();
   
   // 🚨 추출 실패 시 로그 및 원본 사용
   const hasValidText = extractedSubtitle.length > 0 || extractedMainTitle.length > 0;
@@ -1878,26 +1882,42 @@ export const generateSingleImage = async (
   const finalPrompt = hasValidText ? `
 🚨🚨🚨 RENDER THIS EXACT KOREAN TEXT IN THE IMAGE 🚨🚨🚨
 
-"${extractedSubtitle}"
-"${extractedMainTitle}"
-${extractedDescription ? `"${extractedDescription}"` : ''}
+[TEXT HIERARCHY - MUST FOLLOW EXACTLY!]
+📌 MAIN TITLE (BIG, BOLD, CENTER): "${extractedMainTitle}"
+📌 SUBTITLE (small, above main title): "${extractedSubtitle}"
+${extractedDescription ? `📌 DESCRIPTION (small, below main title): "${extractedDescription}"` : ''}
+
+${extractedVisual ? `[ILLUSTRATION - MUST FOLLOW THIS VISUAL DESCRIPTION!]
+🎨 "${extractedVisual}"
+⚠️ Draw EXACTLY what is described above! Do NOT change or ignore this visual instruction!` : ''}
 
 Generate a 1:1 square social media card with the Korean text above rendered directly into the image.
 
 ${frameBlock}
 ${styleBlock}
 
+[TEXT LAYOUT - CRITICAL!]
+- SUBTITLE: Small text (14-16px), positioned at TOP or above main title
+- MAIN TITLE: Large bold text (28-36px), positioned at CENTER, most prominent
+- DESCRIPTION: Small text (14-16px), positioned BELOW main title
+- Text hierarchy: subtitle(small) → mainTitle(BIG) → description(small)
+
 [DESIGN]
 - 1:1 square, background: #E8F4FD gradient
+- Border color: #787fff
 - Korean text rendered with clean readable font
 - Professional Instagram-style card news design
-- Full-bleed illustration with text overlay
+- Illustration at bottom, text at top/center
+${extractedVisual ? `- ILLUSTRATION MUST MATCH: "${extractedVisual}"` : ''}
 
 [RULES]
-✅ Render ONLY the Korean text in quotes above
-✅ Do NOT add "subtitle:" or "mainTitle:" labels - just the actual text
-✅ Do NOT use placeholder text like "오늘의 꿀팁"
+✅ MAIN TITLE must be the LARGEST and most prominent text
+✅ Subtitle must be SMALLER than main title
+✅ Do NOT swap subtitle and mainTitle positions
+✅ Do NOT use placeholder text
+${extractedVisual ? `✅ ILLUSTRATION must follow the visual description EXACTLY` : ''}
 ⛔ No hashtags, watermarks, logos
+⛔ Do NOT ignore visual instructions
 `.trim() : `
 Generate a 1:1 square social media card image.
 
