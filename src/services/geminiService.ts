@@ -142,7 +142,7 @@ const getGPT52ProPrompt = () => {
   return basePrompt + gptSpecificPrompt;
 };
 
-// OpenAI API 호출 함수 (GPT-5.2 -> Gemini 3 Pro Preview 폴백)
+// OpenAI API 호출 함수 (GPT-5.2 -> Gemini-3-Pro-Preview 폴백)
 const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
   try {
     console.log('🔵 callOpenAI 시작');
@@ -183,14 +183,14 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       
       const error = await response.json();
       console.warn(`⚠️ GPT-5.2 API 오류:`, error);
-      console.log('🔄 Gemini 3 Pro Preview로 폴백합니다...');
+      console.log('🔄 Gemini-3-Pro-Preview로 폴백합니다...');
     } catch (e) {
       console.warn(`⚠️ GPT-5.2 네트워크/처리 오류:`, e);
-      console.log('🔄 Gemini 3 Pro Preview로 폴백합니다...');
+      console.log('🔄 Gemini-3-Pro-Preview로 폴백합니다...');
     }
 
-    // 🔄 GPT-5.2 실패 시 Gemini 3 Pro Preview로 폴백
-    console.log('🟢 Gemini 3 Pro Preview 호출 시작...');
+    // 🔄 GPT-5.2 실패 시 Gemini-3-Pro-Preview로 폴백
+    console.log('🟢 Gemini-3-Pro-Preview 호출 시작...');
     const ai = getAiClient();
     const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
     
@@ -204,7 +204,7 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
     });
     
     const text = response.text || '{}';
-    console.log(`✅ Gemini 3 Pro Preview 응답 성공`);
+    console.log(`✅ Gemini-3-Pro-Preview 응답 성공`);
     return text;
 
   } catch (error) {
