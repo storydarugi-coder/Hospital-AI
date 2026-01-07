@@ -401,6 +401,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
           )}
         </div>
 
+        {/* 이미지 스타일 선택 - 보도자료는 이미지 없으므로 숨김 */}
+        {postType !== 'press_release' && (
         <div>
            <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">3단계. 이미지 스타일 선택</label>
            <div className="grid grid-cols-4 gap-2">
@@ -469,6 +471,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
              </div>
            )}
         </div>
+        )}
 
         {/* 글 스타일 선택 - 마케팅 핵심 설정 (가로 배치) */}
         <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-2xl border border-slate-200">
