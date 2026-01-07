@@ -1632,32 +1632,35 @@ export const recommendCardNewsPrompt = async (
     styleKeywords = '실사 사진, DSLR 촬영, 자연스러운 조명';
   }
   
+  // 커스텀 스타일 여부 확인
+  const isCustomStyle = imageStyle === 'custom' && customStylePrompt;
+  
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.0-flash',
       contents: `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
 
-다음 카드뉴스 텍스트에 어울리는 **배경 이미지 스타일**만 추천해주세요.
+다음 카드뉴스 텍스트에 어울리는 **배경 이미지 내용**만 추천해주세요.
 
 [카드뉴스 텍스트]
 - 부제: "${subtitle || '없음'}"
 - 메인 제목: "${mainTitle || '없음'}"  
 - 설명: "${description || '없음'}"
 
-[이미지 스타일]
+[이미지 스타일 - ⚠️ 반드시 이 스타일 유지!]
 ${styleKeywords}
 
 [출력 형식 - 반드시 이 형식으로!]
 subtitle: "${subtitle || ''}"
 mainTitle: "${mainTitle || ''}"
 ${description ? `description: "${description}"` : ''}
-비주얼: (여기에 배경 이미지 스타일 작성)
+비주얼: (여기에 배경 이미지 내용만 작성)
 
 [규칙]
 1. subtitle, mainTitle, description은 위 텍스트 그대로 유지
-2. "비주얼:" 부분만 창의적으로 작성
-3. 비주얼은 텍스트 내용과 어울리는 배경/일러스트 스타일 (30자 이내)
-4. 예: "파란 그라데이션 배경에 심장 아이콘", "병원 진료실 일러스트"
+2. "비주얼:" 부분에는 **이미지에 그릴 대상/내용만** 작성 (30자 이내)
+3. ${isCustomStyle ? `⚠️ 중요: 그림체/스타일은 "${customStylePrompt}"로 이미 지정되어 있으므로, 비주얼에는 "무엇을 그릴지"만 작성 (수채화, 연필, 볼펜 등 스타일 언급 금지!)` : '비주얼에 스타일과 내용을 함께 작성'}
+4. 예: "심장 아이콘과 파란 그라데이션 배경", "진료실에서 상담받는 환자"
 
 위 형식대로만 출력하세요. 다른 설명 없이!`,
       config: {
