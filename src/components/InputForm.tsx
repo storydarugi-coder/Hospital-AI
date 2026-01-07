@@ -421,7 +421,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
            <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
-                onClick={() => { setImageStyle('photo'); setShowCustomInput(false); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImageStyle('photo'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'photo' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">📸</span>
@@ -429,7 +429,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={() => { setImageStyle('illustration'); setShowCustomInput(false); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImageStyle('illustration'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'illustration' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🎨</span>
@@ -437,7 +437,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={() => { setImageStyle('medical'); setShowCustomInput(false); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImageStyle('medical'); setShowCustomInput(false); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'medical' ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">🫀</span>
@@ -445,7 +445,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
               </button>
               <button
                 type="button"
-                onClick={() => { setImageStyle('custom'); setShowCustomInput(true); }}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImageStyle('custom'); setShowCustomInput(true); }}
                 className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 ${imageStyle === 'custom' ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-slate-100 bg-white text-slate-400 hover:border-slate-300'}`}
               >
                  <span className="text-xl">✏️</span>
@@ -529,7 +529,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
              <div className="grid grid-cols-5 gap-2">
                 <button
                   type="button"
-                  onClick={() => setCssTheme('modern')}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('modern'); }}
                   className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
                 >
                    <span className="text-xl mb-1">💻</span>
@@ -537,7 +537,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCssTheme('premium')}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('premium'); }}
                   className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
                 >
                    <span className="text-xl mb-1">💎</span>
@@ -545,7 +545,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCssTheme('minimal')}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('minimal'); }}
                   className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
                 >
                    <span className="text-xl mb-1">✨</span>
@@ -553,7 +553,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCssTheme('warm')}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('warm'); }}
                   className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
                 >
                    <span className="text-xl mb-1">☀️</span>
@@ -561,7 +561,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCssTheme('professional')}
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('professional'); }}
                   className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
                 >
                    <span className="text-xl mb-1">🏛️</span>
