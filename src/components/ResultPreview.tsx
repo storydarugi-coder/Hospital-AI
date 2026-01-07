@@ -2226,35 +2226,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   <div>
                     <div className={`text-xs font-bold mb-1 flex items-center justify-between ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
                       <span>🎨 이미지 프롬프트</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={handleRecommendCardPrompt}
-                          disabled={isRecommendingCardPrompt || isRegeneratingCard}
-                          className={`px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            darkMode 
-                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500' 
-                              : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600'
-                          }`}
-                        >
-                          {isRecommendingCardPrompt ? (
-                            <span className="flex items-center gap-1">
-                              <span className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></span>
-                              AI 분석중...
-                            </span>
-                          ) : (
-                            '🤖 AI 추천'
-                          )}
-                        </button>
-                        <span className={`text-[9px] font-normal ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                          텍스트 변경 시 자동 연동
-                        </span>
-                      </div>
+                      <span className={`text-[9px] font-normal ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        텍스트 변경 시 자동 연동
+                      </span>
                     </div>
                     <textarea
                       value={editImagePrompt}
                       onChange={(e) => setEditImagePrompt(e.target.value)}
-                      disabled={isRegeneratingCard || isRecommendingCardPrompt}
+                      disabled={isRegeneratingCard}
                       placeholder="예: 1:1 카드뉴스, 파란 배경, 심장 3D 일러스트..."
                       rows={5}
                       className={`w-full px-3 py-2 rounded-lg text-xs border outline-none resize-y min-h-[80px] ${
@@ -2264,7 +2243,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       }`}
                     />
                     <div className={`text-[9px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      💡 "AI 추천" 버튼을 누르면 카드 내용에 맞는 이미지 프롬프트를 자동 생성합니다
+                      💡 위 텍스트(부제/메인제목/설명)를 수정하면 프롬프트가 자동으로 업데이트됩니다
                     </div>
                   </div>
                   
