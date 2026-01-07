@@ -574,7 +574,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
           disabled={isLoading || !topic.trim()}
           className={`w-full py-5 rounded-2xl text-white font-black text-lg shadow-2xl transition-all active:scale-95 ${isLoading ? 'bg-slate-400' : postType === 'blog' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
-          {isLoading ? '생성 중...' : postType === 'blog' ? '병원 블로그 원고 생성 🚀' : '병원 카드뉴스 제작 🚀'}
+          {isLoading ? '생성 중...' : postType === 'blog' ? '병원 블로그 원고 생성 🚀' : postType === 'press_release' ? '병원 보도자료 작성 🗞️' : '병원 카드뉴스 제작 🚀'}
         </button>
       </form>
     </div>
