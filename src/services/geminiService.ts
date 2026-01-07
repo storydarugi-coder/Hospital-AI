@@ -5417,7 +5417,7 @@ ${getStylePromptForGeneration(learnedStyle)}
 
     if (providerSettings.textGeneration === 'openai') {
       // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
-      console.log('🔄 2-Stage Process: Gemini Search → GPT-5.2 Writing');
+      console.log('🔄 3-Stage Process: Dual Search (Gemini + GPT) → Cross-Check → GPT-5.2 Writing');
       console.log('📍 Step 1 시작 준비...');
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -5481,52 +5481,160 @@ ${getStylePromptForGeneration(learnedStyle)}
   ]
 }`;
 
-      let searchResults: any = {};
-      let searchSuccess = false;
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🔄 듀얼 검색: Gemini + GPT 동시 검색 → 크로스체크
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      console.log('🔄 듀얼 검색 시작: Gemini + GPT 동시 검색');
+      onProgress('🔍 Step 1: Gemini + GPT 동시 검색 중...');
       
-      // 🔵 1차 시도: Gemini로 검색
-      try {
-        console.log('🔵 1차 시도: Gemini로 검색 중...');
-        console.log('🔑 Gemini API 키 확인 중...');
-        const ai = getAiClient();
-        console.log('✅ Gemini API 클라이언트 생성 완료');
-        const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: searchPrompt,
-          config: {
-            tools: [{ googleSearch: {} }],  // Google Search 활성화
-            responseMimeType: "application/json"
-          }
-        });
-        
-        searchResults = JSON.parse(searchResponse.text || "{}");
-        console.log('✅ Gemini 검색 완료:', searchResults);
-        searchSuccess = true;
-      } catch (geminiError) {
-        console.warn('⚠️ Gemini 검색 실패:', geminiError);
-        
-        // 🟠 2차 시도: GPT로 검색 (동일한 프롬프트 사용!)
+      let geminiResults: any = null;
+      let gptResults: any = null;
+      let crossCheckedResults: any = {};
+      
+      // 🔵 Gemini 검색 (Promise)
+      const geminiSearchPromise = (async () => {
         try {
-          console.log('🟠 2차 시도: GPT로 검색 중... (동일한 프롬프트 사용)');
-          onProgress('🔄 검색 방법을 변경하여 재시도 중...');
-          
-          // GPT도 동일한 프롬프트로 검색 실행
-          const gptSearchResponse = await callOpenAI(searchPrompt, '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요.');
-          searchResults = JSON.parse(gptSearchResponse);
-          console.log('✅ GPT 검색 완료:', searchResults);
-          searchSuccess = true;
-        } catch (gptError) {
-          console.error('❌ GPT 검색도 실패:', gptError);
-          // 두 개 모두 실패 시 빈 결과로 진행 (AI가 자체 지식으로 작성)
-          console.warn('⚠️ 검색 실패로 AI 자체 지식 기반 작성으로 진행');
-          searchResults = {
-            collected_facts: [],
-            key_statistics: [],
-            latest_guidelines: [],
-            search_failed: true
-          };
+          console.log('🔵 Gemini 검색 시작...');
+          const ai = getAiClient();
+          const searchResponse = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: searchPrompt,
+            config: {
+              tools: [{ googleSearch: {} }],
+              responseMimeType: "application/json"
+            }
+          });
+          const result = JSON.parse(searchResponse.text || "{}");
+          console.log('✅ Gemini 검색 완료');
+          return { success: true, data: result, source: 'gemini' };
+        } catch (error) {
+          console.warn('⚠️ Gemini 검색 실패:', error);
+          return { success: false, data: null, source: 'gemini', error };
         }
+      })();
+      
+      // 🟢 GPT 검색 (Promise)
+      const gptSearchPromise = (async () => {
+        try {
+          console.log('🟢 GPT 검색 시작...');
+          const gptSearchResponse = await callOpenAI(
+            searchPrompt, 
+            '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요. 최신 의료 정보를 검색하여 제공해주세요.'
+          );
+          const result = JSON.parse(gptSearchResponse);
+          console.log('✅ GPT 검색 완료');
+          return { success: true, data: result, source: 'gpt' };
+        } catch (error) {
+          console.warn('⚠️ GPT 검색 실패:', error);
+          return { success: false, data: null, source: 'gpt', error };
+        }
+      })();
+      
+      // 동시 실행 및 결과 수집
+      const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
+      
+      geminiResults = geminiResult.success ? geminiResult.data : null;
+      gptResults = gptResult.success ? gptResult.data : null;
+      
+      console.log('📊 검색 결과 - Gemini:', !!geminiResults, ', GPT:', !!gptResults);
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🔀 크로스체크: 두 결과 병합 및 검증
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      onProgress('🔀 Step 1.5: 검색 결과 크로스체크 중...');
+      
+      if (geminiResults && gptResults) {
+        // 🎯 둘 다 성공: 크로스체크 병합
+        console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
+        
+        crossCheckedResults = {
+          collected_facts: [
+            ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
+            ...(gptResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gpt' }))
+          ],
+          key_statistics: [
+            ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
+            ...(gptResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gpt' }))
+          ],
+          latest_guidelines: [
+            ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
+            ...(gptResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gpt' }))
+          ],
+          cross_check_status: 'dual_verified',
+          gemini_found: (geminiResults.collected_facts?.length || 0) + (geminiResults.key_statistics?.length || 0),
+          gpt_found: (gptResults.collected_facts?.length || 0) + (gptResults.key_statistics?.length || 0)
+        };
+        
+        // 중복 제거 (같은 fact/stat은 하나로 병합하고 'both'로 표시)
+        const deduplicateFacts = (facts: any[]) => {
+          const seen = new Map();
+          return facts.filter(f => {
+            const key = (f.fact || f.stat || f.guideline || '').substring(0, 50).toLowerCase();
+            if (seen.has(key)) {
+              // 이미 있으면 verified_by를 'both'로 업데이트
+              const existing = seen.get(key);
+              if (existing.verified_by !== f.verified_by) {
+                existing.verified_by = 'both';
+                existing.cross_verified = true;
+              }
+              return false;
+            }
+            seen.set(key, f);
+            return true;
+          });
+        };
+        
+        crossCheckedResults.collected_facts = deduplicateFacts(crossCheckedResults.collected_facts);
+        crossCheckedResults.key_statistics = deduplicateFacts(crossCheckedResults.key_statistics);
+        crossCheckedResults.latest_guidelines = deduplicateFacts(crossCheckedResults.latest_guidelines);
+        
+        // 크로스 검증된 항목 수 계산
+        const crossVerifiedCount = [
+          ...crossCheckedResults.collected_facts,
+          ...crossCheckedResults.key_statistics,
+          ...crossCheckedResults.latest_guidelines
+        ].filter((item: any) => item.cross_verified || item.verified_by === 'both').length;
+        
+        crossCheckedResults.cross_verified_count = crossVerifiedCount;
+        
+        console.log(`✅ 크로스체크 완료 - 총 ${crossCheckedResults.collected_facts.length}개 팩트, ${crossVerifiedCount}개 교차 검증됨`);
+        onProgress(`✅ 듀얼 검색 완료: ${crossVerifiedCount}개 정보 교차 검증됨`);
+        
+      } else if (geminiResults) {
+        // Gemini만 성공
+        console.log('🔵 Gemini만 검색 성공');
+        crossCheckedResults = {
+          ...geminiResults,
+          cross_check_status: 'gemini_only',
+          warning: 'GPT 검색 실패로 단일 소스 검증'
+        };
+        onProgress('🔵 Gemini 검색 결과로 진행 (GPT 검색 실패)');
+        
+      } else if (gptResults) {
+        // GPT만 성공
+        console.log('🟢 GPT만 검색 성공');
+        crossCheckedResults = {
+          ...gptResults,
+          cross_check_status: 'gpt_only',
+          warning: 'Gemini 검색 실패로 단일 소스 검증'
+        };
+        onProgress('🟢 GPT 검색 결과로 진행 (Gemini 검색 실패)');
+        
+      } else {
+        // 둘 다 실패
+        console.error('❌ 듀얼 검색 모두 실패');
+        crossCheckedResults = {
+          collected_facts: [],
+          key_statistics: [],
+          latest_guidelines: [],
+          search_failed: true,
+          cross_check_status: 'both_failed'
+        };
+        onProgress('⚠️ 검색 실패 - AI 자체 지식 기반으로 작성');
       }
+      
+      // 최종 searchResults로 설정
+      const searchResults = crossCheckedResults;
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
@@ -5538,28 +5646,46 @@ ${getStylePromptForGeneration(learnedStyle)}
       
       const gptSystemPrompt = getGPT52ProPrompt();
       
+      // 크로스체크 상태에 따른 신뢰도 안내
+      const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
+        ? `🎯 듀얼 검색 크로스체크 완료!
+- Gemini 검색 결과: ${searchResults.gemini_found || 0}개 정보
+- GPT 검색 결과: ${searchResults.gpt_found || 0}개 정보  
+- 교차 검증된 정보: ${searchResults.cross_verified_count || 0}개 (가장 신뢰도 높음!)
+
+⭐ 우선순위: cross_verified=true 또는 verified_by='both' 정보 > 단일 소스 정보`
+        : searchResults.cross_check_status === 'gemini_only'
+        ? '🔵 Gemini 단일 검색 결과입니다. GPT 검색이 실패하여 교차 검증되지 않았습니다.'
+        : searchResults.cross_check_status === 'gpt_only'
+        ? '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.'
+        : '⚠️ 검색에 실패하여 AI 자체 지식으로 작성합니다.';
+      
       const systemPrompt = `${gptSystemPrompt}
 
-[🔍 검색 결과 정보]
+[🔍 듀얼 검색 + 크로스체크 결과]
+${crossCheckGuide}
+
 ${searchResults.search_failed 
-  ? '⚠️ 검색에 실패하여 AI 자체 지식으로 작성합니다. 반드시 출처 규칙을 엄격히 준수하세요!' 
-  : `아래는 검색으로 수집한 공신력 있는 최신 정보입니다.
-이 정보를 최우선으로 사용하세요.
+  ? '반드시 출처 규칙을 엄격히 준수하세요!' 
+  : `아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
+교차 검증된 정보(cross_verified 또는 verified_by='both')를 최우선으로 사용하세요!
 
 ${JSON.stringify(searchResults, null, 2)}`}
 
-[⚠️ 중요 규칙]
-1. ${searchResults.search_failed 
-    ? '검색 실패로 자체 지식 사용 시, 출처 불명확한 정보는 일반화 표현으로 작성하세요' 
-    : '위 검색 결과의 정보를 최우선으로 사용하세요'}
-2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기하세요
-3. 출처가 명확한 정보만 사용하세요
-4. 불확실한 정보는 "~할 수 있습니다", "~로 알려져 있습니다" 등 완화 표현 사용
+[⚠️ 크로스체크 기반 작성 규칙]
+1. ${searchResults.cross_check_status === 'dual_verified' 
+    ? '🎯 교차 검증된 정보(cross_verified=true)를 최우선으로 사용하세요 - 가장 신뢰도 높음!' 
+    : searchResults.search_failed
+    ? '검색 실패로 자체 지식 사용 시, 출처 불명확한 정보는 일반화 표현으로 작성하세요'
+    : '단일 소스 검색 결과이므로 출처 표기에 더욱 신경 쓰세요'}
+2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기 (예: "질병관리청 ${getCurrentYear()}년 자료에 따르면...")
+3. 교차 검증되지 않은 정보는 "~로 알려져 있습니다", "~할 수 있습니다" 등 완화 표현 사용
+4. 두 소스에서 상충되는 정보가 있다면 더 공신력 있는 출처(학회, 정부기관) 우선
 
 [📋 JSON 응답 형식]
 {
   "title": "제목 (상태 점검형 질문)",
-  "content": "HTML 형식의 본문 내용 (생활 맥락 중심, 검색 결과 기반)",
+  "content": "HTML 형식의 본문 내용 (크로스체크된 정보 우선 사용)",
   "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
   "fact_check": {
     "fact_score": 0-100,
