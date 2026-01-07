@@ -3271,7 +3271,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     ⚠️⚠️⚠️ 목표: 공백 포함 **정확히 ${targetLength}자 내외** 작성!!! ⚠️⚠️⚠️
     
     📏 허용 범위: **${Math.round(targetLength * 0.9)}자 ~ ${Math.round(targetLength * 1.1)}자** (±10% 이내)
-    🚫 ${Math.round(targetLength * 1.2)}자 초과 절대 금지! 너무 길게 쓰지 마세요!
+    🚫 **${targetLength <= 2000 ? 2000 : Math.round(targetLength * 1.2)}자 초과 절대 금지!** 너무 길게 쓰지 마세요!
     
     📏 분량 가이드 (${targetLength}자 기준):
     ${targetLength >= 5000 ? `
@@ -3310,7 +3310,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     
     ❌ 절대 금지:
     - ${Math.round(targetLength * 0.9)}자보다 적게 쓰는 것 (분량 미달!)
-    - ${Math.round(targetLength * 1.2)}자보다 많이 쓰는 것 (분량 초과! 너무 길어요!)
+    - **${targetLength <= 2000 ? 2000 : Math.round(targetLength * 1.2)}자보다 많이 쓰는 것 (분량 초과! 너무 길어요!)**
     - 내용 없이 같은 말 반복하기
     - 해시태그로 글자 수 채우기
     - 불필요하게 길게 늘려쓰기
