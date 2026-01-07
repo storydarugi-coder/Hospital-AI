@@ -1610,6 +1610,69 @@ ${imageStyle === 'illustration'
   }
 };
 
+// 🎴 카드뉴스 전용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
+export const recommendCardNewsPrompt = async (
+  subtitle: string,
+  mainTitle: string,
+  description: string,
+  imageStyle: ImageStyle = 'illustration',
+  customStylePrompt?: string
+): Promise<string> => {
+  const ai = getAiClient();
+  
+  // 스타일 가이드 결정
+  let styleKeywords: string;
+  if (imageStyle === 'custom' && customStylePrompt) {
+    styleKeywords = customStylePrompt;
+  } else if (imageStyle === 'illustration') {
+    styleKeywords = '3D 일러스트, 클레이 렌더, 파스텔톤, 부드러운 조명';
+  } else if (imageStyle === 'medical') {
+    styleKeywords = '의학 3D 일러스트, 해부학적 구조, 전문적인 의료 이미지';
+  } else {
+    styleKeywords = '실사 사진, DSLR 촬영, 자연스러운 조명';
+  }
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
+
+다음 카드뉴스 텍스트에 어울리는 **배경 이미지 스타일**만 추천해주세요.
+
+[카드뉴스 텍스트]
+- 부제: "${subtitle || '없음'}"
+- 메인 제목: "${mainTitle || '없음'}"  
+- 설명: "${description || '없음'}"
+
+[이미지 스타일]
+${styleKeywords}
+
+[출력 형식 - 반드시 이 형식으로!]
+subtitle: "${subtitle || ''}"
+mainTitle: "${mainTitle || ''}"
+${description ? `description: "${description}"` : ''}
+비주얼: (여기에 배경 이미지 스타일 작성)
+
+[규칙]
+1. subtitle, mainTitle, description은 위 텍스트 그대로 유지
+2. "비주얼:" 부분만 창의적으로 작성
+3. 비주얼은 텍스트 내용과 어울리는 배경/일러스트 스타일 (30자 이내)
+4. 예: "파란 그라데이션 배경에 심장 아이콘", "병원 진료실 일러스트"
+
+위 형식대로만 출력하세요. 다른 설명 없이!`,
+      config: {
+        responseMimeType: "text/plain"
+      }
+    });
+    
+    return response.text?.trim() || `subtitle: "${subtitle}"\nmainTitle: "${mainTitle}"\n${description ? `description: "${description}"\n` : ''}비주얼: 밝은 파란색 배경, ${styleKeywords}`;
+  } catch (error) {
+    console.error('카드뉴스 프롬프트 추천 실패:', error);
+    // 실패 시 기본 프롬프트 반환
+    return `subtitle: "${subtitle}"\nmainTitle: "${mainTitle}"\n${description ? `description: "${description}"\n` : ''}비주얼: 밝은 파란색 배경, ${styleKeywords}`;
+  }
+};
+
 // 🧹 공통 프롬프트 정리 함수 - base64/코드 문자열만 제거, 의미있는 텍스트는 유지!
 // ⚠️ 주의: 영어 지시문/한국어 텍스트는 절대 삭제하면 안 됨!
 const cleanImagePromptText = (prompt: string): string => {

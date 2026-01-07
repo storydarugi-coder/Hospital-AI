@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -885,21 +885,20 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  // 🎴 카드뉴스용 AI 프롬프트 추천
+  // 🎴 카드뉴스용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
   const handleRecommendCardPrompt = async () => {
     setIsRecommendingCardPrompt(true);
     try {
-      // 현재 카드의 텍스트 내용을 기반으로 프롬프트 추천
-      const cardContext = `
-        부제: ${editSubtitle || '없음'}
-        메인 제목: ${editMainTitle || '없음'}
-        설명: ${editDescription || '없음'}
-        현재 이미지 프롬프트: ${editImagePrompt || '없음'}
-      `;
-      
       const currentStyle = content.imageStyle || 'illustration';
-      // 🎨 커스텀 스타일일 때 savedCustomStylePrompt 전달
-      const recommendedPrompt = await recommendImagePrompt(cardContext, editImagePrompt, currentStyle, savedCustomStylePrompt);
+      
+      // 🎴 카드뉴스 전용 프롬프트 추천 함수 사용
+      const recommendedPrompt = await recommendCardNewsPrompt(
+        editSubtitle,
+        editMainTitle,
+        editDescription,
+        currentStyle,
+        savedCustomStylePrompt
+      );
       
       // 🔒 AI 추천 프롬프트 적용 - 자동 연동 스킵 플래그 ON
       setIsAIPromptApplied(true);
@@ -2222,14 +2221,35 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   <div>
                     <div className={`text-xs font-bold mb-1 flex items-center justify-between ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
                       <span>🎨 이미지 프롬프트</span>
-                      <span className={`text-[9px] font-normal ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                        텍스트 변경 시 자동 연동
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleRecommendCardPrompt}
+                          disabled={isRecommendingCardPrompt || isRegeneratingCard}
+                          className={`px-2 py-1 rounded text-[10px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            darkMode 
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-500 hover:to-indigo-500' 
+                              : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600'
+                          }`}
+                        >
+                          {isRecommendingCardPrompt ? (
+                            <span className="flex items-center gap-1">
+                              <span className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></span>
+                              AI 분석중...
+                            </span>
+                          ) : (
+                            '🤖 AI 추천'
+                          )}
+                        </button>
+                        <span className={`text-[9px] font-normal ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                          텍스트 변경 시 자동 연동
+                        </span>
+                      </div>
                     </div>
                     <textarea
                       value={editImagePrompt}
                       onChange={(e) => setEditImagePrompt(e.target.value)}
-                      disabled={isRegeneratingCard}
+                      disabled={isRegeneratingCard || isRecommendingCardPrompt}
                       placeholder="예: 1:1 카드뉴스, 파란 배경, 심장 3D 일러스트..."
                       rows={5}
                       className={`w-full px-3 py-2 rounded-lg text-xs border outline-none resize-y min-h-[80px] ${
@@ -2239,7 +2259,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       }`}
                     />
                     <div className={`text-[9px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                      💡 위 텍스트(부제/메인제목/설명)를 수정하면 프롬프트가 자동으로 업데이트됩니다
+                      💡 AI 추천: 부제/메인제목/설명 + 배경 스타일을 자동 생성합니다
                     </div>
                   </div>
                   
