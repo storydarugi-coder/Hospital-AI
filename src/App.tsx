@@ -442,6 +442,17 @@ const App: React.FC = () => {
       return;
     }
 
+    // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
+    try {
+      localStorage.removeItem('hospitalai_autosave');
+      localStorage.removeItem('hospitalai_autosave_history');
+      localStorage.removeItem('hospitalai_card_prompt_history');
+      localStorage.removeItem('hospitalai_card_ref_image');
+      console.log('🗑️ 이전 저장본 삭제 완료');
+    } catch (e) {
+      console.warn('저장본 삭제 실패:', e);
+    }
+
     setMobileTab('result');
     
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
