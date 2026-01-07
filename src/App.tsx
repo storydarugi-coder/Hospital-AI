@@ -289,6 +289,39 @@ const App: React.FC = () => {
           remainingCredits
         });
         
+        // 🔧 로그인/OAuth 성공 시 profiles 없으면 자동 생성
+        if (event === 'SIGNED_IN') {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (!profile) {
+              await supabase.from('profiles').upsert({
+                id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
+                avatar_url: session.user.user_metadata?.avatar_url || null,
+                created_at: new Date().toISOString()
+              }, { onConflict: 'id' });
+              
+              await supabase.from('subscriptions').upsert({
+                user_id: session.user.id,
+                plan_type: 'free',
+                credits_total: 3,
+                credits_used: 0,
+                expires_at: null
+              }, { onConflict: 'user_id' });
+              
+              console.log('✅ 프로필 자동 생성 완료:', session.user.email);
+            }
+          } catch (e) {
+            console.error('프로필 확인/생성 실패 (무시):', e);
+          }
+        }
+        
         // 로그인 성공 시 앱으로 이동 (OAuth 리다이렉트 포함)
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('[Auth Event] Login success, navigating to app');

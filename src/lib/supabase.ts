@@ -86,6 +86,43 @@ export const signInWithEmail = async (email: string, password: string) => {
     email,
     password
   });
+  
+  // 🔧 로그인 성공 시 profiles 없으면 자동 생성 (기존 유저 호환)
+  if (data.user && !error) {
+    try {
+      // profiles 존재 여부 확인
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+      
+      // profiles 없으면 생성
+      if (!profile) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '사용자',
+          avatar_url: data.user.user_metadata?.avatar_url || null,
+          created_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+        
+        // subscriptions도 없으면 생성
+        await supabase.from('subscriptions').upsert({
+          user_id: data.user.id,
+          plan_type: 'free',
+          credits_total: 3,
+          credits_used: 0,
+          expires_at: null
+        }, { onConflict: 'user_id' });
+        
+        console.log('✅ 기존 유저 프로필 자동 생성:', data.user.email);
+      }
+    } catch (profileError) {
+      console.error('프로필 확인/생성 실패 (무시):', profileError);
+    }
+  }
+  
   return { data, error };
 };
 
