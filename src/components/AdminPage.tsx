@@ -600,41 +600,43 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                                 
                                 try {
                                   // 1. usage_logs 테이블에서 삭제 (외래키 제약 때문에 먼저)
-                                  const { error: logsError } = await supabase
+                                  const { error: logsError, count: logsCount } = await supabase
                                     .from('usage_logs')
-                                    .delete()
+                                    .delete({ count: 'exact' })
                                     .eq('user_id', user.id);
-                                  console.log('[Admin] usage_logs:', logsError?.message || '✓ 삭제됨');
+                                  console.log('[Admin] usage_logs:', logsError?.message || `✓ ${logsCount ?? 0}개 삭제됨`);
                                   
                                   // 2. payments 테이블에서 삭제
-                                  const { error: payError } = await supabase
+                                  const { error: payError, count: payCount } = await supabase
                                     .from('payments')
-                                    .delete()
+                                    .delete({ count: 'exact' })
                                     .eq('user_id', user.id);
-                                  console.log('[Admin] payments:', payError?.message || '✓ 삭제됨');
+                                  console.log('[Admin] payments:', payError?.message || `✓ ${payCount ?? 0}개 삭제됨`);
                                   
                                   // 3. subscriptions 테이블에서 삭제
-                                  const { error: subError } = await supabase
+                                  const { error: subError, count: subCount } = await supabase
                                     .from('subscriptions')
-                                    .delete()
+                                    .delete({ count: 'exact' })
                                     .eq('user_id', user.id);
-                                  console.log('[Admin] subscriptions:', subError?.message || '✓ 삭제됨');
+                                  console.log('[Admin] subscriptions:', subError?.message || `✓ ${subCount ?? 0}개 삭제됨`);
                                   
                                   // 4. profiles 테이블에서 삭제 (마지막에!)
-                                  const { error: profileError } = await supabase
+                                  const { error: profileError, count: profileCount } = await supabase
                                     .from('profiles')
-                                    .delete()
+                                    .delete({ count: 'exact' })
                                     .eq('id', user.id);
-                                  console.log('[Admin] profiles:', profileError?.message || '✓ 삭제됨');
+                                  console.log('[Admin] profiles:', profileError?.message || `✓ ${profileCount ?? 0}개 삭제됨`);
                                   
-                                  if (profileError) {
-                                    // RLS 정책 또는 권한 문제
+                                  // RLS가 조용히 실패하면 count가 0
+                                  if (profileError || (profileCount === 0)) {
                                     const sqlHint = `DELETE FROM profiles WHERE id = '${user.id}';`;
-                                    alert(`❌ 프로필 삭제 실패!\n\n오류: ${profileError.message}\n\n` +
-                                          `💡 해결 방법:\n` +
-                                          `1. Supabase SQL Editor에서 직접 실행:\n${sqlHint}\n\n` +
-                                          `2. 또는 RLS 정책 추가:\n` +
-                                          `CREATE POLICY "Allow delete" ON profiles FOR DELETE USING (true);`);
+                                    alert(`❌ 프로필 삭제 실패! (삭제된 행: ${profileCount ?? 0}개)\n\n` +
+                                          `🔒 RLS 정책이 삭제를 차단하고 있습니다.\n\n` +
+                                          `💡 해결 방법 (Supabase SQL Editor에서 실행):\n\n` +
+                                          `-- 방법 1: 관리자 삭제 정책 추가\n` +
+                                          `CREATE POLICY "Allow authenticated delete" ON profiles\n` +
+                                          `FOR DELETE USING (auth.role() = 'authenticated');\n\n` +
+                                          `-- 방법 2: 직접 삭제\n${sqlHint}`);
                                     return;
                                   }
                                   
