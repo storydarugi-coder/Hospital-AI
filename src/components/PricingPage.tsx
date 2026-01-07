@@ -26,9 +26,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({
 
   // 가격 계산
   const basicPrices = {
-    10: { price: 15900, original: 25000, perUnit: 1590 },
-    20: { price: 29900, original: 45000, perUnit: 1495 },
-    50: { price: 55900, original: 95000, perUnit: 1118 }
+    10: { price: 20000, original: 30000, perUnit: 2000 },
+    20: { price: 39000, original: 50000, perUnit: 1950 },
+    50: { price: 89000, original: 125000, perUnit: 1780 }
   };
 
   const handlePurchase = async (planType: 'basic' | 'premium') => {
@@ -195,13 +195,13 @@ export const PricingPage: React.FC<PricingPageProps> = ({
                 🚀 94% 절약!
               </div>
               <h3 className="text-xl font-black mb-6">HospitalAI</h3>
-              <div className="text-4xl font-black mb-2">건당 1,118원~</div>
-              <p className="text-emerald-100 text-sm mb-6">50건 기준 (55,900원)</p>
+              <div className="text-4xl font-black mb-2">건당 1,780원~</div>
+              <p className="text-emerald-100 text-sm mb-6">50건 기준 (89,000원)</p>
               
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between text-emerald-50">
                   <span>포스팅 1건당</span>
-                  <span className="font-bold">💎 1,118원~</span>
+                  <span className="font-bold">💎 1,780원~</span>
                 </div>
                 <div className="flex justify-between text-emerald-50">
                   <span>소요 시간</span>
@@ -218,8 +218,8 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               </div>
 
               <div className="mt-6 pt-6 border-t border-white/20 text-center">
-                <div className="text-2xl font-black">건당 18,882원 절약!</div>
-                <p className="text-emerald-200 text-sm">외주 대비 94% 비용 절감</p>
+                <div className="text-2xl font-black">건당 18,220원 절약!</div>
+                <p className="text-emerald-200 text-sm">외주 대비 91% 비용 절감</p>
               </div>
             </div>
           </div>
@@ -435,7 +435,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       {/* CTA */}
       <section className="py-16 px-4 bg-gradient-to-br from-slate-900 to-slate-800">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-black text-white mb-4">지금 시작하고 89% 비용을 절약하세요</h2>
+          <h2 className="text-3xl font-black text-white mb-4">지금 시작하고 91% 비용을 절약하세요</h2>
           <p className="text-slate-400 mb-8">무료 체험으로 HospitalAI의 놀라운 효과를 직접 경험해보세요</p>
           
           <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mb-8">
@@ -444,11 +444,11 @@ export const PricingPage: React.FC<PricingPageProps> = ({
               <p className="text-slate-500 text-xs">생성 시간</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-black text-emerald-400">💰 1,590원</div>
+              <div className="text-2xl font-black text-emerald-400">💰 2,000원</div>
               <p className="text-slate-500 text-xs">건당 비용</p>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-black text-emerald-400">🎉 89%</div>
+              <div className="text-2xl font-black text-emerald-400">🎉 91%</div>
               <p className="text-slate-500 text-xs">비용 절감</p>
             </div>
           </div>
