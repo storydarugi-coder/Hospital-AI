@@ -93,6 +93,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [refImageMode, setRefImageMode] = useState<'recolor' | 'copy'>('copy'); // 참고 이미지 적용 방식: recolor=복제+색상변경, copy=완전복제
   const [currentCardImage, setCurrentCardImage] = useState(''); // 현재 카드의 이미지 URL
   const [isRecommendingCardPrompt, setIsRecommendingCardPrompt] = useState(false); // 카드뉴스 AI 프롬프트 추천 중
+  const [isAIPromptApplied, setIsAIPromptApplied] = useState(false); // AI 추천 프롬프트가 적용된 상태인지 (자동 연동 스킵용)
   const [promptHistory, setPromptHistory] = useState<CardPromptHistoryItem[]>([]); // 저장된 프롬프트 히스토리
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const [isRefImageLocked, setIsRefImageLocked] = useState(false); // 참고 이미지 고정 여부
@@ -177,6 +178,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   // 텍스트 변경 시 이미지 프롬프트 자동 연동
   useEffect(() => {
+    // 🔒 AI 추천 프롬프트가 적용된 상태면 자동 연동 스킵 (사용자가 입력한 AI 프롬프트 보존)
+    if (isAIPromptApplied) {
+      return;
+    }
+    
     // 텍스트 내용이 하나라도 있으면 이미지 프롬프트 자동 생성
     if (editSubtitle || editMainTitle || editDescription) {
       const style = content.imageStyle || 'illustration';
@@ -195,7 +201,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       setEditImagePrompt(newImagePrompt);
     }
-  }, [editSubtitle, editMainTitle, editDescription, content.imageStyle, savedCustomStylePrompt]);
+  }, [editSubtitle, editMainTitle, editDescription, content.imageStyle, savedCustomStylePrompt, isAIPromptApplied]);
   
   // 카드 수 (localHtml 변경 시 업데이트)
   const [cardCount, setCardCount] = useState(0);
@@ -706,6 +712,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const openCardRegenModal = (cardIndex: number) => {
     setCardRegenIndex(cardIndex);
     setCardRegenInstruction('');
+    // 🔓 AI 프롬프트 적용 플래그 리셋 (모달 열 때마다 자동 연동 활성화)
+    setIsAIPromptApplied(false);
     // 참고 이미지가 고정되어 있지 않으면 초기화, 고정되어 있으면 유지
     if (!isRefImageLocked) {
       setCardRegenRefImage('');
@@ -894,6 +902,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       const currentStyle = content.imageStyle || 'illustration';
       const recommendedPrompt = await recommendImagePrompt(cardContext, editImagePrompt, currentStyle);
+      
+      // 🔒 AI 추천 프롬프트 적용 - 자동 연동 스킵 플래그 ON
+      setIsAIPromptApplied(true);
       setEditImagePrompt(recommendedPrompt);
     } catch (err) {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
@@ -2164,7 +2175,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       <input
                         type="text"
                         value={editSubtitle}
-                        onChange={(e) => setEditSubtitle(e.target.value)}
+                        onChange={(e) => { setEditSubtitle(e.target.value); setIsAIPromptApplied(false); }}
                         disabled={isRegeneratingCard}
                         placeholder="예: 놓치기 쉬운 신호"
                         className={`w-full mt-1 px-3 py-2 rounded-lg text-xs border outline-none ${
@@ -2180,7 +2191,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       <input
                         type="text"
                         value={editMainTitle}
-                        onChange={(e) => setEditMainTitle(e.target.value)}
+                        onChange={(e) => { setEditMainTitle(e.target.value); setIsAIPromptApplied(false); }}
                         disabled={isRegeneratingCard}
                         placeholder="예: 심장이 보내는 경고"
                         className={`w-full mt-1 px-3 py-2 rounded-lg text-xs border outline-none ${
@@ -2195,7 +2206,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       <label className={`text-xs font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>설명</label>
                       <textarea
                         value={editDescription}
-                        onChange={(e) => setEditDescription(e.target.value)}
+                        onChange={(e) => { setEditDescription(e.target.value); setIsAIPromptApplied(false); }}
                         disabled={isRegeneratingCard}
                         placeholder="예: 이런 증상이 나타나면 주의가 필요해요"
                         rows={2}
