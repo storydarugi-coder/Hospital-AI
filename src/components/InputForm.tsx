@@ -58,7 +58,12 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim()) return;
+    console.log('🔵 Form Submit 시작 - topic:', topic, 'postType:', postType);
+    if (!topic.trim()) {
+      console.warn('⚠️ topic이 비어있어 중단');
+      return;
+    }
+    console.log('✅ onSubmit 호출');
     onSubmit({ 
       category, 
       topic, 

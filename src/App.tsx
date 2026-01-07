@@ -458,6 +458,8 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
+    console.log('🎯 handleGenerate 호출됨 - request:', request);
+    
     // 크레딧 체크 (로그인 시에만, 관리자 제외)
     if (isLoggedIn && userProfile && !isAdmin && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
       setState(prev => ({ 
