@@ -3853,7 +3853,7 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
     <div class="press-disclaimer">
       <p>※ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.</p>
       <p>※ 의학적 정보는 참고용이며, 정확한 진단과 치료는 반드시 전문의와 상담하시기 바랍니다.</p>
-      <p>※ 본 보도자료는 AI가 작성한 초안이며, 배포 전 반드시 내용 검토가 필요합니다.</p>
+      <p>※ 본 보도자료는 배포 전 반드시 내용 검토가 필요합니다.</p>
     </div>
   </div>
 </div>
