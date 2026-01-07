@@ -68,7 +68,7 @@ export interface GenerationRequest {
   hospitalName?: string; // 병원명
   doctorName?: string; // 의료진 이름
   doctorTitle?: string; // 직함 (예: 원장, 부원장, 과장)
-  pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award'; // 보도 유형
+  pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'seasonal_health'; // 보도 유형
 }
 
 export interface FactCheckReport {

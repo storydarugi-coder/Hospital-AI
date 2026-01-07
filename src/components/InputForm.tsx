@@ -49,7 +49,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [hospitalName, setHospitalName] = useState<string>('');
   const [doctorName, setDoctorName] = useState<string>('');
   const [doctorTitle, setDoctorTitle] = useState<string>('원장');
-  const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award'>('achievement');
+  const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'seasonal_health'>('achievement');
   
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
@@ -304,6 +304,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                         { value: 'research', label: '📚 연구/학술', desc: '논문/학회 발표' },
                         { value: 'event', label: '🎉 행사/이벤트', desc: '개소식/캠페인' },
                         { value: 'award', label: '🎖️ 수상/인증', desc: '수상/인증 획득' },
+                        { value: 'seasonal_health', label: '🌡️ 계절 건강', desc: '환절기/계절별 주의' },
                       ].map((item) => (
                         <button
                           key={item.value}
