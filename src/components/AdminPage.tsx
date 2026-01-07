@@ -39,9 +39,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments'>('api');
   
   const [configValues, setConfigValues] = useState({
-    geminiKey: '',
-    naverClientId: '',
-    naverClientSecret: ''
+    geminiKey: ''
   });
   const [saved, setSaved] = useState(false);
   
@@ -78,13 +76,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     if (isAuthenticated) {
       // GLOBAL_ 접두사로 전역 API 키 관리
       const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
-      const globalNaverId = localStorage.getItem('GLOBAL_NAVER_CLIENT_ID');
-      const globalNaverSecret = localStorage.getItem('GLOBAL_NAVER_CLIENT_SECRET');
 
       setConfigValues({
-        geminiKey: globalGemini || '',
-        naverClientId: globalNaverId || '',
-        naverClientSecret: globalNaverSecret || ''
+        geminiKey: globalGemini || ''
       });
       
       // 데이터 로드
@@ -216,30 +210,20 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const handleSaveConfig = () => {
     // GLOBAL_ 접두사로 저장하여 모든 사용자가 이용하도록 함
     localStorage.setItem('GLOBAL_GEMINI_API_KEY', configValues.geminiKey);
-    localStorage.setItem('GLOBAL_NAVER_CLIENT_ID', configValues.naverClientId);
-    localStorage.setItem('GLOBAL_NAVER_CLIENT_SECRET', configValues.naverClientSecret);
     
     // 기존 개인용 키도 업데이트 (호환성)
     localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
-    localStorage.setItem('NAVER_CLIENT_ID', configValues.naverClientId);
-    localStorage.setItem('NAVER_CLIENT_SECRET', configValues.naverClientSecret);
     
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleClearConfig = () => {
-    if (confirm('모든 API 키를 삭제하시겠습니까?')) {
+    if (confirm('API 키를 삭제하시겠습니까?')) {
       localStorage.removeItem('GLOBAL_GEMINI_API_KEY');
-      localStorage.removeItem('GLOBAL_NAVER_CLIENT_ID');
-      localStorage.removeItem('GLOBAL_NAVER_CLIENT_SECRET');
       localStorage.removeItem('GEMINI_API_KEY');
-      localStorage.removeItem('NAVER_CLIENT_ID');
-      localStorage.removeItem('NAVER_CLIENT_SECRET');
       setConfigValues({
-        geminiKey: '',
-        naverClientId: '',
-        naverClientSecret: ''
+        geminiKey: ''
       });
     }
   };
@@ -481,34 +465,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                   </a>
                 </div>
 
-                {/* Naver API */}
-                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-6 rounded-2xl border border-green-500/20">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-black text-green-300 uppercase tracking-widest">
-                      Naver Developers API
-                    </label>
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-500/20 px-2 py-1 rounded-full">선택</span>
-                  </div>
-                  <div className="space-y-3">
-                    <input 
-                      type="text" 
-                      value={configValues.naverClientId}
-                      onChange={(e) => setConfigValues({...configValues, naverClientId: e.target.value})}
-                      placeholder="Client ID"
-                      className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-green-500 outline-none transition-colors"
-                    />
-                    <input 
-                      type="password" 
-                      value={configValues.naverClientSecret}
-                      onChange={(e) => setConfigValues({...configValues, naverClientSecret: e.target.value})}
-                      placeholder="Client Secret"
-                      className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-green-500 outline-none transition-colors"
-                    />
-                  </div>
-                  <p className="text-[11px] text-green-400/70 mt-2 font-medium">
-                    ※ 추후 정확한 검색량 조회를 위해 사용됩니다.
-                  </p>
-                </div>
+
               </div>
 
               {/* Actions */}

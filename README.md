@@ -1,12 +1,12 @@
-# Hospital Toolchain - 네이버 블로그 마케팅 전용
+# Hospital Toolchain - 병원 블로그 마케팅 전용
 
 ## 프로젝트 개요
 - **이름**: Hospital Toolchain
-- **목적**: 의료광고법을 준수하는 네이버 블로그/티스토리 콘텐츠를 AI로 자동 생성
+- **목적**: 의료광고법을 준수하는 블로그 콘텐츠를 AI로 자동 생성
 - **기술 스택**: Hono + React + Cloudflare Pages + Google Gemini API
 
 ## 주요 기능
-- ✅ 실시간 네이버 트렌드 키워드 분석 (Google Search 기반)
+- ✅ 실시간 트렌드 키워드 분석
 - ✅ SEO 최적화 제목 자동 생성
 - ✅ 의료광고법 준수 안전 점수 확인
 - ✅ AI 이미지 생성 (실사/3D 일러스트)
@@ -15,7 +15,7 @@
 - ✅ 벤치마킹 URL 분석 및 스타일 모방
 - ✅ AI 정밀보정 기능
 - ✅ 이미지 재생성 (프롬프트 수정)
-- ✅ 티스토리/네이버 블로그 복사 기능
+- ✅ 블로그 복사 기능 (HTML 포맷)
 
 ## URLs
 - **개발 서버**: https://3000-iiqpthosrwwxpxufn4au8-2b54fc91.sandbox.novita.ai
@@ -92,4 +92,4 @@ webapp/
 Private - 비공개 프로젝트
 
 ---
-마지막 업데이트: 2026-01-03
+마지막 업데이트: 2026-01-07

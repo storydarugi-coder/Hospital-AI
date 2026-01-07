@@ -1979,6 +1979,26 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               </div>
             </div>
             
+            {/* AI 냄새 점수 - 블로그/보도자료에만 표시 */}
+            {content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
+              <>
+                {/* 구분선 */}
+                <div className="w-px h-12 bg-slate-700"></div>
+                
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI 냄새</span>
+                  <div className="flex items-center gap-2">
+                     <span className={`text-3xl font-black ${content.factCheck.ai_smell_score <= 10 ? 'text-green-400' : content.factCheck.ai_smell_score <= 20 ? 'text-amber-400' : 'text-red-400'}`}>
+                       {content.factCheck.ai_smell_score}점
+                     </span>
+                     <span className="text-[10px] opacity-70">
+                       {content.factCheck.ai_smell_score <= 10 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 20 ? '⚠️ 부분수정' : '🚨 재작성'}
+                     </span>
+                  </div>
+                </div>
+              </>
+            )}
+            
             {content.postType === 'card_news' && (
                 <div className="hidden lg:block ml-4">
                    <span className="text-xs font-bold text-blue-400 border border-blue-400 px-2 py-1 rounded-lg">카드뉴스 모드</span>

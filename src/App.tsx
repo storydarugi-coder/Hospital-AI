@@ -435,19 +435,11 @@ const App: React.FC = () => {
       try {
         const res = await fetch('/api/config');
         if (res.ok) {
-          const config = await res.json() as { geminiKey?: string; naverClientId?: string; naverClientSecret?: string };
+          const config = await res.json() as { geminiKey?: string };
           // 서버에서 받은 키를 localStorage에 저장
           if (config.geminiKey) {
             localStorage.setItem('GEMINI_API_KEY', config.geminiKey);
             localStorage.setItem('GLOBAL_GEMINI_API_KEY', config.geminiKey);
-          }
-          if (config.naverClientId) {
-            localStorage.setItem('NAVER_CLIENT_ID', config.naverClientId);
-            localStorage.setItem('GLOBAL_NAVER_CLIENT_ID', config.naverClientId);
-          }
-          if (config.naverClientSecret) {
-            localStorage.setItem('NAVER_CLIENT_SECRET', config.naverClientSecret);
-            localStorage.setItem('GLOBAL_NAVER_CLIENT_SECRET', config.naverClientSecret);
           }
           setApiKeyReady(!!config.geminiKey);
         }
@@ -509,7 +501,7 @@ const App: React.FC = () => {
     }
 
     // 블로그: 기존 플로우 (한 번에 생성)
-    setState(prev => ({ ...prev, isLoading: true, error: null, progress: '네이버 로직 기반 키워드 분석 및 이미지 생성 중...' }));
+    setState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
