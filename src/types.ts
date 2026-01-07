@@ -27,6 +27,13 @@ export type PostType = 'blog' | 'card_news' | 'press_release';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
 export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
 
+// AI 제공자 선택 타입
+export type AIProvider = 'gemini' | 'openai';
+export interface AIProviderSettings {
+  textGeneration: AIProvider;  // 글쓰기에 사용할 AI
+  imageGeneration: AIProvider; // 이미지 생성에 사용할 AI
+}
+
 // 말투 학습 데이터 타입
 export interface LearnedWritingStyle {
   id: string;

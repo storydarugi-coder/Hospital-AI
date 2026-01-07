@@ -42,6 +42,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     geminiKey: '',
     openaiKey: ''
   });
+  const [aiSettings, setAiSettings] = useState({
+    textGeneration: 'gemini' as 'gemini' | 'openai',
+    imageGeneration: 'gemini' as 'gemini' | 'openai'
+  });
   const [saved, setSaved] = useState(false);
   
   // 사용자 및 결제 데이터
@@ -78,6 +82,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       // GLOBAL_ 접두사로 전역 API 키 관리
       const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
       const globalOpenai = localStorage.getItem('GLOBAL_OPENAI_API_KEY');
+      
+      // AI 설정 로드
+      const savedAiSettings = localStorage.getItem('AI_PROVIDER_SETTINGS');
+      if (savedAiSettings) {
+        try {
+          setAiSettings(JSON.parse(savedAiSettings));
+        } catch (e) {
+          console.warn('AI 설정 로드 실패:', e);
+        }
+      }
 
       setConfigValues({
         geminiKey: globalGemini || '',
@@ -218,6 +232,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     // 기존 개인용 키도 업데이트 (호환성)
     localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
     localStorage.setItem('OPENAI_API_KEY', configValues.openaiKey);
+    
+    // AI 설정 저장
+    localStorage.setItem('AI_PROVIDER_SETTINGS', JSON.stringify(aiSettings));
     
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -510,10 +527,111 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                     🔗 OpenAI Platform에서 키 발급받기
                   </a>
                   <p className="text-[10px] text-slate-500 mt-2">
-                    💡 추후 글쓰기는 GPT, 이미지 생성은 Gemini 등 역할 분리에 사용됩니다.
+                    💡 아래에서 글쓰기/이미지 생성에 사용할 AI를 선택할 수 있습니다.
                   </p>
                 </div>
 
+              </div>
+
+              {/* AI 역할 분리 설정 */}
+              <div className="mt-8 p-6 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl border border-purple-500/20">
+                <h3 className="text-sm font-black text-purple-300 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  🤖 AI 역할 분리 설정
+                </h3>
+                <p className="text-xs text-slate-400 mb-6">
+                  작업별로 다른 AI를 사용할 수 있습니다. 해당 AI의 API 키가 설정되어 있어야 합니다.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* 글쓰기 AI 선택 */}
+                  <div className="bg-slate-800/50 p-4 rounded-xl">
+                    <label className="text-xs font-bold text-slate-300 mb-3 block">
+                      ✍️ 글쓰기 (텍스트 생성)
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiSettings({...aiSettings, textGeneration: 'gemini'})}
+                        disabled={!configValues.geminiKey}
+                        className={`flex-1 py-3 px-4 rounded-lg text-xs font-bold transition-all ${
+                          aiSettings.textGeneration === 'gemini'
+                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        } ${!configValues.geminiKey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        🔵 Gemini
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiSettings({...aiSettings, textGeneration: 'openai'})}
+                        disabled={!configValues.openaiKey}
+                        className={`flex-1 py-3 px-4 rounded-lg text-xs font-bold transition-all ${
+                          aiSettings.textGeneration === 'openai'
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        } ${!configValues.openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        🟢 GPT
+                      </button>
+                    </div>
+                    {!configValues.geminiKey && aiSettings.textGeneration === 'gemini' && (
+                      <p className="text-[10px] text-red-400 mt-2">⚠️ Gemini API 키를 먼저 설정하세요</p>
+                    )}
+                    {!configValues.openaiKey && aiSettings.textGeneration === 'openai' && (
+                      <p className="text-[10px] text-red-400 mt-2">⚠️ OpenAI API 키를 먼저 설정하세요</p>
+                    )}
+                  </div>
+                  
+                  {/* 이미지 생성 AI 선택 */}
+                  <div className="bg-slate-800/50 p-4 rounded-xl">
+                    <label className="text-xs font-bold text-slate-300 mb-3 block">
+                      🖼️ 이미지 생성
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiSettings({...aiSettings, imageGeneration: 'gemini'})}
+                        disabled={!configValues.geminiKey}
+                        className={`flex-1 py-3 px-4 rounded-lg text-xs font-bold transition-all ${
+                          aiSettings.imageGeneration === 'gemini'
+                            ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        } ${!configValues.geminiKey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        🔵 Gemini
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiSettings({...aiSettings, imageGeneration: 'openai'})}
+                        disabled={!configValues.openaiKey}
+                        className={`flex-1 py-3 px-4 rounded-lg text-xs font-bold transition-all ${
+                          aiSettings.imageGeneration === 'openai'
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        } ${!configValues.openaiKey ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        🟢 DALL-E
+                      </button>
+                    </div>
+                    {!configValues.geminiKey && aiSettings.imageGeneration === 'gemini' && (
+                      <p className="text-[10px] text-red-400 mt-2">⚠️ Gemini API 키를 먼저 설정하세요</p>
+                    )}
+                    {!configValues.openaiKey && aiSettings.imageGeneration === 'openai' && (
+                      <p className="text-[10px] text-red-400 mt-2">⚠️ OpenAI API 키를 먼저 설정하세요</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* 현재 설정 요약 */}
+                <div className="mt-4 p-3 bg-slate-900/50 rounded-lg">
+                  <p className="text-[11px] text-slate-400">
+                    📌 현재 설정: 글쓰기는 <span className={`font-bold ${aiSettings.textGeneration === 'gemini' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                      {aiSettings.textGeneration === 'gemini' ? 'Gemini' : 'GPT'}
+                    </span>, 이미지는 <span className={`font-bold ${aiSettings.imageGeneration === 'gemini' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                      {aiSettings.imageGeneration === 'gemini' ? 'Gemini' : 'DALL-E'}
+                    </span> 사용
+                  </p>
+                </div>
               </div>
 
               {/* Actions */}
