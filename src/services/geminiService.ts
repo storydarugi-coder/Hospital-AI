@@ -4281,9 +4281,15 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
 - 모든 텍스트는 HTML 태그로 감싸서 출력
 `;
 
-  const model = getModel();
-  const result = await model.generateContent(pressPrompt);
-  let pressContent = result.response.text();
+  const ai = getAiClient();
+  const result = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: pressPrompt,
+    config: {
+      responseMimeType: "text/plain"
+    }
+  });
+  let pressContent = result.text || '';
   
   // HTML 정리
   pressContent = pressContent
