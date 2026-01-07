@@ -42,7 +42,7 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-5.2-pro',
       messages: [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         { role: 'user', content: prompt }
