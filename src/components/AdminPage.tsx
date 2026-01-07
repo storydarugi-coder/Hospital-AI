@@ -39,7 +39,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments'>('api');
   
   const [configValues, setConfigValues] = useState({
-    geminiKey: ''
+    geminiKey: '',
+    openaiKey: ''
   });
   const [saved, setSaved] = useState(false);
   
@@ -76,9 +77,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     if (isAuthenticated) {
       // GLOBAL_ 접두사로 전역 API 키 관리
       const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
+      const globalOpenai = localStorage.getItem('GLOBAL_OPENAI_API_KEY');
 
       setConfigValues({
-        geminiKey: globalGemini || ''
+        geminiKey: globalGemini || '',
+        openaiKey: globalOpenai || ''
       });
       
       // 데이터 로드
@@ -210,9 +213,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const handleSaveConfig = () => {
     // GLOBAL_ 접두사로 저장하여 모든 사용자가 이용하도록 함
     localStorage.setItem('GLOBAL_GEMINI_API_KEY', configValues.geminiKey);
+    localStorage.setItem('GLOBAL_OPENAI_API_KEY', configValues.openaiKey);
     
     // 기존 개인용 키도 업데이트 (호환성)
     localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
+    localStorage.setItem('OPENAI_API_KEY', configValues.openaiKey);
     
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -221,9 +226,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const handleClearConfig = () => {
     if (confirm('API 키를 삭제하시겠습니까?')) {
       localStorage.removeItem('GLOBAL_GEMINI_API_KEY');
+      localStorage.removeItem('GLOBAL_OPENAI_API_KEY');
       localStorage.removeItem('GEMINI_API_KEY');
+      localStorage.removeItem('OPENAI_API_KEY');
       setConfigValues({
-        geminiKey: ''
+        geminiKey: '',
+        openaiKey: ''
       });
     }
   };
@@ -418,12 +426,20 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           {/* API Settings Tab */}
           {activeTab === 'api' && (
             <div>
-              {/* Status Badge */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className={`w-3 h-3 rounded-full ${configValues.geminiKey ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                <span className="text-sm font-bold text-slate-300">
-                  {configValues.geminiKey ? '서비스 활성화됨' : '서비스 비활성화'}
-                </span>
+              {/* Status Badges */}
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${configValues.geminiKey ? 'bg-blue-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <span className="text-sm font-bold text-slate-300">
+                    Gemini: {configValues.geminiKey ? '✅ 활성' : '❌ 미설정'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${configValues.openaiKey ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                  <span className="text-sm font-bold text-slate-300">
+                    GPT: {configValues.openaiKey ? '✅ 활성' : '⚪ 미설정'}
+                  </span>
+                </div>
               </div>
 
               {/* Info Banner */}
@@ -465,6 +481,38 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                   </a>
                 </div>
 
+                {/* OpenAI API Key */}
+                <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 p-6 rounded-2xl border border-emerald-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs font-black text-emerald-300 uppercase tracking-widest">
+                      OpenAI (GPT) API
+                    </label>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-500/20 px-2 py-1 rounded-full">선택</span>
+                  </div>
+                  <input 
+                    type="password" 
+                    value={configValues.openaiKey}
+                    onChange={(e) => setConfigValues({...configValues, openaiKey: e.target.value})}
+                    placeholder="OpenAI에서 발급받은 API Key (sk-...)"
+                    className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-emerald-500 outline-none transition-colors"
+                  />
+                  {configValues.openaiKey && (
+                    <p className="text-[11px] text-emerald-400 mt-2 font-mono">
+                      현재 키: {maskApiKey(configValues.openaiKey)}
+                    </p>
+                  )}
+                  <a 
+                    href="https://platform.openai.com/api-keys" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-emerald-400 mt-2 font-bold hover:text-emerald-300"
+                  >
+                    🔗 OpenAI Platform에서 키 발급받기
+                  </a>
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    💡 추후 글쓰기는 GPT, 이미지 생성은 Gemini 등 역할 분리에 사용됩니다.
+                  </p>
+                </div>
 
               </div>
 
