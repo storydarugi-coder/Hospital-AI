@@ -1,3 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <text y=".9em" font-size="90">🏥</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 병원 십자가 아이콘 -->
+  <rect width="512" height="512" rx="80" fill="#10b981"/>
+  <g fill="white">
+    <!-- 수직선 -->
+    <rect x="206" y="100" width="100" height="312" rx="10"/>
+    <!-- 수평선 -->
+    <rect x="150" y="156" width="212" height="100" rx="10"/>
+  </g>
 </svg>
