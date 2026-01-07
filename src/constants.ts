@@ -8,6 +8,7 @@ export const CATEGORIES = [
   { value: ContentCategory.PLASTIC_SURGERY, label: '💎 성형외과' },
   { value: ContentCategory.OBGYN, label: '🤰 산부인과' },
   { value: ContentCategory.BREAST_SURGERY, label: '🎀 유방외과' },
+  { value: ContentCategory.THYROID_SURGERY, label: '🦋 갑상선외과' },
   { value: ContentCategory.OPHTHALMOLOGY, label: '👁️ 안과' },
   { value: ContentCategory.ENT, label: '👂 이비인후과' },
   { value: ContentCategory.PSYCHIATRY, label: '🧠 정신건강의학과' },
