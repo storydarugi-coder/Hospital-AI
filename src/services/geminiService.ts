@@ -704,8 +704,10 @@ const CONTENT_DESCRIPTION = `이 콘텐츠는 의료정보 안내용 카드뉴�
 // 의료 면책 조항 (HTML)
 const MEDICAL_DISCLAIMER = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
 
-// 글 스타일별 프롬프트 (의료법 100% 준수)
-const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
+// 글 스타일별 프롬프트 (의료법 100% 준수) - 함수로 변경하여 현재 연도 동적 반영
+const getWritingStylePrompts = (): Record<WritingStyle, string> => {
+  const year = new Date().getFullYear();
+  return {
   // 📚 전문가형: 의학 지식 깊이 강조, 논문/연구 인용, 전문의 권위감
   expert: `
 [🚨 스타일 선택 규칙 - 최우선 적용]
@@ -723,11 +725,11 @@ const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
    ✅ "임상에서 환자분들을 만나다 보면, 의외로 많이 오해하시는 부분이 있습니다."
 
 2. **논문/학회/가이드라인 인용** (최소 2회 이상, 현재 연도 기준 최신!)
-   ✅ "[올해]년 대한OO학회 가이드라인에 따르면..." (최신 가이드라인 우선)
-   ✅ "[올해]년 또는 [작년]년 JAMA/NEJM 발표 연구에서는..."
-   ✅ "최근 국민건강영양조사([작년]년) 데이터를 분석해보면..."
+   ✅ "${year}년 대한OO학회 가이드라인에 따르면..." (최신 가이드라인 우선)
+   ✅ "${year}년 또는 ${year-1}년 JAMA/NEJM 발표 연구에서는..."
+   ✅ "최근 국민건강영양조사(${year-1}년) 데이터를 분석해보면..."
    ✅ "임상 경험상 이런 케이스가 많은데요..."
-   ⚠️ 주의: 자료 인용 시 반드시 현재 연도 기준 최신 자료 사용! 오래된 자료는 "~년 기준" 명시!
+   ⚠️ 주의: 자료 인용 시 반드시 ${year}년 기준 최신 자료 사용! 오래된 자료는 "~년 기준" 명시!
 
 3. **의학 용어 + 쉬운 설명 병행**
    ✅ "인슐린 저항성(쉽게 말해, 인슐린이 제대로 작동하지 않는 상태)이..."
@@ -819,6 +821,7 @@ const WRITING_STYLE_PROMPTS: Record<WritingStyle, string> = {
    - 시의성: "환절기가 지나기 전에 체크해보시는 건 어떨까요"
    - 일관성: "오늘 자가체크 한번 해보시고, 궁금한 점이 있으면 전문의와 상담을 고려해 보세요"
 `
+  };
 };
 
 // 글 스타일별 금지 표현 체크 (공통)
@@ -939,10 +942,10 @@ const WRITING_STYLE_COMMON_RULES = `
    ✅ "대한의학회에서 발표한 연구 결과..."
    ✅ "보건복지부 권고 기준으로..."
    - 통계 사용 시 출처+연도 필수 (현재 연도 기준 최신 자료!)
-   ✅ "[올해]년 또는 [작년]년 국민건강영양조사에 따르면..." (최신 자료 우선)
-   ✅ "[올해]년 대한OO학회 최신 가이드라인..."
+   ✅ "${year}년 또는 ${year-1}년 국민건강영양조사에 따르면..." (최신 자료 우선)
+   ✅ "${year}년 대한OO학회 최신 가이드라인..."
    ❌ "통계에 따르면 70%가..." (출처/연도 없음)
-   ⚠️ 통계/자료는 반드시 현재 연도 기준 최신 것만 인용! 2년 이상 된 자료는 "~년 기준" 명시 필수
+   ⚠️ 통계/자료는 반드시 현재(${year}년) 기준 최신 것만 인용! 2년 이상 된 자료는 "~년 기준" 명시 필수
 
 **4. 🔒 Trustworthiness (신뢰) - 정직하고 투명한 정보**
    - 한계점과 불확실성 솔직히 언급
@@ -2748,7 +2751,7 @@ export const generateCardNewsScript = async (
   const ai = getAiClient();
   const slideCount = request.slideCount || 6;
   const writingStyle = request.writingStyle || 'empathy';
-  const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
+  const writingStylePrompt = getWritingStylePrompts()[writingStyle];
   
   // 블로그와 동일한 검증된 프롬프트 구조 사용
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
@@ -3305,7 +3308,7 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   const targetImageCount = request.imageCount || 3;
   const imageMarkers = Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ');
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
-  const writingStylePrompt = WRITING_STYLE_PROMPTS[writingStyle];
+  const writingStylePrompt = getWritingStylePrompts()[writingStyle];
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
   
   // 학습된 말투 스타일 적용
