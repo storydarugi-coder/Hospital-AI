@@ -77,7 +77,7 @@ export interface FactCheckReport {
   verified_facts_count: number;
   safety_score: number;
   conversion_score: number;  // 전환력 점수 (0~100) - 의료법 준수하면서 행동 유도하는 능력
-  ai_smell_score?: number;   // AI 냄새 점수 (0~100) - 20점 초과 시 재작성 대상, 블로그/보도자료에만 적용
+  ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 15점 초과 시 재작성 대상, 블로그/보도자료에만 적용
   issues: string[];
   recommendations: string[];
 }

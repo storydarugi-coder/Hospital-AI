@@ -1986,13 +1986,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 <div className="w-px h-12 bg-slate-700"></div>
                 
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI 냄새</span>
+                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI 냄새 v2</span>
                   <div className="flex items-center gap-2">
-                     <span className={`text-3xl font-black ${content.factCheck.ai_smell_score <= 10 ? 'text-green-400' : content.factCheck.ai_smell_score <= 20 ? 'text-amber-400' : 'text-red-400'}`}>
+                     <span className={`text-3xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
                        {content.factCheck.ai_smell_score}점
                      </span>
                      <span className="text-[10px] opacity-70">
-                       {content.factCheck.ai_smell_score <= 10 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 20 ? '⚠️ 부분수정' : '🚨 재작성'}
+                       {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 부분수정' : '🚨 재작성'}
                      </span>
                   </div>
                 </div>
