@@ -138,10 +138,17 @@ const getMedicalSafetyPrompt = () => {
 
 🚨🚨🚨 **모든 의학 정보는 반드시 공신력 있는 출처를 기반으로 작성하세요!** 🚨🚨🚨
 
+**🔎 글 작성 전 필수 검색 (Google Search 도구 활용!):**
+⚠️ 글을 작성하기 전에 반드시 아래 출처에서 최신 정보를 검색하세요!
+1. "[주제] site:pubmed.ncbi.nlm.nih.gov" → 최신 논문 검색
+2. "[주제] 대한OO학회 가이드라인 ${new Date().getFullYear()}" → 국내 학회 최신 지침
+3. "[주제] site:kdca.go.kr OR site:mohw.go.kr ${new Date().getFullYear()}" → 정부 기관 자료
+4. "[주제] JAMA OR NEJM OR Lancet ${new Date().getFullYear()}" → 국제 학술지
+
 **✅ 반드시 참고해야 하는 공신력 있는 출처 (필수!):**
 1. **국내 학회**: 대한의학회, 대한내과학회, 대한외과학회, 한국유방암학회, 대한유방검진의학회, 대한갑상선학회, 대한내분비외과학회, 대한갑상선내분비외과학회, 대한피부과학회, 대한소아청소년과학회, 대한산부인과학회, 대한정형외과학회, 대한안과학회, 대한이비인후과학회, 대한비뇨의학회, 대한신경과학회, 대한정신건강의학과의사회, 대한가정의학회, 대한치과의사협회, 대한종양외과학회 등 "대한OO학회/협회"
 2. **정부 기관**: 보건복지부, 질병관리청(KDCA), 식품의약품안전처(MFDS), 국민건강보험공단, 건강보험심사평가원
-3. **국제 학술지/기관**: JAMA, NEJM, The Lancet, BMJ, Nature Medicine, WHO, CDC, NIH
+3. **국제 학술지/기관**: PubMed, JAMA, NEJM, The Lancet, BMJ, Nature Medicine, WHO, CDC, NIH
 4. **국내 논문 DB**: KoreaMed, KISS, RISS, KCI 등재 학술지
 
 **⛔ 절대 참고하면 안 되는 출처:**
@@ -152,13 +159,15 @@ const getMedicalSafetyPrompt = () => {
 ❌ 검증되지 않은 민간요법/대체의학 사이트
 
 **📌 출처 인용 규칙 (반드시 준수!):**
-1. **본문에 최소 2회 이상** 공신력 있는 출처 언급 필수
-   ✅ "대한당뇨병학회 가이드라인에 따르면..."
-   ✅ "질병관리청 자료를 보면..."
-   ✅ "최근 JAMA에 발표된 연구에서..."
+1. **본문에 최소 3회 이상** 공신력 있는 출처 언급 필수!
+   ✅ "대한당뇨병학회 ${new Date().getFullYear()}년 가이드라인에 따르면..."
+   ✅ "질병관리청 최신 자료를 보면..."
+   ✅ "최근 PubMed에 발표된 연구(${new Date().getFullYear()})에서..."
+   ✅ "보건복지부 발표에 의하면..."
    
-2. **구체적 수치/통계는 반드시 출처와 함께**
-   ✅ "대한고혈압학회 자료에 따르면 수축기 혈압 140mmHg 이상..."
+2. **구체적 수치/통계는 반드시 출처+연도와 함께**
+   ✅ "대한고혈압학회 ${new Date().getFullYear()}년 자료에 따르면 수축기 혈압 140mmHg 이상..."
+   ✅ "질병관리청 통계(${new Date().getFullYear()})에 따르면..."
    ❌ "혈압이 140 이상이면 위험합니다" (출처 없이 수치 사용 금지)
    
 3. **출처 없이 사용 가능한 표현 (일반화된 상식 수준만)**
@@ -171,8 +180,14 @@ const getMedicalSafetyPrompt = () => {
    ❌ "3일 이내에..." → ✅ "며칠 내로..."
    ❌ "반드시 ~해야 합니다" → ✅ "~하는 것이 도움이 될 수 있습니다"
 
+5. **인용 시 연도 표기 필수!**
+   ✅ "대한OO학회(${new Date().getFullYear()})", "질병관리청(${new Date().getFullYear()})"
+   ❌ 연도 없이 출처만 언급하는 것 지양
+
 **🔍 의학 정보 작성 시 자가 체크리스트:**
-□ 공신력 있는 출처(학회/정부/논문)를 최소 2회 인용했는가?
+□ Google 검색으로 최신 논문/학회 자료를 확인했는가?
+□ 공신력 있는 출처(학회/정부/논문)를 최소 3회 인용했는가?
+□ 인용 시 연도를 함께 표기했는가?
 □ 구체적 수치에 출처를 명시했는가?
 □ 단정적 표현 대신 완화 표현을 사용했는가?
 □ 검증되지 않은 정보를 포함하지 않았는가?
@@ -4533,11 +4548,23 @@ ${getStylePromptForGeneration(learnedStyle)}
     
     [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]
     ${timeContext}
+    
+    🔎🔎🔎 **글 작성 전 필수 검색 단계 (반드시 수행!)** 🔎🔎🔎
+    1️⃣ Google 검색: "${request.topic} site:pubmed.ncbi.nlm.nih.gov ${currentYear}"
+       → 최신 논문/연구 결과 확인
+    2️⃣ Google 검색: "${request.topic} 대한${request.category}학회 가이드라인 ${currentYear}"
+       → 국내 학회 최신 지침 확인
+    3️⃣ Google 검색: "${request.topic} site:kdca.go.kr OR site:mohw.go.kr"
+       → 질병관리청/보건복지부 공식 자료 확인
+    
+    ⚠️ 검색 결과를 바탕으로 최신 정보만 사용하여 글 작성!
+    ⚠️ 본문에 최소 3회 이상 공신력 있는 출처(학회/정부/논문) 인용 필수!
+    ⚠️ 인용 시 반드시 연도 표기! (예: "대한OO학회(${currentYear})")
+    
     - ${currentYear}년 최신 의학 가이드라인/연구 결과 반영
-    - ${currentYear}년 최신 의료광고법 규정 준수 (Google 검색으로 "${currentYear}년 의료광고법" 확인)
+    - ${currentYear}년 최신 의료광고법 규정 준수
     - ${currentSeason}철 특성 고려 (계절성 질환, 생활 습관 등)
     - 오래된 정보(2년 이상)는 최신 정보로 업데이트하여 작성
-    - Google 검색으로 ${currentYear}년 최신 정보 확인 후 작성
     
     진료과: ${request.category}, 페르소나: ${request.persona}, 주제: ${request.topic}
     
