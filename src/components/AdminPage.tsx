@@ -594,51 +594,58 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                           <td className="py-3 px-4">
                             <button
                               onClick={async () => {
-                                if (!confirm(`정말 ${user.email} 회원을 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없습니다.`)) return;
+                                if (!confirm(`정말 ${user.email} 회원을 삭제하시겠습니까?\n\n⚠️ 주의: 이 작업은 되돌릴 수 없습니다.\n\n삭제 대상:\n- 프로필 정보\n- 구독 정보\n- 사용 기록`)) return;
                                 
                                 console.log('[Admin] 회원 삭제 시작:', user.id, user.email);
                                 
                                 try {
-                                  // 1. usage_logs 테이블에서 삭제
+                                  // 1. usage_logs 테이블에서 삭제 (외래키 제약 때문에 먼저)
                                   const { error: logsError } = await supabase
                                     .from('usage_logs')
                                     .delete()
                                     .eq('user_id', user.id);
-                                  console.log('[Admin] usage_logs 삭제:', logsError ? logsError.message : '성공');
+                                  console.log('[Admin] usage_logs:', logsError?.message || '✓ 삭제됨');
                                   
-                                  // 2. subscriptions 테이블에서 삭제
+                                  // 2. payments 테이블에서 삭제
+                                  const { error: payError } = await supabase
+                                    .from('payments')
+                                    .delete()
+                                    .eq('user_id', user.id);
+                                  console.log('[Admin] payments:', payError?.message || '✓ 삭제됨');
+                                  
+                                  // 3. subscriptions 테이블에서 삭제
                                   const { error: subError } = await supabase
                                     .from('subscriptions')
                                     .delete()
                                     .eq('user_id', user.id);
-                                  console.log('[Admin] subscriptions 삭제:', subError ? subError.message : '성공');
+                                  console.log('[Admin] subscriptions:', subError?.message || '✓ 삭제됨');
                                   
-                                  // 3. profiles 테이블에서 삭제
-                                  const { error: profileError, count } = await supabase
+                                  // 4. profiles 테이블에서 삭제 (마지막에!)
+                                  const { error: profileError } = await supabase
                                     .from('profiles')
                                     .delete()
-                                    .eq('id', user.id)
-                                    .select();
-                                  console.log('[Admin] profiles 삭제:', profileError ? profileError.message : '성공', 'count:', count);
+                                    .eq('id', user.id);
+                                  console.log('[Admin] profiles:', profileError?.message || '✓ 삭제됨');
                                   
                                   if (profileError) {
-                                    // RLS 정책 문제일 가능성
-                                    if (profileError.message?.includes('policy') || profileError.code === '42501') {
-                                      alert(`삭제 권한이 없습니다.\n\nSupabase Dashboard → Authentication → Policies에서\nprofiles 테이블의 DELETE 정책을 확인해주세요.\n\n또는 SQL Editor에서 직접 삭제:\nDELETE FROM profiles WHERE id = '${user.id}';`);
-                                    } else {
-                                      throw profileError;
-                                    }
+                                    // RLS 정책 또는 권한 문제
+                                    const sqlHint = `DELETE FROM profiles WHERE id = '${user.id}';`;
+                                    alert(`❌ 프로필 삭제 실패!\n\n오류: ${profileError.message}\n\n` +
+                                          `💡 해결 방법:\n` +
+                                          `1. Supabase SQL Editor에서 직접 실행:\n${sqlHint}\n\n` +
+                                          `2. 또는 RLS 정책 추가:\n` +
+                                          `CREATE POLICY "Allow delete" ON profiles FOR DELETE USING (true);`);
                                     return;
                                   }
                                   
-                                  // UI에서 즉시 제거 (새로고침 없이)
+                                  // 성공! UI 업데이트
                                   setUsers(prev => prev.filter(u => u.id !== user.id));
                                   setStats(prev => ({ ...prev, totalUsers: prev.totalUsers - 1 }));
                                   
-                                  alert('✅ 회원이 삭제되었습니다.');
+                                  alert('✅ 회원이 완전히 삭제되었습니다.');
                                 } catch (err: any) {
-                                  console.error('[Admin] 삭제 오류:', err);
-                                  alert(`삭제 실패: ${err.message || String(err)}\n\n콘솔(F12)에서 자세한 오류를 확인하세요.`);
+                                  console.error('[Admin] 삭제 예외:', err);
+                                  alert(`삭제 실패: ${err.message || String(err)}`);
                                 }
                               }}
                               className="px-2 py-1 bg-red-500/20 text-red-400 text-xs font-bold rounded hover:bg-red-500/30 transition-colors"

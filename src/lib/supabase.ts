@@ -127,34 +127,73 @@ export const onAuthStateChange = (callback: (event: string, session: any) => voi
 export const deleteAccount = async (userId: string) => {
   console.log('[Delete Account] Starting account deletion for:', userId);
   
+  const errors: string[] = [];
+  
   try {
     // 1. 사용 로그 삭제
-    await supabase.from('usage_logs').delete().eq('user_id', userId);
-    console.log('[Delete Account] Usage logs deleted');
+    const { error: logsError } = await supabase
+      .from('usage_logs')
+      .delete()
+      .eq('user_id', userId);
+    if (logsError) {
+      console.warn('[Delete Account] usage_logs 삭제 실패:', logsError.message);
+      errors.push(`usage_logs: ${logsError.message}`);
+    } else {
+      console.log('[Delete Account] usage_logs 삭제 성공');
+    }
     
     // 2. 구독 정보 삭제
-    await supabase.from('subscriptions').delete().eq('user_id', userId);
-    console.log('[Delete Account] Subscription deleted');
+    const { error: subError } = await supabase
+      .from('subscriptions')
+      .delete()
+      .eq('user_id', userId);
+    if (subError) {
+      console.warn('[Delete Account] subscriptions 삭제 실패:', subError.message);
+      errors.push(`subscriptions: ${subError.message}`);
+    } else {
+      console.log('[Delete Account] subscriptions 삭제 성공');
+    }
     
-    // 3. 프로필 삭제
-    await supabase.from('profiles').delete().eq('id', userId);
-    console.log('[Delete Account] Profile deleted');
+    // 3. 프로필 삭제 (가장 중요!)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    if (profileError) {
+      console.error('[Delete Account] profiles 삭제 실패:', profileError.message);
+      errors.push(`profiles: ${profileError.message}`);
+      
+      // RLS 정책 문제일 가능성 안내
+      if (profileError.message?.includes('policy') || profileError.code === '42501') {
+        return { 
+          success: false, 
+          error: 'DELETE 권한이 없습니다. Supabase RLS 정책을 확인해주세요.\n\n' +
+                 'SQL Editor에서 실행:\n' +
+                 'CREATE POLICY "Users can delete own profile" ON profiles\n' +
+                 'FOR DELETE USING (auth.uid() = id);'
+        };
+      }
+    } else {
+      console.log('[Delete Account] profiles 삭제 성공');
+    }
     
     // 4. 로컬 스토리지 정리
     localStorage.removeItem(`user_credits_${userId}`);
     localStorage.removeItem('used_coupons');
+    console.log('[Delete Account] localStorage 정리 완료');
     
     // 5. 로그아웃 (세션 종료)
     await supabase.auth.signOut();
-    console.log('[Delete Account] Signed out');
+    console.log('[Delete Account] 로그아웃 완료');
     
-    // 참고: Supabase에서 실제 auth.users 테이블 삭제는 
-    // 서버 사이드(Service Role Key) 또는 대시보드에서만 가능
-    // 클라이언트에서는 관련 데이터만 삭제하고 로그아웃 처리
+    // 에러가 있었어도 프로필은 삭제됐으면 성공으로 처리
+    if (errors.length > 0 && errors.some(e => e.startsWith('profiles:'))) {
+      return { success: false, error: errors.join('\n') };
+    }
     
     return { success: true, error: null };
   } catch (err: any) {
-    console.error('[Delete Account] Error:', err);
+    console.error('[Delete Account] 예외 발생:', err);
     return { success: false, error: err.message || '탈퇴 처리 중 오류가 발생했습니다.' };
   }
 };
