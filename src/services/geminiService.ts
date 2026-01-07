@@ -610,7 +610,7 @@ Only render the actual content text (subtitle, mainTitle, description).`;
 const CARD_FRAME_RULE = `
 [FRAME LAYOUT - FOLLOW REFERENCE IMAGE EXACTLY]
 Copy the EXACT frame layout from the reference image:
-- Purple/violet colored border around the edges
+- Border color: #787fff (lavender purple/violet) around the edges
 - White content area inside the border
 - Rounded corners
 - Clean minimal design
@@ -2256,7 +2256,6 @@ export const analyzeStyleReferenceImage = async (base64Image: string, isCover: b
 📐 [2단계] 레이아웃/프레임 분석
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 5. **프레임 스타일**: 
-   - 브라우저 창 모양? (빨강/노랑/초록 버튼)
    - 둥근 테두리 카드?
    - 테두리 색상(HEX)과 굵기(px)
 
@@ -2278,19 +2277,17 @@ export const analyzeStyleReferenceImage = async (base64Image: string, isCover: b
     "colorPalette": ["#주배경", "#강조색", "#보조1", "#보조2", "#텍스트"],
     "promptKeywords": "이 스타일을 재현하기 위한 영어 키워드 5-8개 (예: 3D clay render, soft shadows, pastel colors, rounded shapes, studio lighting)"
   },
-  "frameStyle": "browser-window / rounded-card / rectangle",
-  "hasWindowButtons": true,
-  "windowButtonColors": ["#FF5F57", "#FFBD2E", "#28CA41"],
+  "frameStyle": "rounded-card / rectangle",
   "backgroundColor": "#E8F4FD",
-  "borderColor": "#3B82F6",
+  "borderColor": "#787fff",
   "borderWidth": "2px",
   "borderRadius": "16px",
   "boxShadow": "0 4px 12px rgba(0,0,0,0.1)",
   "subtitleStyle": { "color": "#6B7280", "fontSize": "14px", "fontWeight": "500" },
   "mainTitleStyle": { "color": "#1F2937", "fontSize": "28px", "fontWeight": "700" },
-  "highlightStyle": { "color": "#3B82F6", "backgroundColor": "transparent" },
+  "highlightStyle": { "color": "#787fff", "backgroundColor": "transparent" },
   "descStyle": { "color": "#4B5563", "fontSize": "16px" },
-  "tagStyle": { "backgroundColor": "#EBF5FF", "color": "#3B82F6", "borderRadius": "20px" },
+  "tagStyle": { "backgroundColor": "#F0F0FF", "color": "#787fff", "borderRadius": "20px" },
   "illustPosition": "bottom",
   "illustSize": "60%",
   "padding": "24px",
