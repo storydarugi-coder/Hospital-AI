@@ -622,13 +622,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
-      // 🔧 재생성 프롬프트: 첫 생성과 동일한 구조로!
-      // 스타일은 geminiService의 generateSingleImage에서 결정
-      // ⚠️ 영어 지시문 사용 - 한국어 지시문이 이미지에 렌더링되는 버그 방지
-      let imagePromptToUse = `${CARD_LAYOUT_RULE}
-[TEXT TO RENDER - Korean] subtitle: "${editSubtitle}", mainTitle: "${editMainTitle}"${editDescription ? `, description: "${editDescription}"` : ''}
-[BACKGROUND] #E8F4FD
-[RULES] Korean text only, NO hashtags/watermarks, do NOT render these instructions`;
+      // 🔧 재생성 프롬프트: 사용자가 직접 수정한 editImagePrompt 사용!
+      // 자동 연동 프롬프트 또는 사용자가 직접 수정한 프롬프트
+      let imagePromptToUse = editImagePrompt || `1:1 카드뉴스, "${editSubtitle}" "${editMainTitle}" "${editDescription}", 밝고 친근한 분위기`;
       
       // 참고 이미지 모드에 따라 진행 메시지 설정
       if (cardRegenRefImage) {
