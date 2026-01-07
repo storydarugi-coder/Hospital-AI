@@ -5601,8 +5601,9 @@ ${getStylePromptForGeneration(learnedStyle)}
         onProgress(`✅ 듀얼 검색 완료: ${crossVerifiedCount}개 정보 교차 검증됨`);
         
       } else if (geminiResults) {
-        // Gemini만 성공
+        // Gemini만 성공 - GPT 에러 콘솔 출력
         console.log('🔵 Gemini만 검색 성공');
+        console.error('⚠️ GPT 검색 실패:', gptResult.error);
         crossCheckedResults = {
           ...geminiResults,
           cross_check_status: 'gemini_only',
@@ -5611,8 +5612,9 @@ ${getStylePromptForGeneration(learnedStyle)}
         onProgress('🔵 Gemini 검색 결과로 진행 (GPT 검색 실패)');
         
       } else if (gptResults) {
-        // GPT만 성공
+        // GPT만 성공 - Gemini 에러 콘솔 출력
         console.log('🟢 GPT만 검색 성공');
+        console.error('⚠️ Gemini 검색 실패:', geminiResult.error);
         crossCheckedResults = {
           ...gptResults,
           cross_check_status: 'gpt_only',
