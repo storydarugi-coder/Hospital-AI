@@ -102,9 +102,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [savedCustomStylePrompt, setSavedCustomStylePrompt] = useState<string | undefined>(content.customImagePrompt);
   
   // 📊 SEO 점수 평가 관련 상태
-  const [seoScore, setSeoScore] = useState<SeoScoreReport | null>(null);
+  const [seoScore, setSeoScore] = useState<SeoScoreReport | null>(content.seoScore || null);
   const [isEvaluatingSeo, setIsEvaluatingSeo] = useState(false);
   const [showSeoDetail, setShowSeoDetail] = useState(false);
+  
+  // content.seoScore가 있으면 자동으로 설정
+  useEffect(() => {
+    if (content.seoScore) {
+      console.log('📊 SEO 점수 자동 로드:', content.seoScore.total);
+      setSeoScore(content.seoScore);
+    }
+  }, [content.seoScore]);
   
   // 프롬프트 히스토리 및 참고 이미지 불러오기
   useEffect(() => {
