@@ -49,25 +49,33 @@ export const signUpWithEmail = async (email: string, password: string, name: str
     }
   });
   
-  // 회원가입 성공 & 세션이 있으면 (이메일 확인이 비활성화된 경우)
-  // 프로필과 구독 정보 생성
-  if (data.user && data.session) {
-    // profiles 테이블에 사용자 정보 생성
-    await supabase.from('profiles').upsert({
-      id: data.user.id,
-      email: email,
-      full_name: name,
-      avatar_url: null
-    }, { onConflict: 'id' });
-    
-    // subscriptions 테이블에 무료 플랜 생성
-    await supabase.from('subscriptions').upsert({
-      user_id: data.user.id,
-      plan_type: 'free',
-      credits_total: 3,
-      credits_used: 0,
-      expires_at: null
-    }, { onConflict: 'user_id' });
+  // 회원가입 성공 시 프로필과 구독 정보 생성
+  // ⚠️ data.user만 있으면 생성 (이메일 확인 여부와 관계없이)
+  if (data.user) {
+    try {
+      // profiles 테이블에 사용자 정보 생성
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: email,
+        full_name: name,
+        avatar_url: null,
+        created_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+      
+      // subscriptions 테이블에 무료 플랜 생성
+      await supabase.from('subscriptions').upsert({
+        user_id: data.user.id,
+        plan_type: 'free',
+        credits_total: 3,
+        credits_used: 0,
+        expires_at: null
+      }, { onConflict: 'user_id' });
+      
+      console.log('✅ 프로필 및 구독 정보 생성 완료:', data.user.email);
+    } catch (profileError) {
+      console.error('프로필 생성 실패 (무시):', profileError);
+      // 프로필 생성 실패해도 회원가입은 성공으로 처리
+    }
   }
   
   return { data, error };
