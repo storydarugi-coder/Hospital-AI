@@ -5424,7 +5424,15 @@ ${getStylePromptForGeneration(learnedStyle)}
       // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       console.log('📍 onProgress 호출 직전...');
-      onProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+      try {
+        if (typeof onProgress === 'function') {
+          onProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+        } else {
+          console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
+        }
+      } catch (progressError) {
+        console.error('❌ onProgress 호출 에러:', progressError);
+      }
       console.log('📍 onProgress 호출 완료, searchPrompt 생성 시작...');
       
       const searchPrompt = `
