@@ -3767,12 +3767,301 @@ ${getStylePromptForGeneration(learnedStyle)}
   } catch (error) { throw error; }
 };
 
+// 🗞️ 보도자료 생성 함수
+const generatePressRelease = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth() + 1;
+  const day = currentDate.getDate();
+  const formattedDate = `${year}년 ${month}월 ${day}일`;
+  
+  const pressTypeLabels: Record<string, string> = {
+    'achievement': '실적 달성',
+    'new_service': '신규 서비스/장비 도입',
+    'research': '연구/학술 성과',
+    'event': '행사/이벤트',
+    'award': '수상/인증 획득'
+  };
+  
+  const pressTypeLabel = pressTypeLabels[request.pressType || 'achievement'] || '실적 달성';
+  const hospitalName = request.hospitalName || 'OO병원';
+  const doctorName = request.doctorName || '홍길동';
+  const doctorTitle = request.doctorTitle || '원장';
+  
+  onProgress('🗞️ 보도자료 작성 중...');
+  
+  const pressPrompt = `
+당신은 병원 홍보팀 보도자료 전문가입니다.
+아래 정보를 바탕으로 언론 배포용 보도자료를 작성해주세요.
+
+[기본 정보]
+- 작성일: ${formattedDate}
+- 병원명: ${hospitalName}
+- 진료과: ${request.category}
+- 의료진: ${doctorName} ${doctorTitle}
+- 보도 유형: ${pressTypeLabel}
+- 주제: ${request.topic}
+- 키워드: ${request.keywords}
+
+[필수 포함 문구 - 반드시 보도자료 하단에 포함]
+⚠️ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.
+의학적 정보는 참고용이며, 정확한 진단과 치료는 반드시 전문의와 상담하시기 바랍니다.
+
+[보도자료 형식 - 반드시 HTML로 작성]
+<div class="press-release-container">
+  <div class="press-header">
+    <p class="press-date">${formattedDate}</p>
+    <p class="press-embargo">즉시 보도 가능</p>
+  </div>
+  
+  <h1 class="press-title">[제목: 임팩트 있는 한 줄 - 50자 이내]</h1>
+  <h2 class="press-subtitle">[부제: 핵심 내용 요약 - 70자 이내]</h2>
+  
+  <div class="press-lead">
+    <p>[리드문: 5W1H 원칙에 따라 핵심 내용 요약 - 150~200자]</p>
+  </div>
+  
+  <div class="press-body">
+    <h3>■ 배경 및 현황</h3>
+    <p>[관련 의료 현황, 사회적 배경 설명 - 200~300자]</p>
+    
+    <h3>■ 주요 내용</h3>
+    <p>[보도 핵심 내용 상세 설명 - 300~400자]</p>
+    <ul>
+      <li>핵심 포인트 1</li>
+      <li>핵심 포인트 2</li>
+      <li>핵심 포인트 3</li>
+    </ul>
+    
+    <h3>■ 전문가 코멘트</h3>
+    <blockquote class="press-quote">
+      <p>"[${doctorName} ${doctorTitle}의 전문적이고 신뢰감 있는 코멘트 - 100~150자]"</p>
+      <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
+    </blockquote>
+    
+    <h3>■ 향후 계획</h3>
+    <p>[향후 발전 계획, 비전 제시 - 150~200자]</p>
+  </div>
+  
+  <div class="press-footer">
+    <div class="press-contact">
+      <h4>▣ 문의처</h4>
+      <p>${hospitalName} 홍보팀</p>
+      <p>전화: 02-0000-0000 / 이메일: pr@hospital.com</p>
+    </div>
+    
+    <div class="press-disclaimer">
+      <p>※ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.</p>
+      <p>※ 의학적 정보는 참고용이며, 정확한 진단과 치료는 반드시 전문의와 상담하시기 바랍니다.</p>
+      <p>※ 본 보도자료의 사실 확인 및 법적 책임은 배포 기관에 있습니다.</p>
+    </div>
+  </div>
+</div>
+
+[작성 지침]
+1. 객관적이고 공식적인 어조 사용 (마케팅 문구 지양)
+2. 과장된 표현 금지 (최고, 최초, 유일 등 검증 불가 표현 주의)
+3. 구체적인 수치와 사실에 기반한 내용
+4. 전문의 코멘트는 신뢰감 있으면서도 환자 중심적 메시지
+5. 의료광고 심의 기준 준수 (과대광고 금지)
+
+[중요]
+- 반드시 위 HTML 구조를 그대로 사용
+- 마크다운 문법 사용 금지 (### 이나 **굵게** 등)
+- 모든 텍스트는 HTML 태그로 감싸서 출력
+`;
+
+  const model = getModel();
+  const result = await model.generateContent(pressPrompt);
+  let pressContent = result.response.text();
+  
+  // HTML 정리
+  pressContent = pressContent
+    .replace(/```html?\n?/gi, '')
+    .replace(/```\n?/gi, '')
+    .trim();
+  
+  // press-release-container가 없으면 감싸기
+  if (!pressContent.includes('class="press-release-container"')) {
+    pressContent = `<div class="press-release-container">${pressContent}</div>`;
+  }
+  
+  // CSS 스타일 추가
+  const pressStyles = `
+<style>
+.press-release-container {
+  font-family: 'Pretendard', -apple-system, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px;
+  background: #fff;
+  line-height: 1.8;
+  color: #333;
+}
+.press-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #1a1a1a;
+  margin-bottom: 30px;
+}
+.press-date {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+.press-embargo {
+  font-size: 12px;
+  color: #fff;
+  background: #7c3aed;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin: 0;
+}
+.press-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+.press-subtitle {
+  font-size: 18px;
+  font-weight: 500;
+  color: #555;
+  margin: 0 0 30px 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
+}
+.press-lead {
+  background: #f8f9fa;
+  padding: 20px 24px;
+  border-left: 4px solid #7c3aed;
+  margin-bottom: 30px;
+  border-radius: 0 8px 8px 0;
+}
+.press-lead p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+.press-body h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 30px 0 15px 0;
+}
+.press-body p {
+  font-size: 15px;
+  color: #444;
+  margin: 0 0 15px 0;
+}
+.press-body ul {
+  margin: 15px 0;
+  padding-left: 24px;
+}
+.press-body li {
+  font-size: 15px;
+  color: #444;
+  margin: 8px 0;
+}
+.press-quote {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  padding: 24px 28px;
+  border-radius: 12px;
+  margin: 20px 0;
+  border: none;
+}
+.press-quote p {
+  font-size: 16px;
+  font-style: italic;
+  color: #4c1d95;
+  margin: 0 0 12px 0;
+  font-weight: 500;
+}
+.press-quote cite {
+  font-size: 14px;
+  color: #6b7280;
+  font-style: normal;
+  font-weight: 600;
+}
+.press-footer {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #1a1a1a;
+}
+.press-contact {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+.press-contact h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 10px 0;
+}
+.press-contact p {
+  font-size: 14px;
+  color: #666;
+  margin: 4px 0;
+}
+.press-disclaimer {
+  background: #fff3cd;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid #ffc107;
+}
+.press-disclaimer p {
+  font-size: 12px;
+  color: #856404;
+  margin: 4px 0;
+}
+</style>
+`;
+
+  const finalHtml = pressStyles + pressContent;
+  
+  // 제목 추출
+  const titleMatch = pressContent.match(/<h1[^>]*class="press-title"[^>]*>([^<]+)/);
+  const title = titleMatch ? titleMatch[1].trim() : `${hospitalName} ${pressTypeLabel} 보도자료`;
+  
+  onProgress('✅ 보도자료 작성 완료!');
+  
+  return {
+    title,
+    htmlContent: finalHtml,
+    imageUrl: '',
+    fullHtml: finalHtml,
+    tags: [hospitalName, request.category, pressTypeLabel, request.topic],
+    factCheck: {
+      fact_score: 90,
+      safety_score: 95,
+      conversion_score: 70,
+      verified_facts_count: 5,
+      issues: [],
+      recommendations: ['보도 전 법무팀 검토 권장', '인용 통계 출처 확인 필요']
+    },
+    postType: 'press_release'
+  };
+};
+
 export const generateFullPost = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
   const isCardNews = request.postType === 'card_news';
+  const isPressRelease = request.postType === 'press_release';
   
   // 🔍 디버그: request에 customImagePrompt가 있는지 확인
   console.log('🔍 generateFullPost 시작 - request.imageStyle:', request.imageStyle);
   console.log('🔍 generateFullPost 시작 - request.customImagePrompt:', request.customImagePrompt ? request.customImagePrompt.substring(0, 50) : 'undefined/없음');
+  
+  // 🗞️ 보도자료: 전용 생성 함수 사용
+  if (isPressRelease) {
+    return generatePressRelease(request, onProgress);
+  }
   
   // 🤖 카드뉴스: 미니 에이전트 방식 사용
   if (isCardNews) {

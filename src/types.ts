@@ -22,7 +22,7 @@ export enum ContentCategory {
 
 export type AudienceMode = '환자용(친절/공감)' | '전문가용(신뢰/정보)';
 export type ImageStyle = 'photo' | 'illustration' | 'medical' | 'custom';
-export type PostType = 'blog' | 'card_news';
+export type PostType = 'blog' | 'card_news' | 'press_release';
 export type CssTheme = 'modern' | 'premium' | 'minimal' | 'warm' | 'professional';
 export type WritingStyle = 'expert' | 'empathy' | 'conversion';  // 전문가형 / 공감형 / 전환형
 
@@ -64,6 +64,11 @@ export interface GenerationRequest {
   customImagePrompt?: string; // 커스텀 이미지 스타일 프롬프트
   styleCopyMode?: boolean; // true=레이아웃 복제, false=느낌만 참고
   learnedStyleId?: string; // 학습된 말투 스타일 ID
+  // 보도자료용 필드
+  hospitalName?: string; // 병원명
+  doctorName?: string; // 의료진 이름
+  doctorTitle?: string; // 직함 (예: 원장, 부원장, 과장)
+  pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award'; // 보도 유형
 }
 
 export interface FactCheckReport {

@@ -2552,9 +2552,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                               <span className={`text-[9px] ml-2 px-2 py-0.5 rounded-full ${
                                 item.postType === 'card_news' 
                                   ? 'bg-purple-100 text-purple-600' 
+                                  : item.postType === 'press_release'
+                                  ? 'bg-amber-100 text-amber-600'
                                   : 'bg-blue-100 text-blue-600'
                               }`}>
-                                {item.postType === 'card_news' ? '카드뉴스' : '블로그'}
+                                {item.postType === 'card_news' ? '카드뉴스' : item.postType === 'press_release' ? '보도자료' : '블로그'}
                               </span>
                             </div>
                             <div className={`text-[9px] ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>

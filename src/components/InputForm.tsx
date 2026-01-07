@@ -45,6 +45,12 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   // 말투 학습 스타일
   const [learnedStyleId, setLearnedStyleId] = useState<string | undefined>(undefined);
   
+  // 🗞️ 보도자료용 state
+  const [hospitalName, setHospitalName] = useState<string>('');
+  const [doctorName, setDoctorName] = useState<string>('');
+  const [doctorTitle, setDoctorTitle] = useState<string>('원장');
+  const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award'>('achievement');
+  
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
@@ -75,7 +81,12 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         return result;
       })(),
       // 📝 학습된 말투 스타일 ID
-      learnedStyleId
+      learnedStyleId,
+      // 🗞️ 보도자료용 필드
+      hospitalName: postType === 'press_release' ? hospitalName : undefined,
+      doctorName: postType === 'press_release' ? doctorName : undefined,
+      doctorTitle: postType === 'press_release' ? doctorTitle : undefined,
+      pressType: postType === 'press_release' ? pressType : undefined,
     });
   };
 
@@ -115,20 +126,27 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         Hospital<span className="text-emerald-600">AI</span>
       </h2>
 
-      <div className="flex p-1 bg-slate-100 rounded-2xl mb-8">
+      <div className="flex p-1 bg-slate-100 rounded-2xl mb-8 gap-1">
         <button 
           type="button" 
           onClick={() => setPostType('blog')}
-          className={`flex-1 py-3 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <span>📝</span> 블로그 포스팅
+          <span>📝</span> 블로그
         </button>
         <button 
           type="button" 
           onClick={() => setPostType('card_news')}
-          className={`flex-1 py-3 rounded-xl text-sm font-black transition-all flex items-center justify-center gap-2 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <span>🖼️</span> 카드뉴스 제작
+          <span>🖼️</span> 카드뉴스
+        </button>
+        <button 
+          type="button" 
+          onClick={() => setPostType('press_release')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <span>🗞️</span> 보도자료
         </button>
       </div>
       
@@ -205,7 +223,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                     </div>
                   </div>
                </div>
-           ) : (
+           ) : postType === 'card_news' ? (
                <div className="space-y-4">
                   {/* 카드뉴스 장수 슬라이더 */}
                   <div>
@@ -227,10 +245,84 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                        <span>10장</span>
                     </div>
                   </div>
-                  
-
                </div>
-           )}
+           ) : postType === 'press_release' ? (
+               /* 🗞️ 보도자료 설정 UI */
+               <div className="space-y-4">
+                  <div className="bg-purple-50 border border-purple-200 rounded-xl p-3 mb-2">
+                    <p className="text-xs text-purple-700 font-bold flex items-center gap-1">
+                      <span>⚠️</span> 본 보도자료는 홍보 목적의 자료이며, 의학적 조언이나 언론 보도로 사용될 경우 법적 책임은 사용자에게 있습니다.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">병원명</label>
+                      <input 
+                        type="text"
+                        value={hospitalName}
+                        onChange={(e) => setHospitalName(e.target.value)}
+                        placeholder="예: 서울OO병원"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">의료진</label>
+                      <input 
+                        type="text"
+                        value={doctorName}
+                        onChange={(e) => setDoctorName(e.target.value)}
+                        placeholder="예: 홍길동"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">직함</label>
+                    <select
+                      value={doctorTitle}
+                      onChange={(e) => setDoctorTitle(e.target.value)}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                    >
+                      <option value="원장">원장</option>
+                      <option value="부원장">부원장</option>
+                      <option value="과장">과장</option>
+                      <option value="교수">교수</option>
+                      <option value="부교수">부교수</option>
+                      <option value="전문의">전문의</option>
+                      <option value="센터장">센터장</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">보도 유형</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'achievement', label: '🏆 실적/달성', desc: '수술 N례 달성' },
+                        { value: 'new_service', label: '🆕 신규 도입', desc: '장비/서비스 도입' },
+                        { value: 'research', label: '📚 연구/학술', desc: '논문/학회 발표' },
+                        { value: 'event', label: '🎉 행사/이벤트', desc: '개소식/캠페인' },
+                        { value: 'award', label: '🎖️ 수상/인증', desc: '수상/인증 획득' },
+                      ].map((item) => (
+                        <button
+                          key={item.value}
+                          type="button"
+                          onClick={() => setPressType(item.value as typeof pressType)}
+                          className={`p-3 rounded-xl text-left transition-all ${
+                            pressType === item.value 
+                              ? 'bg-purple-100 border-2 border-purple-500' 
+                              : 'bg-white border border-slate-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="font-bold text-sm text-slate-700">{item.label}</div>
+                          <div className="text-[10px] text-slate-400">{item.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+               </div>
+           ) : null}
         </div>
 
         <div>
