@@ -9,6 +9,58 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// AI Provider 설정 읽기
+const getAiProviderSettings = (): { textGeneration: 'gemini' | 'openai', imageGeneration: 'gemini' | 'openai' } => {
+  try {
+    const settings = localStorage.getItem('AI_PROVIDER_SETTINGS');
+    if (settings) {
+      return JSON.parse(settings);
+    }
+  } catch (e) {
+    console.warn('AI Provider 설정 읽기 실패:', e);
+  }
+  // 기본값: Gemini 사용
+  return { textGeneration: 'gemini', imageGeneration: 'gemini' };
+};
+
+// OpenAI API 키 가져오기
+const getOpenAIKey = (): string => {
+  const apiKey = localStorage.getItem('OPENAI_API_KEY');
+  if (!apiKey) {
+    throw new Error("OpenAI API Key가 설정되지 않았습니다. 관리자 페이지에서 API Key를 입력해주세요.");
+  }
+  return apiKey;
+};
+
+// OpenAI API 호출 함수
+const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
+  const apiKey = getOpenAIKey();
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-5.2-pro',
+      messages: [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`OpenAI API 오류: ${error.error?.message || response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0]?.message?.content || '{}';
+};
+
 // 현재 연도를 동적으로 가져오는 함수
 const getCurrentYear = () => new Date().getFullYear();
 
@@ -2684,7 +2736,7 @@ export const recommendCardNewsPrompt = async (
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3-pro-preview',
       contents: `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
 
 다음 카드뉴스 텍스트에 어울리는 **배경 이미지 내용**만 추천해주세요.
@@ -5207,37 +5259,68 @@ ${getStylePromptForGeneration(learnedStyle)}
   `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: isCardNews ? cardNewsPrompt : blogPrompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING },
-            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-            fact_check: {
-              type: Type.OBJECT,
-              properties: {
-                fact_score: { type: Type.INTEGER },
-                safety_score: { type: Type.INTEGER },
-                conversion_score: { type: Type.INTEGER },
-                ai_smell_score: { type: Type.INTEGER },
-                verified_facts_count: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
-            }
-          },
-          required: ["title", "content", "imagePrompts", "fact_check"]
+    // AI Provider 설정 확인
+    const providerSettings = getAiProviderSettings();
+    let result: any;
+
+    if (providerSettings.textGeneration === 'openai') {
+      // OpenAI GPT 사용
+      console.log('🟢 Using OpenAI GPT for text generation');
+      const systemPrompt = `당신은 의료 블로그 및 카드뉴스 전문 작성자입니다. 반드시 JSON 형식으로 응답해주세요.
+      
+응답 형식:
+{
+  "title": "제목",
+  "content": "HTML 형식의 본문 내용",
+  "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
+  "fact_check": {
+    "fact_score": 0-100,
+    "safety_score": 0-100,
+    "conversion_score": 0-100,
+    "ai_smell_score": 0-100,
+    "verified_facts_count": 0,
+    "issues": ["문제점1", "문제점2"],
+    "recommendations": ["권장사항1", "권장사항2"]
+  }
+}`;
+
+      const responseText = await callOpenAI(isCardNews ? cardNewsPrompt : blogPrompt, systemPrompt);
+      result = JSON.parse(responseText);
+    } else {
+      // Gemini 사용 (기본값)
+      console.log('🔵 Using Gemini for text generation');
+      const response = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: isCardNews ? cardNewsPrompt : blogPrompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              content: { type: Type.STRING },
+              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+              fact_check: {
+                type: Type.OBJECT,
+                properties: {
+                  fact_score: { type: Type.INTEGER },
+                  safety_score: { type: Type.INTEGER },
+                  conversion_score: { type: Type.INTEGER },
+                  ai_smell_score: { type: Type.INTEGER },
+                  verified_facts_count: { type: Type.INTEGER },
+                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
+              }
+            },
+            required: ["title", "content", "imagePrompts", "fact_check"]
+          }
         }
-      }
-    });
-    const result = JSON.parse(response.text || "{}");
+      });
+      result = JSON.parse(response.text || "{}");
+    }
     
     // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
     if (result.content && typeof result.content !== 'string') {
@@ -5458,7 +5541,7 @@ ${learnedStyleInstruction}
 
   const ai = getAiClient();
   const result = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3-pro-preview',
     contents: pressPrompt,
     config: {
       responseMimeType: "text/plain"
