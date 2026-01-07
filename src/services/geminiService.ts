@@ -3781,7 +3781,7 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
     'research': '연구/학술 성과',
     'event': '행사/이벤트',
     'award': '수상/인증 획득',
-    'seasonal_health': '계절 건강정보'
+    'health_tips': '건강 조언/정보'
   };
   
   const pressTypeLabel = pressTypeLabels[request.pressType || 'achievement'] || '실적 달성';
