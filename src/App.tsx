@@ -917,6 +917,8 @@ const App: React.FC = () => {
               <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
                 {pendingRequest?.postType === 'card_news' 
                   ? '카드뉴스 원고를 생성하고 있습니다...' 
+                  : pendingRequest?.postType === 'press_release'
+                  ? '언론 보도자료를 작성하고 있습니다...'
                   : '네이버 스마트블록 노출을 위한 최적의\n의료 콘텐츠를 생성하고 있습니다.'}
               </p>
             </div>
@@ -925,8 +927,8 @@ const App: React.FC = () => {
           ) : (
             <div className={`h-full rounded-[40px] shadow-2xl border flex flex-col items-center justify-center p-20 text-center group transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                <div className={`w-32 h-32 rounded-full flex items-center justify-center text-6xl mb-10 group-hover:scale-110 transition-transform duration-500 grayscale opacity-20 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>📝</div>
-               <h3 className={`text-2xl font-black ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>블로그 원고 생성</h3>
-               <p className={`mt-4 max-w-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>좌측 메뉴에서 진료과와 주제를 선택하면<br/>상위 노출 로직이 적용된 글이 생성됩니다.</p>
+               <h3 className={`text-2xl font-black ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>콘텐츠 생성</h3>
+               <p className={`mt-4 max-w-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>좌측 메뉴에서 콘텐츠 유형과 주제를 선택하면<br/>최적화된 콘텐츠가 생성됩니다.</p>
             </div>
           )}
         </div>
