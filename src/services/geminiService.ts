@@ -19,8 +19,18 @@ const getAiProviderSettings = (): { textGeneration: 'gemini' | 'openai', imageGe
   } catch (e) {
     console.warn('AI Provider 설정 읽기 실패:', e);
   }
-  // 기본값: Gemini 사용
-  return { textGeneration: 'gemini', imageGeneration: 'gemini' };
+  
+  // 기본값: OpenAI 키가 있으면 GPT-5.2, 없으면 Gemini
+  try {
+    const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
+    console.log(`🔧 기본 AI 설정: ${hasOpenAIKey ? 'GPT-5.2 (OpenAI)' : 'Gemini 3 Pro Preview'}`);
+    return { 
+      textGeneration: hasOpenAIKey ? 'openai' : 'gemini', 
+      imageGeneration: 'gemini' 
+    };
+  } catch (e) {
+    return { textGeneration: 'gemini', imageGeneration: 'gemini' };
+  }
 };
 
 // OpenAI API 키 가져오기
@@ -32,7 +42,7 @@ const getOpenAIKey = (): string => {
   return apiKey;
 };
 
-// GPT-5.2 Pro 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
+// GPT-5.2 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
 const getGPT52ProPrompt = () => {
   const year = getCurrentYear();
   const basePrompt = getMedicalSafetyPrompt(); // Gemini 프롬프트 재사용
@@ -40,7 +50,7 @@ const getGPT52ProPrompt = () => {
   // GPT만의 특색있는 부분만 추가
   const gptSpecificPrompt = `
 ████████████████████████████████████████████████████████████████████████████████
-[🎯 GPT-5.2 Pro 특화 규칙 - Gemini와 차별화되는 부분만]
+[🎯 GPT-5.2 특화 규칙 - Gemini와 차별화되는 부분만]
 ████████████████████████████████████████████████████████████████████████████████
 
 [🔎 검색 및 정보 활용 가이드 - 제미나이와 동일한 출처 원칙 준수]
@@ -132,33 +142,68 @@ const getGPT52ProPrompt = () => {
   return basePrompt + gptSpecificPrompt;
 };
 
-// OpenAI API 호출 함수
+// OpenAI API 호출 함수 (GPT-5.2 -> GPT-4o 폴백 적용)
 const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
-  const apiKey = getOpenAIKey();
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.2-pro',
-      messages: [
-        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7
-    })
-  });
+  try {
+    console.log('🔵 callOpenAI 시작');
+    const apiKey = getOpenAIKey();
+    
+    if (!apiKey) {
+      console.error('❌ OpenAI API 키가 없습니다!');
+      throw new Error('OpenAI API 키가 설정되지 않았습니다. LocalStorage에서 OPENAI_API_KEY를 확인하세요.');
+    }
+    
+    // 🚀 모델 우선순위: GPT-5.2 (최신) -> GPT-4o (안전빵)
+    // 사용자 요청대로 gpt-5.2를 최우선으로 사용합니다.
+    const modelsToTry = ['gpt-5.2', 'gpt-4o'];
+    let lastError: any = null;
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenAI API 오류: ${error.error?.message || response.statusText}`);
+    for (const model of modelsToTry) {
+      try {
+        console.log(`🔵 API 키 확인 완료, 모델 '${model}' 요청 전송 중...`);
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              { role: 'user', content: prompt }
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.7
+          })
+        });
+
+        console.log(`🔵 OpenAI (${model}) 응답 상태:`, response.status, response.statusText);
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.warn(`⚠️ ${model} API 오류:`, error);
+          lastError = new Error(`OpenAI API 오류 (${model}): ${error.error?.message || response.statusText}`);
+          continue; // 실패 시 다음 모델 시도
+        }
+
+        const data = await response.json();
+        console.log(`✅ OpenAI 응답 성공 (${model})`);
+        return data.choices[0]?.message?.content || '{}';
+      } catch (e) {
+        console.warn(`⚠️ ${model} 네트워크/처리 오류:`, e);
+        lastError = e;
+      }
+    }
+
+    // 모든 모델 시도 실패 시
+    console.error('❌ 모든 OpenAI 모델 호출 실패');
+    throw lastError || new Error('OpenAI API 호출에 실패했습니다. (GPT-5.2, GPT-4o 모두 실패)');
+
+  } catch (error) {
+    console.error('❌ callOpenAI 전체 에러:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || '{}';
 };
 
 // 현재 연도를 동적으로 가져오는 함수
@@ -5365,7 +5410,7 @@ ${getStylePromptForGeneration(learnedStyle)}
 
     if (providerSettings.textGeneration === 'openai') {
       // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
-      console.log('🔄 2-Stage Process: Gemini Search → GPT-5.2 Pro Writing');
+      console.log('🔄 2-Stage Process: Gemini Search → GPT-5.2 Writing');
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
@@ -5464,9 +5509,9 @@ ${getStylePromptForGeneration(learnedStyle)}
       }
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 📍 Step 2: GPT-5.2 Pro가 검색 결과를 바탕으로 글 작성
+      // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      onProgress('✍️ Step 2: GPT-5.2 Pro가 자연스러운 글을 작성하고 있습니다...');
+      onProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
       
       const gptSystemPrompt = getGPT52ProPrompt();
       
@@ -5507,7 +5552,7 @@ ${JSON.stringify(searchResults, null, 2)}`}
       const responseText = await callOpenAI(isCardNews ? cardNewsPrompt : blogPrompt, systemPrompt);
       result = JSON.parse(responseText);
       
-      console.log('✅ GPT-5.2 Pro 작성 완료');
+      console.log('✅ GPT-5.2 작성 완료');
       
     } else {
       // Gemini 사용 (기본값)
