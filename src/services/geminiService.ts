@@ -142,7 +142,7 @@ const getGPT52ProPrompt = () => {
   return basePrompt + gptSpecificPrompt;
 };
 
-// OpenAI API 호출 함수 (GPT-5.2 -> GPT-4o 폴백 적용)
+// OpenAI API 호출 함수 (GPT-5.2 -> Gemini 3 Pro Preview 폴백)
 const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
   try {
     console.log('🔵 callOpenAI 시작');
@@ -153,52 +153,59 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       throw new Error('OpenAI API 키가 설정되지 않았습니다. LocalStorage에서 OPENAI_API_KEY를 확인하세요.');
     }
     
-    // 🚀 모델 우선순위: GPT-5.2 (최신) -> GPT-4o (안전빵)
-    // 사용자 요청대로 gpt-5.2를 최우선으로 사용합니다.
-    const modelsToTry = ['gpt-5.2', 'gpt-4o'];
-    let lastError: any = null;
+    // 🚀 GPT-5.2 시도
+    try {
+      console.log(`🔵 API 키 확인 완료, 모델 'gpt-5.2' 요청 전송 중...`);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.2',
+          messages: [
+            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+            { role: 'user', content: prompt }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.7
+        })
+      });
 
-    for (const model of modelsToTry) {
-      try {
-        console.log(`🔵 API 키 확인 완료, 모델 '${model}' 요청 전송 중...`);
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
-          },
-          body: JSON.stringify({
-            model: model,
-            messages: [
-              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-              { role: 'user', content: prompt }
-            ],
-            response_format: { type: 'json_object' },
-            temperature: 0.7
-          })
-        });
+      console.log(`🔵 OpenAI (gpt-5.2) 응답 상태:`, response.status, response.statusText);
 
-        console.log(`🔵 OpenAI (${model}) 응답 상태:`, response.status, response.statusText);
-
-        if (!response.ok) {
-          const error = await response.json();
-          console.warn(`⚠️ ${model} API 오류:`, error);
-          lastError = new Error(`OpenAI API 오류 (${model}): ${error.error?.message || response.statusText}`);
-          continue; // 실패 시 다음 모델 시도
-        }
-
+      if (response.ok) {
         const data = await response.json();
-        console.log(`✅ OpenAI 응답 성공 (${model})`);
+        console.log(`✅ OpenAI 응답 성공 (gpt-5.2)`);
         return data.choices[0]?.message?.content || '{}';
-      } catch (e) {
-        console.warn(`⚠️ ${model} 네트워크/처리 오류:`, e);
-        lastError = e;
       }
+      
+      const error = await response.json();
+      console.warn(`⚠️ GPT-5.2 API 오류:`, error);
+      console.log('🔄 Gemini 3 Pro Preview로 폴백합니다...');
+    } catch (e) {
+      console.warn(`⚠️ GPT-5.2 네트워크/처리 오류:`, e);
+      console.log('🔄 Gemini 3 Pro Preview로 폴백합니다...');
     }
 
-    // 모든 모델 시도 실패 시
-    console.error('❌ 모든 OpenAI 모델 호출 실패');
-    throw lastError || new Error('OpenAI API 호출에 실패했습니다. (GPT-5.2, GPT-4o 모두 실패)');
+    // 🔄 GPT-5.2 실패 시 Gemini 3 Pro Preview로 폴백
+    console.log('🟢 Gemini 3 Pro Preview 호출 시작...');
+    const ai = getAiClient();
+    const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: fullPrompt,
+      config: {
+        temperature: 0.7,
+        responseMimeType: 'application/json'
+      }
+    });
+    
+    const text = response.text || '{}';
+    console.log(`✅ Gemini 3 Pro Preview 응답 성공`);
+    return text;
 
   } catch (error) {
     console.error('❌ callOpenAI 전체 에러:', error);
