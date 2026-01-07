@@ -884,8 +884,10 @@ const getWritingStylePrompts = (): Record<WritingStyle, string> => {
   };
 };
 
-// 글 스타일별 금지 표현 체크 (공통)
-const WRITING_STYLE_COMMON_RULES = `
+// 글 스타일별 금지 표현 체크 (공통) - 함수로 변경하여 현재 연도 동적 반영
+const getWritingStyleCommonRules = (): string => {
+  const year = new Date().getFullYear();
+  return `
 [🧠 핵심: 모든 글은 심리학 기반으로 작성 - 관심을 끌어야 함!]
 
 **★★★ 가장 중요: 첫 문장에서 승부 ★★★**
@@ -1157,6 +1159,7 @@ const WRITING_STYLE_COMMON_RULES = `
 - "~세요", "~보세요" (권유)
 - "~죠?", "~을까요?" (질문형)
 `;
+};
 
 // 심리학 기반 CTA 전환 공식 (의료광고법 100% 준수 + 공신력 출처 필수)
 const PSYCHOLOGY_CTA_PROMPT = `
@@ -2821,7 +2824,7 @@ export const generateCardNewsScript = async (
   const prompt = `
 ${medicalSafetyPrompt}
 ${writingStylePrompt}
-${WRITING_STYLE_COMMON_RULES}
+${getWritingStyleCommonRules()}
 ${PSYCHOLOGY_CTA_PROMPT}
 
 ████████████████████████████████████████████████████████████████████████████████
@@ -3420,7 +3423,7 @@ ${getStylePromptForGeneration(learnedStyle)}
   const blogPrompt = `
     ${medicalSafetyPrompt}
     ${writingStylePrompt}
-    ${WRITING_STYLE_COMMON_RULES}
+    ${getWritingStyleCommonRules()}
     ${learnedStyleInstruction}
     ${benchmarkingInstruction}
     
@@ -3702,7 +3705,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
     ${writingStylePrompt}
-    ${WRITING_STYLE_COMMON_RULES}
+    ${getWritingStyleCommonRules()}
     ${benchmarkingInstruction}
     ${styleAnalysis}
     
