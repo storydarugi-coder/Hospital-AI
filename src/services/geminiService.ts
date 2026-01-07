@@ -3318,7 +3318,15 @@ ${getStylePromptForGeneration(learnedStyle)}
     이미지 개수: ${targetImageCount}장 (${imageMarkers} 마커 사용)
     
     [네이버 블로그 HTML 형식 작성 필수]
-    **중요: 반드시 HTML 태그로 작성하세요. 마크다운(###, **, -) 절대 사용 금지!**
+    🚨🚨🚨 **마크다운 문법 절대 사용 금지!!!** 🚨🚨🚨
+    ❌ **굵은글씨** → ✅ <strong>굵은글씨</strong> 또는 <b>굵은글씨</b>
+    ❌ *기울임* → ✅ <em>기울임</em>
+    ❌ ### 제목 → ✅ <h3>제목</h3>
+    ❌ - 목록 → ✅ <ul><li>목록</li></ul>
+    ❌ [링크](url) → ✅ <a href="url">링크</a>
+    
+    ⛔ 특히 **단어** 이런 식으로 별표 두 개로 감싸는 거 절대 금지!
+    ⛔ 반드시 <strong>단어</strong> 또는 <b>단어</b>로 작성!
     
     HTML 구조 (이미지 ${targetImageCount}장 배치, 글자 수 ${targetLength}자 기준):
     <div class="naver-post-container">
