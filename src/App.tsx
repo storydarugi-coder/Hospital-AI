@@ -388,7 +388,13 @@ const App: React.FC = () => {
       setDeleteConfirmText('');
       window.location.hash = '';
       setCurrentPage('landing');
-      alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
+      alert(`회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.
+
+📋 의료광고법 안내
+
+해당 포스팅은 정보성(공익)컨텐츠로 의료광고법 56조 1항, 25조 1항을 준수하여 작성되었습니다.
+
+생성하신 콘텐츠를 사용하실 때 위 문구를 포함해주세요.`);
     } else {
       setDeleteError(error || '탈퇴 처리 중 오류가 발생했습니다.');
     }
