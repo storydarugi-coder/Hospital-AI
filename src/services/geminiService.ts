@@ -32,6 +32,106 @@ const getOpenAIKey = (): string => {
   return apiKey;
 };
 
+// GPT-5.2 Pro 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
+const getGPT52ProPrompt = () => {
+  const year = getCurrentYear();
+  const basePrompt = getMedicalSafetyPrompt(); // Gemini 프롬프트 재사용
+  
+  // GPT만의 특색있는 부분만 추가
+  const gptSpecificPrompt = `
+████████████████████████████████████████████████████████████████████████████████
+[🎯 GPT-5.2 Pro 특화 규칙 - Gemini와 차별화되는 부분만]
+████████████████████████████████████████████████████████████████████████████████
+
+[🔎 검색 및 정보 활용 가이드 - 제미나이와 동일한 출처 원칙 준수]
+**상황:** Gemini가 수집해 준 정보(Context)를 최우선으로 사용하세요.
+**예외:** 만약 Gemini의 정보가 부족하거나 전달되지 않았을 경우, 당신의 지식을 활용하되 **반드시 아래 출처 규칙을 제미나이와 동일하게 엄격히 적용**해야 합니다.
+
+**[✅ 검색/참고 허용 출처 - 여기 있는 정보만 사실(Fact)로 인정]**
+1. **국내 학회**: 대한OO학회, 대한의학회 등 공식 학술 단체 홈페이지 (.or.kr)
+2. **정부 기관**: 보건복지부, 질병관리청(KDCA), 식약처, 심평원, 건강보험공단 (.go.kr)
+3. **국제 학술지/기관**: PubMed, JAMA, NEJM, Lancet, WHO, CDC, NIH
+4. **공식 논문 DB**: RISS, KISS, KoreaMed
+
+**[🚫 절대 참고 금지 출처 - 여기 정보는 절대 섞이면 안 됨!]**
+❌ **블로그**: 네이버 블로그, 티스토리, 브런치, 개인 웹사이트
+❌ **커뮤니티**: 맘카페, 환우회, 디시인사이드, 지식iN
+❌ **SNS/미디어**: 유튜브(의사 채널 포함), 인스타그램, 페이스북, 나무위키, 위키백과
+❌ **일반 건강매체**: 하이닥, 헬스조선, 코메디닷컴 등 (원문 인용 제외하고 기사 내용 자체 인용 금지)
+
+**[⚠️ 정보 부족 시 GPT 행동 수칙]**
+- 출처가 불분명한 수치("70%가 겪습니다")는 사용하지 말고, "많은 분들이 겪습니다"로 일반화하세요.
+- 불확실한 의학 정보는 "도움이 될 수 있습니다" 정도로 보수적으로 표현하세요.
+- 절대 블로그나 유튜브에서 본 듯한 '카더라' 통신을 섞지 마세요.
+
+**1. GPT 특유의 조건형·완충형 문장 스타일 강화**
+   - "~수 있습니다" 연속 3회 절대 금지 (Gemini보다 엄격)
+   - 대체 표현 적극 활용: "~경우도 있습니다", "~로 알려져 있습니다", "~일 가능성도 있습니다"
+   - 문장 리듬 다양화로 AI 냄새 제거
+
+**2. 생활 맥락 중심 키워드 녹이기 (정의형 금지)**
+   ❌ Gemini식: "발목 염좌란 발목 인대가 늘어나거나 찢어진 상태를 말합니다"
+   ✅ GPT식: "계단 내려오다가 발목이 꺾였는데, 며칠이 지나도 붓기가 빠지지 않는다면..."
+   
+   **핵심 원칙:**
+   - 정의·설명 문장 → 실제 생활 장면 문장으로 전환
+   - 걷기, 계단, 아침 첫 움직임, 반복되는 불편감 등 구체적 상황 사용
+
+**3. 관찰자 시점 문장 필수 포함 (각 문단 최소 1개)**
+   ❌ AI 냄새 나는 정의형: "소화불량은 다양한 원인에 의해 발생할 수 있습니다"
+   ✅ 사람 냄새 나는 관찰형: "실제로 스트레스가 쌓였을 때 이런 불편함을 느끼는 분들도 적지 않습니다"
+   
+   **관찰자 시점 문장 패턴:**
+   - "~하시는 분들이 많더라고요"
+   - "이런 경험을 하신 분들도 계십니다"
+   - "비슷한 고민을 가진 분들이 궁금해하시는 부분이에요"
+
+**4. 구조: Gemini 교과서식 탈피 → GPT 관찰-해석-정리 구조**
+   ❌ Gemini식: 정의 → 원인 → 증상 → 치료 (교과서)
+   ✅ GPT식: 관찰 → 해석 → 부연 → 정리 (대화)
+   
+   **도입부 필수:**
+   - 바로 생활 장면으로 시작 (정의 금지)
+   - 예: "아침에 일어나서 첫 발을 디딜 때 발뒤꿈치가 찌릿하다면..."
+   
+   **본문 필수:**
+   - 독자 자가 점검 문장 1~2회 포함
+   - 예: "이런 상황이 반복된다면...", "단순 피로라고 넘기기엔 빈도가 잦다면..."
+
+**5. GPT형 부드러운 CTA (여백을 남기는 마무리)**
+   ❌ Gemini식: 명확한 요점 정리 + 행동 제안
+   ✅ GPT식: 열린 결론 + 독자가 끼워 넣을 공간
+   
+   **GPT 안전 CTA 패턴:**
+   - "확인이 필요한 시점일 수 있습니다"
+   - "지켜보기보다 원인을 확인해보는 것도 방법일 수 있습니다"
+   - "적어도 '왜 이런지 모르겠다'는 답답함은 줄일 수 있습니다"
+
+**6. 문장 첫 시작은 '불완전하게' (AI 티 제거 핵심)**
+   ❌ AI식 완벽한 첫 문장: "소화불량은 다양한 원인에 의해 발생할 수 있습니다"
+   ✅ 사람식 불완전한 시작: "꼭 많이 먹지 않았는데도, 속이 답답한 날이 있습니다"
+   
+   **원칙:** 완벽한 정의는 2~3문장 뒤에, 첫 문장은 상황 묘사나 질문으로!
+
+████████████████████████████████████████████████████████████████████████████████
+[✅ GPT 최종 자가 검토 - Gemini보다 추가된 체크 항목]
+████████████████████████████████████████████████████████████████████████████████
+
+□ "~수 있습니다" 연속 3회 이상 없는가?
+□ 각 문단에 관찰자 시점 문장이 1개 이상 있는가?
+□ 첫 문장이 정의가 아닌 상황 묘사로 시작하는가?
+□ 독자 자가 점검 문장이 본문에 1~2회 포함되었는가?
+□ 교과서식 구조(정의→원인→치료)가 아닌가?
+□ 마무리가 너무 깔끔하지 않고 여백이 있는가?
+
+→ 5개 이상 충족 시 GPT 스타일 완성!
+
+████████████████████████████████████████████████████████████████████████████████
+`;
+
+  return basePrompt + gptSpecificPrompt;
+};
+
 // OpenAI API 호출 함수
 const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
   const apiKey = getOpenAIKey();
@@ -5264,14 +5364,134 @@ ${getStylePromptForGeneration(learnedStyle)}
     let result: any;
 
     if (providerSettings.textGeneration === 'openai') {
-      // OpenAI GPT 사용
-      console.log('🟢 Using OpenAI GPT for text generation');
-      const systemPrompt = `당신은 의료 블로그 및 카드뉴스 전문 작성자입니다. 반드시 JSON 형식으로 응답해주세요.
+      // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
+      console.log('🔄 2-Stage Process: Gemini Search → GPT-5.2 Pro Writing');
       
-응답 형식:
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      onProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+      
+      const searchPrompt = `
+당신은 의료 정보 검색 전문가입니다.
+아래 주제에 대해 공신력 있는 최신 정보를 수집해주세요.
+
+[검색 주제]
+- 진료과: ${request.category}
+- 주제: ${request.topic}
+- 키워드: ${request.keywords}
+
+[필수 검색 출처 - 반드시 이 출처들에서만 정보 수집!]
+1. 대한OO학회 최신 가이드라인 (${getCurrentYear()}년 또는 ${getCurrentYear()-1}년)
+2. 질병관리청(KDCA), 보건복지부 최신 자료
+3. PubMed, JAMA, NEJM 최신 논문
+4. 국민건강보험공단, 건강보험심사평가원 통계
+
+[검색 지시]
+- 현재 ${getCurrentYear()}년 기준 최신 자료 우선
+- 블로그, 카페, SNS, 유튜브 정보는 절대 수집 금지
+- 통계는 반드시 출처와 연도 포함
+
+[JSON 응답 형식]
 {
-  "title": "제목",
-  "content": "HTML 형식의 본문 내용",
+  "collected_facts": [
+    {
+      "fact": "수집한 사실 정보",
+      "source": "출처 (학회/기관명)",
+      "year": ${getCurrentYear()},
+      "url": "참고 URL (있는 경우)"
+    }
+  ],
+  "key_statistics": [
+    {
+      "stat": "통계 내용",
+      "source": "출처",
+      "year": ${getCurrentYear()}
+    }
+  ],
+  "latest_guidelines": [
+    {
+      "guideline": "가이드라인 내용",
+      "organization": "발표 기관",
+      "year": ${getCurrentYear()}
+    }
+  ]
+}`;
+
+      let searchResults: any = {};
+      let searchSuccess = false;
+      
+      // 🔵 1차 시도: Gemini로 검색
+      try {
+        console.log('🔵 1차 시도: Gemini로 검색 중...');
+        const ai = getAiClient();
+        const searchResponse = await ai.models.generateContent({
+          model: "gemini-3-pro-preview",
+          contents: searchPrompt,
+          config: {
+            tools: [{ googleSearch: {} }],  // Google Search 활성화
+            responseMimeType: "application/json"
+          }
+        });
+        
+        searchResults = JSON.parse(searchResponse.text || "{}");
+        console.log('✅ Gemini 검색 완료:', searchResults);
+        searchSuccess = true;
+      } catch (geminiError) {
+        console.warn('⚠️ Gemini 검색 실패:', geminiError);
+        
+        // 🟠 2차 시도: GPT로 검색 (동일한 프롬프트 사용!)
+        try {
+          console.log('🟠 2차 시도: GPT로 검색 중... (동일한 프롬프트 사용)');
+          onProgress('🔄 검색 방법을 변경하여 재시도 중...');
+          
+          // GPT도 동일한 프롬프트로 검색 실행
+          const gptSearchResponse = await callOpenAI(searchPrompt, '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요.');
+          searchResults = JSON.parse(gptSearchResponse);
+          console.log('✅ GPT 검색 완료:', searchResults);
+          searchSuccess = true;
+        } catch (gptError) {
+          console.error('❌ GPT 검색도 실패:', gptError);
+          // 두 개 모두 실패 시 빈 결과로 진행 (AI가 자체 지식으로 작성)
+          console.warn('⚠️ 검색 실패로 AI 자체 지식 기반 작성으로 진행');
+          searchResults = {
+            collected_facts: [],
+            key_statistics: [],
+            latest_guidelines: [],
+            search_failed: true
+          };
+        }
+      }
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 📍 Step 2: GPT-5.2 Pro가 검색 결과를 바탕으로 글 작성
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      onProgress('✍️ Step 2: GPT-5.2 Pro가 자연스러운 글을 작성하고 있습니다...');
+      
+      const gptSystemPrompt = getGPT52ProPrompt();
+      
+      const systemPrompt = `${gptSystemPrompt}
+
+[🔍 검색 결과 정보]
+${searchResults.search_failed 
+  ? '⚠️ 검색에 실패하여 AI 자체 지식으로 작성합니다. 반드시 출처 규칙을 엄격히 준수하세요!' 
+  : `아래는 검색으로 수집한 공신력 있는 최신 정보입니다.
+이 정보를 최우선으로 사용하세요.
+
+${JSON.stringify(searchResults, null, 2)}`}
+
+[⚠️ 중요 규칙]
+1. ${searchResults.search_failed 
+    ? '검색 실패로 자체 지식 사용 시, 출처 불명확한 정보는 일반화 표현으로 작성하세요' 
+    : '위 검색 결과의 정보를 최우선으로 사용하세요'}
+2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기하세요
+3. 출처가 명확한 정보만 사용하세요
+4. 불확실한 정보는 "~할 수 있습니다", "~로 알려져 있습니다" 등 완화 표현 사용
+
+[📋 JSON 응답 형식]
+{
+  "title": "제목 (상태 점검형 질문)",
+  "content": "HTML 형식의 본문 내용 (생활 맥락 중심, 검색 결과 기반)",
   "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
   "fact_check": {
     "fact_score": 0-100,
@@ -5286,6 +5506,9 @@ ${getStylePromptForGeneration(learnedStyle)}
 
       const responseText = await callOpenAI(isCardNews ? cardNewsPrompt : blogPrompt, systemPrompt);
       result = JSON.parse(responseText);
+      
+      console.log('✅ GPT-5.2 Pro 작성 완료');
+      
     } else {
       // Gemini 사용 (기본값)
       console.log('🔵 Using Gemini for text generation');

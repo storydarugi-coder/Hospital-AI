@@ -64,28 +64,28 @@ export const PLANS: Record<string, PlanInfo> = {
     id: 'basic-10',
     name: '베이직 10건',
     credits: 10,
-    price: 15900,
-    originalPrice: 25000,
+    price: 20000,
+    originalPrice: 30000,
     duration: 'once',
-    description: '블로그 원고 10회 생성권 (건당 1,590원)'
+    description: '블로그 원고 10회 생성권 (건당 2,000원)'
   },
   'basic-20': {
     id: 'basic-20',
     name: '베이직 20건',
     credits: 20,
-    price: 29900,
-    originalPrice: 45000,
+    price: 39000,
+    originalPrice: 50000,
     duration: 'once',
-    description: '블로그 원고 20회 생성권 (건당 1,495원)'
+    description: '블로그 원고 20회 생성권 (건당 1,950원)'
   },
   'basic-50': {
     id: 'basic-50',
     name: '베이직 50건',
     credits: 50,
-    price: 55900,
-    originalPrice: 95000,
+    price: 89000,
+    originalPrice: 125000,
     duration: 'once',
-    description: '블로그 원고 50회 생성권 (건당 1,118원) 🏆 BEST'
+    description: '블로그 원고 50회 생성권 (건당 1,780원) 🏆 BEST'
   }
 };
 
