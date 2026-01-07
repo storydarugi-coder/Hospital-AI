@@ -77,9 +77,53 @@ export interface FactCheckReport {
   verified_facts_count: number;
   safety_score: number;
   conversion_score: number;  // 전환력 점수 (0~100) - 의료법 준수하면서 행동 유도하는 능력
-  ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 15점 초과 시 재작성 대상, 블로그/보도자료에만 적용
+  ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 낮을수록 좋음, 15점 초과 시 재작성 대상
+  seo_score?: SeoScoreReport;  // SEO 최적화 점수 (총 100점)
   issues: string[];
   recommendations: string[];
+}
+
+// SEO 점수 상세 리포트 (총 100점)
+export interface SeoScoreReport {
+  total: number;  // 총점 (100점 만점) - 90점 미만 시 재작성
+  title: {  // ① 제목 최적화 (25점)
+    score: number;
+    keyword_natural: number;      // 핵심 키워드 자연 포함 (10점)
+    seasonality: number;          // 시기성·상황성 포함 (5점)
+    judgment_inducing: number;    // 판단 유도형 구조 (5점)
+    medical_law_safe: number;     // 의료광고 리스크 없음 (5점)
+    feedback: string;
+  };
+  keyword_structure: {  // ② 본문 키워드 구조 (25점)
+    score: number;
+    main_keyword_exposure: number;   // 메인 키워드 3~5회 자연 노출 (10점)
+    related_keyword_spread: number;  // 연관 키워드 분산 배치 (5점)
+    subheading_variation: number;    // 소제목에 키워드 변주 포함 (5점)
+    no_meaningless_repeat: number;   // 의미 없는 반복 없음 (5점)
+    feedback: string;
+  };
+  user_retention: {  // ③ 사용자 체류 구조 (20점)
+    score: number;
+    intro_problem_recognition: number;  // 도입부 5줄 이내 문제 인식 (5점)
+    relatable_examples: number;         // '나 얘기 같다' 생활 예시 (5점)
+    mid_engagement_points: number;      // 중간 이탈 방지 포인트 (5점)
+    no_info_overload: number;           // 정보 과부하 없음 (5점)
+    feedback: string;
+  };
+  medical_safety: {  // ④ 의료법 안전성 + 신뢰 신호 (20점)
+    score: number;
+    no_definitive_guarantee: number;  // 단정·보장 표현 없음 (5점)
+    individual_difference: number;    // 개인차/상황별 차이 자연 언급 (5점)
+    self_diagnosis_limit: number;     // 자가진단 한계 명확화 (5점)
+    minimal_direct_promo: number;     // 병원 직접 홍보 최소화 (5점)
+    feedback: string;
+  };
+  conversion: {  // ⑤ 전환 연결성 (10점)
+    score: number;
+    cta_flow_natural: number;     // CTA가 정보 흐름을 끊지 않음 (5점)
+    time_fixed_sentence: number;  // 시점 고정형 문장 존재 (5점)
+    feedback: string;
+  };
 }
 
 // 카드별 프롬프트 데이터 (재생성 UI용)

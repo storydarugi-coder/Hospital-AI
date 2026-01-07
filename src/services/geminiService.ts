@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
+import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
@@ -6078,4 +6078,302 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
         newHtml: restoredHtml
       };
     } catch (error) { throw error; }
+};
+
+// ============================================
+// 🎯 SEO 점수 평가 함수 (100점 만점)
+// ============================================
+
+/**
+ * SEO 점수 평가 함수
+ * 블로그 콘텐츠의 SEO 최적화 수준을 100점 만점으로 평가
+ * 
+ * 평가 항목:
+ * ① 제목 최적화 (25점)
+ * ② 본문 키워드 구조 (25점)
+ * ③ 사용자 체류 구조 (20점)
+ * ④ 의료법 안전성 + 신뢰 신호 (20점)
+ * ⑤ 전환 연결성 (10점)
+ * 
+ * 90점 미만: 재설계/재작성 권장
+ */
+export const evaluateSeoScore = async (
+  htmlContent: string,
+  title: string,
+  topic: string,
+  keywords: string
+): Promise<SeoScoreReport> => {
+  const ai = getAiClient();
+  const currentYear = getCurrentYear();
+  
+  const prompt = `당신은 네이버 블로그 SEO 전문가이자 병원 마케팅 콘텐츠 분석가입니다.
+
+아래 블로그 콘텐츠의 SEO 점수를 100점 만점으로 평가해주세요.
+
+████████████████████████████████████████████████████████████████████████████████
+📊 SEO 점수 평가 기준 (100점 만점)
+████████████████████████████████████████████████████████████████████████████████
+
+[📌 평가 대상 콘텐츠]
+- 제목: "${title}"
+- 주제: "${topic}"
+- 핵심 키워드: "${keywords}"
+- 본문:
+${htmlContent.substring(0, 8000)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+① 제목 최적화 (25점 만점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 keyword_natural (10점): 핵심 키워드 자연 포함
+   - 10점: 키워드가 제목 앞 50%에 자연스럽게 배치
+   - 5점: 키워드 있으나 어색하거나 뒤쪽에 위치
+   - 0점: 키워드 없음 또는 강제 삽입 느낌
+
+📌 seasonality (5점): 시기성/상황성 포함
+   - 5점: "겨울철", "요즘", "환절기" 등 시기 표현 포함
+   - 2점: 시간적 맥락 암시만 있음
+   - 0점: 시기성 없는 일반적인 제목
+
+📌 judgment_inducing (5점): 판단 유도형 구조
+   - 5점: "~일까요?", "~확인 포인트" 등 독자 참여 유도
+   - 2점: 질문형이지만 일반적
+   - 0점: 단순 정보 나열형
+
+📌 medical_law_safe (5점): 의료광고 리스크 없음
+   - 5점: 완전 안전 (치료, 완치, 최고 등 금지어 없음)
+   - 2점: 경미한 리스크 (애매한 표현 포함)
+   - 0점: 명백한 의료광고법 위반 표현
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+② 본문 키워드 구조 (25점 만점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 main_keyword_exposure (10점): 메인 키워드 3~5회 자연 노출
+   - 10점: 1000자당 15~25회 수준 (1.5~2.5% 밀도), 자연스러움
+   - 5점: 키워드 있으나 빈도 부족 또는 과다
+   - 0점: 키워드 스터핑 또는 전혀 없음
+
+📌 related_keyword_spread (5점): 연관 키워드(LSI) 분산 배치
+   - 5점: 동의어/유사어 3개 이상 자연스럽게 분산
+   - 2점: 1~2개만 있거나 편중됨
+   - 0점: 연관 키워드 전무
+
+📌 subheading_variation (5점): 소제목에 키워드 변주 포함
+   - 5점: 모든 소제목(H3)에 키워드 또는 관련어 포함
+   - 2점: 일부 소제목에만 포함
+   - 0점: 소제목에 키워드 없음
+
+📌 no_meaningless_repeat (5점): 의미 없는 반복 없음
+   - 5점: 동일 표현이 맥락 다양하게 사용됨
+   - 2점: 일부 기계적 반복 존재
+   - 0점: 같은 문장/표현 과다 반복
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+③ 사용자 체류 구조 (20점 만점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 intro_problem_recognition (5점): 도입부 5줄 이내 문제 인식
+   - 5점: 첫 3줄 내 공감/질문으로 시작, 문제 제기 명확
+   - 2점: 도입부가 있으나 늘어짐
+   - 0점: "오늘은 ~에 대해 알아보겠습니다" 등 AI 도입부
+
+📌 relatable_examples (5점): '나 얘기 같다' 생활 예시
+   - 5점: 구체적 상황/시간대/장소 묘사 3개 이상
+   - 2점: 1~2개 있으나 일반적
+   - 0점: 생활 예시 전무, 설명만
+
+📌 mid_engagement_points (5점): 중간 이탈 방지 포인트
+   - 5점: 체크리스트, 질문형 소제목, "더 알아보면" 등 존재
+   - 2점: 약간의 참여 유도
+   - 0점: 단조로운 나열만
+
+📌 no_info_overload (5점): 정보 과부하 없음
+   - 5점: 1,500~3,000자, 핵심 정보 밀도 높음
+   - 2점: 너무 길거나 산만함
+   - 0점: 정보 과다로 이탈 유발
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+④ 의료법 안전성 + 신뢰 신호 (20점 만점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 no_definitive_guarantee (5점): 단정·보장 표현 없음
+   - 5점: "~일 수 있습니다", "~경우도 있습니다" 등 완화 표현
+   - 2점: 일부 단정 표현 존재
+   - 0점: "반드시", "확실히", "100%" 등 보장 표현
+
+📌 individual_difference (5점): 개인차/상황별 차이 자연 언급
+   - 5점: 개인차 언급 2회 이상, 자연스러움
+   - 2점: 1회 형식적 언급
+   - 0점: 개인차 언급 없음
+
+📌 self_diagnosis_limit (5점): 자가진단 한계 명확화
+   - 5점: "증상만으로 단정 불가" 등 한계 명확
+   - 2점: 암시만 있음
+   - 0점: 자가진단 유도하는 느낌
+
+📌 minimal_direct_promo (5점): 병원 직접 홍보 최소화
+   - 5점: 병원명/연락처 없음, 일반적 안내만
+   - 2점: 간접적 홍보 느낌
+   - 0점: 직접적 병원 홍보
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⑤ 전환 연결성 (10점 만점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 cta_flow_natural (5점): CTA가 정보 흐름을 끊지 않음
+   - 5점: 글 맥락에서 자연스럽게 확인 필요성 도출
+   - 2점: CTA 있으나 갑작스러움
+   - 0점: "방문하세요", "예약하세요" 직접 권유
+
+📌 time_fixed_sentence (5점): 시점 고정형 문장 존재
+   - 5점: "이 시점부터는~", "반복된다면~" 등 시점 고정
+   - 2점: 약한 시점 암시
+   - 0점: "언젠가", "나중에" 등 미루기 허용
+
+████████████████████████████████████████████████████████████████████████████████
+⚠️ 평가 시 주의사항
+████████████████████████████████████████████████████████████████████████████████
+
+1. SEO 점수는 "완성도"가 아니라 "비교 지표"로 활용됩니다
+2. 90점 미만은 재설계/재작성이 필요한 수준입니다
+3. 각 항목별로 구체적인 개선 피드백을 반드시 작성하세요
+4. 의료법 안전성은 다른 항목보다 엄격하게 평가하세요
+5. 현재 시점(${currentYear}년) 기준 네이버 SEO 트렌드 반영
+
+각 항목의 feedback에는:
+- 잘된 점 1개 이상
+- 개선이 필요한 점 1개 이상
+- 구체적인 개선 방법 제안
+
+JSON 형식으로 응답해주세요.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            total: { type: Type.INTEGER },
+            title: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                keyword_natural: { type: Type.INTEGER },
+                seasonality: { type: Type.INTEGER },
+                judgment_inducing: { type: Type.INTEGER },
+                medical_law_safe: { type: Type.INTEGER },
+                feedback: { type: Type.STRING }
+              },
+              required: ["score", "keyword_natural", "seasonality", "judgment_inducing", "medical_law_safe", "feedback"]
+            },
+            keyword_structure: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                main_keyword_exposure: { type: Type.INTEGER },
+                related_keyword_spread: { type: Type.INTEGER },
+                subheading_variation: { type: Type.INTEGER },
+                no_meaningless_repeat: { type: Type.INTEGER },
+                feedback: { type: Type.STRING }
+              },
+              required: ["score", "main_keyword_exposure", "related_keyword_spread", "subheading_variation", "no_meaningless_repeat", "feedback"]
+            },
+            user_retention: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                intro_problem_recognition: { type: Type.INTEGER },
+                relatable_examples: { type: Type.INTEGER },
+                mid_engagement_points: { type: Type.INTEGER },
+                no_info_overload: { type: Type.INTEGER },
+                feedback: { type: Type.STRING }
+              },
+              required: ["score", "intro_problem_recognition", "relatable_examples", "mid_engagement_points", "no_info_overload", "feedback"]
+            },
+            medical_safety: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                no_definitive_guarantee: { type: Type.INTEGER },
+                individual_difference: { type: Type.INTEGER },
+                self_diagnosis_limit: { type: Type.INTEGER },
+                minimal_direct_promo: { type: Type.INTEGER },
+                feedback: { type: Type.STRING }
+              },
+              required: ["score", "no_definitive_guarantee", "individual_difference", "self_diagnosis_limit", "minimal_direct_promo", "feedback"]
+            },
+            conversion: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                cta_flow_natural: { type: Type.INTEGER },
+                time_fixed_sentence: { type: Type.INTEGER },
+                feedback: { type: Type.STRING }
+              },
+              required: ["score", "cta_flow_natural", "time_fixed_sentence", "feedback"]
+            }
+          },
+          required: ["total", "title", "keyword_structure", "user_retention", "medical_safety", "conversion"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || "{}");
+    
+    // 총점 검증 및 재계산
+    const calculatedTotal = 
+      (result.title?.score || 0) +
+      (result.keyword_structure?.score || 0) +
+      (result.user_retention?.score || 0) +
+      (result.medical_safety?.score || 0) +
+      (result.conversion?.score || 0);
+    
+    result.total = calculatedTotal;
+    
+    console.log('📊 SEO 점수 평가 완료:', result.total, '점');
+    return result;
+  } catch (error) {
+    console.error('SEO 점수 평가 실패:', error);
+    // 실패 시 기본값 반환
+    return {
+      total: 0,
+      title: {
+        score: 0,
+        keyword_natural: 0,
+        seasonality: 0,
+        judgment_inducing: 0,
+        medical_law_safe: 0,
+        feedback: 'SEO 평가 중 오류가 발생했습니다.'
+      },
+      keyword_structure: {
+        score: 0,
+        main_keyword_exposure: 0,
+        related_keyword_spread: 0,
+        subheading_variation: 0,
+        no_meaningless_repeat: 0,
+        feedback: 'SEO 평가 중 오류가 발생했습니다.'
+      },
+      user_retention: {
+        score: 0,
+        intro_problem_recognition: 0,
+        relatable_examples: 0,
+        mid_engagement_points: 0,
+        no_info_overload: 0,
+        feedback: 'SEO 평가 중 오류가 발생했습니다.'
+      },
+      medical_safety: {
+        score: 0,
+        no_definitive_guarantee: 0,
+        individual_difference: 0,
+        self_diagnosis_limit: 0,
+        minimal_direct_promo: 0,
+        feedback: 'SEO 평가 중 오류가 발생했습니다.'
+      },
+      conversion: {
+        score: 0,
+        cta_flow_natural: 0,
+        time_fixed_sentence: 0,
+        feedback: 'SEO 평가 중 오류가 발생했습니다.'
+      }
+    };
+  }
 };

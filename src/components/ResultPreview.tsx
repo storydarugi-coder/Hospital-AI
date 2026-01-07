@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GeneratedContent, ImageStyle, CssTheme } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
+import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport } from '../types';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -100,6 +100,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   // 🎨 커스텀 스타일 프롬프트 저장 (재생성 시에도 유지)
   const [savedCustomStylePrompt, setSavedCustomStylePrompt] = useState<string | undefined>(content.customImagePrompt);
+  
+  // 📊 SEO 점수 평가 관련 상태
+  const [seoScore, setSeoScore] = useState<SeoScoreReport | null>(null);
+  const [isEvaluatingSeo, setIsEvaluatingSeo] = useState(false);
+  const [showSeoDetail, setShowSeoDetail] = useState(false);
   
   // 프롬프트 히스토리 및 참고 이미지 불러오기
   useEffect(() => {
@@ -984,6 +989,37 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       .replace(/\s+/g, ' ')  // 연속 공백을 하나로
       .replace(/\n+/g, ' ')  // 줄바꿈을 공백으로
       .trim();
+  };
+
+  // 📊 SEO 점수 평가 함수
+  const handleEvaluateSeo = async () => {
+    if (isEvaluatingSeo || content.postType === 'card_news') return;
+    
+    setIsEvaluatingSeo(true);
+    setEditProgress('📊 SEO 점수 평가 중...');
+    
+    try {
+      // HTML에서 제목 추출
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = localHtml;
+      const titleElement = tempDiv.querySelector('.main-title, h2, h1');
+      const title = titleElement?.textContent?.trim() || content.title || '';
+      
+      // 토픽/키워드 추출 (content에서 가져오거나 제목에서 추출)
+      const topic = title;
+      const keywords = title.split(/[,\s]+/).slice(0, 5).join(', ');
+      
+      const result = await evaluateSeoScore(localHtml, title, topic, keywords);
+      setSeoScore(result);
+      setShowSeoDetail(true);
+      setEditProgress('');
+    } catch (error) {
+      console.error('SEO 평가 실패:', error);
+      setEditProgress('SEO 평가 실패');
+      setTimeout(() => setEditProgress(''), 2000);
+    } finally {
+      setIsEvaluatingSeo(false);
+    }
   };
 
   // 워드 다운로드 함수 - 실제 .docx 생성 (개선된 정렬)
@@ -1951,48 +1987,90 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
       {content.factCheck && (
         <div className="bg-slate-900 p-6 flex items-center justify-between text-white flex-none">
-          <div className="flex items-center gap-6">
-            {/* 전환 점수 (Conversion Score) - 상단에 배치 */}
+          <div className="flex items-center gap-4">
+            {/* 📊 SEO 점수 (블로그에만 표시) - 가장 앞에 배치 */}
+            {content.postType !== 'card_news' && (
+              <>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">📊 SEO 점수</span>
+                  <div className="flex items-center gap-2">
+                    {seoScore ? (
+                      <>
+                        <span className={`text-3xl font-black ${seoScore.total >= 90 ? 'text-emerald-400' : seoScore.total >= 70 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {seoScore.total}점
+                        </span>
+                        <button
+                          onClick={() => setShowSeoDetail(true)}
+                          className="text-[10px] opacity-70 hover:opacity-100 underline"
+                        >
+                          {seoScore.total >= 90 ? '✅ 최적화' : seoScore.total >= 70 ? '⚠️ 개선필요' : '🚨 재설계'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleEvaluateSeo}
+                        disabled={isEvaluatingSeo}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {isEvaluatingSeo ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            평가중...
+                          </>
+                        ) : (
+                          '평가하기'
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                {/* 구분선 */}
+                <div className="w-px h-12 bg-slate-700"></div>
+              </>
+            )}
+            
+            {/* ⚖️ 의료법 준수 (Safety Score) */}
             <div className="flex flex-col">
-              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🎯 전환력 점수</span>
+              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">⚖️ 의료법</span>
               <div className="flex items-center gap-2">
-                 <span className={`text-3xl font-black ${(content.factCheck.conversion_score || 0) >= 80 ? 'text-emerald-400' : (content.factCheck.conversion_score || 0) >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
-                   {content.factCheck.conversion_score || 0}점
+                 <span className={`text-2xl font-black ${content.factCheck.safety_score > 80 ? 'text-green-400' : 'text-amber-400'}`}>
+                   {content.factCheck.safety_score}점
                  </span>
-                 <span className="text-[10px] opacity-70 leading-tight">
-                   {(content.factCheck.conversion_score || 0) >= 80 ? '🔥 강력' : (content.factCheck.conversion_score || 0) >= 60 ? '👍 적당' : '💡 보완 필요'}
-                 </span>
+                 <span className="text-[10px] opacity-70">{content.factCheck.safety_score > 80 ? '✅' : '⚠️'}</span>
               </div>
             </div>
             
             {/* 구분선 */}
             <div className="w-px h-12 bg-slate-700"></div>
             
-            {/* 안전성 점수 (Safety Score) */}
+            {/* 🎯 전환력 점수 (Conversion Score) */}
             <div className="flex flex-col">
-              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">⚖️ 의료법 준수</span>
+              <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🎯 전환력</span>
               <div className="flex items-center gap-2">
-                 <span className={`text-3xl font-black ${content.factCheck.safety_score > 80 ? 'text-green-400' : 'text-amber-400'}`}>
-                   {content.factCheck.safety_score}점
+                 <span className={`text-2xl font-black ${(content.factCheck.conversion_score || 0) >= 80 ? 'text-emerald-400' : (content.factCheck.conversion_score || 0) >= 60 ? 'text-amber-400' : 'text-red-400'}`}>
+                   {content.factCheck.conversion_score || 0}점
                  </span>
-                 <span className="text-[10px] opacity-70">{content.factCheck.safety_score > 80 ? '✅ 안전' : '⚠️ 검토 필요'}</span>
+                 <span className="text-[10px] opacity-70 leading-tight">
+                   {(content.factCheck.conversion_score || 0) >= 80 ? '🔥' : (content.factCheck.conversion_score || 0) >= 60 ? '👍' : '💡'}
+                 </span>
               </div>
             </div>
             
-            {/* AI 냄새 점수 - 블로그/보도자료에만 표시 */}
+            {/* 🤖 AI 냄새 점수 - 블로그/보도자료에만 표시 */}
             {content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
               <>
                 {/* 구분선 */}
                 <div className="w-px h-12 bg-slate-700"></div>
                 
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI 냄새 v2</span>
+                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
                   <div className="flex items-center gap-2">
-                     <span className={`text-3xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
+                     <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
                        {content.factCheck.ai_smell_score}점
                      </span>
                      <span className="text-[10px] opacity-70">
-                       {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 부분수정' : '🚨 재작성'}
+                       {content.factCheck.ai_smell_score <= 7 ? '✅' : content.factCheck.ai_smell_score <= 15 ? '⚠️' : '🚨'}
                      </span>
                   </div>
                 </div>
@@ -2031,6 +2109,205 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         </div>
       )}
       
+      {/* 📊 SEO 점수 상세 모달 */}
+      {showSeoDetail && seoScore && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowSeoDetail(false)}>
+          <div className={`w-full max-w-2xl rounded-[28px] shadow-2xl overflow-hidden my-4 ${darkMode ? 'bg-slate-800' : 'bg-white'}`} onClick={(e) => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black ${
+                  seoScore.total >= 90 ? 'bg-emerald-100 text-emerald-600' : 
+                  seoScore.total >= 70 ? 'bg-amber-100 text-amber-600' : 
+                  'bg-red-100 text-red-600'
+                }`}>
+                  {seoScore.total}
+                </div>
+                <div>
+                  <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>📊 SEO 점수 분석</div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {seoScore.total >= 90 ? '✅ 상위 노출 가능성 높음' : seoScore.total >= 70 ? '⚠️ 개선 권장' : '🚨 90점 미만 - 재설계 필요'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSeoDetail(false)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* 본문 */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* ① 제목 최적화 (25점) */}
+              <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>① 제목 최적화</span>
+                  <span className={`text-lg font-black ${seoScore.title.score >= 20 ? 'text-emerald-500' : seoScore.title.score >= 15 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {seoScore.title.score}/25점
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 키워드 자연 포함: <span className="font-bold">{seoScore.title.keyword_natural}/10</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 시기성/상황성: <span className="font-bold">{seoScore.title.seasonality}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 판단 유도형: <span className="font-bold">{seoScore.title.judgment_inducing}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 의료광고 안전: <span className="font-bold">{seoScore.title.medical_law_safe}/5</span>
+                  </div>
+                </div>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{seoScore.title.feedback}</p>
+              </div>
+
+              {/* ② 본문 키워드 구조 (25점) */}
+              <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>② 본문 키워드 구조</span>
+                  <span className={`text-lg font-black ${seoScore.keyword_structure.score >= 20 ? 'text-emerald-500' : seoScore.keyword_structure.score >= 15 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {seoScore.keyword_structure.score}/25점
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 메인키워드 노출: <span className="font-bold">{seoScore.keyword_structure.main_keyword_exposure}/10</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 연관키워드 분산: <span className="font-bold">{seoScore.keyword_structure.related_keyword_spread}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 소제목 키워드: <span className="font-bold">{seoScore.keyword_structure.subheading_variation}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 무의미반복 없음: <span className="font-bold">{seoScore.keyword_structure.no_meaningless_repeat}/5</span>
+                  </div>
+                </div>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{seoScore.keyword_structure.feedback}</p>
+              </div>
+
+              {/* ③ 사용자 체류 구조 (20점) */}
+              <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>③ 사용자 체류 구조</span>
+                  <span className={`text-lg font-black ${seoScore.user_retention.score >= 16 ? 'text-emerald-500' : seoScore.user_retention.score >= 12 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {seoScore.user_retention.score}/20점
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 도입부 문제인식: <span className="font-bold">{seoScore.user_retention.intro_problem_recognition}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 생활 예시: <span className="font-bold">{seoScore.user_retention.relatable_examples}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 중간 이탈방지: <span className="font-bold">{seoScore.user_retention.mid_engagement_points}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 정보과부하 없음: <span className="font-bold">{seoScore.user_retention.no_info_overload}/5</span>
+                  </div>
+                </div>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{seoScore.user_retention.feedback}</p>
+              </div>
+
+              {/* ④ 의료법 안전성 + 신뢰 신호 (20점) */}
+              <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>④ 의료법 안전성</span>
+                  <span className={`text-lg font-black ${seoScore.medical_safety.score >= 16 ? 'text-emerald-500' : seoScore.medical_safety.score >= 12 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {seoScore.medical_safety.score}/20점
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 단정/보장 없음: <span className="font-bold">{seoScore.medical_safety.no_definitive_guarantee}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 개인차 언급: <span className="font-bold">{seoScore.medical_safety.individual_difference}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 자가진단 한계: <span className="font-bold">{seoScore.medical_safety.self_diagnosis_limit}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 직접홍보 최소화: <span className="font-bold">{seoScore.medical_safety.minimal_direct_promo}/5</span>
+                  </div>
+                </div>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{seoScore.medical_safety.feedback}</p>
+              </div>
+
+              {/* ⑤ 전환 연결성 (10점) */}
+              <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>⑤ 전환 연결성</span>
+                  <span className={`text-lg font-black ${seoScore.conversion.score >= 8 ? 'text-emerald-500' : seoScore.conversion.score >= 6 ? 'text-amber-500' : 'text-red-500'}`}>
+                    {seoScore.conversion.score}/10점
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • CTA 자연 흐름: <span className="font-bold">{seoScore.conversion.cta_flow_natural}/5</span>
+                  </div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    • 시점 고정형 문장: <span className="font-bold">{seoScore.conversion.time_fixed_sentence}/5</span>
+                  </div>
+                </div>
+                <p className={`text-xs leading-relaxed ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>{seoScore.conversion.feedback}</p>
+              </div>
+
+              {/* 결론 */}
+              <div className={`rounded-xl p-4 border-2 ${
+                seoScore.total >= 90 ? 'border-emerald-400 bg-emerald-50' : 
+                seoScore.total >= 70 ? 'border-amber-400 bg-amber-50' : 
+                'border-red-400 bg-red-50'
+              } ${darkMode ? 'bg-opacity-10' : ''}`}>
+                <div className={`text-sm font-black mb-2 ${
+                  seoScore.total >= 90 ? 'text-emerald-700' : 
+                  seoScore.total >= 70 ? 'text-amber-700' : 
+                  'text-red-700'
+                }`}>
+                  {seoScore.total >= 90 ? '✅ 우수한 SEO 점수입니다!' : 
+                   seoScore.total >= 70 ? '⚠️ 개선이 필요한 영역이 있습니다' : 
+                   '🚨 90점 미만 - 재설계/재작성을 권장합니다'}
+                </div>
+                <p className={`text-xs ${
+                  seoScore.total >= 90 ? 'text-emerald-600' : 
+                  seoScore.total >= 70 ? 'text-amber-600' : 
+                  'text-red-600'
+                }`}>
+                  SEO 점수는 상위 노출 가능성과 클릭 후 이탈 최소화를 함께 반영하는 비교 지표입니다. 
+                  글 간 차이점과 전환 이탈 지점을 파악하여 콘텐츠 품질을 개선하세요.
+                </p>
+              </div>
+            </div>
+            
+            {/* 푸터 */}
+            <div className={`px-6 py-4 border-t flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <button
+                type="button"
+                onClick={handleEvaluateSeo}
+                disabled={isEvaluatingSeo}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                🔄 다시 평가
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSeoDetail(false)}
+                className="px-6 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 카드 재생성 모달 */}
       {cardRegenModalOpen && content.postType === 'card_news' && (
         <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-6" onClick={() => setShowHistoryDropdown(false)}>
