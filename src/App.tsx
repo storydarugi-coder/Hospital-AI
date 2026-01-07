@@ -458,7 +458,9 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
-    console.log('🎯 handleGenerate 호출됨 - request:', request);
+    console.log('🎯 handleGenerate 호출됨');
+    console.log('📦 request 전체:', JSON.stringify(request, null, 2));
+    console.log('📋 request.postType:', request.postType, 'typeof:', typeof request.postType);
     console.log('🔐 크레딧 체크 - isLoggedIn:', isLoggedIn, 'userProfile:', userProfile, 'isAdmin:', isAdmin);
     
     // 크레딧 체크 (로그인 시에만, 관리자 제외)
@@ -487,18 +489,23 @@ const App: React.FC = () => {
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
     
-    console.log('📋 postType 확인:', request.postType);
+    // 🔧 postType 안전장치: undefined면 'blog'로 기본 설정
+    const safePostType = request.postType || 'blog';
+    console.log('📋 postType 확인 - 원본:', request.postType, '→ 안전값:', safePostType);
+    
+    // request 객체에 안전한 postType 적용
+    const safeRequest = { ...request, postType: safePostType };
     
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
-    if (request.postType === 'card_news') {
+    if (safeRequest.postType === 'card_news') {
       console.log('🎴 카드뉴스 모드 시작');
       setIsGeneratingScript(true);
       setCardNewsScript(null);
-      setPendingRequest(request);
+      setPendingRequest(safeRequest);
       setState(prev => ({ ...prev, isLoading: false, data: null, error: null }));
       
       try {
-        const script = await generateCardNewsScript(request, setScriptProgress);
+        const script = await generateCardNewsScript(safeRequest, setScriptProgress);
         setCardNewsScript(script);
         setScriptProgress('');
       } catch (err: any) {
@@ -516,7 +523,7 @@ const App: React.FC = () => {
     
     console.log('🚀 generateFullPost 호출 시작');
     try {
-      const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
+      const result = await generateFullPost(safeRequest, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 크레딧 차감 (로그인 시에만, 프리미엄/관리자 제외)
