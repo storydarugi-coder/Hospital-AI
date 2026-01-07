@@ -14,22 +14,31 @@ const getAiProviderSettings = (): { textGeneration: 'gemini' | 'openai', imageGe
   try {
     const settings = localStorage.getItem('AI_PROVIDER_SETTINGS');
     if (settings) {
-      return JSON.parse(settings);
+      const parsed = JSON.parse(settings);
+      // OpenAI 키가 없으면 강제로 Gemini 사용
+      if (parsed.textGeneration === 'openai' && !getOpenAIKey()) {
+        console.warn('⚠️ OpenAI 키가 없어서 Gemini로 전환합니다');
+        return { textGeneration: 'gemini', imageGeneration: parsed.imageGeneration || 'gemini' };
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn('AI Provider 설정 읽기 실패:', e);
   }
-  // 기본값: 글쓰기 메인 GPT-5.2 Pro, 보조 Gemini 3 Pro Preview
-  return { textGeneration: 'openai', imageGeneration: 'gemini' };
+  
+  // 기본값: OpenAI 키가 있으면 GPT-5.2 Pro, 없으면 Gemini
+  const hasOpenAIKey = !!getOpenAIKey();
+  console.log(`🔧 기본 AI 설정: ${hasOpenAIKey ? 'GPT-5.2 Pro (OpenAI)' : 'Gemini 3 Pro Preview'}`);
+  return { 
+    textGeneration: hasOpenAIKey ? 'openai' : 'gemini', 
+    imageGeneration: 'gemini' 
+  };
 };
 
 // OpenAI API 키 가져오기
-const getOpenAIKey = (): string => {
+const getOpenAIKey = (): string | null => {
   const apiKey = localStorage.getItem('OPENAI_API_KEY');
-  if (!apiKey) {
-    throw new Error("OpenAI API Key가 설정되지 않았습니다. 관리자 페이지에서 API Key를 입력해주세요.");
-  }
-  return apiKey;
+  return apiKey || null;
 };
 
 // GPT-5.2 Pro 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
@@ -134,31 +143,48 @@ const getGPT52ProPrompt = () => {
 
 // OpenAI API 호출 함수
 const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string> => {
-  const apiKey = getOpenAIKey();
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.2-pro',
-      messages: [
-        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7
-    })
-  });
+  try {
+    console.log('🔵 callOpenAI 시작');
+    const apiKey = getOpenAIKey();
+    
+    if (!apiKey) {
+      console.error('❌ OpenAI API 키가 없습니다!');
+      throw new Error('OpenAI API 키가 설정되지 않았습니다. LocalStorage에서 OPENAI_API_KEY를 확인하세요.');
+    }
+    
+    console.log('🔵 API 키 확인 완료, 요청 전송 중...');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2-pro',
+        messages: [
+          ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7
+      })
+    });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenAI API 오류: ${error.error?.message || response.statusText}`);
+    console.log('🔵 OpenAI 응답 상태:', response.status, response.statusText);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ OpenAI API 오류:', error);
+      throw new Error(`OpenAI API 오류: ${error.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ OpenAI 응답 성공');
+    return data.choices[0]?.message?.content || '{}';
+  } catch (error) {
+    console.error('❌ callOpenAI 전체 에러:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || '{}';
 };
 
 // 현재 연도를 동적으로 가져오는 함수
