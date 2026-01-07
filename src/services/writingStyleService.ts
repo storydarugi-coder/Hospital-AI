@@ -221,25 +221,68 @@ JSON으로 답변해주세요:
   }
 };
 
+// 의료광고법 금지 표현 필터링
+const MEDICAL_AD_PROHIBITED_WORDS = [
+  // 직접 권유
+  '방문하세요', '내원하세요', '예약하세요', '문의하세요', '상담하세요',
+  '오세요', '연락주세요', '전화주세요', '문의해주세요',
+  // 과대광고
+  '완치', '최고', '유일', '특효', '1등', '최고급', '최대', '최상',
+  '획기적', '혁신적', '기적', '100%', '확실', '보장', '반드시',
+  // 치료 효과 암시
+  '완벽한 치료', '빠른 회복', '확실한 효과', '증명된',
+  // 비교광고
+  '업계 최초', '업계 유일', '타 병원보다', '다른 곳보다',
+  // 공포 조장
+  '늦으면 손 쓸 수 없', '큰일납니다', '위험합니다', '죽을 수',
+];
+
+// 금지 표현 필터링 함수
+const filterProhibitedExpressions = (words: string[]): string[] => {
+  return words.filter(word => 
+    !MEDICAL_AD_PROHIBITED_WORDS.some(prohibited => 
+      word.toLowerCase().includes(prohibited.toLowerCase())
+    )
+  );
+};
+
 /**
  * 학습된 스타일을 프롬프트로 변환
+ * ⚠️ 의료광고법 준수를 위해 금지 표현 필터링 적용
  */
 export const getStylePromptForGeneration = (style: LearnedWritingStyle): string => {
   const { analyzedStyle } = style;
   
+  // 학습된 표현 중 의료광고법 위반 가능성 있는 것 필터링
+  const safeVocabulary = filterProhibitedExpressions(analyzedStyle.vocabulary);
+  const safeSentenceEndings = filterProhibitedExpressions(analyzedStyle.sentenceEndings);
+  
   return `[학습된 말투 스타일: ${style.name}]
 - 어조: ${analyzedStyle.tone}
-- 문장 끝 패턴: ${analyzedStyle.sentenceEndings.join(', ')}
-- 자주 사용하는 표현: ${analyzedStyle.vocabulary.join(', ')}
+- 문장 끝 패턴: ${safeSentenceEndings.join(', ')}
+- 자주 사용하는 표현: ${safeVocabulary.join(', ')}
 - 글 구조: ${analyzedStyle.structure}
 - 감정 표현: ${analyzedStyle.emotionLevel === 'high' ? '풍부하게' : analyzedStyle.emotionLevel === 'medium' ? '적당히' : '절제하여'}
 - 격식: ${analyzedStyle.formalityLevel === 'formal' ? '격식체' : analyzedStyle.formalityLevel === 'casual' ? '편한 말투' : '중립적'}
 
-⚠️ 위 말투 특징을 반드시 적용하여 글을 작성하세요!
-특히 문장 끝 패턴(${analyzedStyle.sentenceEndings.slice(0, 3).join(', ')})을 자연스럽게 사용하세요.
+⚠️ 위 말투 특징을 적용하되, 아래 의료광고법 필수 준수사항을 최우선으로 지켜주세요!
 
-[참고 샘플]
-${style.sampleText.substring(0, 300)}...
+████████████████████████████████████████████████████████████████████████████████
+🚨🚨🚨 [의료광고법 최우선 - 말투보다 법률 준수가 먼저!] 🚨🚨🚨
+████████████████████████████████████████████████████████████████████████████████
+
+**⛔ 학습된 말투에서 아래 표현이 있더라도 절대 사용 금지:**
+- '방문하세요', '오세요', '예약하세요', '상담하세요' → 직접 권유 금지!
+- '완치', '최고', '유일', '보장', '확실' → 과대광고 금지!
+- '~해야 합니다', '반드시 ~' → 단정적 표현 금지!
+- 구체적 숫자/시간 (출처 없이) → '충분히', '상당 시간' 등으로 대체!
+
+**✅ 말투는 적용하되 표현은 안전하게 변환:**
+- "병원에 오세요" → "전문의 상담을 고려해 보실 수 있습니다"
+- "확실히 나아요" → "도움이 될 수 있습니다"
+- "반드시 해야 해요" → "하는 것이 좋을 수 있어요"
+
+📌 핵심: 말투(어조, 친근함)는 유지 + 표현(단어, 문장)은 의료법 안전하게!
 `;
 };
 
