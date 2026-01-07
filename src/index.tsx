@@ -146,9 +146,9 @@ app.get('*', (c) => {
     </script>
     
     <!-- Favicon (병원 십자가 아이콘) -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
-    <link rel="apple-touch-icon" href="/favicon.svg?v=2">
-    <link rel="shortcut icon" href="/favicon.svg?v=2">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3">
+    <link rel="apple-touch-icon" href="/favicon.svg?v=3">
+    <link rel="shortcut icon" href="/favicon.svg?v=3">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- PortOne V2 SDK -->
