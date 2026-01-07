@@ -1523,29 +1523,41 @@ const PSYCHOLOGY_CTA_PROMPT = `
 - 팩트체크 85점 이상 목표
 `;
 
-export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration'): Promise<string> => {
+export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration', customStylePrompt?: string): Promise<string> => {
   const ai = getAiClient();
   
   // 스타일에 따른 프롬프트 가이드 (구체적으로 개선!)
-  const styleGuide = imageStyle === 'illustration' 
-    ? `**중요: 3D 렌더 일러스트 스타일로 생성해야 합니다!**
+  let styleGuide: string;
+  
+  if (imageStyle === 'custom' && customStylePrompt) {
+    // 🎨 커스텀 스타일: 사용자가 업로드한 참고 이미지 스타일 분석 결과 사용
+    styleGuide = `**중요: 사용자가 지정한 커스텀 스타일로 생성해야 합니다!**
+       사용자 지정 스타일 프롬프트:
+       "${customStylePrompt}"
+       
+       위 스타일을 최대한 반영하여 프롬프트를 생성하세요.
+       레이아웃, 색상, 분위기, 디자인 요소 등을 유지해주세요.`;
+  } else if (imageStyle === 'illustration') {
+    styleGuide = `**중요: 3D 렌더 일러스트 스타일로 생성해야 합니다!**
        - 렌더링 스타일: "3D rendered illustration", "Blender style", "soft 3D render"
        - 조명: 부드러운 스튜디오 조명, 은은한 그림자
        - 질감: 매끄러운 플라스틱 느낌, 무광 마감, 둥근 모서리
        - 색상: 밝은 파스텔 톤, 파란색/흰색/연한 색상 팔레트
        - 캐릭터: 친근한 표정, 단순화된 디자인
        - 배경: 깔끔한 그라데이션 배경
-       ⛔ 금지: photorealistic, real photo, DSLR, realistic texture`
-    : imageStyle === 'medical'
-    ? `**중요: 의학 3D 일러스트 스타일로 생성해야 합니다!**
+       ⛔ 금지: photorealistic, real photo, DSLR, realistic texture`;
+  } else if (imageStyle === 'medical') {
+    styleGuide = `**중요: 의학 3D 일러스트 스타일로 생성해야 합니다!**
        - 렌더링 스타일: "medical 3D illustration", "anatomical render", "scientific visualization"
        - 피사체: 인체 해부학, 장기 단면도, 뼈/근육/혈관 구조
        - 조명: 임상적 조명, X-ray 스타일 글로우, 반투명 장기
        - 질감: semi-transparent organs, detailed anatomical structures
        - 색상: 의료용 팔레트 (파란색, 흰색, 빨간색 혈관)
        - 분위기: clinical, professional, educational
-       ⛔ 금지: cute cartoon, photorealistic human face`
-    : `**중요: 실사 사진 스타일로 생성해야 합니다!**
+       ⛔ 금지: cute cartoon, photorealistic human face`;
+  } else {
+    // photo 또는 기타
+    styleGuide = `**중요: 실사 사진 스타일로 생성해야 합니다!**
        - 렌더링 스타일: "photorealistic", "real photography", "DSLR shot", "35mm lens"
        - 피사체: 실제 병원 환경, 실제 의료진, 실제 진료 도구
        - 조명: 자연스러운 소프트 조명, 스튜디오 조명, 전문 사진 조명
@@ -1553,6 +1565,7 @@ export const recommendImagePrompt = async (blogContent: string, currentImageAlt:
        - 깊이: shallow depth of field, bokeh background
        - 분위기: professional, trustworthy, clean modern hospital
        ⛔ 금지: 3D render, illustration, cartoon, anime, vector, clay`;
+  }
   
   try {
     const response = await ai.models.generateContent({

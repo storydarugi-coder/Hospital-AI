@@ -878,8 +878,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const textContent = tempDiv.innerText || tempDiv.textContent || '';
       
       // 현재 이미지 스타일을 전달하여 스타일에 맞는 프롬프트 추천
+      // 🎨 커스텀 스타일일 때 savedCustomStylePrompt 전달
       const currentStyle = content.imageStyle || 'illustration';
-      const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt, currentStyle);
+      const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt, currentStyle, savedCustomStylePrompt);
       setRegenPrompt(recommendedPrompt);
     } catch (err) {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
@@ -901,7 +902,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       `;
       
       const currentStyle = content.imageStyle || 'illustration';
-      const recommendedPrompt = await recommendImagePrompt(cardContext, editImagePrompt, currentStyle);
+      // 🎨 커스텀 스타일일 때 savedCustomStylePrompt 전달
+      const recommendedPrompt = await recommendImagePrompt(cardContext, editImagePrompt, currentStyle, savedCustomStylePrompt);
       
       // 🔒 AI 추천 프롬프트 적용 - 자동 연동 스킵 플래그 ON
       setIsAIPromptApplied(true);
