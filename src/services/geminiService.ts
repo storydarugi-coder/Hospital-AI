@@ -5621,16 +5621,12 @@ ${getStylePromptForGeneration(learnedStyle)}
         onProgress('🟢 GPT 검색 결과로 진행 (Gemini 검색 실패)');
         
       } else {
-        // 둘 다 실패
-        console.error('❌ 듀얼 검색 모두 실패');
-        crossCheckedResults = {
-          collected_facts: [],
-          key_statistics: [],
-          latest_guidelines: [],
-          search_failed: true,
-          cross_check_status: 'both_failed'
-        };
-        onProgress('⚠️ 검색 실패 - AI 자체 지식 기반으로 작성');
+        // 둘 다 실패 - 에러 발생시키고 중단
+        console.error('❌❌❌ 듀얼 검색 모두 실패! Gemini와 GPT 둘 다 검색에 실패했습니다.');
+        console.error('🔴 Gemini 에러:', geminiResult.error);
+        console.error('🔴 GPT 에러:', gptResult.error);
+        onProgress('❌ 검색 실패 - Gemini와 GPT 모두 검색에 실패했습니다.');
+        throw new Error('듀얼 검색 실패: Gemini와 GPT 둘 다 검색에 실패했습니다. 네트워크 연결 또는 API 키를 확인해주세요.');
       }
       
       // 최종 searchResults로 설정
@@ -5646,7 +5642,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       
       const gptSystemPrompt = getGPT52ProPrompt();
       
-      // 크로스체크 상태에 따른 신뢰도 안내
+      // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
       const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
         ? `🎯 듀얼 검색 크로스체크 완료!
 - Gemini 검색 결과: ${searchResults.gemini_found || 0}개 정보
@@ -5656,27 +5652,21 @@ ${getStylePromptForGeneration(learnedStyle)}
 ⭐ 우선순위: cross_verified=true 또는 verified_by='both' 정보 > 단일 소스 정보`
         : searchResults.cross_check_status === 'gemini_only'
         ? '🔵 Gemini 단일 검색 결과입니다. GPT 검색이 실패하여 교차 검증되지 않았습니다.'
-        : searchResults.cross_check_status === 'gpt_only'
-        ? '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.'
-        : '⚠️ 검색에 실패하여 AI 자체 지식으로 작성합니다.';
+        : '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.';
       
       const systemPrompt = `${gptSystemPrompt}
 
 [🔍 듀얼 검색 + 크로스체크 결과]
 ${crossCheckGuide}
 
-${searchResults.search_failed 
-  ? '반드시 출처 규칙을 엄격히 준수하세요!' 
-  : `아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
+아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
 교차 검증된 정보(cross_verified 또는 verified_by='both')를 최우선으로 사용하세요!
 
-${JSON.stringify(searchResults, null, 2)}`}
+${JSON.stringify(searchResults, null, 2)}
 
 [⚠️ 크로스체크 기반 작성 규칙]
 1. ${searchResults.cross_check_status === 'dual_verified' 
     ? '🎯 교차 검증된 정보(cross_verified=true)를 최우선으로 사용하세요 - 가장 신뢰도 높음!' 
-    : searchResults.search_failed
-    ? '검색 실패로 자체 지식 사용 시, 출처 불명확한 정보는 일반화 표현으로 작성하세요'
     : '단일 소스 검색 결과이므로 출처 표기에 더욱 신경 쓰세요'}
 2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기 (예: "질병관리청 ${getCurrentYear()}년 자료에 따르면...")
 3. 교차 검증되지 않은 정보는 "~로 알려져 있습니다", "~할 수 있습니다" 등 완화 표현 사용
