@@ -1681,6 +1681,14 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
 export const recommendSeoTitles = async (topic: string, keywords: string, postType: 'blog' | 'card_news' = 'blog'): Promise<SeoTitleItem[]> => {
   const ai = getAiClient();
   
+  // 현재 날짜/계절 정보 추가 (트렌드와 동일하게)
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const currentYear = koreaTime.getFullYear();
+  const currentMonth = koreaTime.getMonth() + 1;
+  const seasons = ['겨울', '겨울', '봄', '봄', '봄', '여름', '여름', '여름', '가을', '가을', '가을', '겨울'];
+  const currentSeason = seasons[currentMonth - 1];
+  
   const contentTypeDesc = postType === 'card_news' 
     ? '인스타그램/네이버 카드뉴스' 
     : '네이버 블로그';
@@ -1689,7 +1697,11 @@ export const recommendSeoTitles = async (topic: string, keywords: string, postTy
     ? '15~25자 이내 (카드뉴스 표지 최적화)'
     : '28~38자 이내 (모바일 최적화)';
   
-  const prompt = `너는 대한민국 의료광고법을 숙지한 '${contentTypeDesc}' 전문 에디터다.
+  const prompt = `너는 대한민국 ${currentYear}년 의료광고법을 숙지한 '${contentTypeDesc}' 전문 에디터다.
+
+[📅 현재 시점: ${currentYear}년 ${currentMonth}월 (${currentSeason})]
+- ${currentYear}년 최신 의료광고법 기준 적용
+- ${currentSeason} 계절 키워드 적극 활용 (예: ${currentSeason === '겨울' ? '겨울철, 난방기, 건조한' : currentSeason === '여름' ? '여름철, 무더위, 습한' : currentSeason === '봄' ? '봄철, 환절기, 꽃가루' : '가을철, 환절기, 선선한'})
 
 [🎯 미션]
 의료광고법을 100% 준수하면서 검색 클릭률이 높은 ${postType === 'card_news' ? '카드뉴스 표지' : '블로그'} 제목을 생성한다.
