@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 
 type Bindings = {
   GEMINI_API_KEY?: string;
+  OPENAI_API_KEY?: string;
   PORTONE_STORE_ID?: string;
   PORTONE_CHANNEL_KEY?: string;
 }
@@ -72,6 +73,7 @@ app.get('/sitemap.xml', (c) => {
 app.get('*', (c) => {
   // 환경변수를 HTML에 직접 주입
   const geminiKey = c.env.GEMINI_API_KEY || '';
+  const openaiKey = c.env.OPENAI_API_KEY || '';
   const portoneStoreId = c.env.PORTONE_STORE_ID || '';
   const portoneChannelKey = c.env.PORTONE_CHANNEL_KEY || '';
   
@@ -195,9 +197,11 @@ app.get('*', (c) => {
       // 서버에서 주입된 API 키를 localStorage에 저장
       (function() {
         const gk = "${geminiKey}";
+        const ok = "${openaiKey}";
         const psi = "${portoneStoreId}";
         const pck = "${portoneChannelKey}";
         if (gk) { localStorage.setItem('GEMINI_API_KEY', gk); localStorage.setItem('GLOBAL_GEMINI_API_KEY', gk); }
+        if (ok) { localStorage.setItem('OPENAI_API_KEY', ok); }
         if (psi) { localStorage.setItem('PORTONE_STORE_ID', psi); }
         if (pck) { localStorage.setItem('PORTONE_CHANNEL_KEY', pck); }
       })();
