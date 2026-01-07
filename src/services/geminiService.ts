@@ -19,8 +19,8 @@ const getAiProviderSettings = (): { textGeneration: 'gemini' | 'openai', imageGe
   } catch (e) {
     console.warn('AI Provider 설정 읽기 실패:', e);
   }
-  // 기본값: Gemini 사용
-  return { textGeneration: 'gemini', imageGeneration: 'gemini' };
+  // 기본값: 글쓰기 메인 GPT-5.2 Pro, 보조 Gemini 3 Pro Preview
+  return { textGeneration: 'openai', imageGeneration: 'gemini' };
 };
 
 // OpenAI API 키 가져오기
