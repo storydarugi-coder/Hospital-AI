@@ -5531,7 +5531,10 @@ ${getStylePromptForGeneration(learnedStyle)}
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      onProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
+      console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
+      if (typeof onProgress === 'function') {
+        onProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
+      }
       
       const gptSystemPrompt = getGPT52ProPrompt();
       
@@ -5569,7 +5572,13 @@ ${JSON.stringify(searchResults, null, 2)}`}
   }
 }`;
 
+      console.log('📍 callOpenAI 호출 직전...');
+      console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
+      console.log('📍 시스템 프롬프트 길이:', systemPrompt.length);
+      
       const responseText = await callOpenAI(isCardNews ? cardNewsPrompt : blogPrompt, systemPrompt);
+      console.log('📍 callOpenAI 응답 받음, 길이:', responseText?.length);
+      
       result = JSON.parse(responseText);
       
       console.log('✅ GPT-5.2 작성 완료');
