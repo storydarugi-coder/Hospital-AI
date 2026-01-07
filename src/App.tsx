@@ -459,15 +459,19 @@ const App: React.FC = () => {
 
   const handleGenerate = async (request: GenerationRequest) => {
     console.log('🎯 handleGenerate 호출됨 - request:', request);
+    console.log('🔐 크레딧 체크 - isLoggedIn:', isLoggedIn, 'userProfile:', userProfile, 'isAdmin:', isAdmin);
     
     // 크레딧 체크 (로그인 시에만, 관리자 제외)
     if (isLoggedIn && userProfile && !isAdmin && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
+      console.error('❌ 크레딧 부족!');
       setState(prev => ({ 
         ...prev, 
         error: '크레딧이 부족합니다. 요금제를 업그레이드해주세요.' 
       }));
       return;
     }
+    
+    console.log('✅ 크레딧 체크 통과!');
 
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
@@ -480,10 +484,14 @@ const App: React.FC = () => {
       console.warn('저장본 삭제 실패:', e);
     }
 
+    console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
+    
+    console.log('📋 postType 확인:', request.postType);
     
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
     if (request.postType === 'card_news') {
+      console.log('🎴 카드뉴스 모드 시작');
       setIsGeneratingScript(true);
       setCardNewsScript(null);
       setPendingRequest(request);
@@ -503,7 +511,10 @@ const App: React.FC = () => {
     }
 
     // 블로그: 기존 플로우 (한 번에 생성)
+    console.log('📝 블로그 모드 시작');
     setState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
+    
+    console.log('🚀 generateFullPost 호출 시작');
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
