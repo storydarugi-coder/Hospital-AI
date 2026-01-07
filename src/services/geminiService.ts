@@ -4839,8 +4839,10 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
     `;
   }
 
-  const targetImageCount = request.imageCount || 3;
-  const imageMarkers = Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ');
+  const targetImageCount = request.imageCount ?? 1;
+  const imageMarkers = targetImageCount > 0 
+    ? Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ')
+    : '(이미지 없음)';
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
   const writingStylePrompt = getWritingStylePrompts()[writingStyle];
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
@@ -4968,7 +4970,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     - 해시태그로 글자 수 채우기
     - 불필요하게 길게 늘려쓰기
     
-    이미지 개수: ${targetImageCount}장 (${imageMarkers} 마커 사용)
+    이미지 개수: ${targetImageCount}장 ${targetImageCount > 0 ? `(${imageMarkers} 마커 사용)` : '(이미지 없이 텍스트만 작성)'}
     
     [네이버 블로그 HTML 형식 작성 필수]
     🚨🚨🚨 **마크다운 문법 절대 사용 금지!!!** 🚨🚨🚨
@@ -4987,7 +4989,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       <p>서론 문단 (${targetLength >= 4000 ? '400자 이상' : targetLength >= 3000 ? '300자 이상' : '200자 이상'}) - ${writingStyle === 'expert' ? '의학적 인사이트나 논문/학회 인용으로 시작' : '구체적 상황 묘사로 시작! (예: "히터 켜고 자고 일어나면...")'}</p>
       <p>서론 추가 문단 - 왜 이 주제가 중요한지 설명</p>
       
-      [IMG_1]
+      ${targetImageCount >= 1 ? '[IMG_1]' : ''}
       
       <h3>📌 본론 1: 정의/개념 설명</h3>
       <p>핵심 개념 설명 (${targetLength >= 4000 ? '500자 이상' : '350자 이상'})</p>
@@ -6356,7 +6358,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
   
-  const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount || 3);
+  const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount ?? 1);
   
   // 폴백 방식에서도 참고 이미지 전달 (레이아웃 재가공 지원)
   const fallbackReferenceImage = request.coverStyleImage || request.contentStyleImage;
@@ -6365,17 +6367,26 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   // 🖼️ 블로그 vs 카드뉴스 이미지 생성 분기
   // 블로그: generateBlogImage (텍스트 없는 순수 이미지, 16:9)
   // 카드뉴스: generateSingleImage (텍스트 포함, 브라우저 프레임, 1:1)
-  const images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
-    if (request.postType === 'card_news') {
-      // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
-      return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
-        .then(img => ({ index: i + 1, data: img, prompt: p }));
-    } else {
-      // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
-      return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
-        .then(img => ({ index: i + 1, data: img, prompt: p }));
-    }
-  }));
+  // ⚠️ 이미지 0장이면 생성 스킵
+  let images: { index: number; data: string; prompt: string }[] = [];
+  
+  if (maxImages > 0) {
+    onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 ${maxImages}장 생성 중...`);
+    images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
+      if (request.postType === 'card_news') {
+        // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
+        return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
+          .then(img => ({ index: i + 1, data: img, prompt: p }));
+      } else {
+        // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
+        return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
+          .then(img => ({ index: i + 1, data: img, prompt: p }));
+      }
+    }));
+  } else {
+    console.log('🖼️ 이미지 0장 설정 - 이미지 생성 스킵');
+    onProgress('📝 이미지 없이 텍스트만 생성 완료');
+  }
 
   let body = textData.content;
   
