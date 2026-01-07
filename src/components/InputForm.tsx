@@ -566,12 +566,13 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                <span className="text-emerald-600 font-bold">말투 학습으로 나만의 스타일 적용</span>
             </label>
             
-            {/* 말투 학습 섹션 */}
+            {/* 말투/문체 학습 섹션 */}
             <WritingStyleLearner
               onStyleSelect={(styleId) => {
                 setLearnedStyleId(styleId);
               }}
               selectedStyleId={learnedStyleId}
+              contentType={postType === 'press_release' ? 'press_release' : 'blog'}
             />
 
             {/* 학습된 말투가 없을 때만 기본 페르소나/말투 선택 표시 */}

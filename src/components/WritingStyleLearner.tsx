@@ -9,6 +9,7 @@ interface WritingStyleLearnerProps {
   onStyleSelect: (styleId: string | undefined) => void;
   selectedStyleId?: string;
   darkMode?: boolean;
+  contentType?: 'blog' | 'press_release';  // 콘텐츠 타입에 따라 UI 텍스트 변경
 }
 
 type InputMethod = 'text' | 'image' | 'file';
@@ -16,8 +17,18 @@ type InputMethod = 'text' | 'image' | 'file';
 const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({ 
   onStyleSelect, 
   selectedStyleId,
-  darkMode = false 
+  darkMode = false,
+  contentType = 'blog'
 }) => {
+  // 콘텐츠 타입별 텍스트
+  const isPress = contentType === 'press_release';
+  const contentLabel = isPress ? '보도자료' : '블로그 글';
+  const contentExample = isPress 
+    ? '기존 보도자료를 붙여넣기 해주세요...\n\n예시:\n[보도자료] OO병원, 첨단 의료장비 도입으로 진료 서비스 강화\n\nOO병원(원장 홍길동)은 최신 의료장비를 도입하여 환자 진료 서비스를 한층 강화했다고 밝혔다.'
+    : '학습시킬 블로그 글을 붙여넣기 해주세요...\n\n예시:\n안녕하세요~ 오늘은 겨울철 피부 관리에 대해 이야기해볼게요!\n요즘 날씨가 정말 건조하죠? 저도 매일 아침 일어나면 얼굴이 당기더라고요 ㅠㅠ';
+  const styleNamePlaceholder = isPress 
+    ? '스타일 이름 (예: 공식 보도자료, 친근한 홍보문)'
+    : '말투 이름 (예: 따뜻한 선생님, 친근한 언니)';
   const [isExpanded, setIsExpanded] = useState(false);
   const [inputMethod, setInputMethod] = useState<InputMethod>('text');
   const [textInput, setTextInput] = useState('');
@@ -142,7 +153,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
       setExtractedText('');
       setAnalyzeProgress('');
       
-      alert(`"${analyzedStyle.name}" 말투가 학습되었습니다!`);
+      alert(`"${analyzedStyle.name}" ${isPress ? '문체' : '말투'}가 학습되었습니다!`);
     } catch (err: any) {
       setError(err.message || '말투 분석 실패');
     } finally {
@@ -152,7 +163,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
 
   // 스타일 삭제
   const handleDeleteStyle = (id: string) => {
-    if (!confirm('이 말투를 삭제하시겠습니까?')) return;
+    if (!confirm(`이 ${isPress ? '문체' : '말투'}를 삭제하시겠습니까?`)) return;
     
     const newStyles = savedStyles.filter(s => s.id !== id);
     saveStyles(newStyles);
@@ -178,10 +189,10 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
           <span className="text-2xl">📝</span>
           <div className="text-left">
             <span className={`text-sm font-black ${darkMode ? 'text-violet-300' : 'text-violet-700'}`}>
-              말투 학습
+              {isPress ? '문체 학습' : '말투 학습'}
             </span>
             <p className={`text-[10px] font-medium mt-0.5 ${darkMode ? 'text-violet-400' : 'text-violet-500'}`}>
-              블로그 글의 말투/어조를 학습시켜보세요
+              {isPress ? '보도자료의 문체/어조를 학습시켜보세요' : '블로그 글의 말투/어조를 학습시켜보세요'}
             </p>
           </div>
         </div>
@@ -207,7 +218,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
           {savedStyles.length > 0 && (
             <div className="pt-4">
               <label className={`block text-xs font-black mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                저장된 말투
+                저장된 {isPress ? '문체' : '말투'}
               </label>
               <div className="space-y-2">
                 {savedStyles.map((style) => (
@@ -266,7 +277,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
           {/* 새 말투 학습 섹션 */}
           <div className={`pt-4 ${savedStyles.length > 0 ? 'border-t' : ''} ${darkMode ? 'border-slate-700' : 'border-violet-100'}`}>
             <label className={`block text-xs font-black mb-3 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              ✨ 새 말투 학습하기
+              ✨ 새 {isPress ? '문체' : '말투'} 학습하기
             </label>
 
             {/* 입력 방식 선택 */}
@@ -317,7 +328,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
               type="text"
               value={styleName}
               onChange={(e) => setStyleName(e.target.value)}
-              placeholder="말투 이름 (예: 따뜻한 선생님, 친근한 언니)"
+              placeholder={styleNamePlaceholder}
               className={`w-full p-3 rounded-xl text-sm font-medium mb-3 outline-none transition-all ${
                 darkMode
                   ? 'bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-400 focus:border-violet-500'
@@ -330,7 +341,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
               <textarea
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder="학습시킬 블로그 글을 붙여넣기 해주세요...&#10;&#10;예시:&#10;안녕하세요~ 오늘은 겨울철 피부 관리에 대해 이야기해볼게요!&#10;요즘 날씨가 정말 건조하죠? 저도 매일 아침 일어나면 얼굴이 당기더라고요 ㅠㅠ"
+                placeholder={contentExample}
                 className={`w-full p-4 rounded-xl text-sm font-medium outline-none resize-none transition-all ${
                   darkMode
                     ? 'bg-slate-700 border border-slate-600 text-slate-200 placeholder-slate-400 focus:border-violet-500'
@@ -355,7 +366,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
                     스크린샷 이미지 업로드
                   </p>
                   <p className={`text-[11px] mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                    PNG, JPG, WEBP 지원 • 블로그 캡쳐 이미지에서 텍스트 추출
+                    PNG, JPG, WEBP 지원 • {isPress ? '보도자료' : '블로그'} 캡쳐 이미지에서 텍스트 추출
                   </p>
                 </div>
                 <input
@@ -460,7 +471,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
                   : 'bg-violet-500 text-white hover:bg-violet-600 shadow-lg shadow-violet-200 active:scale-98'
               }`}
             >
-              {isAnalyzing ? '분석 중...' : '🎓 이 말투 학습하기'}
+              {isAnalyzing ? '분석 중...' : `🎓 이 ${isPress ? '문체' : '말투'} 학습하기`}
             </button>
 
             {/* 안내 문구 */}
