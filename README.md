@@ -1,5 +1,7 @@
 # Hospital Toolchain - 병원 블로그 마케팅 전용
 
+> 🚀 최신 업데이트: GPT-5.2 Pro 메인 엔진 적용 + Gemini 검색 폴백
+
 ## 프로젝트 개요
 - **이름**: Hospital Toolchain
 - **목적**: 의료광고법을 준수하는 블로그 콘텐츠를 AI로 자동 생성
