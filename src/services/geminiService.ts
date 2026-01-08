@@ -254,6 +254,15 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
     // 🚀 GPT-5.2 시도
     try {
       console.log(`🔵 API 키 확인 완료, 모델 'gpt-5.2' 요청 전송 중...`);
+      
+      // OpenAI json_object 모드 사용 시 프롬프트에 "json" 단어 필수
+      const jsonSystemPrompt = systemPrompt 
+        ? `${systemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.`
+        : '반드시 유효한 JSON 형식으로 응답하세요.';
+      const jsonUserPrompt = prompt.includes('json') || prompt.includes('JSON') 
+        ? prompt 
+        : `${prompt}\n\n(응답은 반드시 JSON 형식으로 해주세요)`;
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -263,8 +272,8 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
         body: JSON.stringify({
           model: 'gpt-5.2',
           messages: [
-            ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
-            { role: 'user', content: prompt }
+            { role: 'system', content: jsonSystemPrompt },
+            { role: 'user', content: jsonUserPrompt }
           ],
           response_format: { type: 'json_object' },
           temperature: 0.7
