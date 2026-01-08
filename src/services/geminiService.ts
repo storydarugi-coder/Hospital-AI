@@ -5208,11 +5208,13 @@ export const generateCardNewsScript = async (
   
   // 블로그와 동일한 검증된 프롬프트 구조 사용
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
+  const aiFeedbackRules = getAIFeedbackPrompt();
   
   onProgress('📝 [1단계] 원고 기획 중...');
   
   const prompt = `
 ${medicalSafetyPrompt}
+${aiFeedbackRules}
 ${writingStylePrompt}
 ${getWritingStyleCommonRules()}
 ${PSYCHOLOGY_CTA_PROMPT}
@@ -5814,9 +5816,11 @@ ${getStylePromptForGeneration(learnedStyle)}
   
   // 동적으로 최신 의료광고법 프롬프트 생성
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
+  const aiFeedbackRules = getAIFeedbackPrompt();
   
   const blogPrompt = `
     ${medicalSafetyPrompt}
+    ${aiFeedbackRules}
     ${writingStylePrompt}
     ${getWritingStyleCommonRules()}
     ${learnedStyleInstruction}
@@ -6158,6 +6162,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     - 각 슬라이드는 짧은 텍스트(제목 12자, 설명 20자 이내)만 포함합니다!
     
     ${MEDICAL_SAFETY_SYSTEM_PROMPT}
+    ${getAIFeedbackPrompt()}
     ${writingStylePrompt}
     ${getWritingStyleCommonRules()}
     ${benchmarkingInstruction}
