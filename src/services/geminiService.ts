@@ -7094,7 +7094,10 @@ ${getStylePromptForGeneration(learnedStyle)}
     - 전환력은 "간접적이지만 효과적인" 방식으로 달성
     
     [🤖 AI 냄새 점수(ai_smell_score) 평가 기준 v2.0 - 0~100점]
-    **낮을수록 좋음! 15점 초과 시 재작성 필요**
+    **⚠️⚠️⚠️ 중요: 낮을수록 좋음! 역점수 체계! ⚠️⚠️⚠️**
+    - 7점 이하 = 사람 글 수준 ✅ 최고!
+    - 90점 = AI 티가 완전히 나는 글 ❌ 최악!
+    **15점 초과 시 재작성 필요**
     **🔄 v2.0: 중복 항목 제거, 배점 재조정, 심사숙고 평가**
     
     가점 항목 (점수가 높아질수록 AI 냄새가 심함):
@@ -7702,15 +7705,19 @@ ${JSON.stringify(searchResults, null, 2)}
   "content": "HTML 형식의 본문 내용 (크로스체크된 정보 우선 사용)",
   "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
   "fact_check": {
-    "fact_score": 0-100,
-    "safety_score": 0-100,
-    "conversion_score": 0-100,
-    "ai_smell_score": 0-100,
+    "fact_score": 0-100 (높을수록 좋음),
+    "safety_score": 0-100 (높을수록 좋음),
+    "conversion_score": 0-100 (높을수록 좋음),
+    "ai_smell_score": 0-100 (⚠️ 낮을수록 좋음! 역점수! 7점 이하 목표! 90점 = 최악!),
     "verified_facts_count": 0,
     "issues": ["문제점1", "문제점2"],
     "recommendations": ["권장사항1", "권장사항2"]
   }
-}`;
+}
+
+⚠️⚠️⚠️ 중요: AI 냄새 점수는 다른 점수와 반대입니다! ⚠️⚠️⚠️
+- fact_score, safety_score, conversion_score → 높을수록 좋음 (100점 = 최고)
+- ai_smell_score → 낮을수록 좋음 (7점 이하 = 최고, 90점 = 최악)`;
 
       console.log('📍 callOpenAI_Staged 호출 직전...');
       console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
