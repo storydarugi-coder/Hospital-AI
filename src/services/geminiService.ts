@@ -6434,7 +6434,8 @@ ${JSON.stringify(searchResults, null, 2)}
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🎯 SEO 자동 평가 + 90점 미만 시 재생성 (블로그만)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    if (!isCardNews && result.content && result.title) {
+    const hasContent = result.content || result.contentHtml;
+    if (!isCardNews && hasContent && result.title) {
       console.log('📊 SEO 자동 평가 시작...');
       if (typeof onProgress === 'function') {
         safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
@@ -6445,8 +6446,16 @@ ${JSON.stringify(searchResults, null, 2)}
       
       while (currentAttempt < MAX_REGENERATE_ATTEMPTS) {
         try {
+          // content 또는 contentHtml 필드 지원
+          const htmlContent = result.contentHtml || result.content;
+          if (!htmlContent) {
+            console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
+            console.error('   - result 필드:', Object.keys(result));
+            break;
+          }
+          
           const seoReport = await evaluateSeoScore(
-            result.content,
+            htmlContent,
             result.title,
             request.topic,
             request.keywords || ''
@@ -7711,8 +7720,13 @@ export const evaluateSeoScore = async (
   
   // 방어 코드: 필수 파라미터 검증
   if (!htmlContent || typeof htmlContent !== 'string') {
-    console.error('❌ evaluateSeoScore: htmlContent가 없거나 유효하지 않습니다:', typeof htmlContent);
-    throw new Error('SEO 평가에 필요한 HTML 콘텐츠가 없습니다.');
+    console.error('❌ evaluateSeoScore: content(HTML)가 없거나 유효하지 않습니다');
+    console.error('   - 전달된 타입:', typeof htmlContent);
+    console.error('   - 전달된 값 길이:', htmlContent?.length || 0);
+    console.error('   - 전달된 값 미리보기:', String(htmlContent).substring(0, 100));
+    console.error('   - title:', title?.substring(0, 50));
+    console.error('   - topic:', topic?.substring(0, 50));
+    throw new Error('SEO 평가에 필요한 HTML 콘텐츠가 없습니다. content 또는 contentHtml 필드를 확인하세요.');
   }
   
   const safeHtmlContent = htmlContent || '';
