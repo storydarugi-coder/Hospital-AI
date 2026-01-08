@@ -254,7 +254,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     console.log('🎨 커스텀 스타일 업데이트:', content.customImagePrompt || '(없음 - 기본 스타일 사용)');
   }, [content.customImagePrompt]);
 
-  // 글자 수 계산 (실제 보이는 텍스트만) + 카드 수 업데이트
+  // 글자 수 계산 (실제 보이는 텍스트만, 공백 제외) + 카드 수 업데이트
   useEffect(() => {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = localHtml;
@@ -279,12 +279,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         contentText += (el.textContent || '') + ' ';
       });
       
-      const text = contentText.replace(/\s+/g, ' ').trim();
+      // 공백 제외 글자 수 계산
+      const text = contentText.replace(/\s+/g, '');
       setCharCount(text.length);
     } else {
-      // 블로그 포스트의 경우 전체 텍스트 계산
+      // 블로그 포스트의 경우 전체 텍스트 계산 (공백 제외)
       const text = (tempDiv.textContent || '')
-        .replace(/\s+/g, ' ')  // 연속 공백 제거
+        .replace(/\s+/g, '')  // 모든 공백 제거
         .trim();
       
       setCharCount(text.length);
