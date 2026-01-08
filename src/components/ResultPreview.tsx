@@ -106,6 +106,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [isEvaluatingSeo, setIsEvaluatingSeo] = useState(false);
   const [showSeoDetail, setShowSeoDetail] = useState(false);
   
+  // 🤖 AI 냄새 상세 분석 모달 상태
+  const [showAiSmellDetail, setShowAiSmellDetail] = useState(false);
+  
   // content.seoScore가 있으면 자동으로 설정
   useEffect(() => {
     if (content.seoScore) {
@@ -2071,16 +2074,34 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 {/* 구분선 */}
                 <div className="w-px h-12 bg-slate-700"></div>
                 
-                <div className="flex flex-col">
+                <div 
+                  className={`flex flex-col cursor-pointer transition-all hover:scale-105 ${
+                    content.factCheck.ai_smell_score >= 8 && content.factCheck.ai_smell_score <= 15 && content.factCheck.ai_smell_analysis 
+                      ? 'hover:bg-amber-500/10 rounded-lg px-2 py-1 -mx-2 -my-1' 
+                      : ''
+                  }`}
+                  onClick={() => {
+                    if (content.factCheck.ai_smell_score !== undefined && content.factCheck.ai_smell_score >= 8 && content.factCheck.ai_smell_score <= 15) {
+                      setShowAiSmellDetail(true);
+                    }
+                  }}
+                  title={content.factCheck.ai_smell_score >= 8 && content.factCheck.ai_smell_score <= 15 ? '클릭하여 수정 필요 위치 확인' : ''}
+                >
                   <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
                   <div className="flex items-center gap-2">
                      <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
                        {content.factCheck.ai_smell_score}점
                      </span>
                      <span className="text-[10px] opacity-70">
-                       {content.factCheck.ai_smell_score <= 7 ? '✅' : content.factCheck.ai_smell_score <= 15 ? '⚠️' : '🚨'}
+                       {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
                      </span>
                   </div>
+                  {/* 8~15점 경계선 표시 */}
+                  {content.factCheck.ai_smell_score >= 8 && content.factCheck.ai_smell_score <= 15 && content.factCheck.ai_smell_analysis && (
+                    <span className="text-[9px] text-amber-400 mt-0.5 animate-pulse">
+                      🔍 수정 위치 보기
+                    </span>
+                  )}
                 </div>
               </>
             )}
@@ -2308,6 +2329,268 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 type="button"
                 onClick={() => setShowSeoDetail(false)}
                 className="px-6 py-2 rounded-xl font-bold text-sm bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🤖 AI 냄새 상세 분석 모달 (8~15점 경계선) */}
+      {showAiSmellDetail && content.factCheck?.ai_smell_analysis && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowAiSmellDetail(false)}>
+          <div className={`w-full max-w-2xl rounded-[28px] shadow-2xl overflow-hidden my-4 ${darkMode ? 'bg-slate-800' : 'bg-white'}`} onClick={(e) => e.stopPropagation()}>
+            {/* 헤더 */}
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black bg-amber-100 text-amber-600">
+                  {content.factCheck.ai_smell_score || 0}
+                </div>
+                <div>
+                  <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🤖 AI 냄새 분석 결과</div>
+                  <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                    ⚠️ 경계선 (8~15점) - 부분 수정 후 발행 가능
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAiSmellDetail(false)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-black ${darkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200'}`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* 본문 */}
+            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* 우선 수정 사항 */}
+              {content.factCheck.ai_smell_analysis.priority_fixes && content.factCheck.ai_smell_analysis.priority_fixes.length > 0 && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-amber-900/30 border border-amber-700' : 'bg-amber-50 border border-amber-200'}`}>
+                  <div className={`text-sm font-black mb-3 ${darkMode ? 'text-amber-400' : 'text-amber-700'}`}>
+                    ⚡ 우선 수정 사항 (이것만 고쳐도 OK!)
+                  </div>
+                  <ul className="space-y-2">
+                    {content.factCheck.ai_smell_analysis.priority_fixes.map((fix, idx) => (
+                      <li key={idx} className={`text-sm flex items-start gap-2 ${darkMode ? 'text-amber-300' : 'text-amber-800'}`}>
+                        <span className="font-bold">{idx + 1}.</span>
+                        <span>{fix}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* ① 문장 리듬 단조로움 */}
+              {content.factCheck.ai_smell_analysis.sentence_rhythm && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>① 문장 리듬 단조로움</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.sentence_rhythm.score <= 5 ? 'text-green-500' : content.factCheck.ai_smell_analysis.sentence_rhythm.score <= 12 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.sentence_rhythm.score}/25점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.sentence_rhythm.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.sentence_rhythm.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.sentence_rhythm.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.sentence_rhythm.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ② 판단 회피형 글쓰기 */}
+              {content.factCheck.ai_smell_analysis.judgment_avoidance && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>② 판단 회피형 글쓰기</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.judgment_avoidance.score <= 4 ? 'text-green-500' : content.factCheck.ai_smell_analysis.judgment_avoidance.score <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.judgment_avoidance.score}/20점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.judgment_avoidance.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.judgment_avoidance.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.judgment_avoidance.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.judgment_avoidance.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ③ 현장감 부재 */}
+              {content.factCheck.ai_smell_analysis.lack_of_realism && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>③ 현장감 부재</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.lack_of_realism.score <= 4 ? 'text-green-500' : content.factCheck.ai_smell_analysis.lack_of_realism.score <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.lack_of_realism.score}/20점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.lack_of_realism.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.lack_of_realism.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.lack_of_realism.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.lack_of_realism.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ④ 템플릿 구조 */}
+              {content.factCheck.ai_smell_analysis.template_structure && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>④ 템플릿 구조</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.template_structure.score <= 3 ? 'text-green-500' : content.factCheck.ai_smell_analysis.template_structure.score <= 8 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.template_structure.score}/15점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.template_structure.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.template_structure.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.template_structure.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.template_structure.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ⑤ 가짜 공감 */}
+              {content.factCheck.ai_smell_analysis.fake_empathy && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>⑤ 가짜 공감</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.fake_empathy.score <= 2 ? 'text-green-500' : content.factCheck.ai_smell_analysis.fake_empathy.score <= 5 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.fake_empathy.score}/10점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.fake_empathy.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.fake_empathy.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.fake_empathy.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.fake_empathy.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ⑥ 행동 유도 실패 */}
+              {content.factCheck.ai_smell_analysis.cta_failure && (
+                <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>⑥ 행동 유도 실패</span>
+                    <span className={`text-lg font-black ${content.factCheck.ai_smell_analysis.cta_failure.score <= 2 ? 'text-green-500' : content.factCheck.ai_smell_analysis.cta_failure.score <= 5 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {content.factCheck.ai_smell_analysis.cta_failure.score}/10점
+                    </span>
+                  </div>
+                  {content.factCheck.ai_smell_analysis.cta_failure.issues.length > 0 && (
+                    <div className="mb-2">
+                      <span className={`text-xs font-bold ${darkMode ? 'text-red-400' : 'text-red-600'}`}>문제점:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.cta_failure.issues.map((issue, idx) => (
+                          <li key={idx}>• {issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {content.factCheck.ai_smell_analysis.cta_failure.fix_suggestions.length > 0 && (
+                    <div>
+                      <span className={`text-xs font-bold ${darkMode ? 'text-green-400' : 'text-green-600'}`}>수정 제안:</span>
+                      <ul className={`mt-1 text-xs ${darkMode ? 'text-slate-300' : 'text-slate-600'}`}>
+                        {content.factCheck.ai_smell_analysis.cta_failure.fix_suggestions.map((fix, idx) => (
+                          <li key={idx}>✅ {fix}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 점수 기준 안내 */}
+              <div className={`rounded-xl p-4 text-center ${darkMode ? 'bg-slate-700/30' : 'bg-slate-100'}`}>
+                <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  <span className="font-bold">📊 AI 냄새 점수 기준</span><br />
+                  <span className="text-green-500">0~7점: 사람 글 ✅</span> | 
+                  <span className="text-amber-500"> 8~15점: 경계선 ⚠️</span> | 
+                  <span className="text-red-500"> 16점↑: AI 확정 🚨</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* 하단 버튼 */}
+            <div className={`px-6 py-4 border-t flex justify-end ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
+              <button
+                type="button"
+                onClick={() => setShowAiSmellDetail(false)}
+                className="px-6 py-2 rounded-xl font-bold text-sm bg-amber-600 text-white hover:bg-amber-700"
               >
                 확인
               </button>

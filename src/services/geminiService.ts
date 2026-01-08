@@ -6719,9 +6719,48 @@ ${finalHtml.substring(0, 6000)}
         console.error('AI 냄새 개선 실패:', aiSmellError);
         onProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
       }
+    } else if (aiSmellScore >= 8 && aiSmellScore <= 15) {
+      // ============================================
+      // 🔍 8~15점 경계선: 수정 위치 상세 분석
+      // ============================================
+      console.log(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...`);
+      onProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
+      
+      try {
+        const aiSmellAnalysis = await analyzeAiSmell(finalHtml, request.topic);
+        
+        // fact_check에 상세 분석 결과 추가
+        if (textData.fact_check) {
+          textData.fact_check.ai_smell_analysis = aiSmellAnalysis;
+        }
+        
+        // 우선 수정 항목 출력
+        const topIssues = aiSmellAnalysis.priority_fixes?.slice(0, 3) || [];
+        console.log('🔍 AI 냄새 수정 필요 위치:', topIssues);
+        
+        if (topIssues.length > 0) {
+          onProgress(`🔍 수정 필요 위치 발견! 상세 분석 완료`);
+          console.log('📋 상세 분석 결과:', {
+            total_score: aiSmellAnalysis.total_score,
+            sentence_rhythm: aiSmellAnalysis.sentence_rhythm?.score,
+            judgment_avoidance: aiSmellAnalysis.judgment_avoidance?.score,
+            lack_of_realism: aiSmellAnalysis.lack_of_realism?.score,
+            template_structure: aiSmellAnalysis.template_structure?.score,
+            fake_empathy: aiSmellAnalysis.fake_empathy?.score,
+            cta_failure: aiSmellAnalysis.cta_failure?.score
+          });
+        }
+        
+        onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
+        
+      } catch (analysisError) {
+        console.error('AI 냄새 상세 분석 실패:', analysisError);
+        onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
+      }
+      
     } else {
-      console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (15점 이하)`);
-      onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정!`);
+      console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (7점 이하)`);
+      onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
     }
   }
 
@@ -7366,6 +7405,223 @@ JSON 형식으로 응답해주세요.`;
         time_fixed_sentence: 0,
         feedback: 'SEO 평가 중 오류가 발생했습니다.'
       }
+    };
+  }
+};
+
+// ============================================
+// 🤖 AI 냄새 상세 분석 함수 (8~15점 구간 수정 가이드)
+// ============================================
+
+/**
+ * AI 냄새 상세 분석 함수
+ * 8~15점 경계선 구간에서 어디를 수정해야 하는지 구체적으로 알려줌
+ * 
+ * 분석 항목:
+ * ① 문장 리듬 단조로움 (0~25점)
+ * ② 판단 회피형 글쓰기 (0~20점)
+ * ③ 현장감 부재 (0~20점)
+ * ④ 템플릿 구조 (0~15점)
+ * ⑤ 가짜 공감 (0~10점)
+ * ⑥ 행동 유도 실패 (0~10점)
+ */
+export const analyzeAiSmell = async (
+  htmlContent: string,
+  topic: string
+): Promise<{
+  total_score: number;
+  sentence_rhythm: { score: number; issues: string[]; fix_suggestions: string[] };
+  judgment_avoidance: { score: number; issues: string[]; fix_suggestions: string[] };
+  lack_of_realism: { score: number; issues: string[]; fix_suggestions: string[] };
+  template_structure: { score: number; issues: string[]; fix_suggestions: string[] };
+  fake_empathy: { score: number; issues: string[]; fix_suggestions: string[] };
+  cta_failure: { score: number; issues: string[]; fix_suggestions: string[] };
+  priority_fixes: string[];
+}> => {
+  const ai = getAiClient();
+  
+  const prompt = `당신은 AI가 쓴 글과 사람이 쓴 글을 구분하는 전문가입니다.
+
+아래 블로그 글의 "AI 냄새"를 분석하고, 어디를 수정해야 하는지 구체적으로 알려주세요.
+
+[분석 대상 글]
+주제: "${topic}"
+본문:
+${htmlContent.substring(0, 8000)}
+
+████████████████████████████████████████████████████████████████████████████████
+🤖 AI 냄새 분석 기준 (총 100점 - 낮을수록 좋음!)
+████████████████████████████████████████████████████████████████████████████████
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+① 문장 리듬 단조로움 (0~25점) ⭐ 가장 중요
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• 동일 종결어미 3회 이상 반복 ("~습니다", "~있습니다" 연속) → +7점
+• 문장 시작 패턴 3회 이상 반복 ("요즘", "많은 분들이" 반복) → +6점
+• 문단 길이가 너무 균일함 → +6점
+• 질문·감탄·짧은 문장 없이 설명만 연속 → +6점
+
+**issues에 실제 문제가 되는 문장/패턴을 구체적으로 적어주세요!**
+예: "~수 있습니다"가 3번 연속 나옴 (문단 2)", "모든 문장이 '요즘'으로 시작"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+② 판단 회피형 글쓰기 (0~20점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• 한 문단에 조건/가능성 종결 3회 이상 ("~일 수 있습니다" 집중) → +8점
+• 명확한 기준 없이 "확인 필요"만 반복 → +7점
+• 글 전체에서 저자 의견/판단 0회 → +5점
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+③ 현장감 부재 (0~20점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• 시간/계절/상황 맥락 전무 → +7점
+• 실제 질문/고민 시나리오 없음 → +7점
+• 현장 용어(병원, 접수, 대기 등) 0회 → +6점
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+④ 템플릿 구조 (0~15점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• 정의→원인→증상→치료 순서 그대로 → +6점
+• 독자 자가 체크 포인트 없음 → +5점
+• 문단 간 전환어 없이 나열만 → +4점
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⑤ 가짜 공감 (0~10점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• "걱정되실 수 있습니다" 류 범용 공감만 존재 → +4점
+• 구체적 상황·감정 지목 없음 → +3점
+• 공감 문장이 항상 문단 첫 줄에만 위치 → +3점
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⑥ 행동 유도 실패 (0~10점)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+체크 포인트:
+• 매번 동일한 CTA 문구로 종결 → +4점
+• 시점·조건 없는 막연한 권유 → +3점
+• 독자 상황별 분기 없음 → +3점
+
+████████████████████████████████████████████████████████████████████████████████
+⚠️ 분석 시 주의사항
+████████████████████████████████████████████████████████████████████████████████
+
+1. **issues**에는 실제 글에서 발견된 구체적인 문제점을 적어주세요
+   - ❌ "문장 리듬이 단조로움" (너무 일반적)
+   - ✅ "'~수 있습니다'가 2문단에서 4번 연속 사용됨" (구체적)
+
+2. **fix_suggestions**에는 바로 적용할 수 있는 수정 제안을 적어주세요
+   - ❌ "문장을 다양하게 써라" (너무 일반적)
+   - ✅ "2문단 3번째 '~수 있습니다'를 '~인 경우도 있더라고요'로 변경" (구체적)
+
+3. **priority_fixes**에는 가장 점수가 높은 항목부터 우선 수정 사항을 적어주세요
+
+JSON 형식으로 응답해주세요.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            total_score: { type: Type.INTEGER },
+            sentence_rhythm: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            judgment_avoidance: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            lack_of_realism: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            template_structure: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            fake_empathy: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            cta_failure: {
+              type: Type.OBJECT,
+              properties: {
+                score: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["score", "issues", "fix_suggestions"]
+            },
+            priority_fixes: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "우선 수정해야 할 항목 (점수 높은 순)"
+            }
+          },
+          required: ["total_score", "sentence_rhythm", "judgment_avoidance", "lack_of_realism", "template_structure", "fake_empathy", "cta_failure", "priority_fixes"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || "{}");
+    
+    // 총점 재계산
+    const calculatedTotal = 
+      (result.sentence_rhythm?.score || 0) +
+      (result.judgment_avoidance?.score || 0) +
+      (result.lack_of_realism?.score || 0) +
+      (result.template_structure?.score || 0) +
+      (result.fake_empathy?.score || 0) +
+      (result.cta_failure?.score || 0);
+    
+    result.total_score = calculatedTotal;
+    
+    console.log('🤖 AI 냄새 분석 완료:', result.total_score, '점');
+    return result;
+  } catch (error) {
+    console.error('AI 냄새 분석 실패:', error);
+    return {
+      total_score: 0,
+      sentence_rhythm: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      judgment_avoidance: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      lack_of_realism: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      template_structure: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      fake_empathy: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      cta_failure: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      priority_fixes: ['AI 냄새 분석 중 오류가 발생했습니다.']
     };
   }
 };

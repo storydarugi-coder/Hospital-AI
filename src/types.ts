@@ -85,9 +85,46 @@ export interface FactCheckReport {
   safety_score: number;
   conversion_score: number;  // 전환력 점수 (0~100) - 의료법 준수하면서 행동 유도하는 능력
   ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 낮을수록 좋음, 15점 초과 시 재작성 대상
+  ai_smell_analysis?: AiSmellAnalysis;  // AI 냄새 상세 분석 (8~15점 구간 수정 가이드)
   seo_score?: SeoScoreReport;  // SEO 최적화 점수 (총 100점)
   issues: string[];
   recommendations: string[];
+}
+
+// AI 냄새 상세 분석 리포트 (8~15점 구간 수정 가이드용)
+export interface AiSmellAnalysis {
+  total_score: number;  // 총점 (낮을수록 좋음)
+  sentence_rhythm: {  // ① 문장 리듬 단조로움 (0~25점)
+    score: number;
+    issues: string[];  // 문제 문장/패턴 목록
+    fix_suggestions: string[];  // 수정 제안
+  };
+  judgment_avoidance: {  // ② 판단 회피형 글쓰기 (0~20점)
+    score: number;
+    issues: string[];
+    fix_suggestions: string[];
+  };
+  lack_of_realism: {  // ③ 현장감 부재 (0~20점)
+    score: number;
+    issues: string[];
+    fix_suggestions: string[];
+  };
+  template_structure: {  // ④ 템플릿 구조 (0~15점)
+    score: number;
+    issues: string[];
+    fix_suggestions: string[];
+  };
+  fake_empathy: {  // ⑤ 가짜 공감 (0~10점)
+    score: number;
+    issues: string[];
+    fix_suggestions: string[];
+  };
+  cta_failure: {  // ⑥ 행동 유도 실패 (0~10점)
+    score: number;
+    issues: string[];
+    fix_suggestions: string[];
+  };
+  priority_fixes: string[];  // 우선 수정해야 할 항목 (가장 점수가 높은 순)
 }
 
 // SEO 점수 상세 리포트 (총 100점)
