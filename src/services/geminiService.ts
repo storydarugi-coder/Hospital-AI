@@ -6551,7 +6551,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     safeProgress('📝 이미지 없이 텍스트만 생성 완료');
   }
 
-  let body = textData.content;
+  let body = textData.content || '';
+  
+  // 방어 코드: body가 없으면 에러
+  if (!body || body.trim() === '') {
+    console.error('❌ textData.content가 비어있습니다:', textData);
+    throw new Error('AI가 콘텐츠를 생성하지 못했습니다. 다시 시도해주세요.');
+  }
   
   // body가 HTML이 아닌 JSON/배열 형태인지 검증
   if (body && (body.startsWith('[{') || body.startsWith('{"'))) {
@@ -7306,6 +7312,17 @@ export const evaluateSeoScore = async (
   const ai = getAiClient();
   const currentYear = getCurrentYear();
   
+  // 방어 코드: 필수 파라미터 검증
+  if (!htmlContent || typeof htmlContent !== 'string') {
+    console.error('❌ evaluateSeoScore: htmlContent가 없거나 유효하지 않습니다:', typeof htmlContent);
+    throw new Error('SEO 평가에 필요한 HTML 콘텐츠가 없습니다.');
+  }
+  
+  const safeHtmlContent = htmlContent || '';
+  const safeTitle = title || '제목 없음';
+  const safeTopic = topic || '주제 없음';
+  const safeKeywords = keywords || '키워드 없음';
+  
   const prompt = `당신은 네이버 블로그 SEO 전문가이자 병원 마케팅 콘텐츠 분석가입니다.
 
 아래 블로그 콘텐츠의 SEO 점수를 100점 만점으로 평가해주세요.
@@ -7315,11 +7332,11 @@ export const evaluateSeoScore = async (
 ████████████████████████████████████████████████████████████████████████████████
 
 [📌 평가 대상 콘텐츠]
-- 제목: "${title}"
-- 주제: "${topic}"
-- 핵심 키워드: "${keywords}"
+- 제목: "${safeTitle}"
+- 주제: "${safeTopic}"
+- 핵심 키워드: "${safeKeywords}"
 - 본문:
-${htmlContent.substring(0, 8000)}
+${safeHtmlContent.substring(0, 8000)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ① 제목 최적화 (25점 만점)
