@@ -5932,37 +5932,37 @@ ${JSON.stringify(searchResults, null, 2)}
             request.keywords || ''
           );
           
-          console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total_score}점`);
+          console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
           
           // SEO 점수를 결과에 추가
           result.seoScore = seoReport;
           
-          if (seoReport.total_score >= 90) {
+          if (seoReport.total >= 90) {
             console.log('✅ SEO 점수 90점 이상! 통과');
             if (typeof onProgress === 'function') {
-              safeProgress(`✅ SEO 점수 ${seoReport.total_score}점 - 통과!`);
+              safeProgress(`✅ SEO 점수 ${seoReport.total}점 - 통과!`);
             }
             break;
           } else {
             currentAttempt++;
-            console.log(`⚠️ SEO 점수 ${seoReport.total_score}점 - 90점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
+            console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 90점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
             
             if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
               console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
               if (typeof onProgress === 'function') {
-                safeProgress(`⚠️ SEO 점수 ${seoReport.total_score}점 - 개선 권장`);
+                safeProgress(`⚠️ SEO 점수 ${seoReport.total}점 - 개선 권장`);
               }
               break;
             }
             
             if (typeof onProgress === 'function') {
-              safeProgress(`🔄 SEO 점수 ${seoReport.total_score}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+              safeProgress(`🔄 SEO 점수 ${seoReport.total}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
             }
             
             // SEO 개선 포인트를 포함한 재생성 프롬프트
             const improvementPrompt = `
 [🚨 SEO 점수 개선 필수!]
-이전 글의 SEO 점수: ${seoReport.total_score}점 (90점 이상 필요)
+이전 글의 SEO 점수: ${seoReport.total}점 (90점 이상 필요)
 
 [개선이 필요한 항목]
 ${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제목 개선\n- 구조화 강화'}
