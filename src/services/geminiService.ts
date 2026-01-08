@@ -5830,7 +5830,8 @@ ${blogPrompt}`;
 
             // 재생성
             if (providerSettings.textGeneration === 'openai') {
-              const newResponseText = await callOpenAI(improvementPrompt, systemPrompt);
+              const regenerateSystemPrompt = getGPT52ProPrompt();
+              const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
               result = JSON.parse(newResponseText);
             } else {
               const newResponse = await ai.models.generateContent({
