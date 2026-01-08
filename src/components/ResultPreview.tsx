@@ -2118,16 +2118,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 
                 <div 
                   className={`flex flex-col cursor-pointer transition-all hover:scale-105 ${
-                    (recheckResult?.ai_smell_analysis || analysis)
+                    (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis)
                       ? 'hover:bg-amber-500/10 rounded-lg px-2 py-1 -mx-2 -my-1' 
                       : ''
                   }`}
                   onClick={() => {
-                    if (recheckResult?.ai_smell_analysis || analysis) {
+                    if (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) {
                       setShowAiSmellDetail(true);
                     }
                   }}
-                  title={(recheckResult?.ai_smell_analysis || analysis) ? '클릭하여 상세 분석 확인' : ''}
+                  title={(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) ? '클릭하여 상세 분석 확인' : ''}
                 >
                   <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
                   <div className="flex items-center gap-2">
@@ -2166,7 +2166,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                     )}
                   </div>
                   {/* 상세 분석 보기 버튼 (모든 점수에서 표시) */}
-                  {(recheckResult?.ai_smell_analysis || analysis) && (
+                  {(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) && (
                     <span className={`text-[9px] mt-0.5 animate-pulse ${
                       (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 7 ? 'text-green-400' :
                       (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 15 ? 'text-amber-400' : 'text-red-400'
