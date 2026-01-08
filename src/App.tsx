@@ -84,9 +84,10 @@ const App: React.FC = () => {
   };
   
   // 유효한 쿠폰 목록
+  const currentYear = new Date().getFullYear();
   const VALID_COUPONS: Record<string, { credits: number; description: string }> = {
-    'MARKETING2026': { credits: 5, description: '마케팅 2026 프로모션' },
-    'WELCOME2025': { credits: 3, description: '신규 가입 환영' },
+    [`MARKETING${currentYear}`]: { credits: 5, description: `마케팅 ${currentYear} 프로모션` },
+    [`WELCOME${currentYear}`]: { credits: 3, description: '신규 가입 환영' },
     'HOSPITAL100': { credits: 10, description: '병원 마케팅 100일 기념' },
   };
   

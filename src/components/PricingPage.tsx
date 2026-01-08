@@ -465,7 +465,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({
       {/* Footer */}
       <footer className="py-8 px-4 bg-slate-900 border-t border-slate-800">
         <div className="max-w-6xl mx-auto text-center text-slate-500 text-sm">
-          <p>© 2025 HospitalAI. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} HospitalAI. All rights reserved.</p>
         </div>
       </footer>
 

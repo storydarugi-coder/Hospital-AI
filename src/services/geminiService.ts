@@ -1,6 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 
+// 현재 년도를 동적으로 가져오기
+const CURRENT_YEAR = new Date().getFullYear();
+
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
   if (!apiKey) {
@@ -65,32 +68,48 @@ const callGPTWebSearch = async (query: string): Promise<any> => {
         tools: [
           { 
             type: 'web_search',
-            // 의료 관련 신뢰할 수 있는 도메인 필터
-            filters: {
-              allowed_domains: [
-                'pubmed.ncbi.nlm.nih.gov',
-                'www.who.int',
-                'www.cdc.gov',
-                'kdca.go.kr',
-                'mohw.go.kr',
-                'health.kr',
-                'www.amc.seoul.kr',
-                'www.snuh.org'
-              ]
+            // 의료 관련 신뢰할 수 있는 도메인 필터 (Gemini 검색과 동일하게 설정)
+            search_context_size: 'high',
+            user_location: {
+              type: 'approximate',
+              country: 'KR'
             }
           }
         ],
         tool_choice: 'auto',
         include: ['web_search_call.action.sources'],
-        input: `당신은 의료 정보 검색 전문가입니다. 다음 주제에 대해 최신 의료 정보를 검색하고 JSON 형식으로 응답해주세요.
+        input: `당신은 의료 정보 검색 전문가입니다.
+
+[검색 지시 - 매우 중요!]
+아래 주제에 대해 공신력 있는 최신 정보를 수집해주세요.
 
 ${query}
 
+[필수 검색 출처 - 반드시 이 출처들에서만 정보 수집!]
+1. 대한OO학회 최신 가이드라인 (${CURRENT_YEAR}년 또는 ${CURRENT_YEAR - 1}년)
+2. 질병관리청(KDCA), 보건복지부 최신 자료
+3. PubMed, JAMA, NEJM 최신 논문
+4. 국민건강보험공단, 건강보험심사평가원 통계
+5. WHO, CDC 공식 자료
+
+[검색 제외 - 절대 수집 금지!]
+- 블로그 (네이버 블로그, 티스토리, 브런치 등)
+- 카페 (네이버 카페 등)
+- SNS (인스타그램, 페이스북, 트위터 등)
+- 유튜브, 틱톡
+- 광고성 사이트, 건강기능식품 홍보 사이트
+- 출처 불명의 건강 정보 사이트
+
+[검색 지시]
+- 현재 ${CURRENT_YEAR}년 기준 최신 자료 우선
+- 통계는 반드시 출처와 연도 포함
+- 가이드라인은 발표 기관과 연도 명시
+
 반드시 아래 JSON 형식으로 응답하세요:
 {
-  "collected_facts": [{"fact": "사실 내용", "source": "출처", "year": 2026}],
-  "key_statistics": [{"stat": "통계 내용", "value": "수치", "source": "출처", "year": 2026}],
-  "latest_guidelines": [{"guideline": "가이드라인", "organization": "기관", "year": 2026}]
+  "collected_facts": [{"fact": "수집한 사실 정보", "source": "출처 (학회/기관명)", "year": ${CURRENT_YEAR}, "url": "참고 URL"}],
+  "key_statistics": [{"stat": "통계 내용", "value": "수치", "source": "출처", "year": ${CURRENT_YEAR}}],
+  "latest_guidelines": [{"guideline": "가이드라인 내용", "organization": "발표 기관", "year": ${CURRENT_YEAR}}]
 }`
       })
     });
@@ -806,7 +825,7 @@ Google 검색 시 아래 도메인이 결과에 나오면 **클릭하지 말고 
    ✅ "질병관리청에서도 권고하는 방법인데요" (자연스러움)
    
 2. **해외 출처(NEJM, CDC, PubMed 등)는 직접 언급 금지!**
-   ❌ "NEJM(2026) 연구에 따르면..." 
+   ❌ "NEJM(${CURRENT_YEAR}) 연구에 따르면..." 
    ❌ "CDC 가이드라인에서는..."
    ✅ "해외 자료에서도 비슷한 내용이 나와요" (흡수)
    ✅ "국내외 전문가들 사이에서는..." (통합)
@@ -830,11 +849,11 @@ Google 검색 시 아래 도메인이 결과에 나오면 **클릭하지 말고 
 **변환 규칙:**
 | 원래 표현 | → | 자연스러운 표현 |
 |-----------|---|----------------|
-| "OO학회(2026) 가이드라인에 의하면" | → | "최근 전문가 지침에서는" |
+| "OO학회(${CURRENT_YEAR}) 가이드라인에 의하면" | → | "최근 전문가 지침에서는" |
 | "CDC에 따르면" | → | "해외에서도" |
-| "NEJM 연구(2026)에서" | → | "최근 연구들을 보면" |
+| "NEJM 연구(${CURRENT_YEAR})에서" | → | "최근 연구들을 보면" |
 | "PubMed 논문에 따르면" | → | "연구 결과들을 종합해보면" |
-| "질병관리청 통계(2026)" | → | "질병관리청 자료를 보면" |
+| "질병관리청 통계(${CURRENT_YEAR})" | → | "질병관리청 자료를 보면" |
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️ **출처 숨기기 ≠ 내용 삭제!**
@@ -1136,7 +1155,7 @@ Google 검색 시 아래 도메인이 결과에 나오면 **클릭하지 말고 
     - 📌 원칙: 불필요한 자기소개 없이 바로 본론으로!
 
 22. **도입부 연도/월 표기 → 계절 표현으로 일반화 (글 유통기한 연장!):**
-    - ❌ "2026년 1월", "2025년 겨울" → 글의 유통 기한이 짧아짐!
+    - ❌ "${CURRENT_YEAR}년 1월", "${CURRENT_YEAR - 1}년 겨울" → 글의 유통 기한이 짧아짐!
     - ❌ "올해 초", "이번 달" → 시점이 고정되어 나중에 어색해짐!
     - ✅ "요즘처럼 난방을 많이 사용하는 겨울철에는..."
     - ✅ "겨울철 건조한 공기 탓일까요?"
@@ -1369,10 +1388,10 @@ Google 검색 시 아래 도메인이 결과에 나오면 **클릭하지 말고 
 □ 전체 구조가 "계속 읽고 싶게" 설계되었는가?
 
 ████████████████████████████████████████████████████████████████████████████████
-[🤖 AI 브리핑(AEO) 대응 전략 - 2025년 12월 네이버 대변화!]
+[🤖 AI 브리핑(AEO) 대응 전략 - ${CURRENT_YEAR}년 네이버 대변화!]
 ████████████████████████████████████████████████████████████████████████████████
 
-**🚨 배경: 2025년 12월, 네이버 검색에 AI 브리핑 본격 도입!**
+**🚨 배경: ${CURRENT_YEAR}년, 네이버 검색에 AI 브리핑 본격 도입!**
 - AI가 검색 결과를 요약해서 상단에 표시
 - AI에게 "인용될 수 있는 글" = 노출 급상승
 - 기존 SEO만으로는 부족! → AEO(AI Engine Optimization) 필수
@@ -1955,7 +1974,7 @@ const getWritingStyleCommonRules = (): string => {
    ✅ #피부건조 #겨울철피부관리 #피부보습 #건조한피부 #피부건강
 
 ████████████████████████████████████████████████████████████████████████████████
-[🚀 2025-2026 네이버 SEO 핵심 실전 가이드 - 상위노출 결정 요소!]
+[🚀 ${CURRENT_YEAR} 네이버 SEO 핵심 실전 가이드 - 상위노출 결정 요소!]
 ████████████████████████████████████████████████████████████████████████████████
 
 **🔴🔴🔴 가장 중요한 SEO 3대 요소 🔴🔴🔴**
@@ -2093,7 +2112,7 @@ A. 피부건조가 심할 때는 먼저 보습제 사용 빈도를 높이는 것
 **→ 15개 중 12개 이상 OK면 = SEO 최적화 완료!**
 
 ████████████████████████████████████████████████████████████████████████████████
-[🎯 E-E-A-T SEO 가이드 - 2025 구글/네이버 핵심 알고리즘]
+[🎯 E-E-A-T SEO 가이드 - ${CURRENT_YEAR} 구글/네이버 핵심 알고리즘]
 ████████████████████████████████████████████████████████████████████████████████
 
 **E-E-A-T = Experience(경험) + Expertise(전문성) + Authoritativeness(권위) + Trustworthiness(신뢰)**

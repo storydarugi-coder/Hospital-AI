@@ -132,7 +132,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100 mb-8">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-              <span className="text-sm font-bold text-emerald-700">2026년 의료광고법 가이드라인 100% 준수</span>
+              <span className="text-sm font-bold text-emerald-700">{new Date().getFullYear()}년 의료광고법 가이드라인 100% 준수</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-tight mb-6">
@@ -235,7 +235,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
             <div className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-3xl border border-red-100 hover:shadow-xl transition-all">
               <div className="text-4xl mb-4">⚖️</div>
               <h3 className="text-xl font-black text-slate-800 mb-3">의료광고법 100% 준수</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">2026년 최신 가이드라인 기반, 금칙어 자동 필터링. 심의 걱정 없는 안전한 콘텐츠!</p>
+              <p className="text-slate-600 font-medium leading-relaxed">{new Date().getFullYear()}년 최신 가이드라인 기반, 금칙어 자동 필터링. 심의 걱정 없는 안전한 콘텐츠!</p>
             </div>
 
             <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-8 rounded-3xl border border-emerald-100 hover:shadow-xl transition-all">
@@ -487,7 +487,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
           </div>
           
           <div className="text-center text-sm text-slate-500">
-            © 2025 HospitalAI. Made with ❤️ using AI Technology
+            © {new Date().getFullYear()} HospitalAI. Made with ❤️ using AI Technology
           </div>
         </div>
       </footer>
