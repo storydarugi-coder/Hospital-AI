@@ -6713,6 +6713,12 @@ ${JSON.stringify(searchResults, null, 2)}
       result = JSON.parse(response.text || "{}");
     }
     
+    // 🔧 GPT-5.2는 contentHtml 필드로 반환 → content로 정규화
+    if (result.contentHtml && !result.content) {
+      console.log('✅ GPT-5.2 contentHtml 필드를 content로 정규화');
+      result.content = result.contentHtml;
+    }
+    
     // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
     if (result.content && typeof result.content !== 'string') {
       console.warn('AI returned non-string content, attempting to extract HTML...');
