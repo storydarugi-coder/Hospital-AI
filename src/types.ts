@@ -131,6 +131,7 @@ export interface SeoScoreReport {
     time_fixed_sentence: number;  // 시점 고정형 문장 존재 (5점)
     feedback: string;
   };
+  improvement_suggestions?: string[];  // 개선 제안 목록 (자동 재생성 시 활용)
 }
 
 // 카드별 프롬프트 데이터 (재생성 UI용)

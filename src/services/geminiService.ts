@@ -7150,6 +7150,13 @@ ${htmlContent.substring(0, 8000)}
 - 개선이 필요한 점 1개 이상
 - 구체적인 개선 방법 제안
 
+🎯 **improvement_suggestions 필수 작성!**
+90점 이상 달성을 위한 구체적이고 실행 가능한 개선 제안 3~5개를 배열로 제공해주세요.
+예시:
+- "제목 앞부분에 '겨울철' 시기 키워드 추가"
+- "첫 문단에 구체적인 상황 묘사 추가 (예: '아침에 일어났는데...')"
+- "소제목 3개에 메인 키워드 '감기' 포함시키기"
+
 JSON 형식으로 응답해주세요.`;
 
   try {
@@ -7219,9 +7226,14 @@ JSON 형식으로 응답해주세요.`;
                 feedback: { type: Type.STRING }
               },
               required: ["score", "cta_flow_natural", "time_fixed_sentence", "feedback"]
+            },
+            improvement_suggestions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "90점 이상 달성을 위한 구체적인 개선 제안 3~5개"
             }
           },
-          required: ["total", "title", "keyword_structure", "user_retention", "medical_safety", "conversion"]
+          required: ["total", "title", "keyword_structure", "user_retention", "medical_safety", "conversion", "improvement_suggestions"]
         }
       }
     });
