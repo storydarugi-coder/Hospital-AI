@@ -5595,231 +5595,49 @@ ${getStylePromptForGeneration(learnedStyle)}
 }`;
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔄 듀얼 검색: Gemini + GPT 동시 검색 → 크로스체크
+      // 🔍 Gemini 검색 (GPT는 웹검색 불가하므로 Gemini만 사용)
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      console.log('🔄 듀얼 검색 시작: Gemini + GPT 동시 검색');
-      safeProgress('🔍 Step 1: Gemini + GPT 동시 검색 중...');
+      console.log('🔍 Gemini 웹 검색 시작 (GPT는 웹검색 미지원)');
+      safeProgress('🔍 Step 1: Gemini 웹 검색 중...');
       
-      let geminiResults: any = null;
-      let gptResults: any = null;
-      let crossCheckedResults: any = {};
+      let searchResults: any = {};
       
-      // 🔵 Gemini 검색 (Promise)
-      const geminiSearchPromise = (async () => {
-        try {
-          console.log('🔵 Gemini 검색 시작...');
-          const ai = getAiClient();
-          const searchResponse = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: searchPrompt,
-            config: {
-              tools: [{ googleSearch: {} }],
-              responseMimeType: "application/json"
-            }
-          });
-          const result = JSON.parse(searchResponse.text || "{}");
-          console.log('✅ Gemini 검색 완료');
-          return { success: true, data: result, source: 'gemini' };
-        } catch (error) {
-          console.warn('⚠️ Gemini 검색 실패:', error);
-          return { success: false, data: null, source: 'gemini', error };
-        }
-      })();
-      
-      // 🟢 GPT 검색 (Promise)
-      const gptSearchPromise = (async () => {
-        try {
-          console.log('🟢 GPT 검색 시작...');
-          const gptSearchResponse = await callOpenAI(
-            searchPrompt, 
-            '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요. 최신 의료 정보를 검색하여 제공해주세요.'
-          );
-          console.log('🟢 GPT 검색 응답:', gptSearchResponse?.substring(0, 200));
-          const result = JSON.parse(gptSearchResponse);
-          console.log('✅ GPT 검색 완료 - 팩트:', result.collected_facts?.length || 0, '통계:', result.key_statistics?.length || 0);
-          return { success: true, data: result, source: 'gpt' };
-        } catch (error) {
-          console.error('⚠️ GPT 검색 실패:', error);
-          return { success: false, data: null, source: 'gpt', error };
-        }
-      })();
-      
-      // 동시 실행 및 결과 수집
-      const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
-      
-      geminiResults = geminiResult.success ? geminiResult.data : null;
-      gptResults = gptResult.success ? gptResult.data : null;
-      
-      // 상세 로그
-      const geminiFactCount = geminiResults?.collected_facts?.length || 0;
-      const geminiStatCount = geminiResults?.key_statistics?.length || 0;
-      const gptFactCount = gptResults?.collected_facts?.length || 0;
-      const gptStatCount = gptResults?.key_statistics?.length || 0;
-      
-      console.log('📊 검색 결과 상세:');
-      console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
-      console.log(`   🟢 GPT: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
-      
-      // 프로그레스에도 표시
-      if (geminiResult.success && gptResult.success) {
-        safeProgress(`🔍 검색 완료: Gemini ${geminiFactCount + geminiStatCount}개 / GPT ${gptFactCount + gptStatCount}개 정보 수집`);
-      } else if (geminiResult.success) {
-        safeProgress(`🔵 Gemini만 성공: ${geminiFactCount + geminiStatCount}개 정보 수집 (GPT 실패)`);
-      } else if (gptResult.success) {
-        safeProgress(`🟢 GPT만 성공: ${gptFactCount + gptStatCount}개 정보 수집 (Gemini 실패)`);
-      }
-      
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔀 크로스체크: 두 결과 병합 및 검증
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      safeProgress('🔀 Step 1.5: 검색 결과 크로스체크 중...');
-      
-      if (geminiResults && gptResults) {
-        // 🎯 둘 다 성공: 크로스체크 병합
-        console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
-        
-        crossCheckedResults = {
-          collected_facts: [
-            ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
-            ...(gptResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gpt' }))
-          ],
-          key_statistics: [
-            ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
-            ...(gptResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gpt' }))
-          ],
-          latest_guidelines: [
-            ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
-            ...(gptResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gpt' }))
-          ],
-          cross_check_status: 'dual_verified',
-          gemini_found: (geminiResults.collected_facts?.length || 0) + (geminiResults.key_statistics?.length || 0),
-          gpt_found: (gptResults.collected_facts?.length || 0) + (gptResults.key_statistics?.length || 0)
-        };
-        
-        // 중복 제거 + 유사 정보 교차 검증 (키워드 기반 매칭)
-        const extractKeywords = (text: string): Set<string> => {
-          // 핵심 키워드 추출 (2글자 이상 단어, 조사/어미 제거)
-          const cleaned = text.toLowerCase()
-            .replace(/[.,!?~()[\]{}'"]/g, '')
-            .replace(/입니다|합니다|습니다|됩니다|있습니다|없습니다|합니다|에서|으로|에게|까지|부터|에는|에도|으로서/g, '');
-          const words = cleaned.split(/\s+/).filter(w => w.length >= 2);
-          return new Set(words);
-        };
-        
-        const calculateSimilarity = (text1: string, text2: string): number => {
-          const keywords1 = extractKeywords(text1);
-          const keywords2 = extractKeywords(text2);
-          if (keywords1.size === 0 || keywords2.size === 0) return 0;
-          
-          let matchCount = 0;
-          keywords1.forEach(k => {
-            if (keywords2.has(k)) matchCount++;
-          });
-          
-          // Jaccard 유사도
-          const unionSize = new Set([...keywords1, ...keywords2]).size;
-          return unionSize > 0 ? matchCount / unionSize : 0;
-        };
-        
-        const deduplicateFacts = (facts: any[]) => {
-          const result: any[] = [];
-          const processed = new Set<number>();
-          
-          for (let i = 0; i < facts.length; i++) {
-            if (processed.has(i)) continue;
-            
-            const current = facts[i];
-            const currentText = current.fact || current.stat || current.guideline || '';
-            let foundMatch = false;
-            
-            // 다른 소스에서 유사한 정보 찾기
-            for (let j = i + 1; j < facts.length; j++) {
-              if (processed.has(j)) continue;
-              
-              const other = facts[j];
-              const otherText = other.fact || other.stat || other.guideline || '';
-              
-              // 다른 소스이고 유사도 40% 이상이면 교차 검증
-              if (current.verified_by !== other.verified_by) {
-                const similarity = calculateSimilarity(currentText, otherText);
-                
-                if (similarity >= 0.4) {
-                  // 교차 검증 성공!
-                  current.verified_by = 'both';
-                  current.cross_verified = true;
-                  current.similarity_score = similarity;
-                  processed.add(j);
-                  foundMatch = true;
-                  console.log(`🔗 교차 검증 매칭 (${(similarity * 100).toFixed(0)}%):`, currentText.substring(0, 40), '↔', otherText.substring(0, 40));
-                  break;
-                }
-              }
-            }
-            
-            result.push(current);
-            processed.add(i);
+      try {
+        console.log('🔵 Gemini 검색 시작...');
+        const ai = getAiClient();
+        const searchResponse = await ai.models.generateContent({
+          model: "gemini-3-pro-preview",
+          contents: searchPrompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json"
           }
-          
-          return result;
+        });
+        searchResults = JSON.parse(searchResponse.text || "{}");
+        
+        const factCount = searchResults.collected_facts?.length || 0;
+        const statCount = searchResults.key_statistics?.length || 0;
+        const guidelineCount = searchResults.latest_guidelines?.length || 0;
+        const totalFound = factCount + statCount + guidelineCount;
+        
+        console.log('✅ Gemini 검색 완료:');
+        console.log(`   📋 팩트: ${factCount}개`);
+        console.log(`   📊 통계: ${statCount}개`);
+        console.log(`   📜 가이드라인: ${guidelineCount}개`);
+        console.log(`   📌 총: ${totalFound}개 정보 수집`);
+        
+        safeProgress(`✅ 검색 완료: ${totalFound}개 정보 수집 (팩트 ${factCount} / 통계 ${statCount} / 가이드라인 ${guidelineCount})`);
+        
+      } catch (error) {
+        console.error('❌ Gemini 검색 실패:', error);
+        safeProgress('⚠️ 검색 실패 - AI 학습 데이터 기반으로 진행');
+        searchResults = {
+          collected_facts: [],
+          key_statistics: [],
+          latest_guidelines: [],
+          error: 'Gemini 검색 실패'
         };
-        
-        crossCheckedResults.collected_facts = deduplicateFacts(crossCheckedResults.collected_facts);
-        crossCheckedResults.key_statistics = deduplicateFacts(crossCheckedResults.key_statistics);
-        crossCheckedResults.latest_guidelines = deduplicateFacts(crossCheckedResults.latest_guidelines);
-        
-        // 크로스 검증된 항목 수 계산
-        const crossVerifiedCount = [
-          ...crossCheckedResults.collected_facts,
-          ...crossCheckedResults.key_statistics,
-          ...crossCheckedResults.latest_guidelines
-        ].filter((item: any) => item.cross_verified || item.verified_by === 'both').length;
-        
-        crossCheckedResults.cross_verified_count = crossVerifiedCount;
-        
-        const geminiTotal = crossCheckedResults.gemini_found || 0;
-        const gptTotal = crossCheckedResults.gpt_found || 0;
-        
-        console.log(`✅ 크로스체크 완료:`);
-        console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
-        console.log(`   🟢 GPT: ${gptTotal}개 정보`);
-        console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
-        console.log(`   📊 총 팩트: ${crossCheckedResults.collected_facts.length}개`);
-        
-        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
-        
-      } else if (geminiResults) {
-        // Gemini만 성공 - GPT 에러 콘솔 출력
-        console.log('🔵 Gemini만 검색 성공');
-        console.error('⚠️ GPT 검색 실패:', gptResult.error);
-        crossCheckedResults = {
-          ...geminiResults,
-          cross_check_status: 'gemini_only',
-          warning: 'GPT 검색 실패로 단일 소스 검증'
-        };
-        safeProgress('🔵 Gemini 검색 결과로 진행 (GPT 검색 실패)');
-        
-      } else if (gptResults) {
-        // GPT만 성공 - Gemini 에러 콘솔 출력
-        console.log('🟢 GPT만 검색 성공');
-        console.error('⚠️ Gemini 검색 실패:', geminiResult.error);
-        crossCheckedResults = {
-          ...gptResults,
-          cross_check_status: 'gpt_only',
-          warning: 'Gemini 검색 실패로 단일 소스 검증'
-        };
-        safeProgress('🟢 GPT 검색 결과로 진행 (Gemini 검색 실패)');
-        
-      } else {
-        // 둘 다 실패 - 에러 발생시키고 중단
-        console.error('❌❌❌ 듀얼 검색 모두 실패! Gemini와 GPT 둘 다 검색에 실패했습니다.');
-        console.error('🔴 Gemini 에러:', geminiResult.error);
-        console.error('🔴 GPT 에러:', gptResult.error);
-        safeProgress('❌ 검색 실패 - Gemini와 GPT 모두 검색에 실패했습니다.');
-        throw new Error('듀얼 검색 실패: Gemini와 GPT 둘 다 검색에 실패했습니다. 네트워크 연결 또는 API 키를 확인해주세요.');
       }
-      
-      // 최종 searchResults로 설정
-      const searchResults = crossCheckedResults;
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
