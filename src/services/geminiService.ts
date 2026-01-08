@@ -9674,12 +9674,16 @@ JSON 형식으로 응답해주세요.`;
     const result = JSON.parse(response.text || "{}");
     console.log('✅ AI 냄새 재검사 완료:', result.fact_check);
     
-    // AI 냄새 상세 분석 추가 (8~15점 구간)
+    // AI 냄새 상세 분석 추가 (모든 점수에서 상세 분석 제공)
     const aiSmellScore = result.fact_check.ai_smell_score || 0;
-    if (aiSmellScore >= 8 && aiSmellScore <= 15) {
-      console.log('⚠️ 경계선 점수 - 상세 분석 시작...');
-      const detailedAnalysis = await analyzeAiSmellDetails(textContent);
+    console.log(`🔍 AI 냄새 점수: ${aiSmellScore}점 - 상세 분석 시작...`);
+    try {
+      const detailedAnalysis = await analyzeAiSmell(textContent, '');
       result.fact_check.ai_smell_analysis = detailedAnalysis;
+      console.log('✅ AI 냄새 상세 분석 완료:', detailedAnalysis.total_score, '점');
+    } catch (analysisError) {
+      console.error('⚠️ AI 냄새 상세 분석 실패:', analysisError);
+      // 상세 분석 실패해도 기본 결과는 반환
     }
     
     return result.fact_check;
