@@ -42,74 +42,118 @@ const getOpenAIKey = (): string => {
   return apiKey;
 };
 
-// Perplexity API 키 가져오기
-const getPerplexityKey = (): string | null => {
-  return localStorage.getItem('PERPLEXITY_API_KEY');
-};
-
-// Perplexity API 호출 함수 (웹 검색 전용)
-const callPerplexitySearch = async (query: string): Promise<any> => {
-  const apiKey = getPerplexityKey();
+// GPT-5.2 Responses API 웹 검색 함수
+const callGPTWebSearch = async (query: string): Promise<any> => {
+  const apiKey = localStorage.getItem('OPENAI_API_KEY');
   if (!apiKey) {
-    console.warn('⚠️ Perplexity API 키가 없습니다');
+    console.warn('⚠️ OpenAI API 키가 없습니다');
     return null;
   }
   
   try {
-    console.log('🟣 Perplexity 검색 시작...');
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+    console.log('🟢 GPT-5.2 웹 검색 시작...');
+    
+    // Responses API 사용 (web_search 도구 활성화)
+    const response = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'sonar-pro',
-        messages: [
+        model: 'gpt-5.2',
+        tools: [
           { 
-            role: 'system', 
-            content: '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요. 최신 의료 정보를 검색하여 정확한 출처와 함께 제공해주세요.'
-          },
-          { role: 'user', content: query }
+            type: 'web_search',
+            // 의료 관련 신뢰할 수 있는 도메인 필터
+            filters: {
+              allowed_domains: [
+                'pubmed.ncbi.nlm.nih.gov',
+                'www.who.int',
+                'www.cdc.gov',
+                'kdca.go.kr',
+                'mohw.go.kr',
+                'health.kr',
+                'www.amc.seoul.kr',
+                'www.snuh.org'
+              ]
+            }
+          }
         ],
-        temperature: 0.2,
-        search_recency_filter: 'year' // 최근 1년 내 정보 우선
+        tool_choice: 'auto',
+        include: ['web_search_call.action.sources'],
+        input: `당신은 의료 정보 검색 전문가입니다. 다음 주제에 대해 최신 의료 정보를 검색하고 JSON 형식으로 응답해주세요.
+
+${query}
+
+반드시 아래 JSON 형식으로 응답하세요:
+{
+  "collected_facts": [{"fact": "사실 내용", "source": "출처", "year": 2026}],
+  "key_statistics": [{"stat": "통계 내용", "value": "수치", "source": "출처", "year": 2026}],
+  "latest_guidelines": [{"guideline": "가이드라인", "organization": "기관", "year": 2026}]
+}`
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ Perplexity API 오류:', error);
+      console.error('❌ GPT-5.2 웹 검색 API 오류:', error);
       return null;
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '{}';
+    console.log('🟢 GPT-5.2 Responses API 응답:', data);
     
-    // 검색 출처 정보도 함께 반환
-    const searchResults = data.search_results || [];
+    // output에서 텍스트 추출
+    let textContent = '';
+    let sources: any[] = [];
     
-    console.log('✅ Perplexity 검색 완료');
-    console.log('   📚 출처:', searchResults.length, '개');
+    if (data.output) {
+      for (const item of data.output) {
+        if (item.type === 'message' && item.content) {
+          for (const content of item.content) {
+            if (content.type === 'output_text') {
+              textContent = content.text;
+              // 출처 정보 추출
+              if (content.annotations) {
+                sources = content.annotations
+                  .filter((a: any) => a.type === 'url_citation')
+                  .map((a: any) => ({
+                    title: a.title,
+                    url: a.url
+                  }));
+              }
+            }
+          }
+        }
+        // web_search_call에서 sources 추출
+        if (item.type === 'web_search_call' && item.action?.sources) {
+          sources = item.action.sources.map((s: any) => ({
+            title: s.title,
+            url: s.url
+          }));
+        }
+      }
+    }
+    
+    console.log('✅ GPT-5.2 웹 검색 완료');
+    console.log('   📚 출처:', sources.length, '개');
     
     try {
-      const parsed = JSON.parse(content);
-      // 출처 정보 추가
-      parsed.sources = searchResults.map((s: any) => ({
-        title: s.title,
-        url: s.url,
-        date: s.date
-      }));
-      return parsed;
+      // JSON 부분만 추출
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        parsed.sources = sources;
+        return parsed;
+      }
+      return { raw_content: textContent, sources };
     } catch (e) {
-      console.warn('⚠️ Perplexity 응답 JSON 파싱 실패, 텍스트로 처리');
-      return { 
-        raw_content: content,
-        sources: searchResults 
-      };
+      console.warn('⚠️ GPT 응답 JSON 파싱 실패, 텍스트로 처리');
+      return { raw_content: textContent, sources };
     }
   } catch (error) {
-    console.error('❌ Perplexity 검색 실패:', error);
+    console.error('❌ GPT-5.2 웹 검색 실패:', error);
     return null;
   }
 };
@@ -5668,14 +5712,14 @@ ${getStylePromptForGeneration(learnedStyle)}
 }`;
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔍 듀얼 검색: Gemini + Perplexity 동시 검색
+      // 🔍 듀얼 검색: Gemini + GPT-5.2 동시 검색
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      const hasPerplexityKey = !!getPerplexityKey();
-      console.log(`🔍 듀얼 검색 시작: Gemini + ${hasPerplexityKey ? 'Perplexity' : '(Perplexity 키 없음)'}`);
-      safeProgress(`🔍 Step 1: ${hasPerplexityKey ? 'Gemini + Perplexity 동시 검색' : 'Gemini 검색'} 중...`);
+      const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
+      console.log(`🔍 듀얼 검색 시작: Gemini + ${hasOpenAIKey ? 'GPT-5.2' : '(OpenAI 키 없음)'}`);
+      safeProgress(`🔍 Step 1: ${hasOpenAIKey ? 'Gemini + GPT-5.2 동시 웹 검색' : 'Gemini 검색'} 중...`);
       
       let geminiResults: any = null;
-      let perplexityResults: any = null;
+      let gptResults: any = null;
       let searchResults: any = {};
       
       // 🔵 Gemini 검색 (Promise)
@@ -5702,65 +5746,65 @@ ${getStylePromptForGeneration(learnedStyle)}
         }
       })();
       
-      // 🟣 Perplexity 검색 (Promise) - API 키가 있을 때만
-      const perplexitySearchPromise = hasPerplexityKey ? (async () => {
+      // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
+      const gptSearchPromise = hasOpenAIKey ? (async () => {
         try {
-          console.log('🟣 Perplexity 검색 시작...');
-          const result = await callPerplexitySearch(searchPrompt);
+          console.log('🟢 GPT-5.2 웹 검색 시작...');
+          const result = await callGPTWebSearch(searchPrompt);
           if (result) {
             const factCount = result.collected_facts?.length || 0;
             const statCount = result.key_statistics?.length || 0;
-            console.log(`✅ Perplexity 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
-            return { success: true, data: result, source: 'perplexity' };
+            console.log(`✅ GPT-5.2 웹 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
+            return { success: true, data: result, source: 'gpt' };
           }
-          return { success: false, data: null, source: 'perplexity', error: 'No result' };
+          return { success: false, data: null, source: 'gpt', error: 'No result' };
         } catch (error) {
-          console.error('⚠️ Perplexity 검색 실패:', error);
-          return { success: false, data: null, source: 'perplexity', error };
+          console.error('⚠️ GPT-5.2 웹 검색 실패:', error);
+          return { success: false, data: null, source: 'gpt', error };
         }
-      })() : Promise.resolve({ success: false, data: null, source: 'perplexity', error: 'No API key' });
+      })() : Promise.resolve({ success: false, data: null, source: 'gpt', error: 'No API key' });
       
       // 동시 실행
-      const [geminiResult, perplexityResult] = await Promise.all([geminiSearchPromise, perplexitySearchPromise]);
+      const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
       
       geminiResults = geminiResult.success ? geminiResult.data : null;
-      perplexityResults = perplexityResult.success ? perplexityResult.data : null;
+      gptResults = gptResult.success ? gptResult.data : null;
       
       // 상세 로그
       const geminiFactCount = geminiResults?.collected_facts?.length || 0;
       const geminiStatCount = geminiResults?.key_statistics?.length || 0;
-      const perplexityFactCount = perplexityResults?.collected_facts?.length || 0;
-      const perplexityStatCount = perplexityResults?.key_statistics?.length || 0;
+      const gptFactCount = gptResults?.collected_facts?.length || 0;
+      const gptStatCount = gptResults?.key_statistics?.length || 0;
       
       console.log('📊 검색 결과 상세:');
       console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
-      console.log(`   🟣 Perplexity: ${perplexityResult.success ? '성공' : '실패'} - 팩트 ${perplexityFactCount}개, 통계 ${perplexityStatCount}개`);
+      console.log(`   🟢 GPT-5.2: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🔀 크로스체크: 두 결과 병합 및 검증
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      if (geminiResults && perplexityResults) {
+      if (geminiResults && gptResults) {
         // 🎯 둘 다 성공: 크로스체크 병합
         console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
-        safeProgress('🔀 크로스체크: Gemini + Perplexity 결과 병합 중...');
+        safeProgress('🔀 크로스체크: Gemini + GPT-5.2 결과 병합 중...');
         
         searchResults = {
           collected_facts: [
             ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
-            ...(perplexityResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'perplexity' }))
+            ...(gptResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gpt' }))
           ],
           key_statistics: [
             ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
-            ...(perplexityResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'perplexity' }))
+            ...(gptResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gpt' }))
           ],
           latest_guidelines: [
             ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
-            ...(perplexityResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'perplexity' }))
+            ...(gptResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gpt' }))
           ],
-          sources: perplexityResults.sources || [], // Perplexity 출처 정보
+          sources: gptResults.sources || [], // GPT 출처 정보
           cross_check_status: 'dual_verified',
           gemini_found: geminiFactCount + geminiStatCount,
-          perplexity_found: perplexityFactCount + perplexityStatCount
+          gpt_found: gptFactCount + gptStatCount
         };
         
         // 중복 제거 (유사도 기반)
@@ -5798,14 +5842,14 @@ ${getStylePromptForGeneration(learnedStyle)}
         searchResults.cross_verified_count = crossVerifiedCount;
         
         const geminiTotal = searchResults.gemini_found || 0;
-        const perplexityTotal = searchResults.perplexity_found || 0;
+        const gptTotal = searchResults.gpt_found || 0;
         
         console.log(`✅ 크로스체크 완료:`);
         console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
-        console.log(`   🟣 Perplexity: ${perplexityTotal}개 정보`);
+        console.log(`   🟢 GPT-5.2: ${gptTotal}개 정보`);
         console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
         
-        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + Perplexity ${perplexityTotal}개 → ${crossVerifiedCount}개 교차검증`);
+        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
         
       } else if (geminiResults) {
         // Gemini만 성공
@@ -5814,20 +5858,20 @@ ${getStylePromptForGeneration(learnedStyle)}
           ...geminiResults,
           cross_check_status: 'gemini_only',
           gemini_found: geminiFactCount + geminiStatCount,
-          perplexity_found: 0
+          gpt_found: 0
         };
         safeProgress(`✅ Gemini 검색 완료: ${geminiFactCount + geminiStatCount}개 정보 수집`);
         
-      } else if (perplexityResults) {
-        // Perplexity만 성공
-        console.log('🟣 Perplexity만 검색 성공');
+      } else if (gptResults) {
+        // GPT만 성공
+        console.log('🟢 GPT-5.2만 검색 성공');
         searchResults = {
-          ...perplexityResults,
-          cross_check_status: 'perplexity_only',
+          ...gptResults,
+          cross_check_status: 'gpt_only',
           gemini_found: 0,
-          perplexity_found: perplexityFactCount + perplexityStatCount
+          gpt_found: gptFactCount + gptStatCount
         };
-        safeProgress(`✅ Perplexity 검색 완료: ${perplexityFactCount + perplexityStatCount}개 정보 수집`);
+        safeProgress(`✅ GPT-5.2 검색 완료: ${gptFactCount + gptStatCount}개 정보 수집`);
         
       } else {
         // 둘 다 실패
