@@ -40,7 +40,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   
   const [configValues, setConfigValues] = useState({
     geminiKey: '',
-    openaiKey: ''
+    openaiKey: '',
+    perplexityKey: ''
   });
   const [aiSettings, setAiSettings] = useState({
     textGeneration: 'gemini' as 'gemini' | 'openai',
@@ -82,6 +83,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       // GLOBAL_ 접두사로 전역 API 키 관리
       const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
       const globalOpenai = localStorage.getItem('GLOBAL_OPENAI_API_KEY');
+      const globalPerplexity = localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY');
       
       // AI 설정 로드
       const savedAiSettings = localStorage.getItem('AI_PROVIDER_SETTINGS');
@@ -95,7 +97,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
 
       setConfigValues({
         geminiKey: globalGemini || '',
-        openaiKey: globalOpenai || ''
+        openaiKey: globalOpenai || '',
+        perplexityKey: globalPerplexity || ''
       });
       
       // 데이터 로드
@@ -228,10 +231,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     // GLOBAL_ 접두사로 저장하여 모든 사용자가 이용하도록 함
     localStorage.setItem('GLOBAL_GEMINI_API_KEY', configValues.geminiKey);
     localStorage.setItem('GLOBAL_OPENAI_API_KEY', configValues.openaiKey);
+    localStorage.setItem('GLOBAL_PERPLEXITY_API_KEY', configValues.perplexityKey);
     
     // 기존 개인용 키도 업데이트 (호환성)
     localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
     localStorage.setItem('OPENAI_API_KEY', configValues.openaiKey);
+    localStorage.setItem('PERPLEXITY_API_KEY', configValues.perplexityKey);
     
     // AI 설정 저장
     localStorage.setItem('AI_PROVIDER_SETTINGS', JSON.stringify(aiSettings));
@@ -244,11 +249,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     if (confirm('API 키를 삭제하시겠습니까?')) {
       localStorage.removeItem('GLOBAL_GEMINI_API_KEY');
       localStorage.removeItem('GLOBAL_OPENAI_API_KEY');
+      localStorage.removeItem('GLOBAL_PERPLEXITY_API_KEY');
       localStorage.removeItem('GEMINI_API_KEY');
       localStorage.removeItem('OPENAI_API_KEY');
+      localStorage.removeItem('PERPLEXITY_API_KEY');
       setConfigValues({
         geminiKey: '',
-        openaiKey: ''
+        openaiKey: '',
+        perplexityKey: ''
       });
     }
   };
@@ -457,6 +465,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                     GPT: {configValues.openaiKey ? '✅ 활성' : '⚪ 미설정'}
                   </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-3 h-3 rounded-full ${configValues.perplexityKey ? 'bg-purple-500 animate-pulse' : 'bg-slate-600'}`}></div>
+                  <span className="text-sm font-bold text-slate-300">
+                    Perplexity: {configValues.perplexityKey ? '✅ 활성' : '⚪ 미설정'}
+                  </span>
+                </div>
               </div>
 
               {/* Info Banner */}
@@ -528,6 +542,39 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                   </a>
                   <p className="text-[10px] text-slate-500 mt-2">
                     💡 아래에서 글쓰기/이미지 생성에 사용할 AI를 선택할 수 있습니다.
+                  </p>
+                </div>
+
+                {/* Perplexity API Key */}
+                <div className="bg-gradient-to-br from-purple-500/10 to-violet-500/10 p-6 rounded-2xl border border-purple-500/20">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs font-black text-purple-300 uppercase tracking-widest">
+                      Perplexity API (웹 검색)
+                    </label>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-500/20 px-2 py-1 rounded-full">선택</span>
+                  </div>
+                  <input 
+                    type="password" 
+                    value={configValues.perplexityKey}
+                    onChange={(e) => setConfigValues({...configValues, perplexityKey: e.target.value})}
+                    placeholder="Perplexity에서 발급받은 API Key (pplx-...)"
+                    className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-purple-500 outline-none transition-colors"
+                  />
+                  {configValues.perplexityKey && (
+                    <p className="text-[11px] text-purple-400 mt-2 font-mono">
+                      현재 키: {maskApiKey(configValues.perplexityKey)}
+                    </p>
+                  )}
+                  <a 
+                    href="https://www.perplexity.ai/settings/api" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-purple-400 mt-2 font-bold hover:text-purple-300"
+                  >
+                    🔗 Perplexity에서 키 발급받기
+                  </a>
+                  <p className="text-[10px] text-slate-500 mt-2">
+                    🔍 실시간 웹 검색으로 최신 의료 정보를 수집합니다. Gemini 검색과 함께 크로스체크됩니다.
                   </p>
                 </div>
 

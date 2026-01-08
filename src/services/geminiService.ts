@@ -42,6 +42,78 @@ const getOpenAIKey = (): string => {
   return apiKey;
 };
 
+// Perplexity API 키 가져오기
+const getPerplexityKey = (): string | null => {
+  return localStorage.getItem('PERPLEXITY_API_KEY');
+};
+
+// Perplexity API 호출 함수 (웹 검색 전용)
+const callPerplexitySearch = async (query: string): Promise<any> => {
+  const apiKey = getPerplexityKey();
+  if (!apiKey) {
+    console.warn('⚠️ Perplexity API 키가 없습니다');
+    return null;
+  }
+  
+  try {
+    console.log('🟣 Perplexity 검색 시작...');
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'sonar-pro',
+        messages: [
+          { 
+            role: 'system', 
+            content: '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요. 최신 의료 정보를 검색하여 정확한 출처와 함께 제공해주세요.'
+          },
+          { role: 'user', content: query }
+        ],
+        temperature: 0.2,
+        search_recency_filter: 'year' // 최근 1년 내 정보 우선
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Perplexity API 오류:', error);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    
+    // 검색 출처 정보도 함께 반환
+    const searchResults = data.search_results || [];
+    
+    console.log('✅ Perplexity 검색 완료');
+    console.log('   📚 출처:', searchResults.length, '개');
+    
+    try {
+      const parsed = JSON.parse(content);
+      // 출처 정보 추가
+      parsed.sources = searchResults.map((s: any) => ({
+        title: s.title,
+        url: s.url,
+        date: s.date
+      }));
+      return parsed;
+    } catch (e) {
+      console.warn('⚠️ Perplexity 응답 JSON 파싱 실패, 텍스트로 처리');
+      return { 
+        raw_content: content,
+        sources: searchResults 
+      };
+    }
+  } catch (error) {
+    console.error('❌ Perplexity 검색 실패:', error);
+    return null;
+  }
+};
+
 // GPT-5.2 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
 const getGPT52ProPrompt = () => {
   const year = getCurrentYear();
@@ -5595,47 +5667,177 @@ ${getStylePromptForGeneration(learnedStyle)}
 }`;
 
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔍 Gemini 검색 (GPT는 웹검색 불가하므로 Gemini만 사용)
+      // 🔍 듀얼 검색: Gemini + Perplexity 동시 검색
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      console.log('🔍 Gemini 웹 검색 시작 (GPT는 웹검색 미지원)');
-      safeProgress('🔍 Step 1: Gemini 웹 검색 중...');
+      const hasPerplexityKey = !!getPerplexityKey();
+      console.log(`🔍 듀얼 검색 시작: Gemini + ${hasPerplexityKey ? 'Perplexity' : '(Perplexity 키 없음)'}`);
+      safeProgress(`🔍 Step 1: ${hasPerplexityKey ? 'Gemini + Perplexity 동시 검색' : 'Gemini 검색'} 중...`);
       
+      let geminiResults: any = null;
+      let perplexityResults: any = null;
       let searchResults: any = {};
       
-      try {
-        console.log('🔵 Gemini 검색 시작...');
-        const ai = getAiClient();
-        const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: searchPrompt,
-          config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json"
+      // 🔵 Gemini 검색 (Promise)
+      const geminiSearchPromise = (async () => {
+        try {
+          console.log('🔵 Gemini 검색 시작...');
+          const ai = getAiClient();
+          const searchResponse = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: searchPrompt,
+            config: {
+              tools: [{ googleSearch: {} }],
+              responseMimeType: "application/json"
+            }
+          });
+          const result = JSON.parse(searchResponse.text || "{}");
+          const factCount = result.collected_facts?.length || 0;
+          const statCount = result.key_statistics?.length || 0;
+          console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
+          return { success: true, data: result, source: 'gemini' };
+        } catch (error) {
+          console.error('⚠️ Gemini 검색 실패:', error);
+          return { success: false, data: null, source: 'gemini', error };
+        }
+      })();
+      
+      // 🟣 Perplexity 검색 (Promise) - API 키가 있을 때만
+      const perplexitySearchPromise = hasPerplexityKey ? (async () => {
+        try {
+          console.log('🟣 Perplexity 검색 시작...');
+          const result = await callPerplexitySearch(searchPrompt);
+          if (result) {
+            const factCount = result.collected_facts?.length || 0;
+            const statCount = result.key_statistics?.length || 0;
+            console.log(`✅ Perplexity 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
+            return { success: true, data: result, source: 'perplexity' };
           }
+          return { success: false, data: null, source: 'perplexity', error: 'No result' };
+        } catch (error) {
+          console.error('⚠️ Perplexity 검색 실패:', error);
+          return { success: false, data: null, source: 'perplexity', error };
+        }
+      })() : Promise.resolve({ success: false, data: null, source: 'perplexity', error: 'No API key' });
+      
+      // 동시 실행
+      const [geminiResult, perplexityResult] = await Promise.all([geminiSearchPromise, perplexitySearchPromise]);
+      
+      geminiResults = geminiResult.success ? geminiResult.data : null;
+      perplexityResults = perplexityResult.success ? perplexityResult.data : null;
+      
+      // 상세 로그
+      const geminiFactCount = geminiResults?.collected_facts?.length || 0;
+      const geminiStatCount = geminiResults?.key_statistics?.length || 0;
+      const perplexityFactCount = perplexityResults?.collected_facts?.length || 0;
+      const perplexityStatCount = perplexityResults?.key_statistics?.length || 0;
+      
+      console.log('📊 검색 결과 상세:');
+      console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
+      console.log(`   🟣 Perplexity: ${perplexityResult.success ? '성공' : '실패'} - 팩트 ${perplexityFactCount}개, 통계 ${perplexityStatCount}개`);
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 🔀 크로스체크: 두 결과 병합 및 검증
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (geminiResults && perplexityResults) {
+        // 🎯 둘 다 성공: 크로스체크 병합
+        console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
+        safeProgress('🔀 크로스체크: Gemini + Perplexity 결과 병합 중...');
+        
+        searchResults = {
+          collected_facts: [
+            ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
+            ...(perplexityResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'perplexity' }))
+          ],
+          key_statistics: [
+            ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
+            ...(perplexityResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'perplexity' }))
+          ],
+          latest_guidelines: [
+            ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
+            ...(perplexityResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'perplexity' }))
+          ],
+          sources: perplexityResults.sources || [], // Perplexity 출처 정보
+          cross_check_status: 'dual_verified',
+          gemini_found: geminiFactCount + geminiStatCount,
+          perplexity_found: perplexityFactCount + perplexityStatCount
+        };
+        
+        // 중복 제거 (유사도 기반)
+        const extractKeywords = (text: string): Set<string> => {
+          const cleaned = text.toLowerCase()
+            .replace(/[.,!?~()[\]{}'"]/g, '')
+            .replace(/입니다|합니다|습니다|됩니다|있습니다|없습니다|에서|으로|에게|까지|부터/g, '');
+          return new Set(cleaned.split(/\s+/).filter(w => w.length >= 2));
+        };
+        
+        const calculateSimilarity = (text1: string, text2: string): number => {
+          const k1 = extractKeywords(text1);
+          const k2 = extractKeywords(text2);
+          if (k1.size === 0 || k2.size === 0) return 0;
+          let match = 0;
+          k1.forEach(k => { if (k2.has(k)) match++; });
+          return match / new Set([...k1, ...k2]).size;
+        };
+        
+        // 교차 검증된 항목 수 계산
+        let crossVerifiedCount = 0;
+        searchResults.collected_facts.forEach((f1: any, i: number) => {
+          searchResults.collected_facts.forEach((f2: any, j: number) => {
+            if (i < j && f1.verified_by !== f2.verified_by) {
+              const sim = calculateSimilarity(f1.fact || '', f2.fact || '');
+              if (sim >= 0.4) {
+                f1.cross_verified = true;
+                f2.cross_verified = true;
+                crossVerifiedCount++;
+              }
+            }
+          });
         });
-        searchResults = JSON.parse(searchResponse.text || "{}");
         
-        const factCount = searchResults.collected_facts?.length || 0;
-        const statCount = searchResults.key_statistics?.length || 0;
-        const guidelineCount = searchResults.latest_guidelines?.length || 0;
-        const totalFound = factCount + statCount + guidelineCount;
+        searchResults.cross_verified_count = crossVerifiedCount;
         
-        console.log('✅ Gemini 검색 완료:');
-        console.log(`   📋 팩트: ${factCount}개`);
-        console.log(`   📊 통계: ${statCount}개`);
-        console.log(`   📜 가이드라인: ${guidelineCount}개`);
-        console.log(`   📌 총: ${totalFound}개 정보 수집`);
+        const geminiTotal = searchResults.gemini_found || 0;
+        const perplexityTotal = searchResults.perplexity_found || 0;
         
-        safeProgress(`✅ 검색 완료: ${totalFound}개 정보 수집 (팩트 ${factCount} / 통계 ${statCount} / 가이드라인 ${guidelineCount})`);
+        console.log(`✅ 크로스체크 완료:`);
+        console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
+        console.log(`   🟣 Perplexity: ${perplexityTotal}개 정보`);
+        console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
         
-      } catch (error) {
-        console.error('❌ Gemini 검색 실패:', error);
+        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + Perplexity ${perplexityTotal}개 → ${crossVerifiedCount}개 교차검증`);
+        
+      } else if (geminiResults) {
+        // Gemini만 성공
+        console.log('🔵 Gemini만 검색 성공');
+        searchResults = {
+          ...geminiResults,
+          cross_check_status: 'gemini_only',
+          gemini_found: geminiFactCount + geminiStatCount,
+          perplexity_found: 0
+        };
+        safeProgress(`✅ Gemini 검색 완료: ${geminiFactCount + geminiStatCount}개 정보 수집`);
+        
+      } else if (perplexityResults) {
+        // Perplexity만 성공
+        console.log('🟣 Perplexity만 검색 성공');
+        searchResults = {
+          ...perplexityResults,
+          cross_check_status: 'perplexity_only',
+          gemini_found: 0,
+          perplexity_found: perplexityFactCount + perplexityStatCount
+        };
+        safeProgress(`✅ Perplexity 검색 완료: ${perplexityFactCount + perplexityStatCount}개 정보 수집`);
+        
+      } else {
+        // 둘 다 실패
+        console.error('❌ 듀얼 검색 모두 실패');
         safeProgress('⚠️ 검색 실패 - AI 학습 데이터 기반으로 진행');
         searchResults = {
           collected_facts: [],
           key_statistics: [],
           latest_guidelines: [],
-          error: 'Gemini 검색 실패'
+          cross_check_status: 'failed',
+          error: '검색 실패'
         };
       }
       
