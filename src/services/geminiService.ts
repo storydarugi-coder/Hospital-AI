@@ -508,8 +508,28 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
 
       if (response.ok) {
         const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+        const content = data.choices[0]?.message?.content || '{}';
         console.log(`✅ OpenAI 응답 성공 (gpt-5.2)`);
-        return data.choices[0]?.message?.content || '{}';
+        console.log(`📦 응답 내용 길이: ${content.length}자`);
+        console.log(`📦 응답 미리보기: ${content.substring(0, 200)}...`);
+        
+        // JSON 파싱 테스트
+        try {
+          const parsed = JSON.parse(content);
+          console.log(`✅ JSON 파싱 성공`);
+          console.log(`📋 응답 필드:`, Object.keys(parsed));
+          
+          // contentHtml 또는 content 필드 확인
+          if (!parsed.contentHtml && !parsed.content) {
+            console.error(`❌ 경고: contentHtml 또는 content 필드가 응답에 없습니다!`);
+            console.error(`   - 실제 필드:`, Object.keys(parsed));
+          }
+        } catch (parseError) {
+          console.error(`❌ JSON 파싱 실패:`, parseError);
+          console.error(`   - 응답 내용:`, content.substring(0, 500));
+        }
+        
+        return content;
       }
       
       const error = await response.json();
@@ -554,6 +574,25 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
     
     const text = response.text || '{}';
     console.log(`✅ Gemini-3-Pro-Preview 응답 성공`);
+    console.log(`📦 응답 내용 길이: ${text.length}자`);
+    console.log(`📦 응답 미리보기: ${text.substring(0, 200)}...`);
+    
+    // JSON 파싱 테스트
+    try {
+      const parsed = JSON.parse(text);
+      console.log(`✅ JSON 파싱 성공`);
+      console.log(`📋 응답 필드:`, Object.keys(parsed));
+      
+      // contentHtml 또는 content 필드 확인
+      if (!parsed.contentHtml && !parsed.content) {
+        console.error(`❌ 경고: contentHtml 또는 content 필드가 응답에 없습니다!`);
+        console.error(`   - 실제 필드:`, Object.keys(parsed));
+      }
+    } catch (parseError) {
+      console.error(`❌ JSON 파싱 실패:`, parseError);
+      console.error(`   - 응답 내용:`, text.substring(0, 500));
+    }
+    
     return text;
 
   } catch (error) {
