@@ -9043,3 +9043,116 @@ JSON 형식으로 응답해주세요.`;
     };
   }
 };
+
+// AI 냄새 재검사 함수 (수동 재생성 후 사용)
+export const recheckAiSmell = async (htmlContent: string): Promise<FactCheckReport> => {
+  console.log('🔄 AI 냄새 재검사 시작...');
+  const ai = getAiClient();
+  
+  // HTML에서 텍스트만 추출
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = htmlContent;
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  
+  const prompt = `
+당신은 의료 블로그 콘텐츠 품질 검사 전문가입니다.
+아래 블로그 글을 분석하여 팩트 체크 리포트를 작성해주세요.
+
+[검사 대상 글]
+${textContent}
+
+[검사 항목]
+
+1️⃣ **팩트 정확성 (fact_score)**: 0~100점
+- 의학적으로 검증된 정보인가?
+- 출처가 명확한가?
+- 과장되거나 잘못된 정보는 없는가?
+
+2️⃣ **의료법 안전성 (safety_score)**: 0~100점
+- 치료 효과를 단정하지 않는가?
+- 병원 방문을 직접 권유하지 않는가?
+- 자가 진단을 유도하지 않는가?
+
+3️⃣ **전환력 점수 (conversion_score)**: 0~100점
+- 의료법을 준수하면서도 자연스럽게 행동을 유도하는가?
+- CTA가 강요가 아닌 제안 형태인가?
+
+4️⃣ **AI 냄새 점수 (ai_smell_score)**: 0~100점 (낮을수록 좋음)
+- 문장 리듬이 단조로운가? (0~25점)
+- 판단 회피형 글쓰기가 반복되는가? (0~20점)
+- 현장감이 부족한가? (0~20점)
+- 템플릿 구조가 뚜렷한가? (0~15점)
+- 가짜 공감 표현이 있는가? (0~10점)
+- 행동 유도가 실패했는가? (0~10점)
+
+**AI 냄새 점수 계산:**
+= 문장 리듬(25) + 판단 회피(20) + 현장감 부재(20) + 템플릿 구조(15) + 가짜 공감(10) + CTA 실패(10)
+
+**평가 기준:**
+- 0~7점: 사람 글 수준 ✅
+- 8~15점: 경계선 (부분 수정 권장) ⚠️
+- 16점 이상: AI 냄새 강함 (재작성 필요) ❌
+
+5️⃣ **검증된 팩트 개수 (verified_facts_count)**: 숫자
+- 글에서 검증 가능한 의학 정보의 개수
+
+6️⃣ **문제점 (issues)**: 배열
+- 발견된 문제점들을 구체적으로 나열
+
+7️⃣ **개선 제안 (recommendations)**: 배열
+- 구체적인 개선 방법 제안
+
+JSON 형식으로 응답해주세요.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            fact_check: {
+              type: Type.OBJECT,
+              properties: {
+                fact_score: { type: Type.INTEGER },
+                verified_facts_count: { type: Type.INTEGER },
+                safety_score: { type: Type.INTEGER },
+                conversion_score: { type: Type.INTEGER },
+                ai_smell_score: { type: Type.INTEGER },
+                issues: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                },
+                recommendations: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING }
+                }
+              },
+              required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
+            }
+          },
+          required: ["fact_check"]
+        }
+      }
+    });
+    
+    const result = JSON.parse(response.text || "{}");
+    console.log('✅ AI 냄새 재검사 완료:', result.fact_check);
+    
+    // AI 냄새 상세 분석 추가 (8~15점 구간)
+    const aiSmellScore = result.fact_check.ai_smell_score || 0;
+    if (aiSmellScore >= 8 && aiSmellScore <= 15) {
+      console.log('⚠️ 경계선 점수 - 상세 분석 시작...');
+      const detailedAnalysis = await analyzeAiSmellDetails(textContent);
+      result.fact_check.ai_smell_analysis = detailedAnalysis;
+    }
+    
+    return result.fact_check;
+  } catch (error) {
+    console.error('❌ AI 냄새 재검사 실패:', error);
+    throw new Error('AI 냄새 재검사 중 오류가 발생했습니다.');
+  }
+};
+

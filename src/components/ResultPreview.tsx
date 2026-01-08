@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
+import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
@@ -108,6 +108,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   // 🤖 AI 냄새 상세 분석 모달 상태
   const [showAiSmellDetail, setShowAiSmellDetail] = useState(false);
+  
+  // 🔄 AI 냄새 재검사 상태
+  const [isRecheckingAiSmell, setIsRecheckingAiSmell] = useState(false);
+  const [recheckResult, setRecheckResult] = useState<FactCheckReport | null>(null);
   
   // content.seoScore가 있으면 자동으로 설정
   useEffect(() => {
@@ -1037,6 +1041,37 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       setTimeout(() => setEditProgress(''), 2000);
     } finally {
       setIsEvaluatingSeo(false);
+    }
+  };
+
+  // 🔄 AI 냄새 재검사 함수
+  const handleRecheckAiSmell = async () => {
+    if (isRecheckingAiSmell || content.postType === 'card_news') return;
+    
+    setIsRecheckingAiSmell(true);
+    setEditProgress('🤖 AI 냄새 재검사 중...');
+    
+    try {
+      const result = await recheckAiSmell(localHtml);
+      setRecheckResult(result);
+      
+      // 결과에 따라 메시지 표시
+      const aiSmellScore = result.ai_smell_score || 0;
+      if (aiSmellScore <= 7) {
+        setEditProgress(`✅ AI 냄새 점수: ${aiSmellScore}점 - 사람 글 수준! 🎉`);
+      } else if (aiSmellScore <= 15) {
+        setEditProgress(`⚠️ AI 냄새 점수: ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
+      } else {
+        setEditProgress(`❌ AI 냄새 점수: ${aiSmellScore}점 - 재작성 필요`);
+      }
+      
+      setTimeout(() => setEditProgress(''), 3000);
+    } catch (error) {
+      console.error('AI 냄새 재검사 실패:', error);
+      setEditProgress('❌ AI 냄새 재검사 실패');
+      setTimeout(() => setEditProgress(''), 2000);
+    } finally {
+      setIsRecheckingAiSmell(false);
     }
   };
 
@@ -2096,15 +2131,42 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 >
                   <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
                   <div className="flex items-center gap-2">
-                     <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
-                       {content.factCheck.ai_smell_score}점
-                     </span>
-                     <span className="text-[10px] opacity-70">
-                       {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
-                     </span>
+                    {recheckResult ? (
+                      <>
+                        <span className={`text-2xl font-black ${recheckResult.ai_smell_score! <= 7 ? 'text-green-400' : recheckResult.ai_smell_score! <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {recheckResult.ai_smell_score}점
+                        </span>
+                        <span className="text-[10px] opacity-70">
+                          {recheckResult.ai_smell_score! <= 7 ? '✅ 사람글' : recheckResult.ai_smell_score! <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
+                        </span>
+                        <button
+                          onClick={handleRecheckAiSmell}
+                          disabled={isRecheckingAiSmell}
+                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
+                        >
+                          🔄 재검사
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {content.factCheck.ai_smell_score}점
+                        </span>
+                        <span className="text-[10px] opacity-70">
+                          {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
+                        </span>
+                        <button
+                          onClick={handleRecheckAiSmell}
+                          disabled={isRecheckingAiSmell}
+                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
+                        >
+                          {isRecheckingAiSmell ? '검사중...' : '🔄 재검사'}
+                        </button>
+                      </>
+                    )}
                   </div>
                   {/* 8~15점 경계선 표시 */}
-                  {content.factCheck.ai_smell_score >= 8 && content.factCheck.ai_smell_score <= 15 && content.factCheck.ai_smell_analysis && (
+                  {((recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) >= 8 && (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 15) && (recheckResult?.ai_smell_analysis || content.factCheck.ai_smell_analysis) && (
                     <span className="text-[9px] text-amber-400 mt-0.5 animate-pulse">
                       🔍 수정 위치 보기
                     </span>
