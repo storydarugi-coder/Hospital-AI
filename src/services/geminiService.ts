@@ -6662,16 +6662,29 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       </div>
       `.trim();
   } else {
-      // 블로그 포스트: 맨 위에 메인 제목(h2) 추가
+      // 블로그 포스트: 맨 위에 메인 제목(h2) 추가 (중복 방지)
       const mainTitle = request.topic || textData.title;
-      if (body.includes('class="naver-post-container"')) {
-        // naver-post-container 안에 제목 삽입
-        finalHtml = body.replace(
-          '<div class="naver-post-container">',
-          `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>`
-        );
+      
+      // 이미 main-title이 있는지 확인
+      const hasMainTitle = body.includes('class="main-title"') || body.includes('class=\'main-title\'');
+      
+      if (hasMainTitle) {
+        // 이미 제목이 있으면 그대로 사용
+        if (body.includes('class="naver-post-container"')) {
+          finalHtml = body;
+        } else {
+          finalHtml = `<div class="naver-post-container">${body}</div>`;
+        }
       } else {
-        finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
+        // 제목이 없으면 추가
+        if (body.includes('class="naver-post-container"')) {
+          finalHtml = body.replace(
+            '<div class="naver-post-container">',
+            `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>`
+          );
+        } else {
+          finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
+        }
       }
   }
 
