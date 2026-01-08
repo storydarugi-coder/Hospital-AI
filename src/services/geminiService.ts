@@ -5634,11 +5634,12 @@ ${getStylePromptForGeneration(learnedStyle)}
             searchPrompt, 
             '당신은 의료 정보 검색 전문가입니다. 반드시 JSON 형식으로 응답하세요. 최신 의료 정보를 검색하여 제공해주세요.'
           );
+          console.log('🟢 GPT 검색 응답:', gptSearchResponse?.substring(0, 200));
           const result = JSON.parse(gptSearchResponse);
-          console.log('✅ GPT 검색 완료');
+          console.log('✅ GPT 검색 완료 - 팩트:', result.collected_facts?.length || 0, '통계:', result.key_statistics?.length || 0);
           return { success: true, data: result, source: 'gpt' };
         } catch (error) {
-          console.warn('⚠️ GPT 검색 실패:', error);
+          console.error('⚠️ GPT 검색 실패:', error);
           return { success: false, data: null, source: 'gpt', error };
         }
       })();
@@ -5649,7 +5650,24 @@ ${getStylePromptForGeneration(learnedStyle)}
       geminiResults = geminiResult.success ? geminiResult.data : null;
       gptResults = gptResult.success ? gptResult.data : null;
       
-      console.log('📊 검색 결과 - Gemini:', !!geminiResults, ', GPT:', !!gptResults);
+      // 상세 로그
+      const geminiFactCount = geminiResults?.collected_facts?.length || 0;
+      const geminiStatCount = geminiResults?.key_statistics?.length || 0;
+      const gptFactCount = gptResults?.collected_facts?.length || 0;
+      const gptStatCount = gptResults?.key_statistics?.length || 0;
+      
+      console.log('📊 검색 결과 상세:');
+      console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
+      console.log(`   🟢 GPT: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
+      
+      // 프로그레스에도 표시
+      if (geminiResult.success && gptResult.success) {
+        safeProgress(`🔍 검색 완료: Gemini ${geminiFactCount + geminiStatCount}개 / GPT ${gptFactCount + gptStatCount}개 정보 수집`);
+      } else if (geminiResult.success) {
+        safeProgress(`🔵 Gemini만 성공: ${geminiFactCount + geminiStatCount}개 정보 수집 (GPT 실패)`);
+      } else if (gptResult.success) {
+        safeProgress(`🟢 GPT만 성공: ${gptFactCount + gptStatCount}개 정보 수집 (Gemini 실패)`);
+      }
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🔀 크로스체크: 두 결과 병합 및 검증
@@ -5758,8 +5776,16 @@ ${getStylePromptForGeneration(learnedStyle)}
         
         crossCheckedResults.cross_verified_count = crossVerifiedCount;
         
-        console.log(`✅ 크로스체크 완료 - 총 ${crossCheckedResults.collected_facts.length}개 팩트, ${crossVerifiedCount}개 교차 검증됨`);
-        safeProgress(`✅ 듀얼 검색 완료: ${crossVerifiedCount}개 정보 교차 검증됨`);
+        const geminiTotal = crossCheckedResults.gemini_found || 0;
+        const gptTotal = crossCheckedResults.gpt_found || 0;
+        
+        console.log(`✅ 크로스체크 완료:`);
+        console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
+        console.log(`   🟢 GPT: ${gptTotal}개 정보`);
+        console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
+        console.log(`   📊 총 팩트: ${crossCheckedResults.collected_facts.length}개`);
+        
+        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
         
       } else if (geminiResults) {
         // Gemini만 성공 - GPT 에러 콘솔 출력
