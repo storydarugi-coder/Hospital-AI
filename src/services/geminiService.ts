@@ -452,6 +452,24 @@ const getGPT52ProPrompt = () => {
   try {
     commonWritingRules = getWritingStyleCommonRules();
     console.log('✅ GPT-5.2 공통 글쓰기 프롬프트 로드 성공');
+    console.log(`   📏 공통 규칙 길이: ${commonWritingRules.length}자`);
+    
+    // 주요 섹션 포함 여부 확인
+    const sections = [
+      { name: '판단 회피형 글쓰기 금지', pattern: /판단 회피형/ },
+      { name: '현장감 강화', pattern: /현장감 강화/ },
+      { name: '극적 표현 금지', pattern: /극적 표현 금지/ },
+      { name: 'AI 냄새 제거', pattern: /AI 냄새 제거/ },
+      { name: 'SEO 최적화', pattern: /SEO 최적화/ }
+    ];
+    
+    const includedSections = sections.filter(s => s.pattern.test(commonWritingRules));
+    console.log(`   📋 포함된 섹션 (${includedSections.length}/${sections.length}):`, includedSections.map(s => s.name).join(', '));
+    
+    if (includedSections.length < sections.length) {
+      const missingSections = sections.filter(s => !s.pattern.test(commonWritingRules));
+      console.warn(`   ⚠️ 누락된 섹션:`, missingSections.map(s => s.name).join(', '));
+    }
   } catch (error) {
     console.error('❌ GPT-5.2 공통 글쓰기 프롬프트 로드 실패:', error);
     console.error('   - 에러 상세:', error instanceof Error ? error.message : String(error));
@@ -459,7 +477,16 @@ const getGPT52ProPrompt = () => {
     commonWritingRules = '\n\n[⚠️ 공통 글쓰기 규칙 로드 실패 - 기본 규칙 적용]\n';
   }
 
-  return basePrompt + gptSpecificPrompt + commonWritingRules;
+  const finalPrompt = basePrompt + gptSpecificPrompt + commonWritingRules;
+  
+  // 최종 프롬프트 구성 정보 출력
+  console.log('📦 GPT-5.2 최종 프롬프트 구성:');
+  console.log(`   - 기본 의료법 프롬프트: ${basePrompt.length}자`);
+  console.log(`   - GPT 특화 규칙: ${gptSpecificPrompt.length}자`);
+  console.log(`   - 공통 글쓰기 규칙: ${commonWritingRules.length}자`);
+  console.log(`   - 📏 총 길이: ${finalPrompt.length}자 (약 ${Math.round(finalPrompt.length / 4)} 토큰)`);
+  
+  return finalPrompt;
 };
 
 // OpenAI API 호출 함수 (GPT-5.2 -> Gemini-3-Pro-Preview 폴백)
