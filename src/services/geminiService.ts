@@ -176,7 +176,7 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       console.log(`🔵 OpenAI (gpt-5.2) 응답 상태:`, response.status, response.statusText);
 
       if (response.ok) {
-        const data = await response.json();
+        const data = await response.json() as { choices: Array<{ message: { content: string } }> };
         console.log(`✅ OpenAI 응답 성공 (gpt-5.2)`);
         return data.choices[0]?.message?.content || '{}';
       }
@@ -3023,7 +3023,7 @@ ${promptText}
       const parts = result?.candidates?.[0]?.content?.parts || [];
       const imagePart = parts.find((p: any) => p.inlineData?.data);
       
-      if (imagePart) {
+      if (imagePart?.inlineData) {
         const mimeType = imagePart.inlineData.mimeType || 'image/png';
         const data = imagePart.inlineData.data;
         console.log(`✅ 블로그 이미지 생성 성공`);
@@ -3248,7 +3248,7 @@ ${cleanPromptText}
       const parts = result?.candidates?.[0]?.content?.parts || [];
       const imagePart = parts.find((p: any) => p.inlineData?.data);
       
-      if (imagePart) {
+      if (imagePart?.inlineData) {
         const mimeType = imagePart.inlineData.mimeType || 'image/png';
         const data = imagePart.inlineData.data;
         console.log(`✅ 이미지 생성 성공 (시도 ${attempt}/${MAX_RETRIES})`);
