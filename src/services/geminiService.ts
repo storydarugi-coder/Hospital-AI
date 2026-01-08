@@ -104,40 +104,95 @@ ${query}
     const data = await response.json();
     console.log('🟢 GPT-5.2 Responses API 응답:', data);
     
+    // 디버깅: 전체 output 구조 확인
+    if (data.output) {
+      console.log('📋 GPT-5.2 output 구조:', JSON.stringify(data.output, null, 2).substring(0, 2000));
+    }
+    
     // output에서 텍스트 추출
     let textContent = '';
     let sources: any[] = [];
     
     if (data.output) {
       for (const item of data.output) {
+        console.log('🔍 item.type:', item.type);
+        
         if (item.type === 'message' && item.content) {
           for (const content of item.content) {
             if (content.type === 'output_text') {
               textContent = content.text;
-              // 출처 정보 추출
-              if (content.annotations) {
-                sources = content.annotations
+              // 출처 정보 추출 (annotations)
+              if (content.annotations && content.annotations.length > 0) {
+                console.log('📎 annotations 발견:', content.annotations.length, '개');
+                const urlCitations = content.annotations
                   .filter((a: any) => a.type === 'url_citation')
                   .map((a: any) => ({
-                    title: a.title,
+                    title: a.title || a.text || 'Unknown',
                     url: a.url
                   }));
+                if (urlCitations.length > 0) {
+                  sources = [...sources, ...urlCitations];
+                }
               }
             }
           }
         }
-        // web_search_call에서 sources 추출
-        if (item.type === 'web_search_call' && item.action?.sources) {
-          sources = item.action.sources.map((s: any) => ({
-            title: s.title,
+        
+        // web_search_call에서 sources 추출 (여러 위치 확인)
+        if (item.type === 'web_search_call') {
+          console.log('🔎 web_search_call 발견:', JSON.stringify(item, null, 2).substring(0, 1000));
+          
+          // action.sources 위치
+          if (item.action?.sources && item.action.sources.length > 0) {
+            const actionSources = item.action.sources.map((s: any) => ({
+              title: s.title || s.name || 'Unknown',
+              url: s.url
+            }));
+            sources = [...sources, ...actionSources];
+          }
+          
+          // sources 직접 위치
+          if (item.sources && item.sources.length > 0) {
+            const directSources = item.sources.map((s: any) => ({
+              title: s.title || s.name || 'Unknown',
+              url: s.url
+            }));
+            sources = [...sources, ...directSources];
+          }
+          
+          // results 위치 (일부 API 버전)
+          if (item.results && item.results.length > 0) {
+            const resultSources = item.results.map((r: any) => ({
+              title: r.title || r.name || 'Unknown',
+              url: r.url
+            }));
+            sources = [...sources, ...resultSources];
+          }
+        }
+        
+        // web_search_result 타입 체크
+        if (item.type === 'web_search_result' && item.sources) {
+          console.log('🔎 web_search_result 발견');
+          const resultSources = item.sources.map((s: any) => ({
+            title: s.title || 'Unknown',
             url: s.url
           }));
+          sources = [...sources, ...resultSources];
         }
       }
     }
     
+    // 중복 URL 제거
+    const uniqueSources = sources.filter((s, i, arr) => 
+      arr.findIndex(t => t.url === s.url) === i
+    );
+    sources = uniqueSources;
+    
     console.log('✅ GPT-5.2 웹 검색 완료');
     console.log('   📚 출처:', sources.length, '개');
+    if (sources.length > 0) {
+      console.log('   📚 출처 목록:', sources.map(s => s.url).join(', '));
+    }
     
     try {
       // JSON 부분만 추출
