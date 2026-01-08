@@ -281,6 +281,8 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       
       const error = await response.json();
       console.warn(`⚠️ GPT-5.2 API 오류:`, error);
+      console.warn(`⚠️ 에러 상세:`, error?.error?.message || 'Unknown error');
+      console.warn(`⚠️ 프롬프트 길이 - system: ${systemPrompt?.length || 0}, user: ${prompt?.length || 0}`);
       console.log('🔄 Gemini-3-Pro-Preview로 폴백합니다...');
     } catch (e) {
       console.warn(`⚠️ GPT-5.2 네트워크/처리 오류:`, e);
