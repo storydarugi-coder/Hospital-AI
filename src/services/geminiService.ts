@@ -901,13 +901,12 @@ const getGPT52Prompt = () => {
  * 🚀 GPT-5.2 단계별 프롬프트 처리 함수
  * 
  * 문제: 프롬프트가 너무 길어서 GPT-5.2가 헷갈리거나 토큰 제한 초과
- * 해결: 5단계로 나누어 순차적으로 처리
+ * 해결: 4단계로 나누어 순차적으로 처리
  * 
  * 1단계: 글 생성 (기본 규칙)
  * 2단계: AI 냄새 제거
  * 3단계: SEO 최적화
  * 4단계: 의료법 검증
- * 5단계: 최종 다듬기
  */
 const callOpenAI_Staged = async (
   initialPrompt: string, 
@@ -926,7 +925,7 @@ const callOpenAI_Staged = async (
   // 1단계: 글 생성 (기본 규칙만 적용)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   try {
-    safeProgress('📝 [1/5단계] 기본 콘텐츠 생성 중...');
+    safeProgress('📝 [1/4단계] 기본 콘텐츠 생성 중...');
     console.log('🔵 [1단계] 글 생성 시작');
     
     const stage1Prompt = getStagePrompt(1);
@@ -961,7 +960,7 @@ const callOpenAI_Staged = async (
     const data1 = await response1.json();
     currentContent = data1.choices[0]?.message?.content || '{}';
     console.log('✅ [1단계] 글 생성 완료');
-    safeProgress('✅ [1/5단계] 기본 콘텐츠 생성 완료');
+    safeProgress('✅ [1/4단계] 기본 콘텐츠 생성 완료');
 
   } catch (error) {
     console.error('❌ [1단계] 오류:', error);
@@ -972,7 +971,7 @@ const callOpenAI_Staged = async (
   // 2단계: AI 냄새 제거
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   try {
-    safeProgress('🧹 [2/5단계] AI 냄새 제거 중...');
+    safeProgress('🧹 [2/4단계] AI 냄새 제거 중...');
     console.log('🔵 [2단계] AI 냄새 제거 시작');
     
     const stage2Prompt = getStagePrompt(2);
@@ -1003,7 +1002,7 @@ const callOpenAI_Staged = async (
       console.log('✅ [2단계] AI 냄새 제거 완료');
     }
     
-    safeProgress('✅ [2/5단계] AI 냄새 제거 완료');
+    safeProgress('✅ [2/4단계] AI 냄새 제거 완료');
 
   } catch (error) {
     console.warn('⚠️ [2단계] 오류, 1단계 결과 유지:', error);
@@ -1013,7 +1012,7 @@ const callOpenAI_Staged = async (
   // 3단계: SEO 최적화
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   try {
-    safeProgress('🔍 [3/5단계] SEO 최적화 중...');
+    safeProgress('🔍 [3/4단계] SEO 최적화 중...');
     console.log('🔵 [3단계] SEO 최적화 시작');
     
     const stage3Prompt = getStagePrompt(3);
@@ -1044,7 +1043,7 @@ const callOpenAI_Staged = async (
       console.log('✅ [3단계] SEO 최적화 완료');
     }
     
-    safeProgress('✅ [3/5단계] SEO 최적화 완료');
+    safeProgress('✅ [3/4단계] SEO 최적화 완료');
 
   } catch (error) {
     console.warn('⚠️ [3단계] 오류, 2단계 결과 유지:', error);
@@ -1054,7 +1053,7 @@ const callOpenAI_Staged = async (
   // 4단계: 의료법 검증
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   try {
-    safeProgress('⚖️ [4/5단계] 의료법 검증 중...');
+    safeProgress('⚖️ [4/4단계] 의료법 검증 중...');
     console.log('🔵 [4단계] 의료법 검증 시작');
     
     const stage4Prompt = getStagePrompt(4);
@@ -1085,52 +1084,13 @@ const callOpenAI_Staged = async (
       console.log('✅ [4단계] 의료법 검증 완료');
     }
     
-    safeProgress('✅ [4/5단계] 의료법 검증 완료');
+    safeProgress('✅ [4/4단계] 의료법 검증 완료 🎉');
 
   } catch (error) {
     console.warn('⚠️ [4단계] 오류, 3단계 결과 유지:', error);
   }
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // 5단계: 최종 다듬기
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  try {
-    safeProgress('✨ [5/5단계] 최종 다듬기 중...');
-    console.log('🔵 [5단계] 최종 다듬기 시작');
-    
-    const stage5Prompt = getStagePrompt(5);
-    const stage5SystemPrompt = `${stage5Prompt}\n\n아래는 4단계까지 수정된 글입니다. 최종 품질 체크를 완료해주세요.`;
-    
-    const response5 = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5.2',
-        messages: [
-          { role: 'system', content: `${stage5SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
-          { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
-        ],
-        response_format: { type: 'json_object' },
-        temperature: 0.4
-      })
-    });
 
-    if (!response5.ok) {
-      console.warn('⚠️ [5단계] API 오류, 4단계 결과 유지');
-    } else {
-      const data5 = await response5.json();
-      currentContent = data5.choices[0]?.message?.content || currentContent;
-      console.log('✅ [5단계] 최종 다듬기 완료');
-    }
-    
-    safeProgress('✅ [5/5단계] 최종 다듬기 완료');
-
-  } catch (error) {
-    console.warn('⚠️ [5단계] 오류, 4단계 결과 유지:', error);
-  }
 
   console.log('🎉 단계별 처리 완료! 최종 결과 반환');
   return currentContent;
