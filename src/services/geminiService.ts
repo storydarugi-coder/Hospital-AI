@@ -5667,23 +5667,71 @@ ${getStylePromptForGeneration(learnedStyle)}
           gpt_found: (gptResults.collected_facts?.length || 0) + (gptResults.key_statistics?.length || 0)
         };
         
-        // 중복 제거 (같은 fact/stat은 하나로 병합하고 'both'로 표시)
-        const deduplicateFacts = (facts: any[]) => {
-          const seen = new Map();
-          return facts.filter(f => {
-            const key = (f.fact || f.stat || f.guideline || '').substring(0, 50).toLowerCase();
-            if (seen.has(key)) {
-              // 이미 있으면 verified_by를 'both'로 업데이트
-              const existing = seen.get(key);
-              if (existing.verified_by !== f.verified_by) {
-                existing.verified_by = 'both';
-                existing.cross_verified = true;
-              }
-              return false;
-            }
-            seen.set(key, f);
-            return true;
+        // 중복 제거 + 유사 정보 교차 검증 (키워드 기반 매칭)
+        const extractKeywords = (text: string): Set<string> => {
+          // 핵심 키워드 추출 (2글자 이상 단어, 조사/어미 제거)
+          const cleaned = text.toLowerCase()
+            .replace(/[.,!?~()[\]{}'"]/g, '')
+            .replace(/입니다|합니다|습니다|됩니다|있습니다|없습니다|합니다|에서|으로|에게|까지|부터|에는|에도|으로서/g, '');
+          const words = cleaned.split(/\s+/).filter(w => w.length >= 2);
+          return new Set(words);
+        };
+        
+        const calculateSimilarity = (text1: string, text2: string): number => {
+          const keywords1 = extractKeywords(text1);
+          const keywords2 = extractKeywords(text2);
+          if (keywords1.size === 0 || keywords2.size === 0) return 0;
+          
+          let matchCount = 0;
+          keywords1.forEach(k => {
+            if (keywords2.has(k)) matchCount++;
           });
+          
+          // Jaccard 유사도
+          const unionSize = new Set([...keywords1, ...keywords2]).size;
+          return unionSize > 0 ? matchCount / unionSize : 0;
+        };
+        
+        const deduplicateFacts = (facts: any[]) => {
+          const result: any[] = [];
+          const processed = new Set<number>();
+          
+          for (let i = 0; i < facts.length; i++) {
+            if (processed.has(i)) continue;
+            
+            const current = facts[i];
+            const currentText = current.fact || current.stat || current.guideline || '';
+            let foundMatch = false;
+            
+            // 다른 소스에서 유사한 정보 찾기
+            for (let j = i + 1; j < facts.length; j++) {
+              if (processed.has(j)) continue;
+              
+              const other = facts[j];
+              const otherText = other.fact || other.stat || other.guideline || '';
+              
+              // 다른 소스이고 유사도 40% 이상이면 교차 검증
+              if (current.verified_by !== other.verified_by) {
+                const similarity = calculateSimilarity(currentText, otherText);
+                
+                if (similarity >= 0.4) {
+                  // 교차 검증 성공!
+                  current.verified_by = 'both';
+                  current.cross_verified = true;
+                  current.similarity_score = similarity;
+                  processed.add(j);
+                  foundMatch = true;
+                  console.log(`🔗 교차 검증 매칭 (${(similarity * 100).toFixed(0)}%):`, currentText.substring(0, 40), '↔', otherText.substring(0, 40));
+                  break;
+                }
+              }
+            }
+            
+            result.push(current);
+            processed.add(i);
+          }
+          
+          return result;
         };
         
         crossCheckedResults.collected_facts = deduplicateFacts(crossCheckedResults.collected_facts);
