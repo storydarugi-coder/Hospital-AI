@@ -7478,95 +7478,87 @@ ${getStylePromptForGeneration(learnedStyle)}
         };
         
         // 🔧 맥락 기반 유사도 계산 (문장이 달라도 같은 맥락이면 매칭!)
+        // 사용자 요청 개선: 2글자 이상 한글/영어/숫자만 추출 (자카드 유사도 기반)
         const extractKeywords = (text: string): Set<string> => {
-          const cleaned = text.toLowerCase()
-            .replace(/[.,!?~()[\]{}'"]/g, '')
-            .replace(/입니다|합니다|습니다|됩니다|있습니다|없습니다|에서|으로|에게|까지|부터|것이|할 수|될 수|하는|되는|있는|없는|한다|된다|이다|이며|으며|인|의|을|를|은|는|이|가|와|과|도|에|로|라|며|고|지만|때문|통해|위해|대해|따르면|경우|따라|관련|관한/g, ' ');
-          // 2글자 이상 단어만 추출
-          return new Set(cleaned.split(/\s+/).filter(w => w.length >= 2));
+          if (!text) return new Set();
+          // 특수문자 제거 및 소문자 변환 (한글, 영문, 숫자, 공백만 남김)
+          const cleanText = text.toLowerCase().replace(/[^\w가-힣\s]/g, '');
+          
+          // 공백으로 분리 후 2글자 이상만 필터링
+          const tokens = cleanText.split(/\s+/).filter(token => token.length >= 2);
+          
+          return new Set(tokens);
         };
         
-        // 🆕 핵심 키워드 추출 (명사/수치 중심)
-        const extractCoreKeywords = (text: string): Set<string> => {
-          const keywords = extractKeywords(text);
-          const coreKeywords = new Set<string>();
-          
-          // 숫자가 포함된 키워드 (통계/수치) - 가중치 높음
-          keywords.forEach(k => {
-            if (/\d/.test(k) || k.length >= 3) {
-              coreKeywords.add(k);
-            }
-          });
-          
-          // 의료/건강 관련 핵심 단어들
-          const medicalTerms = ['혈당', '혈압', '당뇨', '암', '염증', '면역', '비타민', '단백질', 
-            '지방', '콜레스테롤', '체중', '비만', '수면', '운동', '식이', '섭취', '증상', '진단',
-            '치료', '예방', '관리', '검사', '수치', '정상', '이상', '위험', '효과', '부작용',
-            '원인', '기전', '합병증', '악화', '호전', '개선', '감소', '증가', '유지', '권장'];
-          keywords.forEach(k => {
-            if (medicalTerms.some(term => k.includes(term) || term.includes(k))) {
-              coreKeywords.add(k);
-            }
-          });
-          
-          return coreKeywords;
-        };
+        // 🆕 핵심 키워드 목록 (가중치 부스트용)
+        const CRITICAL_KEYWORDS = [
+          '노로바이러스', '2025', '2026', '감염증', '환자', '급증', '예방', 
+          '혈당', '혈압', '당뇨', '암', '염증', '면역', '비타민', '단백질', 
+          '지방', '콜레스테롤', '체중', '비만', '수면', '운동', '식이', '섭취', '증상', '진단',
+          '치료', '관리', '검사', '수치', '정상', '이상', '위험', '효과', '부작용',
+          '원인', '기전', '합병증', '악화', '호전', '개선', '감소', '증가', '유지', '권장'
+        ];
         
         const calculateSimilarity = (text1: string, text2: string): number => {
-          const k1 = extractKeywords(text1);
-          const k2 = extractKeywords(text2);
-          if (k1.size === 0 || k2.size === 0) return 0;
-          
-          // 기본 키워드 겹침
-          let match = 0;
-          k1.forEach(k => { if (k2.has(k)) match++; });
-          const basicSim = match / Math.min(k1.size, k2.size);  // 🔧 더 작은 집합 기준으로 비율 계산
-          
-          // 🆕 핵심 키워드 겹침 (가중치 2배)
-          const core1 = extractCoreKeywords(text1);
-          const core2 = extractCoreKeywords(text2);
-          let coreMatch = 0;
-          core1.forEach(k => { if (core2.has(k)) coreMatch++; });
-          const coreSim = (core1.size > 0 && core2.size > 0) 
-            ? coreMatch / Math.min(core1.size, core2.size) 
-            : 0;
-          
-          // 🆕 부분 문자열 매칭 (키워드가 다른 키워드에 포함되면 매칭)
-          let partialMatch = 0;
-          k1.forEach(w1 => {
-            k2.forEach(w2 => {
-              if (w1 !== w2 && (w1.includes(w2) || w2.includes(w1))) {
-                partialMatch++;
-              }
-            });
+          const setA = extractKeywords(text1);
+          const setB = extractKeywords(text2);
+
+          if (setA.size === 0 || setB.size === 0) return 0;
+
+          // 1. 자카드 유사도 (Jaccard Similarity) = 교집합 / 합집합
+          let intersection = 0;
+          setA.forEach(word => {
+            if (setB.has(word)) intersection++;
           });
-          const partialSim = partialMatch / (k1.size + k2.size);
-          
-          // 최종 유사도: 기본(40%) + 핵심키워드(40%) + 부분매칭(20%)
-          const finalSim = basicSim * 0.4 + coreSim * 0.4 + partialSim * 0.2;
-          
-          // 디버깅 로그
-          if (finalSim > 0.1) {
-            console.log(`   📊 유사도: ${(finalSim * 100).toFixed(1)}% (기본:${(basicSim*100).toFixed(0)}% 핵심:${(coreSim*100).toFixed(0)}% 부분:${(partialSim*100).toFixed(0)}%)`);
-            console.log(`      - "${text1.substring(0, 40)}..."`);
-            console.log(`      - "${text2.substring(0, 40)}..."`);
+
+          const union = new Set([...setA, ...setB]).size;
+          // 자카드 지수 (0~1) -> 점수화 (0~100)
+          let score = (intersection / union) * 100;
+
+          // 2. 핵심 키워드(Critical Keywords) 포함 시 가중치 부스트
+          let criticalMatchCount = 0;
+          CRITICAL_KEYWORDS.forEach(k => {
+             // 단순 포함 여부 체크
+             if (text1.includes(k) && text2.includes(k)) {
+                criticalMatchCount++;
+             }
+          });
+
+          // 핵심 키워드가 2개 이상 겹치면 +20점 가산
+          if (criticalMatchCount >= 2) {
+             score += 20; 
           }
           
-          return finalSim;
+          // 100점 초과 방지
+          if (score > 100) score = 100;
+          
+          // 디버깅 로그 (유사도가 어느 정도 있을 때만)
+          if (score > 10) {
+            console.log(`   📊 유사도: ${score.toFixed(1)}% (자카드 기반 + 핵심키워드 부스트)`);
+            console.log(`      - A: "${text1.substring(0, 30)}..."`);
+            console.log(`      - B: "${text2.substring(0, 30)}..."`);
+          }
+          
+          // 기존 코드와의 호환성을 위해 0~100 점수를 0~1.0 비율로 반환하지 않고, 
+          // 아래 로직에서 점수(0~100) 그대로 사용하거나, 여기서 100으로 나눠서 반환할 수 있음.
+          // 기존 코드가 finalSim(0.0~1.0)을 기대했으나, 여기선 점수 자체를 반환하고 비교 로직을 수정함.
+          return score;
         };
         
-        // 교차 검증된 항목 수 계산 (🔧 임계값 낮춤: 0.4 → 0.2)
+        // 교차 검증된 항목 수 계산 (THRESHOLD: 30점)
         let crossVerifiedCount = 0;
+        const THRESHOLD = 30;
+
         searchResults.collected_facts.forEach((f1: any, i: number) => {
           searchResults.collected_facts.forEach((f2: any, j: number) => {
             if (i < j && f1.verified_by !== f2.verified_by) {
-              const sim = calculateSimilarity(f1.fact || '', f2.fact || '');
-              // 🔧 임계값 낮춤: 20% 이상 유사하면 교차 검증으로 인정
-              if (sim >= 0.2) {
+              const score = calculateSimilarity(f1.fact || '', f2.fact || '');
+              // 30점 이상이면 교차 검증 성공으로 간주
+              if (score >= THRESHOLD) {
                 f1.cross_verified = true;
                 f2.cross_verified = true;
                 crossVerifiedCount++;
-                console.log(`   ✅ 교차 검증 성공! (유사도: ${(sim*100).toFixed(1)}%)`);
+                console.log(`   ✅ 교차 검증 성공! (점수: ${score.toFixed(1)}점)`);
               }
             }
           });
