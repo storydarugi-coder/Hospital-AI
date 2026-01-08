@@ -7925,7 +7925,12 @@ export const analyzeAiSmell = async (
   const ai = getAiClient();
   const currentYear = new Date().getFullYear();
   
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
+  
   const prompt = `당신은 AI가 쓴 글과 사람이 쓴 글을 구분하는 전문가입니다.
+
+📅 **오늘 날짜: ${todayStr}** (이것이 현재 시점입니다. 미래가 아닙니다!)
 
 아래 블로그 글의 "AI 냄새"를 분석하고, 어디를 수정해야 하는지 구체적으로 알려주세요.
 
