@@ -448,7 +448,16 @@ const getGPT52ProPrompt = () => {
 `;
 
   // 공통 글쓰기 규칙 추가 (Gemini와 동일하게 적용)
-  const commonWritingRules = getWritingStyleCommonRules();
+  let commonWritingRules = '';
+  try {
+    commonWritingRules = getWritingStyleCommonRules();
+    console.log('✅ GPT-5.2 공통 글쓰기 프롬프트 로드 성공');
+  } catch (error) {
+    console.error('❌ GPT-5.2 공통 글쓰기 프롬프트 로드 실패:', error);
+    console.error('   - 에러 상세:', error instanceof Error ? error.message : String(error));
+    // 프롬프트 로드 실패 시에도 기본 프롬프트는 반환
+    commonWritingRules = '\n\n[⚠️ 공통 글쓰기 규칙 로드 실패 - 기본 규칙 적용]\n';
+  }
 
   return basePrompt + gptSpecificPrompt + commonWritingRules;
 };
@@ -467,6 +476,8 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
     // 🚀 GPT-5.2 시도
     try {
       console.log(`🔵 API 키 확인 완료, 모델 'gpt-5.2' 요청 전송 중...`);
+      console.log(`🔍 System Prompt 길이: ${systemPrompt?.length || 0}자`);
+      console.log(`🔍 User Prompt 길이: ${prompt?.length || 0}자`);
       
       // OpenAI json_object 모드 사용 시 프롬프트에 "json" 단어 필수
       const jsonSystemPrompt = systemPrompt 
@@ -502,12 +513,28 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       }
       
       const error = await response.json();
-      console.warn(`⚠️ GPT-5.2 API 오류:`, error);
-      console.warn(`⚠️ 에러 상세:`, error?.error?.message || 'Unknown error');
-      console.warn(`⚠️ 프롬프트 길이 - system: ${systemPrompt?.length || 0}, user: ${prompt?.length || 0}`);
+      console.error(`❌ GPT-5.2 API 오류:`, error);
+      console.error(`   - 상태 코드: ${response.status} ${response.statusText}`);
+      console.error(`   - 에러 메시지: ${error?.error?.message || 'Unknown error'}`);
+      console.error(`   - 에러 타입: ${error?.error?.type || 'Unknown type'}`);
+      console.error(`   - 에러 코드: ${error?.error?.code || 'Unknown code'}`);
+      console.error(`   - System Prompt 길이: ${systemPrompt?.length || 0}자`);
+      console.error(`   - User Prompt 길이: ${prompt?.length || 0}자`);
+      
+      // 프롬프트가 너무 길 경우 특별 경고
+      const totalLength = (systemPrompt?.length || 0) + (prompt?.length || 0);
+      if (totalLength > 100000) {
+        console.warn(`⚠️ 프롬프트 길이가 매우 깁니다 (${totalLength}자). 토큰 제한 초과 가능성 있음!`);
+      }
+      
       console.log('🔄 Gemini-3-Pro-Preview로 폴백합니다...');
     } catch (e) {
-      console.warn(`⚠️ GPT-5.2 네트워크/처리 오류:`, e);
+      console.error(`❌ GPT-5.2 네트워크/처리 오류:`, e);
+      console.error(`   - 에러 타입: ${e instanceof Error ? e.constructor.name : typeof e}`);
+      console.error(`   - 에러 메시지: ${e instanceof Error ? e.message : String(e)}`);
+      if (e instanceof Error && e.stack) {
+        console.error(`   - 스택 트레이스:`, e.stack);
+      }
       console.log('🔄 Gemini-3-Pro-Preview로 폴백합니다...');
     }
 
@@ -531,6 +558,11 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
 
   } catch (error) {
     console.error('❌ callOpenAI 전체 에러:', error);
+    console.error('   - 에러 타입:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('   - 에러 메시지:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && error.stack) {
+      console.error('   - 스택 트레이스:', error.stack);
+    }
     throw error;
   }
 };
