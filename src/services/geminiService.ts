@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
+import { getStagePrompt } from "../lib/gpt52-prompts-staged";
 
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
@@ -814,6 +815,245 @@ const getGPT52Prompt = () => {
   console.log(`   - 📏 총 길이: ${finalPrompt.length}자 (약 ${Math.round(finalPrompt.length / 4)} 토큰)`);
   
   return finalPrompt;
+};
+
+/**
+ * 🚀 GPT-5.2 단계별 프롬프트 처리 함수
+ * 
+ * 문제: 프롬프트가 너무 길어서 GPT-5.2가 헷갈리거나 토큰 제한 초과
+ * 해결: 5단계로 나누어 순차적으로 처리
+ * 
+ * 1단계: 글 생성 (기본 규칙)
+ * 2단계: AI 냄새 제거
+ * 3단계: SEO 최적화
+ * 4단계: 의료법 검증
+ * 5단계: 최종 다듬기
+ */
+const callOpenAI_Staged = async (
+  initialPrompt: string, 
+  contextData: string,
+  onProgress?: (msg: string) => void
+): Promise<string> => {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
+    throw new Error('OpenAI API 키가 설정되지 않았습니다.');
+  }
+
+  const safeProgress = onProgress || ((msg: string) => console.log('📍', msg));
+  let currentContent = '';
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 1단계: 글 생성 (기본 규칙만 적용)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    safeProgress('📝 [1/5단계] 기본 콘텐츠 생성 중...');
+    console.log('🔵 [1단계] 글 생성 시작');
+    
+    const stage1Prompt = getStagePrompt(1);
+    const stage1SystemPrompt = `${stage1Prompt}\n\n${contextData}`;
+    
+    console.log(`🔍 [1단계] System Prompt 길이: ${stage1SystemPrompt.length}자`);
+    console.log(`🔍 [1단계] User Prompt 길이: ${initialPrompt.length}자`);
+    
+    const response1 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2',
+        messages: [
+          { role: 'system', content: `${stage1SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+          { role: 'user', content: `${initialPrompt}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7
+      })
+    });
+
+    if (!response1.ok) {
+      const error = await response1.json();
+      console.error('❌ [1단계] API 오류:', error);
+      throw new Error(`[1단계] GPT-5.2 API 오류: ${error?.error?.message || 'Unknown'}`);
+    }
+
+    const data1 = await response1.json();
+    currentContent = data1.choices[0]?.message?.content || '{}';
+    console.log('✅ [1단계] 글 생성 완료');
+    safeProgress('✅ [1/5단계] 기본 콘텐츠 생성 완료');
+
+  } catch (error) {
+    console.error('❌ [1단계] 오류:', error);
+    throw error;
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 2단계: AI 냄새 제거
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    safeProgress('🧹 [2/5단계] AI 냄새 제거 중...');
+    console.log('🔵 [2단계] AI 냄새 제거 시작');
+    
+    const stage2Prompt = getStagePrompt(2);
+    const stage2SystemPrompt = `${stage2Prompt}\n\n아래는 1단계에서 생성된 초안입니다. AI 냄새를 제거하고 자연스럽게 수정해주세요.`;
+    
+    const response2 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2',
+        messages: [
+          { role: 'system', content: `${stage2SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+          { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.6
+      })
+    });
+
+    if (!response2.ok) {
+      console.warn('⚠️ [2단계] API 오류, 1단계 결과 유지');
+    } else {
+      const data2 = await response2.json();
+      currentContent = data2.choices[0]?.message?.content || currentContent;
+      console.log('✅ [2단계] AI 냄새 제거 완료');
+    }
+    
+    safeProgress('✅ [2/5단계] AI 냄새 제거 완료');
+
+  } catch (error) {
+    console.warn('⚠️ [2단계] 오류, 1단계 결과 유지:', error);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 3단계: SEO 최적화
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    safeProgress('🔍 [3/5단계] SEO 최적화 중...');
+    console.log('🔵 [3단계] SEO 최적화 시작');
+    
+    const stage3Prompt = getStagePrompt(3);
+    const stage3SystemPrompt = `${stage3Prompt}\n\n아래는 2단계까지 수정된 글입니다. SEO를 최적화해주세요.`;
+    
+    const response3 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2',
+        messages: [
+          { role: 'system', content: `${stage3SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+          { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.5
+      })
+    });
+
+    if (!response3.ok) {
+      console.warn('⚠️ [3단계] API 오류, 2단계 결과 유지');
+    } else {
+      const data3 = await response3.json();
+      currentContent = data3.choices[0]?.message?.content || currentContent;
+      console.log('✅ [3단계] SEO 최적화 완료');
+    }
+    
+    safeProgress('✅ [3/5단계] SEO 최적화 완료');
+
+  } catch (error) {
+    console.warn('⚠️ [3단계] 오류, 2단계 결과 유지:', error);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 4단계: 의료법 검증
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    safeProgress('⚖️ [4/5단계] 의료법 검증 중...');
+    console.log('🔵 [4단계] 의료법 검증 시작');
+    
+    const stage4Prompt = getStagePrompt(4);
+    const stage4SystemPrompt = `${stage4Prompt}\n\n아래는 3단계까지 수정된 글입니다. 의료법을 100% 준수하도록 검증하고 수정해주세요.`;
+    
+    const response4 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2',
+        messages: [
+          { role: 'system', content: `${stage4SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+          { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.3
+      })
+    });
+
+    if (!response4.ok) {
+      console.warn('⚠️ [4단계] API 오류, 3단계 결과 유지');
+    } else {
+      const data4 = await response4.json();
+      currentContent = data4.choices[0]?.message?.content || currentContent;
+      console.log('✅ [4단계] 의료법 검증 완료');
+    }
+    
+    safeProgress('✅ [4/5단계] 의료법 검증 완료');
+
+  } catch (error) {
+    console.warn('⚠️ [4단계] 오류, 3단계 결과 유지:', error);
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 5단계: 최종 다듬기
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  try {
+    safeProgress('✨ [5/5단계] 최종 다듬기 중...');
+    console.log('🔵 [5단계] 최종 다듬기 시작');
+    
+    const stage5Prompt = getStagePrompt(5);
+    const stage5SystemPrompt = `${stage5Prompt}\n\n아래는 4단계까지 수정된 글입니다. 최종 품질 체크를 완료해주세요.`;
+    
+    const response5 = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-5.2',
+        messages: [
+          { role: 'system', content: `${stage5SystemPrompt}\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+          { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.4
+      })
+    });
+
+    if (!response5.ok) {
+      console.warn('⚠️ [5단계] API 오류, 4단계 결과 유지');
+    } else {
+      const data5 = await response5.json();
+      currentContent = data5.choices[0]?.message?.content || currentContent;
+      console.log('✅ [5단계] 최종 다듬기 완료');
+    }
+    
+    safeProgress('✅ [5/5단계] 최종 다듬기 완료');
+
+  } catch (error) {
+    console.warn('⚠️ [5단계] 오류, 4단계 결과 유지:', error);
+  }
+
+  console.log('🎉 단계별 처리 완료! 최종 결과 반환');
+  return currentContent;
 };
 
 // OpenAI API 호출 함수 (GPT-5.2 -> Gemini-3-Pro-Preview 폴백)
@@ -7274,12 +7514,33 @@ ${JSON.stringify(searchResults, null, 2)}
   }
 }`;
 
-      console.log('📍 callOpenAI 호출 직전...');
+      console.log('📍 callOpenAI_Staged 호출 직전...');
       console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
-      console.log('📍 시스템 프롬프트 길이:', systemPrompt.length);
+      console.log('📍 시스템 프롬프트(검색 결과) 길이:', JSON.stringify(searchResults, null, 2).length);
       
-      const responseText = await callOpenAI(isCardNews ? cardNewsPrompt : blogPrompt, systemPrompt);
-      console.log('📍 callOpenAI 응답 받음, 길이:', responseText?.length);
+      // 🚀 새로운 단계별 처리 시스템 사용
+      const contextData = `[🔍 듀얼 검색 + 크로스체크 결과]
+${crossCheckGuide}
+
+아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
+교차 검증된 정보(cross_verified 또는 verified_by='both')를 최우선으로 사용하세요!
+
+${JSON.stringify(searchResults, null, 2)}
+
+[⚠️ 크로스체크 기반 작성 규칙]
+1. ${searchResults.cross_check_status === 'dual_verified' 
+    ? '🎯 교차 검증된 정보(cross_verified=true)를 최우선으로 사용하세요 - 가장 신뢰도 높음!' 
+    : '단일 소스 검색 결과이므로 출처 표기에 더욱 신경 쓰세요'}
+2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기
+3. 교차 검증되지 않은 정보는 "~로 알려져 있습니다" 등 완화 표현 사용
+4. 두 소스에서 상충되는 정보가 있다면 더 공신력 있는 출처(학회, 정부기관) 우선`;
+      
+      const responseText = await callOpenAI_Staged(
+        isCardNews ? cardNewsPrompt : blogPrompt, 
+        contextData,
+        safeProgress
+      );
+      console.log('📍 callOpenAI_Staged 응답 받음, 길이:', responseText?.length);
       
       result = JSON.parse(responseText);
       
