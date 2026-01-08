@@ -85,12 +85,21 @@ const callGPTWebSearch = async (query: string): Promise<any> => {
 
 ${query}
 
-[필수 검색 출처 - 반드시 이 출처들에서만 정보 수집!]
-1. 대한OO학회 최신 가이드라인 (${CURRENT_YEAR}년 또는 ${CURRENT_YEAR - 1}년)
-2. 질병관리청(KDCA), 보건복지부 최신 자료
-3. PubMed, JAMA, NEJM 최신 논문
-4. 국민건강보험공단, 건강보험심사평가원 통계
-5. WHO, CDC 공식 자료
+[🥇 1순위: 한국 공신력 사이트 - 최우선 검색!]
+• 질병관리청 건강정보포털: health.kdca.go.kr (일반인 대상 건강정보)
+• 질병관리청 메인: kdca.go.kr (보도자료, 통계, 감염병 정보)
+• 보건복지부: mohw.go.kr
+• 국민건강보험공단: nhis.or.kr (건강검진, 통계)
+• 건강보험심사평가원: hira.or.kr (의료 통계, 병원정보)
+• 식품의약품안전처: mfds.go.kr (의약품, 식품안전)
+• 대한OO학회 공식 사이트 (.or.kr) - 최신 가이드라인
+
+[🥈 2순위: 해외 공신력 사이트 - 국내 정보 부족 시]
+• WHO (세계보건기구): who.int
+• CDC (미국 질병통제예방센터): cdc.gov
+• NIH (미국 국립보건원): nih.gov
+• PubMed 논문: pubmed.ncbi.nlm.nih.gov
+• JAMA, NEJM, Lancet 등 국제 학술지
 
 [검색 제외 - 절대 수집 금지!]
 - 블로그 (네이버 블로그, 티스토리, 브런치 등)
@@ -248,10 +257,20 @@ const getGPT52ProPrompt = () => {
 **예외:** 만약 Gemini의 정보가 부족하거나 전달되지 않았을 경우, 당신의 지식을 활용하되 **반드시 아래 출처 규칙을 제미나이와 동일하게 엄격히 적용**해야 합니다.
 
 **[✅ 검색/참고 허용 출처 - 여기 있는 정보만 사실(Fact)로 인정]**
-1. **국내 학회**: 대한OO학회, 대한의학회 등 공식 학술 단체 홈페이지 (.or.kr)
-2. **정부 기관**: 보건복지부, 질병관리청(KDCA), 식약처, 심평원, 건강보험공단 (.go.kr)
-3. **국제 학술지/기관**: PubMed, JAMA, NEJM, Lancet, WHO, CDC, NIH
-4. **공식 논문 DB**: RISS, KISS, KoreaMed
+
+🥇 **1순위: 한국 공신력 사이트 (최우선 참고!)**
+• 질병관리청 건강정보포털 (health.kdca.go.kr) - 일반인 대상 건강정보
+• 질병관리청 (kdca.go.kr) - 보도자료, 통계, 감염병
+• 보건복지부 (mohw.go.kr)
+• 국민건강보험공단 (nhis.or.kr) - 건강검진, 통계
+• 건강보험심사평가원 (hira.or.kr) - 의료 통계
+• 식품의약품안전처 (mfds.go.kr) - 의약품, 식품안전
+• 대한OO학회 공식 사이트 (.or.kr) - 가이드라인
+
+🥈 **2순위: 해외 공신력 사이트 (국내 정보 부족 시)**
+• WHO (who.int), CDC (cdc.gov), NIH (nih.gov)
+• PubMed, JAMA, NEJM, Lancet 등 국제 학술지
+• 공식 논문 DB: RISS, KISS, KoreaMed
 
 **[🚫 절대 참고 금지 출처 - 여기 정보는 절대 섞이면 안 됨!]**
 ❌ **블로그**: 네이버 블로그, 티스토리, 브런치, 개인 웹사이트
