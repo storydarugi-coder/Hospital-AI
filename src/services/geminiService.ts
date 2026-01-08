@@ -6652,6 +6652,77 @@ ${improvementHints}
       console.error('SEO 자동 평가 실패:', seoError);
       onProgress('⚠️ SEO 자동 평가 실패, 수동 평가 필요');
     }
+    
+    // ============================================
+    // 🤖 AI 냄새 점수 체크 + 16점 이상 자동 재생성
+    // ============================================
+    const aiSmellScore = textData.fact_check?.ai_smell_score || 0;
+    const MAX_AI_SMELL_SCORE = 15;
+    
+    if (aiSmellScore > MAX_AI_SMELL_SCORE) {
+      console.log(`🤖 AI 냄새 점수 ${aiSmellScore}점 > 15점, 자동 개선 시도`);
+      onProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
+      
+      try {
+        const aiSmellImprovementPrompt = `
+당신은 AI 냄새를 제거하는 전문가입니다.
+아래 블로그 글의 AI 냄새 점수가 ${aiSmellScore}점입니다. 15점 이하로 줄여주세요.
+
+[현재 본문]
+${finalHtml.substring(0, 6000)}
+
+[AI 냄새 제거 핵심 규칙]
+1. "~수 있습니다" 연속 2회 이상 나오면 하나를 "~인 경우도 있습니다", "~로 이어지기도 합니다"로 변경
+2. 각 문단에 관찰자 시점 문장 1개 추가 ("이런 분들이 많더라고요", "병원에서 자주 듣는 이야기예요")
+3. 첫 문장은 정의가 아닌 상황 묘사로 시작 ("꼭 많이 먹지 않았는데도...")
+4. 마지막 문장 덜 교과서적으로 ("원인을 확인해두면 이후 관리가 수월해져요")
+5. 문단마다 기능이 너무 명확하면 흐름으로 연결 ("그런데 말이죠", "사실 여기서 중요한 건")
+6. 짧은 문장 중간에 삽입 ("솔직히 애매하죠.", "근데요.")
+
+[출력 형식 - JSON]
+{
+  "improved_body": "개선된 본문 HTML (naver-post-container 클래스 유지)",
+  "changes_made": ["변경한 내용 1", "변경한 내용 2", ...]
+}`;
+        
+        const improvedAiText = await callOpenAI(aiSmellImprovementPrompt, 'AI 냄새 제거 전문가로서 사람이 쓴 것처럼 자연스럽게 개선해주세요.');
+        
+        let improvedAiData;
+        try {
+          const jsonMatch = improvedAiText.match(/\{[\s\S]*\}/);
+          improvedAiData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        } catch {
+          console.warn('AI 냄새 개선 응답 JSON 파싱 실패');
+        }
+        
+        if (improvedAiData?.improved_body) {
+          const improvedMainTitle = request.topic || textData.title;
+          if (improvedAiData.improved_body.includes('class="naver-post-container"')) {
+            finalHtml = improvedAiData.improved_body.replace(
+              '<div class="naver-post-container">',
+              `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>`
+            );
+          } else {
+            finalHtml = `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>${improvedAiData.improved_body}</div>`;
+          }
+          
+          // fact_check의 ai_smell_score 업데이트 (추정값)
+          if (textData.fact_check) {
+            textData.fact_check.ai_smell_score = Math.max(0, aiSmellScore - 10);
+          }
+          
+          console.log('✅ AI 냄새 개선 완료:', improvedAiData.changes_made);
+          onProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
+        }
+        
+      } catch (aiSmellError) {
+        console.error('AI 냄새 개선 실패:', aiSmellError);
+        onProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
+      }
+    } else {
+      console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (15점 이하)`);
+      onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정!`);
+    }
   }
 
   return {
