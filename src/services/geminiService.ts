@@ -932,6 +932,7 @@ const getGPT52Prompt = () => {
 const callOpenAI_Staged = async (
   initialPrompt: string, 
   contextData: string,
+  textLength: number = 2000,
   onProgress?: (msg: string) => void
 ): Promise<string> => {
   const apiKey = getOpenAIKey();
@@ -949,7 +950,7 @@ const callOpenAI_Staged = async (
     safeProgress('📝 [1/4단계] 기본 콘텐츠 생성 중...');
     console.log('🔵 [1단계] 글 생성 시작');
     
-    const stage1Prompt = getStagePrompt(1);
+    const stage1Prompt = getStagePrompt(1, textLength);
     const stage1SystemPrompt = `${stage1Prompt}\n\n${contextData}`;
     
     console.log(`🔍 [1단계] System Prompt 길이: ${stage1SystemPrompt.length}자`);
@@ -995,7 +996,7 @@ const callOpenAI_Staged = async (
     safeProgress('🧹 [2/4단계] AI 냄새 제거 중...');
     console.log('🔵 [2단계] AI 냄새 제거 시작');
     
-    const stage2Prompt = getStagePrompt(2);
+    const stage2Prompt = getStagePrompt(2, textLength);
     const stage2SystemPrompt = `${stage2Prompt}\n\n아래는 1단계에서 생성된 초안입니다. AI 냄새를 제거하고 자연스럽게 수정해주세요.`;
     
     const response2 = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -7724,6 +7725,7 @@ ${JSON.stringify(searchResults, null, 2)}
       const responseText = await callOpenAI_Staged(
         isCardNews ? cardNewsPrompt : blogPrompt, 
         contextData,
+        request.textLength || 2000,
         safeProgress
       );
       console.log('📍 callOpenAI_Staged 응답 받음, 길이:', responseText?.length);
