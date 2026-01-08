@@ -117,6 +117,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   }, [content.seoScore]);
   
+  // 디버깅: factCheck 상태 확인
+  useEffect(() => {
+    console.log('🔍 ResultPreview - content.factCheck:', content.factCheck);
+    console.log('🔍 ResultPreview - content.seoScore:', content.seoScore);
+    console.log('🔍 ResultPreview - content.postType:', content.postType);
+  }, [content.factCheck, content.seoScore, content.postType]);
+  
   // 프롬프트 히스토리 및 참고 이미지 불러오기
   useEffect(() => {
     const saved = localStorage.getItem(CARD_PROMPT_HISTORY_KEY);

@@ -6931,6 +6931,11 @@ ${finalHtml.substring(0, 6000)}
     }
   }
 
+  // 디버깅: 반환 데이터 확인
+  console.log('🔍 generateFullPost 반환 데이터:');
+  console.log('  - textData.fact_check:', textData.fact_check);
+  console.log('  - seoScore:', seoScore);
+  
   return {
     title: textData.title,
     htmlContent: finalHtml,
