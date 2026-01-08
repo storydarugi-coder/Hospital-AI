@@ -204,7 +204,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                     <input 
                       type="range" 
                       min="1500" 
-                      max="5000" 
+                      max="3500" 
                       step="500" 
                       value={textLength} 
                       onChange={(e) => setTextLength(parseInt(e.target.value))}
@@ -212,8 +212,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                     />
                     <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-bold">
                        <span>1500자</span>
-                       <span>3000자</span>
-                       <span>5000자</span>
+                       <span>2500자</span>
+                       <span>3500자</span>
                     </div>
                   </div>
                   <div>
