@@ -242,7 +242,7 @@ ${query}
 };
 
 // GPT-5.2 전용 추가 프롬프트 (Gemini 프롬프트 공유 + GPT 특색만 추가)
-const getGPT52ProPrompt = () => {
+const getGPT52Prompt = () => {
   const year = getCurrentYear();
   const basePrompt = getMedicalSafetyPrompt(); // Gemini 프롬프트 재사용
   
@@ -6507,7 +6507,7 @@ ${getStylePromptForGeneration(learnedStyle)}
         safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
       }
       
-      const gptSystemPrompt = getGPT52ProPrompt();
+      const gptSystemPrompt = getGPT52Prompt();
       
       // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
       const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
@@ -6700,7 +6700,7 @@ ${blogPrompt}`;
 
             // 재생성
             if (providerSettings.textGeneration === 'openai') {
-              const regenerateSystemPrompt = getGPT52ProPrompt();
+              const regenerateSystemPrompt = getGPT52Prompt();
               const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
               result = JSON.parse(newResponseText);
             } else {
