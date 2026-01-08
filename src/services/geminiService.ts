@@ -5882,7 +5882,6 @@ ${getStylePromptForGeneration(learnedStyle)}
       // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
       const gptSearchPromise = hasOpenAIKey ? (async () => {
         try {
-          console.log('🟢 GPT-5.2 웹 검색 시작...');
           const result = await callGPTWebSearch(searchPrompt);
           if (result) {
             const factCount = result.collected_facts?.length || 0;
