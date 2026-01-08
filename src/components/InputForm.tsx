@@ -39,7 +39,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
-  const [imageCount, setImageCount] = useState<number>(1);
+  const [imageCount, setImageCount] = useState<number>(0); // 기본값 0장
   const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
   
   // 말투 학습 스타일

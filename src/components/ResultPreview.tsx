@@ -1592,7 +1592,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           const result = await modifyPostWithAI(localHtml, editorInput);
           let workingHtml = result.newHtml;
 
-          if (result.regenerateImageIndices && result.newImagePrompts) {
+          // 🖼️ 이미지가 0장인 경우 이미지 재생성 건너뛰기
+          const hasImages = localHtml.includes('[IMG_') || localHtml.includes('<img');
+          
+          if (result.regenerateImageIndices && result.newImagePrompts && hasImages) {
               setEditProgress('요청하신 부분에 맞춰 새로운 일러스트를 생성 중입니다...');
 
               const idxList = result.regenerateImageIndices.slice(0, 3);
