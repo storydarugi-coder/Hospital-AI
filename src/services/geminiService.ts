@@ -4817,6 +4817,7 @@ export const generateBlogPostText = async (request: GenerationRequest, onProgres
     imagePrompts: string[];
     fact_check: FactCheckReport;
     analyzedStyle?: { backgroundColor?: string; borderColor?: string; };
+    seoScore?: SeoScoreReport;
 }> => {
   // onProgress가 없으면 콘솔 로그로 대체
   const safeProgress = onProgress || ((msg: string) => console.log('📍 BlogText Progress:', msg));
@@ -6750,135 +6751,21 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   }
 
   // ============================================
-  // 🎯 SEO 자동 평가 + 90점 미만 자동 재생성
+  // 🎯 SEO 점수는 generateWithAgentMode에서 이미 평가됨
+  // 여기서는 textData.seoScore를 사용 (중복 평가 방지)
   // ============================================
-  let seoScore: SeoScoreReport | undefined;
+  let seoScore: SeoScoreReport | undefined = textData.seoScore;
   
-  // 블로그 포스트인 경우에만 SEO 평가 (카드뉴스는 제외)
+  // 블로그 포스트인 경우 SEO 점수 확인 (이미 평가된 경우 스킵)
   if (request.postType === 'blog') {
-    safeProgress('📊 SEO 점수 자동 평가 중...');
-    console.log('🎯 SEO 자동 평가 시작');
-    
-    try {
-      seoScore = await evaluateSeoScore(
-        finalHtml, 
-        textData.title, 
-        request.topic, 
-        request.keywords || ''
-      );
-      
-      console.log('📊 SEO 평가 결과:', seoScore.total);
-      safeProgress(`📊 SEO 점수: ${seoScore.total}점`);
-      
-      // 90점 미만이면 자동 재생성 (최대 2회까지)
-      const MIN_SEO_SCORE = 90;
-      const MAX_RETRY = 2;
-      let retryCount = 0;
-      
-      while (seoScore.total < MIN_SEO_SCORE && retryCount < MAX_RETRY) {
-        retryCount++;
-        safeProgress(`⚠️ SEO ${seoScore.total}점 (90점 미만) - 자동 재생성 중... (${retryCount}/${MAX_RETRY})`);
-        console.log(`🔄 SEO 점수 ${seoScore.total}점 < 90점, 재생성 시도 ${retryCount}/${MAX_RETRY}`);
-        
-        // 개선 포인트를 기반으로 재생성 요청
-        const improvementHints = seoScore.improvement_suggestions?.join(', ') || 'SEO 최적화 강화';
-        
-        try {
-          // SEO 개선 프롬프트로 현재 글 리라이팅
-          safeProgress(`🔄 SEO 개선 글쓰기 재생성 중... (${retryCount}/${MAX_RETRY})`);
-          
-          const seoImprovementPrompt = `
-당신은 네이버 블로그 SEO 최적화 전문가입니다.
-아래 블로그 글의 SEO 점수가 ${seoScore.total}점입니다. 90점 이상으로 개선해주세요.
-
-[현재 제목]
-${textData.title}
-
-[현재 본문]
-${finalHtml.substring(0, 6000)}
-
-[SEO 개선 포인트]
-${improvementHints}
-
-[SEO 세부 점수]
-- 제목 최적화: ${seoScore.title?.score || 0}/25점
-- 본문 키워드 구조: ${seoScore.keyword_structure?.score || 0}/25점
-- 사용자 체류 구조: ${seoScore.user_engagement?.score || 0}/20점
-- 의료법 안전성: ${seoScore.medical_safety?.score || 0}/20점
-- 전환 연결성: ${seoScore.conversion?.score || 0}/10점
-
-[필수 개선 규칙]
-1. 제목: 핵심 키워드(${request.topic})를 앞 50%에 자연스럽게 배치
-2. 본문: 키워드를 1000자당 15-25회 자연스럽게 분산 배치
-3. 구조: h2, h3 소제목에 키워드 변형 포함
-4. 의료법: "완치", "치료", "최고" 등 금지어 제거
-5. 전환: 자연스러운 행동 유도 문구 포함
-
-[출력 형식 - JSON]
-{
-  "title": "개선된 제목",
-  "body": "개선된 본문 HTML (naver-post-container 클래스 유지)"
-}`;
-          
-          // callOpenAI로 SEO 개선 글 재작성
-          const improvedText = await callOpenAI(seoImprovementPrompt, 'SEO 최적화 전문가로서 90점 이상 달성을 위해 글을 개선해주세요.');
-          
-          // JSON 파싱
-          let improvedData;
-          try {
-            const jsonMatch = improvedText.match(/\{[\s\S]*\}/);
-            improvedData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-          } catch {
-            console.warn('SEO 개선 응답 JSON 파싱 실패');
-            break;
-          }
-          
-          if (improvedData?.body) {
-            // 개선된 HTML로 교체
-            const improvedMainTitle = request.topic || improvedData.title;
-            if (improvedData.body.includes('class="naver-post-container"')) {
-              finalHtml = improvedData.body.replace(
-                '<div class="naver-post-container">',
-                `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>`
-              );
-            } else {
-              finalHtml = `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>${improvedData.body}</div>`;
-            }
-            
-            // textData.title도 업데이트
-            if (improvedData.title) {
-              textData.title = improvedData.title;
-            }
-          }
-          
-          // SEO 재평가
-          safeProgress(`📊 SEO 재평가 중... (${retryCount}/${MAX_RETRY})`);
-          seoScore = await evaluateSeoScore(
-            finalHtml, 
-            textData.title, 
-            request.topic, 
-            request.keywords || ''
-          );
-          
-          console.log(`📊 재생성 후 SEO 점수: ${seoScore.total}점`);
-          safeProgress(`📊 재생성 후 SEO 점수: ${seoScore.total}점`);
-          
-        } catch (retryError) {
-          console.error(`SEO 재생성 ${retryCount}회 실패:`, retryError);
-          safeProgress(`⚠️ SEO 재생성 실패, 현재 결과 유지`);
-          break;
-        }
-      }
-      
-      if (seoScore.total >= MIN_SEO_SCORE) {
+    if (seoScore) {
+      // 이미 generateWithAgentMode에서 SEO 평가 및 재생성이 완료됨
+      console.log('📊 이미 평가된 SEO 점수 사용:', seoScore.total);
+      if (seoScore.total >= 90) {
         safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
       } else {
         safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
       }
-      
-    } catch (seoError) {
-      console.error('SEO 자동 평가 실패:', seoError);
-      safeProgress('⚠️ SEO 자동 평가 실패, 수동 평가 필요');
     }
     
     // ============================================
