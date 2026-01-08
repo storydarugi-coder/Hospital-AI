@@ -796,8 +796,8 @@ const getGPT52Prompt = () => {
   } catch (error) {
     console.error('❌ GPT-5.2 공통 글쓰기 프롬프트 로드 실패:', error);
     console.error('   - 에러 상세:', error instanceof Error ? error.message : String(error));
-    // 프롬프트 로드 실패 시에도 기본 프롬프트는 반환
-    commonWritingRules = '\n\n[⚠️ 공통 글쓰기 규칙 로드 실패 - 기본 규칙 적용]\n';
+    // 프롬프트 로드 실패 시 에러 발생
+    throw new Error(`GPT-5.2 공통 글쓰기 규칙 로드 실패: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // 최종 프롬프트 조합: 의료 안전 + AI 피드백 + GPT 특화 + 공통 글쓰기
