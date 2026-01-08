@@ -4630,13 +4630,15 @@ export const generateCardNewsWithAgents = async (
 // 기존 블로그 포스트 생성 함수 (유지)
 // ============================================
 
-export const generateBlogPostText = async (request: GenerationRequest): Promise<{ 
+export const generateBlogPostText = async (request: GenerationRequest, onProgress?: (msg: string) => void): Promise<{ 
     title: string; 
     content: string; 
     imagePrompts: string[];
     fact_check: FactCheckReport;
     analyzedStyle?: { backgroundColor?: string; borderColor?: string; };
 }> => {
+  // onProgress가 없으면 콘솔 로그로 대체
+  const safeProgress = onProgress || ((msg: string) => console.log('📍 BlogText Progress:', msg));
   const ai = getAiClient();
   const isCardNews = request.postType === 'card_news';
   const targetLength = request.textLength || 2000;
@@ -5428,7 +5430,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       console.log('📍 onProgress 호출 직전...');
       try {
         if (typeof onProgress === 'function') {
-          onProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+          safeProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
         } else {
           console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
         }
@@ -5487,7 +5489,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       // 🔄 듀얼 검색: Gemini + GPT 동시 검색 → 크로스체크
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       console.log('🔄 듀얼 검색 시작: Gemini + GPT 동시 검색');
-      onProgress('🔍 Step 1: Gemini + GPT 동시 검색 중...');
+      safeProgress('🔍 Step 1: Gemini + GPT 동시 검색 중...');
       
       let geminiResults: any = null;
       let gptResults: any = null;
@@ -5543,7 +5545,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🔀 크로스체크: 두 결과 병합 및 검증
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      onProgress('🔀 Step 1.5: 검색 결과 크로스체크 중...');
+      safeProgress('🔀 Step 1.5: 검색 결과 크로스체크 중...');
       
       if (geminiResults && gptResults) {
         // 🎯 둘 다 성공: 크로스체크 병합
@@ -5600,7 +5602,7 @@ ${getStylePromptForGeneration(learnedStyle)}
         crossCheckedResults.cross_verified_count = crossVerifiedCount;
         
         console.log(`✅ 크로스체크 완료 - 총 ${crossCheckedResults.collected_facts.length}개 팩트, ${crossVerifiedCount}개 교차 검증됨`);
-        onProgress(`✅ 듀얼 검색 완료: ${crossVerifiedCount}개 정보 교차 검증됨`);
+        safeProgress(`✅ 듀얼 검색 완료: ${crossVerifiedCount}개 정보 교차 검증됨`);
         
       } else if (geminiResults) {
         // Gemini만 성공 - GPT 에러 콘솔 출력
@@ -5611,7 +5613,7 @@ ${getStylePromptForGeneration(learnedStyle)}
           cross_check_status: 'gemini_only',
           warning: 'GPT 검색 실패로 단일 소스 검증'
         };
-        onProgress('🔵 Gemini 검색 결과로 진행 (GPT 검색 실패)');
+        safeProgress('🔵 Gemini 검색 결과로 진행 (GPT 검색 실패)');
         
       } else if (gptResults) {
         // GPT만 성공 - Gemini 에러 콘솔 출력
@@ -5622,14 +5624,14 @@ ${getStylePromptForGeneration(learnedStyle)}
           cross_check_status: 'gpt_only',
           warning: 'Gemini 검색 실패로 단일 소스 검증'
         };
-        onProgress('🟢 GPT 검색 결과로 진행 (Gemini 검색 실패)');
+        safeProgress('🟢 GPT 검색 결과로 진행 (Gemini 검색 실패)');
         
       } else {
         // 둘 다 실패 - 에러 발생시키고 중단
         console.error('❌❌❌ 듀얼 검색 모두 실패! Gemini와 GPT 둘 다 검색에 실패했습니다.');
         console.error('🔴 Gemini 에러:', geminiResult.error);
         console.error('🔴 GPT 에러:', gptResult.error);
-        onProgress('❌ 검색 실패 - Gemini와 GPT 모두 검색에 실패했습니다.');
+        safeProgress('❌ 검색 실패 - Gemini와 GPT 모두 검색에 실패했습니다.');
         throw new Error('듀얼 검색 실패: Gemini와 GPT 둘 다 검색에 실패했습니다. 네트워크 연결 또는 API 키를 확인해주세요.');
       }
       
@@ -5641,7 +5643,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
       if (typeof onProgress === 'function') {
-        onProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
+        safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
       }
       
       const gptSystemPrompt = getGPT52ProPrompt();
@@ -5767,7 +5769,7 @@ ${JSON.stringify(searchResults, null, 2)}
     if (!isCardNews && result.content && result.title) {
       console.log('📊 SEO 자동 평가 시작...');
       if (typeof onProgress === 'function') {
-        onProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
+        safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
       }
       
       const MAX_REGENERATE_ATTEMPTS = 2; // 최대 재생성 횟수
@@ -5790,7 +5792,7 @@ ${JSON.stringify(searchResults, null, 2)}
           if (seoReport.total_score >= 90) {
             console.log('✅ SEO 점수 90점 이상! 통과');
             if (typeof onProgress === 'function') {
-              onProgress(`✅ SEO 점수 ${seoReport.total_score}점 - 통과!`);
+              safeProgress(`✅ SEO 점수 ${seoReport.total_score}점 - 통과!`);
             }
             break;
           } else {
@@ -5800,13 +5802,13 @@ ${JSON.stringify(searchResults, null, 2)}
             if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
               console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
               if (typeof onProgress === 'function') {
-                onProgress(`⚠️ SEO 점수 ${seoReport.total_score}점 - 개선 권장`);
+                safeProgress(`⚠️ SEO 점수 ${seoReport.total_score}점 - 개선 권장`);
               }
               break;
             }
             
             if (typeof onProgress === 'function') {
-              onProgress(`🔄 SEO 점수 ${seoReport.total_score}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+              safeProgress(`🔄 SEO 점수 ${seoReport.total_score}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
             }
             
             // SEO 개선 포인트를 포함한 재생성 프롬프트
@@ -6233,7 +6235,10 @@ ${learnedStyleInstruction}
   };
 };
 
-export const generateFullPost = async (request: GenerationRequest, onProgress: (msg: string) => void): Promise<GeneratedContent> => {
+export const generateFullPost = async (request: GenerationRequest, onProgress?: (msg: string) => void): Promise<GeneratedContent> => {
+  // onProgress가 없으면 콘솔 로그로 대체
+  const safeProgress = onProgress || ((msg: string) => console.log('📍 Progress:', msg));
+  
   const isCardNews = request.postType === 'card_news';
   const isPressRelease = request.postType === 'press_release';
   
@@ -6243,24 +6248,24 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   // 🗞️ 보도자료: 전용 생성 함수 사용
   if (isPressRelease) {
-    return generatePressRelease(request, onProgress);
+    return generatePressRelease(request, safeProgress);
   }
   
   // 🤖 카드뉴스: 미니 에이전트 방식 사용
   if (isCardNews) {
-    onProgress('🤖 미니 에이전트 방식으로 카드뉴스 생성 시작...');
+    safeProgress('🤖 미니 에이전트 방식으로 카드뉴스 생성 시작...');
     
     try {
       // 미니 에이전트로 스토리 기획 + HTML 조립 + 이미지 프롬프트 생성
-      const agentResult = await generateCardNewsWithAgents(request, onProgress);
+      const agentResult = await generateCardNewsWithAgents(request, safeProgress);
       
       // 이미지 생성
       const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
-      onProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
+      safeProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
       
       // 🎨 이미지 = 카드 전체! (텍스트가 이미지 안에 포함된 완성형)
       const maxImages = request.slideCount || 6;
-      onProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
+      safeProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
       
       // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
       const referenceImage = request.coverStyleImage || request.contentStyleImage;
@@ -6303,7 +6308,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
         </div>
       `.trim();
       
-      onProgress('✅ 카드뉴스 생성 완료!');
+      safeProgress('✅ 카드뉴스 생성 완료!');
       
       return {
         title: agentResult.title,
@@ -6326,7 +6331,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       };
     } catch (error) {
       console.error('미니 에이전트 방식 실패, 기존 방식으로 폴백:', error);
-      onProgress('⚠️ 미니 에이전트 실패, 기존 방식으로 재시도...');
+      safeProgress('⚠️ 미니 에이전트 실패, 기존 방식으로 재시도...');
       // 기존 방식으로 폴백 (아래 코드로 계속)
     }
   }
@@ -6335,11 +6340,11 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   const hasStyleRef = request.postType === 'card_news' && (request.coverStyleImage || request.contentStyleImage);
   if (hasStyleRef) {
     if (request.coverStyleImage && request.contentStyleImage) {
-      onProgress('🎨 표지/본문 스타일 분석 중...');
+      safeProgress('🎨 표지/본문 스타일 분석 중...');
     } else if (request.coverStyleImage) {
-      onProgress('🎨 표지 스타일 분석 중 (본문도 동일 적용)...');
+      safeProgress('🎨 표지 스타일 분석 중 (본문도 동일 적용)...');
     } else {
-      onProgress('🎨 본문 스타일 분석 중...');
+      safeProgress('🎨 본문 스타일 분석 중...');
     }
   }
   
@@ -6349,14 +6354,14 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       ? `🔗 레퍼런스 URL 분석 및 ${request.postType === 'card_news' ? '카드뉴스 템플릿 모방' : '스타일 벤치마킹'} 중...` 
       : `네이버 로직 분석 및 ${request.postType === 'card_news' ? '카드뉴스 기획' : '블로그 원고 작성'} 중...`;
   
-  onProgress(step1Msg);
+  safeProgress(step1Msg);
   
-  const textData = await generateBlogPostText(request);
+  const textData = await generateBlogPostText(request, safeProgress);
   
   const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
   const imgRatio = request.postType === 'card_news' ? "4:3" : "16:9";
   
-  onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
+  safeProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 생성 중...`);
   
   const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount ?? 1);
   
@@ -6371,7 +6376,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   let images: { index: number; data: string; prompt: string }[] = [];
   
   if (maxImages > 0) {
-    onProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 ${maxImages}장 생성 중...`);
+    safeProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 ${maxImages}장 생성 중...`);
     images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
       if (request.postType === 'card_news') {
         // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
@@ -6385,7 +6390,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
     }));
   } else {
     console.log('🖼️ 이미지 0장 설정 - 이미지 생성 스킵');
-    onProgress('📝 이미지 없이 텍스트만 생성 완료');
+    safeProgress('📝 이미지 없이 텍스트만 생성 완료');
   }
 
   let body = textData.content;
@@ -6493,7 +6498,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
         }
       }
     );
-    onProgress(`🎨 템플릿 색상(${bgColor}) 적용 완료`);
+    safeProgress(`🎨 템플릿 색상(${bgColor}) 적용 완료`);
   }
 
   let finalHtml = "";
@@ -6528,7 +6533,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
   
   // 블로그 포스트인 경우에만 SEO 평가 (카드뉴스는 제외)
   if (request.postType === 'blog') {
-    onProgress('📊 SEO 점수 자동 평가 중...');
+    safeProgress('📊 SEO 점수 자동 평가 중...');
     console.log('🎯 SEO 자동 평가 시작');
     
     try {
@@ -6540,7 +6545,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       );
       
       console.log('📊 SEO 평가 결과:', seoScore.total);
-      onProgress(`📊 SEO 점수: ${seoScore.total}점`);
+      safeProgress(`📊 SEO 점수: ${seoScore.total}점`);
       
       // 90점 미만이면 자동 재생성 (최대 2회까지)
       const MIN_SEO_SCORE = 90;
@@ -6549,7 +6554,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
       
       while (seoScore.total < MIN_SEO_SCORE && retryCount < MAX_RETRY) {
         retryCount++;
-        onProgress(`⚠️ SEO ${seoScore.total}점 (90점 미만) - 자동 재생성 중... (${retryCount}/${MAX_RETRY})`);
+        safeProgress(`⚠️ SEO ${seoScore.total}점 (90점 미만) - 자동 재생성 중... (${retryCount}/${MAX_RETRY})`);
         console.log(`🔄 SEO 점수 ${seoScore.total}점 < 90점, 재생성 시도 ${retryCount}/${MAX_RETRY}`);
         
         // 개선 포인트를 기반으로 재생성 요청
@@ -6557,7 +6562,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress: (
         
         try {
           // SEO 개선 프롬프트로 현재 글 리라이팅
-          onProgress(`🔄 SEO 개선 글쓰기 재생성 중... (${retryCount}/${MAX_RETRY})`);
+          safeProgress(`🔄 SEO 개선 글쓰기 재생성 중... (${retryCount}/${MAX_RETRY})`);
           
           const seoImprovementPrompt = `
 당신은 네이버 블로그 SEO 최적화 전문가입니다.
@@ -6624,7 +6629,7 @@ ${improvementHints}
           }
           
           // SEO 재평가
-          onProgress(`📊 SEO 재평가 중... (${retryCount}/${MAX_RETRY})`);
+          safeProgress(`📊 SEO 재평가 중... (${retryCount}/${MAX_RETRY})`);
           seoScore = await evaluateSeoScore(
             finalHtml, 
             textData.title, 
@@ -6633,24 +6638,24 @@ ${improvementHints}
           );
           
           console.log(`📊 재생성 후 SEO 점수: ${seoScore.total}점`);
-          onProgress(`📊 재생성 후 SEO 점수: ${seoScore.total}점`);
+          safeProgress(`📊 재생성 후 SEO 점수: ${seoScore.total}점`);
           
         } catch (retryError) {
           console.error(`SEO 재생성 ${retryCount}회 실패:`, retryError);
-          onProgress(`⚠️ SEO 재생성 실패, 현재 결과 유지`);
+          safeProgress(`⚠️ SEO 재생성 실패, 현재 결과 유지`);
           break;
         }
       }
       
       if (seoScore.total >= MIN_SEO_SCORE) {
-        onProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
+        safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
       } else {
-        onProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
+        safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
       }
       
     } catch (seoError) {
       console.error('SEO 자동 평가 실패:', seoError);
-      onProgress('⚠️ SEO 자동 평가 실패, 수동 평가 필요');
+      safeProgress('⚠️ SEO 자동 평가 실패, 수동 평가 필요');
     }
     
     // ============================================
@@ -6661,7 +6666,7 @@ ${improvementHints}
     
     if (aiSmellScore > MAX_AI_SMELL_SCORE) {
       console.log(`🤖 AI 냄새 점수 ${aiSmellScore}점 > 15점, 자동 개선 시도`);
-      onProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
+      safeProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
       
       try {
         const aiSmellImprovementPrompt = `
@@ -6712,19 +6717,19 @@ ${finalHtml.substring(0, 6000)}
           }
           
           console.log('✅ AI 냄새 개선 완료:', improvedAiData.changes_made);
-          onProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
+          safeProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
         }
         
       } catch (aiSmellError) {
         console.error('AI 냄새 개선 실패:', aiSmellError);
-        onProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
+        safeProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
       }
     } else if (aiSmellScore >= 8 && aiSmellScore <= 15) {
       // ============================================
       // 🔍 8~15점 경계선: 수정 위치 상세 분석
       // ============================================
       console.log(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...`);
-      onProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
+      safeProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
       
       try {
         const aiSmellAnalysis = await analyzeAiSmell(finalHtml, request.topic);
@@ -6739,7 +6744,7 @@ ${finalHtml.substring(0, 6000)}
         console.log('🔍 AI 냄새 수정 필요 위치:', topIssues);
         
         if (topIssues.length > 0) {
-          onProgress(`🔍 수정 필요 위치 발견! 상세 분석 완료`);
+          safeProgress(`🔍 수정 필요 위치 발견! 상세 분석 완료`);
           console.log('📋 상세 분석 결과:', {
             total_score: aiSmellAnalysis.total_score,
             sentence_rhythm: aiSmellAnalysis.sentence_rhythm?.score,
@@ -6751,16 +6756,16 @@ ${finalHtml.substring(0, 6000)}
           });
         }
         
-        onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
+        safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
         
       } catch (analysisError) {
         console.error('AI 냄새 상세 분석 실패:', analysisError);
-        onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
+        safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
       }
       
     } else {
       console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (7점 이하)`);
-      onProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
+      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
     }
   }
 
