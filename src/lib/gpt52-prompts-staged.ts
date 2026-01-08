@@ -160,8 +160,18 @@ export const getStage2_RemoveAiSmell = () => {
 {
   "title": "수정된 제목",
   "content": "AI 냄새 제거된 HTML 본문",
+  "improved_body": "AI 냄새 제거된 HTML 본문 (content와 동일)",
   "imagePrompts": ["수정된 이미지 프롬프트들..."],
-  "improvements": ["개선사항1", "개선사항2", ...]
+  "changes_made": ["개선사항1", "개선사항2", ...],
+  "fact_check": {
+    "fact_score": 0-100,
+    "safety_score": 0-100,
+    "conversion_score": 0-100,
+    "ai_smell_score": 85-100 (AI 냄새 제거 후 목표 점수),
+    "verified_facts_count": 0,
+    "issues": [],
+    "recommendations": []
+  }
 }
 `;
 };
