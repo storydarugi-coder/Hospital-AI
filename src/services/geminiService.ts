@@ -16,38 +16,17 @@ const getAiClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-// AI Provider 설정 읽기
-const getAiProviderSettings = (): { textGeneration: 'gemini' | 'openai', imageGeneration: 'gemini' | 'openai' } => {
-  try {
-    const settings = localStorage.getItem('AI_PROVIDER_SETTINGS');
-    if (settings) {
-      return JSON.parse(settings);
-    }
-  } catch (e) {
-    console.warn('AI Provider 설정 읽기 실패:', e);
-  }
-  
-  // 기본값: OpenAI 키가 있으면 GPT-5.2, 없으면 Gemini
-  try {
-    const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
-    console.log(`🔧 기본 AI 설정: ${hasOpenAIKey ? 'GPT-5.2 (OpenAI)' : 'Gemini 3 Pro Preview'}`);
-    return { 
-      textGeneration: hasOpenAIKey ? 'openai' : 'gemini', 
-      imageGeneration: 'gemini' 
-    };
-  } catch (e) {
-    return { textGeneration: 'gemini', imageGeneration: 'gemini' };
-  }
+// AI Provider 설정 읽기 - Gemini만 사용
+const getAiProviderSettings = (): { textGeneration: 'gemini', imageGeneration: 'gemini' } => {
+  console.log('🔧 AI 설정: Gemini 3 Pro Preview (GPT 제거됨)');
+  return { textGeneration: 'gemini', imageGeneration: 'gemini' };
 };
 
-// OpenAI API 키 가져오기
-const getOpenAIKey = (): string => {
-  const apiKey = localStorage.getItem('OPENAI_API_KEY');
-  if (!apiKey) {
-    throw new Error("OpenAI API Key가 설정되지 않았습니다. 관리자 페이지에서 API Key를 입력해주세요.");
-  }
-  return apiKey;
-};
+// Gemini만 사용 - OpenAI/GPT 관련 함수 제거됨
+
+// callGPTWebSearch 함수 제거됨 - Gemini 웹 검색만 사용
+
+// getGPT52Prompt 함수 제거됨 - Gemini 프롬프트만 사용
 
 // GPT-5.2 Responses API 웹 검색 함수
 const callGPTWebSearch = async (query: string): Promise<any> => {
@@ -7399,11 +7378,13 @@ ${getStylePromptForGeneration(learnedStyle)}
   `;
 
   try {
-    // AI Provider 설정 확인
+    // GPT 제거 - Gemini만 사용
     const providerSettings = getAiProviderSettings();
     let result: any;
 
-    if (providerSettings.textGeneration === 'openai') {
+    // Gemini 사용 (GPT 제거됨)
+    console.log('🔵 Using Gemini for text generation (GPT removed)');
+    const response = await ai.models.generateContent({
       // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
       console.log('🔄 3-Stage Process: Dual Search (Gemini + GPT) → Cross-Check → GPT-5.2 Writing');
       console.log('📍 Step 1 시작 준비...');
@@ -7539,16 +7520,11 @@ ${getStylePromptForGeneration(learnedStyle)}
       // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
       const gptSearchPromise = hasOpenAIKey ? (async () => {
         try {
-          const result = await callGPTWebSearch(searchPrompt);
-          if (result) {
-            const factCount = result.collected_facts?.length || 0;
-            const statCount = result.key_statistics?.length || 0;
-            console.log(`✅ GPT-5.2 웹 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
-            return { success: true, data: result, source: 'gpt' };
-          }
-          return { success: false, data: null, source: 'gpt', error: 'No result' };
+          // GPT 제거됨 - Gemini만 사용
+          console.log('⚠️ GPT-5.2 웹 검색 제거됨 - Gemini만 사용');
+          return { success: false, data: null, source: 'gpt', error: 'GPT removed' };
         } catch (error) {
-          console.error('⚠️ GPT-5.2 웹 검색 실패:', error);
+          console.error('⚠️ GPT-5.2 웹 검색 제거됨');
           return { success: false, data: null, source: 'gpt', error };
         }
       })() : Promise.resolve({ success: false, data: null, source: 'gpt', error: 'No API key' });
