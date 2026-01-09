@@ -22,11 +22,8 @@ const getAiProviderSettings = (): { textGeneration: 'gemini', imageGeneration: '
   return { textGeneration: 'gemini', imageGeneration: 'gemini' };
 };
 
-// Gemini만 사용 - OpenAI/GPT 관련 함수 제거됨
 
-// callGPTWebSearch 함수 제거됨 - Gemini 웹 검색만 사용
 
-// getGPT52Prompt 함수 제거됨 - Gemini 프롬프트만 사용
 
 // GPT-5.2 Responses API 웹 검색 함수
 const callGPTWebSearch = async (query: string): Promise<any> => {
@@ -880,9 +877,7 @@ const callOpenAI_Staged = async (
   const safeProgress = onProgress || ((msg: string) => console.log('📍', msg));
   let currentContent = '';
 
-  // ---━━━━━━━━━━━
   // 1단계: 글 생성 (기본 규칙만 적용)
-  // ---━━━━━━━━━━━
   try {
     safeProgress('📝 [1/4단계] 기본 콘텐츠 생성 중...');
     console.log('🔵 [1단계] 글 생성 시작');
@@ -950,9 +945,7 @@ const callOpenAI_Staged = async (
     throw error;
   }
 
-  // ---━━━━━━━━━━━
   // 2단계: AI 냄새 제거
-  // ---━━━━━━━━━━━
   try {
     safeProgress('🧹 [2/4단계] AI 냄새 제거 중...');
     console.log('🔵 [2단계] AI 냄새 제거 시작');
@@ -999,9 +992,7 @@ const callOpenAI_Staged = async (
     console.warn('⚠️ [2단계] 오류, 1단계 결과 유지:', error);
   }
 
-  // ---━━━━━━━━━━━
   // 3단계: SEO 최적화
-  // ---━━━━━━━━━━━
   try {
     safeProgress('• [3/4단계] SEO 최적화 중...');
     console.log('🔵 [3단계] SEO 최적화 시작');
@@ -1048,9 +1039,7 @@ const callOpenAI_Staged = async (
     console.warn('⚠️ [3단계] 오류, 2단계 결과 유지:', error);
   }
 
-  // ---━━━━━━━━━━━
   // 4단계: 의료법 검증
-  // ---━━━━━━━━━━━
   try {
     safeProgress('⚖️ [4/4단계] 의료법 검증 중...');
     console.log('🔵 [4단계] 의료법 검증 시작');
@@ -4499,9 +4488,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     console.log('🔄 Gemini 웹 검색 및 콘텐츠 생성 시작');
     console.log('📍 Step 1 시작 준비...');
     
-    // ---━━━━━━━━━━━
     // 📍 Step 1: Gemini 웹 검색으로 최신 정보 수집
-    // ---━━━━━━━━━━━
     console.log('📍 onProgress 호출 직전...');
     try {
       if (typeof onProgress === 'function') {
@@ -4592,9 +4579,7 @@ ${getStylePromptForGeneration(learnedStyle)}
   ]
 }`;
 
-    // ---━━━━━━━━━━━
     // • Gemini 웹 검색으로 최신 정보 수집
-    // ---━━━━━━━━━━━
     console.log('• Gemini 웹 검색 시작');
     safeProgress('• Step 1: Gemini 웹 검색 중...');
     
@@ -4637,9 +4622,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     console.log('📊 검색 결과 상세:');
     console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
     
-    // ---━━━━━━━━━━━
     // 🔀 크로스체크: 두 결과 병합 및 검증
-    // ---━━━━━━━━━━━
     
     // health.kdca.go.kr 우선순위 정렬 함수
     const sortByKdcaHealthPriority = (items: any[]) => {
@@ -4852,9 +4835,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       };
     }
     
-    // ---━━━━━━━━━━━
     // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
-    // ---━━━━━━━━━━━
     console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
     if (typeof onProgress === 'function') {
       safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
@@ -5023,9 +5004,7 @@ ${JSON.stringify(searchResults, null, 2)}
     result.analyzedStyle = { backgroundColor: analyzedBgColor };
     }
     
-    // ---━━━━━━━━━━━
     // 🎯 SEO 자동 평가 + 90점 미만 시 재생성 (블로그만)
-    // ---━━━━━━━━━━━
     const hasContent = result.content || result.contentHtml;
     if (!isCardNews && hasContent && result.title) {
     console.log('📊 SEO 자동 평가 시작...');
