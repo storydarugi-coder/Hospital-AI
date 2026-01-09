@@ -488,43 +488,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
         )}
 
-        {/* 글 스타일 선택 - 마케팅 핵심 설정 (가로 배치) */}
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-2xl border border-slate-200">
-           <div className="flex items-center gap-4">
-              <div className="shrink-0">
-                 <label className="text-xs font-black text-slate-700">✍️ 글 스타일</label>
-              </div>
-              <div className="flex-1 flex gap-2">
-                 <button
-                   type="button"
-                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('expert'); }}
-                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'expert' ? 'border-blue-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-                 >
-                    <span className="text-lg">📚</span>
-                    <span className={`text-xs font-black ${writingStyle === 'expert' ? 'text-blue-700' : 'text-slate-600'}`}>전문가형</span>
-                 </button>
-                 <button
-                   type="button"
-                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('empathy'); }}
-                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 relative ${writingStyle === 'empathy' ? 'border-pink-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-                 >
-                    <div className="absolute -top-1.5 right-1 bg-pink-500 text-white text-[7px] font-black px-1 py-0.5 rounded">추천</div>
-                    <span className="text-lg">💗</span>
-                    <span className={`text-xs font-black ${writingStyle === 'empathy' ? 'text-pink-700' : 'text-slate-600'}`}>공감형</span>
-                 </button>
-                 <button
-                   type="button"
-                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); setWritingStyle('conversion'); }}
-                   className={`flex-1 px-3 py-2 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${writingStyle === 'conversion' ? 'border-amber-500 bg-white shadow-md' : 'border-slate-200 bg-white hover:border-slate-400'}`}
-                 >
-                    <span className="text-lg">🎯</span>
-                    <span className={`text-xs font-black ${writingStyle === 'conversion' ? 'text-amber-700' : 'text-slate-600'}`}>전환형</span>
-                 </button>
-              </div>
-           </div>
-        </div>
-
-
 
         {/* 4단계: 블로그/보도자료는 스타일 설정 표시 (카드뉴스는 숨김) */}
         {(postType === 'blog' || postType === 'press_release') && (
