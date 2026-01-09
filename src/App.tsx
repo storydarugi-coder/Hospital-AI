@@ -370,14 +370,8 @@ const App: React.FC = () => {
       if (hash === '#admin') {
         setCurrentPage('admin');
       } else if (hash === '#app' || hash.includes('access_token')) {
-        // OAuth 리다이렉트 후이거나 로그인 완료된 경우
-        // authLoading 중이면 기다림 (세션 확인 후 처리)
-        if (authLoading) {
-          setCurrentPage('app'); // 일단 app으로 설정, 세션 확인 후 처리
-          return;
-        }
-        // 비로그인 시 #app 접근 차단 (관리자는 예외)
-        if (!isLoggedIn && !isAdmin) {
+        // 비로그인 시 #app 접근 차단 (관리자는 예외, authLoading 중이면 일단 허용)
+        if (!authLoading && !isLoggedIn && !isAdmin) {
           window.location.hash = 'auth';
           setCurrentPage('auth');
           return;
@@ -727,8 +721,9 @@ const App: React.FC = () => {
     setCardNewsScript(updatedScript);
   };
 
-  // 로딩 중 (admin 페이지는 로딩 화면 없이 바로 표시)
-  if (authLoading && currentPage !== 'admin') {
+  // 로딩 중 (admin/pricing 페이지는 로딩 화면 없이 바로 표시)
+  // app 페이지는 로딩 중에도 UI 표시 (apiKeyReady 체크에서 처리)
+  if (authLoading && currentPage !== 'admin' && currentPage !== 'pricing' && currentPage !== 'app') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
