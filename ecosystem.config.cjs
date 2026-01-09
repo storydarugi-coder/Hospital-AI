@@ -1,16 +1,13 @@
 module.exports = {
-  apps: [
-    {
-      name: 'hospital-toolchain',
-      script: 'npx',
-      args: 'wrangler pages dev dist --ip 0.0.0.0 --port 3000',
-      env: {
-        NODE_ENV: 'development',
-        PORT: 3000
-      },
-      watch: false,
-      instances: 1,
-      exec_mode: 'fork'
+  apps: [{
+    name: 'hospital-ai',
+    script: 'npx',
+    args: 'wrangler pages dev ./dist --port 3000 --ip 0.0.0.0',
+    cwd: '/home/user/webapp',
+    env: {
+      // GEMINI_API_KEY는 .dev.vars 파일에서 관리
+      // .dev.vars 파일 예시:
+      // GEMINI_API_KEY=your_api_key_here
     }
-  ]
-}
+  }]
+};
