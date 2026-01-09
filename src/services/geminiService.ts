@@ -7821,10 +7821,23 @@ ${JSON.stringify(searchResults, null, 2)}
       result = JSON.parse(response.text || "{}");
     }
     
-    // 🔧 GPT-5.2는 contentHtml 필드로 반환 → content로 정규화
-    if (result.contentHtml && !result.content) {
-      console.log('✅ GPT-5.2 contentHtml 필드를 content로 정규화');
-      result.content = result.contentHtml;
+    // 🔧 GPT-5.2는 다양한 필드명으로 반환할 수 있음 → content로 정규화
+    if (!result.content) {
+      // 가능한 모든 필드명 체크
+      const possibleContentFields = ['contentHtml', 'body', 'html', 'htmlContent', 'bodyHtml', 'article', 'text'];
+      for (const field of possibleContentFields) {
+        if (result[field]) {
+          console.log(`✅ GPT-5.2 '${field}' 필드를 content로 정규화`);
+          result.content = result[field];
+          break;
+        }
+      }
+    }
+    
+    // 디버그: result 객체의 모든 필드 출력
+    console.log('📋 result 객체 필드:', Object.keys(result));
+    if (!result.content) {
+      console.error('❌ content 필드를 찾을 수 없습니다. result:', JSON.stringify(result).substring(0, 500));
     }
     
     // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
