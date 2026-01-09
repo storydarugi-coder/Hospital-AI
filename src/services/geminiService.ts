@@ -976,19 +976,43 @@ const callOpenAI_Staged = async (
       })
     });
 
+    // 응답 텍스트 먼저 읽기 (JSON 파싱 실패 대비)
+    const responseText = await response1.text();
+    console.log(`🔍 [1단계] 응답 상태: ${response1.status}`);
+    console.log(`🔍 [1단계] 응답 길이: ${responseText.length}자`);
+    
     if (!response1.ok) {
-      const error = await response1.json();
-      console.error('❌ [1단계] API 오류:', error);
-      throw new Error(`[1단계] GPT-5.2 API 오류: ${error?.error?.message || 'Unknown'}`);
+      // 에러 응답 파싱 시도
+      try {
+        const error = JSON.parse(responseText);
+        console.error('❌ [1단계] API 오류:', error);
+        throw new Error(`[1단계] GPT-5.2 API 오류: ${error?.error?.message || JSON.stringify(error)}`);
+      } catch (parseError) {
+        console.error('❌ [1단계] 응답 파싱 실패:', responseText.substring(0, 500));
+        throw new Error(`[1단계] API 오류 (${response1.status}): ${responseText.substring(0, 200)}`);
+      }
     }
 
-    const data1 = await response1.json();
+    // JSON 파싱
+    let data1;
+    try {
+      data1 = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ [1단계] JSON 파싱 오류');
+      console.error('   - 응답 미리보기:', responseText.substring(0, 500));
+      throw new Error(`[1단계] JSON 파싱 오류: ${parseError instanceof Error ? parseError.message : '알 수 없는 오류'}. 응답: ${responseText.substring(0, 100)}`);
+    }
+    
     currentContent = data1.choices[0]?.message?.content || '{}';
     console.log('✅ [1단계] 글 생성 완료');
     safeProgress('✅ [1/4단계] 기본 콘텐츠 생성 완료');
 
   } catch (error) {
     console.error('❌ [1단계] 오류:', error);
+    // 더 상세한 에러 메시지 제공
+    if (error instanceof Error) {
+      throw new Error(`[1단계 콘텐츠 생성 실패] ${error.message}`);
+    }
     throw error;
   }
 
@@ -1019,12 +1043,20 @@ const callOpenAI_Staged = async (
       })
     });
 
+    const responseText2 = await response2.text();
     if (!response2.ok) {
       console.warn('⚠️ [2단계] API 오류, 1단계 결과 유지');
+      console.warn('   - 상태:', response2.status);
+      console.warn('   - 응답:', responseText2.substring(0, 200));
     } else {
-      const data2 = await response2.json();
-      currentContent = data2.choices[0]?.message?.content || currentContent;
-      console.log('✅ [2단계] AI 냄새 제거 완료');
+      try {
+        const data2 = JSON.parse(responseText2);
+        currentContent = data2.choices[0]?.message?.content || currentContent;
+        console.log('✅ [2단계] AI 냄새 제거 완료');
+      } catch (parseError) {
+        console.warn('⚠️ [2단계] JSON 파싱 오류, 1단계 결과 유지');
+        console.warn('   - 응답:', responseText2.substring(0, 200));
+      }
     }
     
     safeProgress('✅ [2/4단계] AI 냄새 제거 완료');
@@ -1060,12 +1092,20 @@ const callOpenAI_Staged = async (
       })
     });
 
+    const responseText3 = await response3.text();
     if (!response3.ok) {
       console.warn('⚠️ [3단계] API 오류, 2단계 결과 유지');
+      console.warn('   - 상태:', response3.status);
+      console.warn('   - 응답:', responseText3.substring(0, 200));
     } else {
-      const data3 = await response3.json();
-      currentContent = data3.choices[0]?.message?.content || currentContent;
-      console.log('✅ [3단계] SEO 최적화 완료');
+      try {
+        const data3 = JSON.parse(responseText3);
+        currentContent = data3.choices[0]?.message?.content || currentContent;
+        console.log('✅ [3단계] SEO 최적화 완료');
+      } catch (parseError) {
+        console.warn('⚠️ [3단계] JSON 파싱 오류, 2단계 결과 유지');
+        console.warn('   - 응답:', responseText3.substring(0, 200));
+      }
     }
     
     safeProgress('✅ [3/4단계] SEO 최적화 완료');
@@ -1101,12 +1141,20 @@ const callOpenAI_Staged = async (
       })
     });
 
+    const responseText4 = await response4.text();
     if (!response4.ok) {
       console.warn('⚠️ [4단계] API 오류, 3단계 결과 유지');
+      console.warn('   - 상태:', response4.status);
+      console.warn('   - 응답:', responseText4.substring(0, 200));
     } else {
-      const data4 = await response4.json();
-      currentContent = data4.choices[0]?.message?.content || currentContent;
-      console.log('✅ [4단계] 의료법 검증 완료');
+      try {
+        const data4 = JSON.parse(responseText4);
+        currentContent = data4.choices[0]?.message?.content || currentContent;
+        console.log('✅ [4단계] 의료법 검증 완료');
+      } catch (parseError) {
+        console.warn('⚠️ [4단계] JSON 파싱 오류, 3단계 결과 유지');
+        console.warn('   - 응답:', responseText4.substring(0, 200));
+      }
     }
     
     safeProgress('✅ [4/4단계] 의료법 검증 완료 🎉');

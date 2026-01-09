@@ -14,6 +14,80 @@ app.get('/api/health', (c) => {
   return c.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
+// OpenAI API 프록시 (CORS 해결용)
+app.post('/api/openai-chat', async (c) => {
+  // CORS 헤더 설정
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-OpenAI-Key',
+    'Access-Control-Max-Age': '86400',
+  };
+
+  try {
+    // 요청 본문 파싱
+    const body = await c.req.json();
+    
+    // API 키 가져오기 (환경변수 우선, 없으면 요청 헤더에서)
+    const apiKey = c.env.OPENAI_API_KEY || c.req.header('X-OpenAI-Key');
+    
+    if (!apiKey) {
+      return c.json(
+        { error: 'OpenAI API key is required' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    console.log('🔵 Proxying request to OpenAI API...');
+    console.log('📦 Model:', body.model);
+    console.log('📦 Messages count:', body.messages?.length);
+
+    // OpenAI API 호출
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const responseData = await openaiResponse.json();
+
+    if (!openaiResponse.ok) {
+      console.error('❌ OpenAI API Error:', responseData);
+      return c.json(responseData, { status: openaiResponse.status, headers: corsHeaders });
+    }
+
+    console.log('✅ OpenAI API Success');
+    
+    return c.json(responseData, { status: 200, headers: corsHeaders });
+
+  } catch (error) {
+    console.error('❌ Proxy Error:', error);
+    
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+})
+
+// OpenAI 프록시 OPTIONS (CORS preflight)
+app.options('/api/openai-chat', (c) => {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-OpenAI-Key',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+})
+
 // 환경변수에서 API 키 가져오기 (서버 → 클라이언트)
 app.get('/api/config', (c) => {
   const config = {
