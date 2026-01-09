@@ -901,7 +901,7 @@ const callOpenAI_Staged = async (
           { role: 'user', content: `${initialPrompt}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.7
+        temperature: 0.85
       })
     });
 
@@ -966,7 +966,7 @@ const callOpenAI_Staged = async (
           { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.6
+        temperature: 0.7
       })
     });
 
@@ -1013,7 +1013,7 @@ const callOpenAI_Staged = async (
           { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.5
+        temperature: 0.4
       })
     });
 
@@ -1060,7 +1060,7 @@ const callOpenAI_Staged = async (
           { role: 'user', content: `${currentContent}\n\n(응답은 반드시 JSON 형식으로 해주세요)` }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.3
+        temperature: 0.2
       })
     });
 
@@ -1198,7 +1198,8 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       contents: fullPrompt,
       config: {
         temperature: 0.7,
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json',
+        thinkingMode: true // Think 모드 활성화 (글쓰기 품질 향상)
       }
     });
     
@@ -1961,14 +1962,16 @@ ${promptText}
 ✅ 스타일에 따라 고품질, 상세한 일러스트 또는 사진
 ✅ 블로그 게시물에 최적화된 가로형 16:9 형식
 
-⛔ 금지사항:
-- 한국어 텍스트 금지
-- 영어 텍스트 금지
-- 제목이나 캡션 금지
-- 브라우저 창 프레임 금지
-- 카드뉴스 스타일 레이아웃 금지
-- 워터마크나 로고 금지
-- 텍스트가 포함된 인포그래픽 요소 금지
+⛔ 금지사항 (Negative Prompt):
+- 한국어 텍스트, 영어 텍스트, any text overlay
+- 제목, 캡션, 워터마크, 로고
+- 브라우저 창 프레임, 카드뉴스 레이아웃
+- 텍스트가 포함된 인포그래픽 요소
+- Low quality, blurry, pixelated, distorted
+- Cartoon, anime, drawing, sketch (photo style일 경우)
+- 3D render, CGI (photo style일 경우)
+- Out of focus, bad lighting, overexposed
+- Watermark, signature, text, logo, caption
 
 [출력]
 의료 블로그 게시물에 적합한 텍스트 없는 깔끔한 단일 이미지.
@@ -1989,7 +1992,7 @@ ${promptText}
         contents: [{ text: finalPrompt }],
         config: {
           responseModalities: ["IMAGE", "TEXT"],
-          temperature: 0.7 + (attempt * 0.1),
+          temperature: 0.6, // 블로그 이미지 품질 향상
         },
       });
 
@@ -2204,7 +2207,7 @@ ${cleanPromptText}
         contents: contents,
         config: {
           responseModalities: ["IMAGE", "TEXT"],
-          temperature: 0.7 + (attempt * 0.1), // 재시도마다 온도 약간 증가
+          temperature: 0.4, // 카드뉴스 일관성 강화
         },
       });
 
