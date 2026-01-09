@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
 import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
-import html2canvas from 'html2canvas';
+
+// 동적 임포트: 초기 번들 크기 최적화
+let docxModule: any = null;
+let html2canvasModule: any = null;
 
 interface ResultPreviewProps {
   content: GeneratedContent;
@@ -346,13 +348,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     if (!card) return;
     
     try {
+      // html2canvas 동적 로드
+      if (!html2canvasModule) {
+        html2canvasModule = (await import('html2canvas')).default;
+      }
+      
       // 오버레이 임시 숨김
       const overlay = card.querySelector('.card-overlay') as HTMLElement;
       const badge = card.querySelector('.card-number-badge') as HTMLElement;
       if (overlay) overlay.style.display = 'none';
       if (badge) badge.style.display = 'none';
       
-      const canvas = await html2canvas(card, {
+      const canvas = await html2canvasModule(card, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
@@ -593,8 +600,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setCardDownloadProgress(`${cardIndex + 1}번 카드 이미지 생성 중...`);
     
     try {
+      // html2canvas 동적 로드
+      if (!html2canvasModule) {
+        html2canvasModule = (await import('html2canvas')).default;
+      }
+      
       const card = cardSlides[cardIndex] as HTMLElement;
-      const canvas = await html2canvas(card, {
+      const canvas = await html2canvasModule(card, {
         scale: 2, // 고화질
         backgroundColor: null,
         useCORS: true,
@@ -813,11 +825,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setDownloadingCard(true);
     
     try {
+      // html2canvas 동적 로드
+      if (!html2canvasModule) {
+        html2canvasModule = (await import('html2canvas')).default;
+      }
+      
       for (let i = 0; i < cardSlides.length; i++) {
         setCardDownloadProgress(`${i + 1}/${cardSlides.length}장 다운로드 중...`);
         
         const card = cardSlides[i] as HTMLElement;
-        const canvas = await html2canvas(card, {
+        const canvas = await html2canvasModule(card, {
           scale: 2,
           backgroundColor: null,
           useCORS: true,
@@ -1081,6 +1098,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setEditProgress('Word 문서 생성 중...');
     
     try {
+      // docx 동적 로드
+      if (!docxModule) {
+        docxModule = await import('docx');
+      }
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, ImageRun, BorderStyle, AlignmentType } = docxModule;
       // HTML을 파싱해서 텍스트와 이미지 추출
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = localHtml;
@@ -1095,7 +1117,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         if (titleText) {
           processedTexts.add(titleText);
           docChildren.push(
-            new Paragraph({
+            new (Paragraph as any)({
               children: [
                 new TextRun({
                   text: titleText,
