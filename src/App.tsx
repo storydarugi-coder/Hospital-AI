@@ -727,8 +727,8 @@ const App: React.FC = () => {
     setCardNewsScript(updatedScript);
   };
 
-  // 로딩 중
-  if (authLoading) {
+  // 로딩 중 (admin 페이지는 로딩 화면 없이 바로 표시)
+  if (authLoading && currentPage !== 'admin') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
