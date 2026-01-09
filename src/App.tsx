@@ -6,6 +6,7 @@ import LandingPage from './components/LandingPage';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { PLANS, savePaymentRecord, generatePaymentId } from './services/paymentService';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load heavy components
 const ResultPreview = lazy(() => import('./components/ResultPreview'));
@@ -1400,4 +1401,11 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+// ErrorBoundary로 전체 앱 래핑
+const AppWithErrorBoundary: React.FC = () => (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+
+export default AppWithErrorBoundary;
