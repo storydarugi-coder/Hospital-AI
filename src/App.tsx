@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import InputForm from './components/InputForm';
-import ResultPreview from './components/ResultPreview';
-import ScriptPreview from './components/ScriptPreview';
-import PromptPreview from './components/PromptPreview';
-import AdminPage from './components/AdminPage';
 import LandingPage from './components/LandingPage';
-import { AuthPage } from './components/AuthPage';
-import { PricingPage } from './components/PricingPage';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import { PLANS, savePaymentRecord, generatePaymentId } from './services/paymentService';
+
+// Lazy load heavy components
+const ResultPreview = lazy(() => import('./components/ResultPreview'));
+const ScriptPreview = lazy(() => import('./components/ScriptPreview'));
+const PromptPreview = lazy(() => import('./components/PromptPreview'));
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
+const PricingPage = lazy(() => import('./components/PricingPage').then(module => ({ default: module.PricingPage })));
 
 type PageType = 'landing' | 'app' | 'admin' | 'auth' | 'pricing';
 
@@ -736,7 +738,11 @@ const App: React.FC = () => {
 
   // Auth 페이지 렌더링
   if (currentPage === 'auth') {
-    return <AuthPage onNavigate={handleNavigate} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+        <AuthPage onNavigate={handleNavigate} />
+      </Suspense>
+    );
   }
 
   // 결제 완료 콜백
@@ -797,15 +803,17 @@ const App: React.FC = () => {
   // Pricing 페이지 렌더링
   if (currentPage === 'pricing') {
     return (
-      <PricingPage 
-        onNavigate={handleNavigate}
-        isLoggedIn={isLoggedIn}
-        currentPlan={userProfile?.plan || 'free'}
-        remainingCredits={userProfile?.remainingCredits || 0}
-        onPaymentComplete={handlePaymentComplete}
-        userEmail={userProfile?.email}
-        userName={userProfile?.name}
-      />
+      <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+        <PricingPage 
+          onNavigate={handleNavigate}
+          isLoggedIn={isLoggedIn}
+          currentPlan={userProfile?.plan || 'free'}
+          remainingCredits={userProfile?.remainingCredits || 0}
+          onPaymentComplete={handlePaymentComplete}
+          userEmail={userProfile?.email}
+          userName={userProfile?.name}
+        />
+      </Suspense>
     );
   }
 
@@ -817,7 +825,11 @@ const App: React.FC = () => {
 
   // Admin 페이지 렌더링
   if (currentPage === 'admin') {
-    return <AdminPage onAdminVerified={() => setIsAdmin(true)} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+        <AdminPage onAdminVerified={() => setIsAdmin(true)} />
+      </Suspense>
+    );
   }
 
   // API Key 미설정 시 안내 화면
@@ -956,28 +968,32 @@ const App: React.FC = () => {
           {/* 카드뉴스 3단계 워크플로우 */}
           {/* 2단계: 프롬프트 확인 */}
           {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
-            <PromptPreview
-              prompts={cardNewsPrompts}
-              onApprove={handleApprovePrompts}
-              onBack={handleBackToScript}
-              onEditPrompts={handleEditPrompts}
-              isLoading={isGeneratingScript}
-              progress={scriptProgress}
-              darkMode={darkMode}
-            />
+            <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+              <PromptPreview
+                prompts={cardNewsPrompts}
+                onApprove={handleApprovePrompts}
+                onBack={handleBackToScript}
+                onEditPrompts={handleEditPrompts}
+                isLoading={isGeneratingScript}
+                progress={scriptProgress}
+                darkMode={darkMode}
+              />
+            </Suspense>
           ) : cardNewsScript ? (
             /* 1단계: 원고 확인 */
-            <ScriptPreview
-              script={cardNewsScript}
-              onApprove={handleApproveScript}
-              onRegenerate={handleRegenerateScript}
-              onEditScript={handleEditScript}
-              isLoading={isGeneratingScript}
-              progress={scriptProgress}
-              darkMode={darkMode}
-              topic={pendingRequest?.topic}
-              category={pendingRequest?.category}
-            />
+            <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+              <ScriptPreview
+                script={cardNewsScript}
+                onApprove={handleApproveScript}
+                onRegenerate={handleRegenerateScript}
+                onEditScript={handleEditScript}
+                isLoading={isGeneratingScript}
+                progress={scriptProgress}
+                darkMode={darkMode}
+                topic={pendingRequest?.topic}
+                category={pendingRequest?.category}
+              />
+            </Suspense>
           ) : state.isLoading || isGeneratingScript ? (
             <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
               <div className="relative mb-10">
@@ -994,7 +1010,9 @@ const App: React.FC = () => {
               </p>
             </div>
           ) : state.data ? (
-            <ResultPreview content={state.data} darkMode={darkMode} />
+            <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+              <ResultPreview content={state.data} darkMode={darkMode} />
+            </Suspense>
           ) : (
             <div className={`h-full rounded-[40px] shadow-2xl border flex flex-col items-center justify-center p-20 text-center group transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                <div className={`w-32 h-32 rounded-full flex items-center justify-center text-6xl mb-10 group-hover:scale-110 transition-transform duration-500 grayscale opacity-20 ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>📝</div>
