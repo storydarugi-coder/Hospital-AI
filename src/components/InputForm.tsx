@@ -524,54 +524,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
            </div>
         </div>
 
-        {/* 블로그 레이아웃 (블로그만 표시) */}
-        {postType === 'blog' && (
-          <div>
-             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">🎨 블로그 레이아웃</label>
-             <div className="grid grid-cols-5 gap-2">
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('modern'); }}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'modern' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-                >
-                   <span className="text-xl mb-1">💻</span>
-                   <span className={`text-[11px] font-black ${cssTheme === 'modern' ? 'text-indigo-700' : 'text-slate-600'}`}>모던</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('premium'); }}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'premium' ? 'border-purple-500 bg-purple-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-                >
-                   <span className="text-xl mb-1">💎</span>
-                   <span className={`text-[11px] font-black ${cssTheme === 'premium' ? 'text-purple-700' : 'text-slate-600'}`}>프리미엄</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('minimal'); }}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'minimal' ? 'border-slate-500 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-                >
-                   <span className="text-xl mb-1">✨</span>
-                   <span className={`text-[11px] font-black ${cssTheme === 'minimal' ? 'text-slate-700' : 'text-slate-600'}`}>미니멀</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('warm'); }}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'warm' ? 'border-orange-500 bg-orange-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-                >
-                   <span className="text-xl mb-1">☀️</span>
-                   <span className={`text-[11px] font-black ${cssTheme === 'warm' ? 'text-orange-700' : 'text-slate-600'}`}>따뜻한</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCssTheme('professional'); }}
-                  className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center ${cssTheme === 'professional' ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}
-                >
-                   <span className="text-xl mb-1">🏛️</span>
-                   <span className={`text-[11px] font-black ${cssTheme === 'professional' ? 'text-blue-700' : 'text-slate-600'}`}>전문</span>
-                </button>
-             </div>
-          </div>
-        )}
+
 
         {/* 4단계: 블로그/보도자료는 스타일 설정 표시 (카드뉴스는 숨김) */}
         {(postType === 'blog' || postType === 'press_release') && (
