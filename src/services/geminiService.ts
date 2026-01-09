@@ -7382,15 +7382,15 @@ ${getStylePromptForGeneration(learnedStyle)}
     const providerSettings = getAiProviderSettings();
     let result: any;
 
-    // Gemini 사용 (GPT 제거됨)
-    console.log('🔵 Using Gemini for text generation (GPT removed)');
+    // Gemini 사용
+    console.log('🔵 Using Gemini for text generation');
     
     // 로그 출력 (generateContent 호출 전에 실행)
-    console.log('🔄 3-Stage Process: Dual Search (Gemini + GPT) → Cross-Check → GPT-5.2 Writing');
+    console.log('🔄 Gemini 웹 검색 및 콘텐츠 생성 시작');
     console.log('📍 Step 1 시작 준비...');
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
+    // 📍 Step 1: Gemini 웹 검색으로 최신 정보 수집
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     console.log('📍 onProgress 호출 직전...');
     try {
@@ -7483,17 +7483,15 @@ ${getStylePromptForGeneration(learnedStyle)}
 }`;
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 🔍 듀얼 검색: Gemini + GPT-5.2 동시 검색
+    // 🔍 Gemini 웹 검색으로 최신 정보 수집
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
-    console.log(`🔍 듀얼 검색 시작: Gemini + ${hasOpenAIKey ? 'GPT-5.2' : '(OpenAI 키 없음)'}`);
-    safeProgress(`🔍 Step 1: ${hasOpenAIKey ? 'Gemini + GPT-5.2 동시 웹 검색' : 'Gemini 검색'} 중...`);
+    console.log('🔍 Gemini 웹 검색 시작');
+    safeProgress('🔍 Step 1: Gemini 웹 검색 중...');
     
     let geminiResults: any = null;
-    let gptResults: any = null;
     let searchResults: any = {};
     
-    // 🔵 Gemini 검색 (Promise)
+    // 🔵 Gemini 검색 실행
     const geminiSearchPromise = (async () => {
       try {
         console.log('🔵 Gemini 검색 시작...');
@@ -7517,33 +7515,17 @@ ${getStylePromptForGeneration(learnedStyle)}
       }
     })();
     
-    // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
-    const gptSearchPromise = hasOpenAIKey ? (async () => {
-      try {
-        // GPT 제거됨 - Gemini만 사용
-        console.log('⚠️ GPT-5.2 웹 검색 제거됨 - Gemini만 사용');
-        return { success: false, data: null, source: 'gpt', error: 'GPT removed' };
-      } catch (error) {
-        console.error('⚠️ GPT-5.2 웹 검색 제거됨');
-        return { success: false, data: null, source: 'gpt', error };
-      }
-    })() : Promise.resolve({ success: false, data: null, source: 'gpt', error: 'No API key' });
-    
-    // 동시 실행
-    const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
+    // Gemini 검색 실행
+    const geminiResult = await geminiSearchPromise;
     
     geminiResults = geminiResult.success ? geminiResult.data : null;
-    gptResults = gptResult.success ? gptResult.data : null;
     
     // 상세 로그
     const geminiFactCount = geminiResults?.collected_facts?.length || 0;
     const geminiStatCount = geminiResults?.key_statistics?.length || 0;
-    const gptFactCount = gptResults?.collected_facts?.length || 0;
-    const gptStatCount = gptResults?.key_statistics?.length || 0;
     
     console.log('📊 검색 결과 상세:');
     console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
-    console.log(`   🟢 GPT-5.2: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // 🔀 크로스체크: 두 결과 병합 및 검증
@@ -7966,6 +7948,11 @@ ${JSON.stringify(searchResults, null, 2)}
         // SEO 점수를 결과에 추가
         result.seoScore = seoReport;
         
+        // 진행 상황 업데이트
+        if (typeof onProgress === 'function') {
+          safeProgress(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
+        }
+        
         if (seoReport.total >= 90) {
           console.log('✅ SEO 점수 90점 이상! 통과');
           if (typeof onProgress === 'function') {
@@ -8034,6 +8021,11 @@ ${blogPrompt}`;
         console.error('❌ SEO 평가 오류:', seoError);
         break;
       }
+    }
+    
+    // SEO 평가 완료 메시지
+    if (typeof onProgress === 'function') {
+      safeProgress('✅ Step 2 완료: 글 작성 및 SEO 평가 완료');
     }
     }
     
@@ -8864,6 +8856,9 @@ ${finalHtml.substring(0, 6000)}
   console.log('🔍 generateFullPost 반환 데이터:');
   console.log('  - textData.fact_check:', textData.fact_check);
   console.log('  - seoScore:', seoScore);
+  
+  // 최종 완료 메시지
+  safeProgress('✅ 모든 생성 작업 완료!');
   
   return {
     title: textData.title,
