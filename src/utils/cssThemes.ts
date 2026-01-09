@@ -11,10 +11,6 @@ export const CSS_THEMES: Record<CssTheme, {
   imgStyle: string;
   ulStyle?: string;
   liStyle?: string;
-  ctaBoxStyle?: string;
-  ctaTitleStyle?: string;
-  ctaTextStyle?: string;
-  ctaSubtextStyle?: string;
 }> = {
   modern: {
     name: '모던 카드',
@@ -26,11 +22,7 @@ export const CSS_THEMES: Record<CssTheme, {
     imageWrapperStyle: 'margin:40px 0; text-align:center;',
     imgStyle: 'max-width:100%; border-radius:12px; box-shadow:0 4px 20px rgba(0,0,0,0.1);',
     ulStyle: 'margin:30px 0; padding-left:0; list-style:none;',
-    liStyle: 'margin:15px 0; padding:18px 20px; background:#f8f9fa; border-left:4px solid #4a90e2; border-radius:8px; font-size:16px; line-height:1.7;',
-    ctaBoxStyle: 'margin:45px 0; padding:30px 35px; background:#f0f9ff; border:2px solid #3b82f6; border-radius:16px; box-shadow:0 4px 15px rgba(59,130,246,0.1);',
-    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#1e40af; margin-bottom:15px;',
-    ctaTextStyle: 'font-size:16px; color:#334155; line-height:1.9; margin-bottom:15px;',
-    ctaSubtextStyle: 'font-size:15px; color:#64748b; font-style:italic;'
+    liStyle: 'margin:15px 0; padding:18px 20px; background:#f8f9fa; border-left:4px solid #4a90e2; border-radius:8px; font-size:16px; line-height:1.7;'
   },
   
   premium: {
@@ -43,11 +35,7 @@ export const CSS_THEMES: Record<CssTheme, {
     imageWrapperStyle: 'margin:50px 0; padding:20px; background:#fafafa; text-align:center;',
     imgStyle: 'max-width:100%; border:1px solid #ddd;',
     ulStyle: 'margin:35px 0; padding-left:0; list-style:none;',
-    liStyle: 'margin:18px 0; padding:20px 25px; border:1px solid #e0e0e0; border-radius:4px; font-size:16px; line-height:1.8;',
-    ctaBoxStyle: 'margin:50px 0; padding:35px 40px; background:#f8f6ff; border:2px solid #8b7ec7; border-radius:8px;',
-    ctaTitleStyle: 'font-size:21px; font-weight:700; color:#5b4a99; margin-bottom:18px;',
-    ctaTextStyle: 'font-size:16px; color:#4a4a4a; line-height:2.0; margin-bottom:18px;',
-    ctaSubtextStyle: 'font-size:15px; color:#8b7ec7; font-weight:500;'
+    liStyle: 'margin:18px 0; padding:20px 25px; border:1px solid #e0e0e0; border-radius:4px; font-size:16px; line-height:1.8;'
   },
   
   minimal: {
@@ -60,11 +48,7 @@ export const CSS_THEMES: Record<CssTheme, {
     imageWrapperStyle: 'margin:45px 0; text-align:center;',
     imgStyle: 'max-width:100%; border-radius:4px;',
     ulStyle: 'margin:28px 0 28px 20px; padding-left:0; list-style:disc;',
-    liStyle: 'margin:12px 0; font-size:16px; line-height:1.75; color:#444;',
-    ctaBoxStyle: 'margin:40px 0; padding:25px 30px; background:#fafafa; border-top:2px solid #222; border-bottom:2px solid #222;',
-    ctaTitleStyle: 'font-size:18px; font-weight:700; color:#222; margin-bottom:12px;',
-    ctaTextStyle: 'font-size:15px; color:#444; line-height:1.9; margin-bottom:12px;',
-    ctaSubtextStyle: 'font-size:14px; color:#777;'
+    liStyle: 'margin:12px 0; font-size:16px; line-height:1.75; color:#444;'
   },
   
   warm: {
@@ -77,11 +61,7 @@ export const CSS_THEMES: Record<CssTheme, {
     imageWrapperStyle: 'margin:38px 0; padding:15px; background:#fff; border-radius:15px; text-align:center;',
     imgStyle: 'max-width:100%; border-radius:12px;',
     ulStyle: 'margin:32px 0; padding-left:0; list-style:none;',
-    liStyle: 'margin:16px 0; padding:16px 22px; background:#fff; border-radius:12px; font-size:16px; line-height:1.75; box-shadow:0 1px 5px rgba(0,0,0,0.05);',
-    ctaBoxStyle: 'margin:42px 0; padding:32px 35px; background:#fff7ed; border:2px solid #f97316; border-radius:20px; box-shadow:0 4px 15px rgba(249,115,22,0.1);',
-    ctaTitleStyle: 'font-size:20px; font-weight:800; color:#c2410c; margin-bottom:15px;',
-    ctaTextStyle: 'font-size:16px; color:#431407; line-height:1.9; margin-bottom:15px;',
-    ctaSubtextStyle: 'font-size:15px; color:#9a3412;'
+    liStyle: 'margin:16px 0; padding:16px 22px; background:#fff; border-radius:12px; font-size:16px; line-height:1.75; box-shadow:0 1px 5px rgba(0,0,0,0.05);'
   },
   
   professional: {
@@ -94,11 +74,7 @@ export const CSS_THEMES: Record<CssTheme, {
     imageWrapperStyle: 'margin:42px 0; padding:25px; background:#fff; border-radius:10px; text-align:center; border:2px solid #e3ecf5;',
     imgStyle: 'max-width:100%; border-radius:8px;',
     ulStyle: 'margin:35px 0; padding-left:0; list-style:none;',
-    liStyle: 'margin:18px 0; padding:20px 24px; background:#fff; border-left:5px solid #0066cc; border-radius:8px; font-size:16px; line-height:1.8; box-shadow:0 2px 8px rgba(0,102,204,0.08);',
-    ctaBoxStyle: 'margin:48px 0; padding:35px 40px; background:#eff6ff; border:2px solid #0066cc; border-radius:12px; box-shadow:0 4px 15px rgba(0,102,204,0.1);',
-    ctaTitleStyle: 'font-size:21px; font-weight:800; color:#1e40af; margin-bottom:16px;',
-    ctaTextStyle: 'font-size:16px; color:#1e3a5f; line-height:1.95; margin-bottom:16px;',
-    ctaSubtextStyle: 'font-size:15px; color:#3b82f6; font-weight:500;'
+    liStyle: 'margin:18px 0; padding:20px 24px; background:#fff; border-left:5px solid #0066cc; border-radius:8px; font-size:16px; line-height:1.8; box-shadow:0 2px 8px rgba(0,102,204,0.08);'
   }
 };
 
@@ -149,35 +125,6 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
     result = result.replace(
       /<li[^>]*>/g,
       `<li style="${t.liStyle}">`
-    );
-  }
-  
-  // CTA 박스 스타일 적용
-  if (t.ctaBoxStyle) {
-    result = result.replace(
-      /<div class="cta-box"[^>]*>/g,
-      `<div style="${t.ctaBoxStyle}">`
-    );
-  }
-  
-  if (t.ctaTitleStyle) {
-    result = result.replace(
-      /<p class="cta-title"[^>]*>/g,
-      `<p style="${t.ctaTitleStyle}">`
-    );
-  }
-  
-  if (t.ctaTextStyle) {
-    result = result.replace(
-      /<p class="cta-text"[^>]*>/g,
-      `<p style="${t.ctaTextStyle}">`
-    );
-  }
-  
-  if (t.ctaSubtextStyle) {
-    result = result.replace(
-      /<p class="cta-subtext"[^>]*>/g,
-      `<p style="${t.ctaSubtextStyle}">`
     );
   }
   

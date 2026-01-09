@@ -2501,11 +2501,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 </div>
               )}
 
-              {/* ② 판단 회피형 글쓰기 */}
+              {/* ② 판단 단정형 글쓰기 */}
               {analysis.judgment_avoidance && (
                 <div className={`rounded-xl p-4 ${darkMode ? 'bg-slate-700/50' : 'bg-slate-50'}`}>
                   <div className="flex items-center justify-between mb-3">
-                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>② 판단 회피형 글쓰기</span>
+                    <span className={`text-sm font-black ${darkMode ? 'text-slate-200' : 'text-slate-700'}`}>② 판단 단정형 글쓰기</span>
                     <span className={`text-lg font-black ${analysis.judgment_avoidance.score <= 4 ? 'text-green-500' : analysis.judgment_avoidance.score <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
                       {analysis.judgment_avoidance.score}/20점
                     </span>

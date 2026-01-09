@@ -99,7 +99,7 @@ export interface AiSmellAnalysis {
     issues: string[];  // 문제 문장/패턴 목록
     fix_suggestions: string[];  // 수정 제안
   };
-  judgment_avoidance: {  // ② 판단 회피형 글쓰기 (0~20점)
+  judgment_avoidance: {  // ② 판단 단정형 글쓰기 (0~20점)
     score: number;
     issues: string[];
     fix_suggestions: string[];
