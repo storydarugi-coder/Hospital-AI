@@ -323,17 +323,27 @@ const App: React.FC = () => {
           }
         }
         
-        // 로그인 성공 시 앱으로 이동 (OAuth 리다이렉트 포함)
+        // 로그인 성공 시 처리
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('[Auth Event] Login success, navigating to app');
+          console.log('[Auth Event] Login success');
           // 🔧 authLoading을 false로 설정 (로딩 화면 해제)
           setAuthLoading(false);
-          // URL 정리 후 앱으로 이동
-          if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token')) {
+          
+          const currentHash = window.location.hash;
+          
+          // OAuth 토큰이 URL에 있는 경우에만 #app으로 리다이렉트
+          if (currentHash.includes('access_token') || currentHash.includes('refresh_token')) {
             window.history.replaceState(null, '', window.location.pathname + '#app');
+            window.location.hash = 'app';
+            setCurrentPage('app');
           }
-          window.location.hash = 'app';
-          setCurrentPage('app');
+          // auth 페이지에서 로그인한 경우 app으로 이동
+          else if (currentHash === '#auth' || currentHash === '#login' || currentHash === '#register') {
+            window.location.hash = 'app';
+            setCurrentPage('app');
+          }
+          // 그 외 (admin, pricing 등)는 현재 페이지 유지
+          // 페이지 전환 없이 상태만 업데이트됨
         }
       } else {
         setSupabaseUser(null);
