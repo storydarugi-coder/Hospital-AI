@@ -7384,27 +7384,27 @@ ${getStylePromptForGeneration(learnedStyle)}
 
     // Gemini 사용 (GPT 제거됨)
     console.log('🔵 Using Gemini for text generation (GPT removed)');
-    const response = await ai.models.generateContent({
-      // 🔄 2단계 프로세스: Gemini 검색 → GPT 작성
-      console.log('🔄 3-Stage Process: Dual Search (Gemini + GPT) → Cross-Check → GPT-5.2 Writing');
-      console.log('📍 Step 1 시작 준비...');
-      
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      console.log('📍 onProgress 호출 직전...');
-      try {
-        if (typeof onProgress === 'function') {
-          safeProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
-        } else {
-          console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
-        }
-      } catch (progressError) {
-        console.error('❌ onProgress 호출 에러:', progressError);
+    
+    // 로그 출력 (generateContent 호출 전에 실행)
+    console.log('🔄 3-Stage Process: Dual Search (Gemini + GPT) → Cross-Check → GPT-5.2 Writing');
+    console.log('📍 Step 1 시작 준비...');
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📍 Step 1: 최신 정보 검색 (Gemini 우선, 실패 시 GPT)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('📍 onProgress 호출 직전...');
+    try {
+      if (typeof onProgress === 'function') {
+        safeProgress('🔍 Step 1: 최신 정보를 검색하고 있습니다...');
+      } else {
+        console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
       }
-      console.log('📍 onProgress 호출 완료, searchPrompt 생성 시작...');
-      
-      const searchPrompt = `
+    } catch (progressError) {
+      console.error('❌ onProgress 호출 에러:', progressError);
+    }
+    console.log('📍 onProgress 호출 완료, searchPrompt 생성 시작...');
+    
+    const searchPrompt = `
 당신은 의료 정보 검색 전문가입니다.
 아래 주제에 대해 공신력 있는 최신 정보를 수집해주세요.
 
@@ -7482,307 +7482,307 @@ ${getStylePromptForGeneration(learnedStyle)}
   ]
 }`;
 
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔍 듀얼 검색: Gemini + GPT-5.2 동시 검색
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
-      console.log(`🔍 듀얼 검색 시작: Gemini + ${hasOpenAIKey ? 'GPT-5.2' : '(OpenAI 키 없음)'}`);
-      safeProgress(`🔍 Step 1: ${hasOpenAIKey ? 'Gemini + GPT-5.2 동시 웹 검색' : 'Gemini 검색'} 중...`);
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🔍 듀얼 검색: Gemini + GPT-5.2 동시 검색
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const hasOpenAIKey = !!localStorage.getItem('OPENAI_API_KEY');
+    console.log(`🔍 듀얼 검색 시작: Gemini + ${hasOpenAIKey ? 'GPT-5.2' : '(OpenAI 키 없음)'}`);
+    safeProgress(`🔍 Step 1: ${hasOpenAIKey ? 'Gemini + GPT-5.2 동시 웹 검색' : 'Gemini 검색'} 중...`);
+    
+    let geminiResults: any = null;
+    let gptResults: any = null;
+    let searchResults: any = {};
+    
+    // 🔵 Gemini 검색 (Promise)
+    const geminiSearchPromise = (async () => {
+      try {
+        console.log('🔵 Gemini 검색 시작...');
+        const ai = getAiClient();
+        const searchResponse = await ai.models.generateContent({
+          model: "gemini-3-pro-preview",
+          contents: searchPrompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json"
+          }
+        });
+        const result = JSON.parse(searchResponse.text || "{}");
+        const factCount = result.collected_facts?.length || 0;
+        const statCount = result.key_statistics?.length || 0;
+        console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
+        return { success: true, data: result, source: 'gemini' };
+      } catch (error) {
+        console.error('⚠️ Gemini 검색 실패:', error);
+        return { success: false, data: null, source: 'gemini', error };
+      }
+    })();
+    
+    // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
+    const gptSearchPromise = hasOpenAIKey ? (async () => {
+      try {
+        // GPT 제거됨 - Gemini만 사용
+        console.log('⚠️ GPT-5.2 웹 검색 제거됨 - Gemini만 사용');
+        return { success: false, data: null, source: 'gpt', error: 'GPT removed' };
+      } catch (error) {
+        console.error('⚠️ GPT-5.2 웹 검색 제거됨');
+        return { success: false, data: null, source: 'gpt', error };
+      }
+    })() : Promise.resolve({ success: false, data: null, source: 'gpt', error: 'No API key' });
+    
+    // 동시 실행
+    const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
+    
+    geminiResults = geminiResult.success ? geminiResult.data : null;
+    gptResults = gptResult.success ? gptResult.data : null;
+    
+    // 상세 로그
+    const geminiFactCount = geminiResults?.collected_facts?.length || 0;
+    const geminiStatCount = geminiResults?.key_statistics?.length || 0;
+    const gptFactCount = gptResults?.collected_facts?.length || 0;
+    const gptStatCount = gptResults?.key_statistics?.length || 0;
+    
+    console.log('📊 검색 결과 상세:');
+    console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
+    console.log(`   🟢 GPT-5.2: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 🔀 크로스체크: 두 결과 병합 및 검증
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    
+    // 🏥 health.kdca.go.kr 우선순위 정렬 함수
+    const sortByKdcaHealthPriority = (items: any[]) => {
+      if (!items || !Array.isArray(items)) return items;
       
-      let geminiResults: any = null;
-      let gptResults: any = null;
-      let searchResults: any = {};
+      // health.kdca.go.kr URL이 있는 항목을 최상단에 배치
+      const kdcaHealthItems = items.filter((item: any) => 
+        item.url?.includes('health.kdca.go.kr') || 
+        item.source?.includes('질병관리청 건강정보') ||
+        item.source?.includes('health.kdca.go.kr')
+      );
       
-      // 🔵 Gemini 검색 (Promise)
-      const geminiSearchPromise = (async () => {
-        try {
-          console.log('🔵 Gemini 검색 시작...');
-          const ai = getAiClient();
-          const searchResponse = await ai.models.generateContent({
-            model: "gemini-3-pro-preview",
-            contents: searchPrompt,
-            config: {
-              tools: [{ googleSearch: {} }],
-              responseMimeType: "application/json"
-            }
-          });
-          const result = JSON.parse(searchResponse.text || "{}");
-          const factCount = result.collected_facts?.length || 0;
-          const statCount = result.key_statistics?.length || 0;
-          console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
-          return { success: true, data: result, source: 'gemini' };
-        } catch (error) {
-          console.error('⚠️ Gemini 검색 실패:', error);
-          return { success: false, data: null, source: 'gemini', error };
-        }
-      })();
+      // kdca.go.kr (메인 사이트) 항목
+      const kdcaMainItems = items.filter((item: any) => 
+        !item.url?.includes('health.kdca.go.kr') && 
+        (item.url?.includes('kdca.go.kr') || item.source?.includes('질병관리청'))
+      );
       
-      // 🟢 GPT-5.2 웹 검색 (Promise) - API 키가 있을 때만
-      const gptSearchPromise = hasOpenAIKey ? (async () => {
-        try {
-          // GPT 제거됨 - Gemini만 사용
-          console.log('⚠️ GPT-5.2 웹 검색 제거됨 - Gemini만 사용');
-          return { success: false, data: null, source: 'gpt', error: 'GPT removed' };
-        } catch (error) {
-          console.error('⚠️ GPT-5.2 웹 검색 제거됨');
-          return { success: false, data: null, source: 'gpt', error };
-        }
-      })() : Promise.resolve({ success: false, data: null, source: 'gpt', error: 'No API key' });
+      // 기타 정부 기관 (mohw.go.kr, nhis.or.kr 등)
+      const otherGovItems = items.filter((item: any) => 
+        !item.url?.includes('kdca.go.kr') &&
+        (item.url?.includes('.go.kr') || item.url?.includes('.or.kr'))
+      );
       
-      // 동시 실행
-      const [geminiResult, gptResult] = await Promise.all([geminiSearchPromise, gptSearchPromise]);
+      // 나머지 항목
+      const otherItems = items.filter((item: any) => 
+        !item.url?.includes('health.kdca.go.kr') &&
+        !item.url?.includes('kdca.go.kr') &&
+        !item.url?.includes('.go.kr') &&
+        !item.url?.includes('.or.kr')
+      );
       
-      geminiResults = geminiResult.success ? geminiResult.data : null;
-      gptResults = gptResult.success ? gptResult.data : null;
+      const sortedItems = [...kdcaHealthItems, ...kdcaMainItems, ...otherGovItems, ...otherItems];
       
-      // 상세 로그
-      const geminiFactCount = geminiResults?.collected_facts?.length || 0;
-      const geminiStatCount = geminiResults?.key_statistics?.length || 0;
-      const gptFactCount = gptResults?.collected_facts?.length || 0;
-      const gptStatCount = gptResults?.key_statistics?.length || 0;
+      // 로그 출력
+      if (kdcaHealthItems.length > 0) {
+        console.log(`🏥 health.kdca.go.kr 결과 ${kdcaHealthItems.length}개 최우선 배치`);
+      }
       
-      console.log('📊 검색 결과 상세:');
-      console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
-      console.log(`   🟢 GPT-5.2: ${gptResult.success ? '성공' : '실패'} - 팩트 ${gptFactCount}개, 통계 ${gptStatCount}개`);
+      return sortedItems;
+    };
+    
+    if (geminiResults && gptResults) {
+      // 🎯 둘 다 성공: 크로스체크 병합
+      console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
+      safeProgress('🔀 크로스체크: Gemini + GPT-5.2 결과 병합 중...');
       
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 🔀 크로스체크: 두 결과 병합 및 검증
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 병합 후 health.kdca.go.kr 우선 정렬
+      const mergedFacts = [
+        ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
+        ...(gptResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gpt' }))
+      ];
       
-      // 🏥 health.kdca.go.kr 우선순위 정렬 함수
-      const sortByKdcaHealthPriority = (items: any[]) => {
-        if (!items || !Array.isArray(items)) return items;
-        
-        // health.kdca.go.kr URL이 있는 항목을 최상단에 배치
-        const kdcaHealthItems = items.filter((item: any) => 
-          item.url?.includes('health.kdca.go.kr') || 
-          item.source?.includes('질병관리청 건강정보') ||
-          item.source?.includes('health.kdca.go.kr')
-        );
-        
-        // kdca.go.kr (메인 사이트) 항목
-        const kdcaMainItems = items.filter((item: any) => 
-          !item.url?.includes('health.kdca.go.kr') && 
-          (item.url?.includes('kdca.go.kr') || item.source?.includes('질병관리청'))
-        );
-        
-        // 기타 정부 기관 (mohw.go.kr, nhis.or.kr 등)
-        const otherGovItems = items.filter((item: any) => 
-          !item.url?.includes('kdca.go.kr') &&
-          (item.url?.includes('.go.kr') || item.url?.includes('.or.kr'))
-        );
-        
-        // 나머지 항목
-        const otherItems = items.filter((item: any) => 
-          !item.url?.includes('health.kdca.go.kr') &&
-          !item.url?.includes('kdca.go.kr') &&
-          !item.url?.includes('.go.kr') &&
-          !item.url?.includes('.or.kr')
-        );
-        
-        const sortedItems = [...kdcaHealthItems, ...kdcaMainItems, ...otherGovItems, ...otherItems];
-        
-        // 로그 출력
-        if (kdcaHealthItems.length > 0) {
-          console.log(`🏥 health.kdca.go.kr 결과 ${kdcaHealthItems.length}개 최우선 배치`);
-        }
-        
-        return sortedItems;
+      const mergedStats = [
+        ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
+        ...(gptResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gpt' }))
+      ];
+      
+      const mergedGuidelines = [
+        ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
+        ...(gptResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gpt' }))
+      ];
+      
+      searchResults = {
+        collected_facts: sortByKdcaHealthPriority(mergedFacts),
+        key_statistics: sortByKdcaHealthPriority(mergedStats),
+        latest_guidelines: sortByKdcaHealthPriority(mergedGuidelines),
+        sources: gptResults.sources || [], // GPT 출처 정보
+        cross_check_status: 'dual_verified',
+        gemini_found: geminiFactCount + geminiStatCount,
+        gpt_found: gptFactCount + gptStatCount
       };
       
-      if (geminiResults && gptResults) {
-        // 🎯 둘 다 성공: 크로스체크 병합
-        console.log('🎯 듀얼 검색 성공 - 크로스체크 병합 시작');
-        safeProgress('🔀 크로스체크: Gemini + GPT-5.2 결과 병합 중...');
+      // 🔧 맥락 기반 유사도 계산 (문장이 달라도 같은 맥락이면 매칭!)
+      // 사용자 요청 개선: 2글자 이상 한글/영어/숫자만 추출 (자카드 유사도 기반)
+      const extractKeywords = (text: string): Set<string> => {
+        if (!text) return new Set();
+        // 특수문자 제거 및 소문자 변환 (한글, 영문, 숫자, 공백만 남김)
+        const cleanText = text.toLowerCase().replace(/[^\w가-힣\s]/g, '');
         
-        // 병합 후 health.kdca.go.kr 우선 정렬
-        const mergedFacts = [
-          ...(geminiResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gemini' })),
-          ...(gptResults.collected_facts || []).map((f: any) => ({ ...f, verified_by: 'gpt' }))
-        ];
+        // 공백으로 분리 후 2글자 이상만 필터링
+        const tokens = cleanText.split(/\s+/).filter(token => token.length >= 2);
         
-        const mergedStats = [
-          ...(geminiResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gemini' })),
-          ...(gptResults.key_statistics || []).map((s: any) => ({ ...s, verified_by: 'gpt' }))
-        ];
-        
-        const mergedGuidelines = [
-          ...(geminiResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gemini' })),
-          ...(gptResults.latest_guidelines || []).map((g: any) => ({ ...g, verified_by: 'gpt' }))
-        ];
-        
-        searchResults = {
-          collected_facts: sortByKdcaHealthPriority(mergedFacts),
-          key_statistics: sortByKdcaHealthPriority(mergedStats),
-          latest_guidelines: sortByKdcaHealthPriority(mergedGuidelines),
-          sources: gptResults.sources || [], // GPT 출처 정보
-          cross_check_status: 'dual_verified',
-          gemini_found: geminiFactCount + geminiStatCount,
-          gpt_found: gptFactCount + gptStatCount
-        };
-        
-        // 🔧 맥락 기반 유사도 계산 (문장이 달라도 같은 맥락이면 매칭!)
-        // 사용자 요청 개선: 2글자 이상 한글/영어/숫자만 추출 (자카드 유사도 기반)
-        const extractKeywords = (text: string): Set<string> => {
-          if (!text) return new Set();
-          // 특수문자 제거 및 소문자 변환 (한글, 영문, 숫자, 공백만 남김)
-          const cleanText = text.toLowerCase().replace(/[^\w가-힣\s]/g, '');
-          
-          // 공백으로 분리 후 2글자 이상만 필터링
-          const tokens = cleanText.split(/\s+/).filter(token => token.length >= 2);
-          
-          return new Set(tokens);
-        };
-        
-        // 🆕 핵심 키워드 목록 (가중치 부스트용)
-        const CRITICAL_KEYWORDS = [
-          '노로바이러스', '2025', '2026', '감염증', '환자', '급증', '예방', 
-          '혈당', '혈압', '당뇨', '암', '염증', '면역', '비타민', '단백질', 
-          '지방', '콜레스테롤', '체중', '비만', '수면', '운동', '식이', '섭취', '증상', '진단',
-          '치료', '관리', '검사', '수치', '정상', '이상', '위험', '효과', '부작용',
-          '원인', '기전', '합병증', '악화', '호전', '개선', '감소', '증가', '유지', '권장'
-        ];
-        
-        const calculateSimilarity = (text1: string, text2: string): number => {
-          const setA = extractKeywords(text1);
-          const setB = extractKeywords(text2);
+        return new Set(tokens);
+      };
+      
+      // 🆕 핵심 키워드 목록 (가중치 부스트용)
+      const CRITICAL_KEYWORDS = [
+        '노로바이러스', '2025', '2026', '감염증', '환자', '급증', '예방', 
+        '혈당', '혈압', '당뇨', '암', '염증', '면역', '비타민', '단백질', 
+        '지방', '콜레스테롤', '체중', '비만', '수면', '운동', '식이', '섭취', '증상', '진단',
+        '치료', '관리', '검사', '수치', '정상', '이상', '위험', '효과', '부작용',
+        '원인', '기전', '합병증', '악화', '호전', '개선', '감소', '증가', '유지', '권장'
+      ];
+      
+      const calculateSimilarity = (text1: string, text2: string): number => {
+        const setA = extractKeywords(text1);
+        const setB = extractKeywords(text2);
 
-          if (setA.size === 0 || setB.size === 0) return 0;
+        if (setA.size === 0 || setB.size === 0) return 0;
 
-          // 1. 자카드 유사도 (Jaccard Similarity) = 교집합 / 합집합
-          let intersection = 0;
-          setA.forEach(word => {
-            if (setB.has(word)) intersection++;
-          });
-
-          const union = new Set([...setA, ...setB]).size;
-          // 자카드 지수 (0~1) -> 점수화 (0~100)
-          let score = (intersection / union) * 100;
-
-          // 2. 핵심 키워드(Critical Keywords) 포함 시 가중치 부스트
-          let criticalMatchCount = 0;
-          CRITICAL_KEYWORDS.forEach(k => {
-             // 단순 포함 여부 체크
-             if (text1.includes(k) && text2.includes(k)) {
-                criticalMatchCount++;
-             }
-          });
-
-          // 핵심 키워드가 2개 이상 겹치면 +20점 가산
-          if (criticalMatchCount >= 2) {
-             score += 20; 
-          }
-          
-          // 100점 초과 방지
-          if (score > 100) score = 100;
-          
-          // 디버깅 로그 (유사도가 어느 정도 있을 때만)
-          if (score > 10) {
-            console.log(`   📊 유사도: ${score.toFixed(1)}% (자카드 기반 + 핵심키워드 부스트)`);
-            console.log(`      - A: "${text1.substring(0, 30)}..."`);
-            console.log(`      - B: "${text2.substring(0, 30)}..."`);
-          }
-          
-          // 기존 코드와의 호환성을 위해 0~100 점수를 0~1.0 비율로 반환하지 않고, 
-          // 아래 로직에서 점수(0~100) 그대로 사용하거나, 여기서 100으로 나눠서 반환할 수 있음.
-          // 기존 코드가 finalSim(0.0~1.0)을 기대했으나, 여기선 점수 자체를 반환하고 비교 로직을 수정함.
-          return score;
-        };
-        
-        // 교차 검증된 항목 수 계산 (THRESHOLD: 30점)
-        let crossVerifiedCount = 0;
-        const THRESHOLD = 30;
-
-        searchResults.collected_facts.forEach((f1: any, i: number) => {
-          searchResults.collected_facts.forEach((f2: any, j: number) => {
-            if (i < j && f1.verified_by !== f2.verified_by) {
-              const score = calculateSimilarity(f1.fact || '', f2.fact || '');
-              // 30점 이상이면 교차 검증 성공으로 간주
-              if (score >= THRESHOLD) {
-                f1.cross_verified = true;
-                f2.cross_verified = true;
-                crossVerifiedCount++;
-                console.log(`   ✅ 교차 검증 성공! (점수: ${score.toFixed(1)}점)`);
-              }
-            }
-          });
+        // 1. 자카드 유사도 (Jaccard Similarity) = 교집합 / 합집합
+        let intersection = 0;
+        setA.forEach(word => {
+          if (setB.has(word)) intersection++;
         });
+
+        const union = new Set([...setA, ...setB]).size;
+        // 자카드 지수 (0~1) -> 점수화 (0~100)
+        let score = (intersection / union) * 100;
+
+        // 2. 핵심 키워드(Critical Keywords) 포함 시 가중치 부스트
+        let criticalMatchCount = 0;
+        CRITICAL_KEYWORDS.forEach(k => {
+           // 단순 포함 여부 체크
+           if (text1.includes(k) && text2.includes(k)) {
+              criticalMatchCount++;
+           }
+        });
+
+        // 핵심 키워드가 2개 이상 겹치면 +20점 가산
+        if (criticalMatchCount >= 2) {
+           score += 20; 
+        }
         
-        searchResults.cross_verified_count = crossVerifiedCount;
+        // 100점 초과 방지
+        if (score > 100) score = 100;
         
-        const geminiTotal = searchResults.gemini_found || 0;
-        const gptTotal = searchResults.gpt_found || 0;
+        // 디버깅 로그 (유사도가 어느 정도 있을 때만)
+        if (score > 10) {
+          console.log(`   📊 유사도: ${score.toFixed(1)}% (자카드 기반 + 핵심키워드 부스트)`);
+          console.log(`      - A: "${text1.substring(0, 30)}..."`);
+          console.log(`      - B: "${text2.substring(0, 30)}..."`);
+        }
         
-        console.log(`✅ 크로스체크 완료:`);
-        console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
-        console.log(`   🟢 GPT-5.2: ${gptTotal}개 정보`);
-        console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
-        
-        safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
-        
-      } else if (geminiResults) {
-        // Gemini만 성공
-        console.log('🔵 Gemini만 검색 성공');
-        searchResults = {
-          collected_facts: sortByKdcaHealthPriority(geminiResults.collected_facts || []),
-          key_statistics: sortByKdcaHealthPriority(geminiResults.key_statistics || []),
-          latest_guidelines: sortByKdcaHealthPriority(geminiResults.latest_guidelines || []),
-          cross_check_status: 'gemini_only',
-          gemini_found: geminiFactCount + geminiStatCount,
-          gpt_found: 0
-        };
-        safeProgress(`✅ Gemini 검색 완료: ${geminiFactCount + geminiStatCount}개 정보 수집`);
-        
-      } else if (gptResults) {
-        // GPT만 성공
-        console.log('🟢 GPT-5.2만 검색 성공');
-        searchResults = {
-          collected_facts: sortByKdcaHealthPriority(gptResults.collected_facts || []),
-          key_statistics: sortByKdcaHealthPriority(gptResults.key_statistics || []),
-          latest_guidelines: sortByKdcaHealthPriority(gptResults.latest_guidelines || []),
-          sources: gptResults.sources || [],
-          cross_check_status: 'gpt_only',
-          gemini_found: 0,
-          gpt_found: gptFactCount + gptStatCount
-        };
-        safeProgress(`✅ GPT-5.2 검색 완료: ${gptFactCount + gptStatCount}개 정보 수집`);
-        
-      } else {
-        // 둘 다 실패
-        console.error('❌ 듀얼 검색 모두 실패');
-        safeProgress('⚠️ 검색 실패 - AI 학습 데이터 기반으로 진행');
-        searchResults = {
-          collected_facts: [],
-          key_statistics: [],
-          latest_guidelines: [],
-          cross_check_status: 'failed',
-          error: '검색 실패'
-        };
-      }
+        // 기존 코드와의 호환성을 위해 0~100 점수를 0~1.0 비율로 반환하지 않고, 
+        // 아래 로직에서 점수(0~100) 그대로 사용하거나, 여기서 100으로 나눠서 반환할 수 있음.
+        // 기존 코드가 finalSim(0.0~1.0)을 기대했으나, 여기선 점수 자체를 반환하고 비교 로직을 수정함.
+        return score;
+      };
       
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
-      if (typeof onProgress === 'function') {
-        safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
-      }
+      // 교차 검증된 항목 수 계산 (THRESHOLD: 30점)
+      let crossVerifiedCount = 0;
+      const THRESHOLD = 30;
+
+      searchResults.collected_facts.forEach((f1: any, i: number) => {
+        searchResults.collected_facts.forEach((f2: any, j: number) => {
+          if (i < j && f1.verified_by !== f2.verified_by) {
+            const score = calculateSimilarity(f1.fact || '', f2.fact || '');
+            // 30점 이상이면 교차 검증 성공으로 간주
+            if (score >= THRESHOLD) {
+              f1.cross_verified = true;
+              f2.cross_verified = true;
+              crossVerifiedCount++;
+              console.log(`   ✅ 교차 검증 성공! (점수: ${score.toFixed(1)}점)`);
+            }
+          }
+        });
+      });
       
-      const gptSystemPrompt = getGPT52Prompt();
+      searchResults.cross_verified_count = crossVerifiedCount;
       
-      // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
-      const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
-        ? `🎯 듀얼 검색 크로스체크 완료!
+      const geminiTotal = searchResults.gemini_found || 0;
+      const gptTotal = searchResults.gpt_found || 0;
+      
+      console.log(`✅ 크로스체크 완료:`);
+      console.log(`   🔵 Gemini: ${geminiTotal}개 정보`);
+      console.log(`   🟢 GPT-5.2: ${gptTotal}개 정보`);
+      console.log(`   🔗 교차 검증: ${crossVerifiedCount}개`);
+      
+      safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
+      
+    } else if (geminiResults) {
+      // Gemini만 성공
+      console.log('🔵 Gemini만 검색 성공');
+      searchResults = {
+        collected_facts: sortByKdcaHealthPriority(geminiResults.collected_facts || []),
+        key_statistics: sortByKdcaHealthPriority(geminiResults.key_statistics || []),
+        latest_guidelines: sortByKdcaHealthPriority(geminiResults.latest_guidelines || []),
+        cross_check_status: 'gemini_only',
+        gemini_found: geminiFactCount + geminiStatCount,
+        gpt_found: 0
+      };
+      safeProgress(`✅ Gemini 검색 완료: ${geminiFactCount + geminiStatCount}개 정보 수집`);
+      
+    } else if (gptResults) {
+      // GPT만 성공
+      console.log('🟢 GPT-5.2만 검색 성공');
+      searchResults = {
+        collected_facts: sortByKdcaHealthPriority(gptResults.collected_facts || []),
+        key_statistics: sortByKdcaHealthPriority(gptResults.key_statistics || []),
+        latest_guidelines: sortByKdcaHealthPriority(gptResults.latest_guidelines || []),
+        sources: gptResults.sources || [],
+        cross_check_status: 'gpt_only',
+        gemini_found: 0,
+        gpt_found: gptFactCount + gptStatCount
+      };
+      safeProgress(`✅ GPT-5.2 검색 완료: ${gptFactCount + gptStatCount}개 정보 수집`);
+      
+    } else {
+      // 둘 다 실패
+      console.error('❌ 듀얼 검색 모두 실패');
+      safeProgress('⚠️ 검색 실패 - AI 학습 데이터 기반으로 진행');
+      searchResults = {
+        collected_facts: [],
+        key_statistics: [],
+        latest_guidelines: [],
+        cross_check_status: 'failed',
+        error: '검색 실패'
+      };
+    }
+    
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
+    if (typeof onProgress === 'function') {
+      safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
+    }
+    
+    const gptSystemPrompt = getGPT52Prompt();
+    
+    // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
+    const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
+      ? `🎯 듀얼 검색 크로스체크 완료!
 - Gemini 검색 결과: ${searchResults.gemini_found || 0}개 정보
 - GPT 검색 결과: ${searchResults.gpt_found || 0}개 정보  
 - 교차 검증된 정보: ${searchResults.cross_verified_count || 0}개 (가장 신뢰도 높음!)
 
 ⭐ 우선순위: cross_verified=true 또는 verified_by='both' 정보 > 단일 소스 정보`
-        : searchResults.cross_check_status === 'gemini_only'
-        ? '🔵 Gemini 단일 검색 결과입니다. GPT 검색이 실패하여 교차 검증되지 않았습니다.'
-        : '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.';
-      
-      const systemPrompt = `${gptSystemPrompt}
+      : searchResults.cross_check_status === 'gemini_only'
+      ? '🔵 Gemini 단일 검색 결과입니다. GPT 검색이 실패하여 교차 검증되지 않았습니다.'
+      : '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.';
+    
+    const systemPrompt = `${gptSystemPrompt}
 
 [🔍 듀얼 검색 + 크로스체크 결과]
 ${crossCheckGuide}
@@ -7820,12 +7820,12 @@ ${JSON.stringify(searchResults, null, 2)}
 - fact_score, safety_score, conversion_score → 높을수록 좋음 (100점 = 최고)
 - ai_smell_score → 낮을수록 좋음 (7점 이하 = 최고, 90점 = 최악)`;
 
-      console.log('📍 callOpenAI_Staged 호출 직전...');
-      console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
-      console.log('📍 시스템 프롬프트(검색 결과) 길이:', JSON.stringify(searchResults, null, 2).length);
-      
-      // 🚀 새로운 단계별 처리 시스템 사용
-      const contextData = `[🔍 듀얼 검색 + 크로스체크 결과]
+    console.log('📍 callOpenAI_Staged 호출 직전...');
+    console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
+    console.log('📍 시스템 프롬프트(검색 결과) 길이:', JSON.stringify(searchResults, null, 2).length);
+    
+    // 🚀 새로운 단계별 처리 시스템 사용
+    const contextData = `[🔍 듀얼 검색 + 크로스체크 결과]
 ${crossCheckGuide}
 
 아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
@@ -7840,94 +7840,95 @@ ${JSON.stringify(searchResults, null, 2)}
 2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기
 3. 교차 검증되지 않은 정보는 "~로 알려져 있습니다" 등 완화 표현 사용
 4. 두 소스에서 상충되는 정보가 있다면 더 공신력 있는 출처(학회, 정부기관) 우선`;
-      
-      const responseText = await callOpenAI_Staged(
-        isCardNews ? cardNewsPrompt : blogPrompt, 
-        contextData,
-        request.textLength || 2000,
-        safeProgress
-      );
-      console.log('📍 callOpenAI_Staged 응답 받음, 길이:', responseText?.length);
-      
-      result = JSON.parse(responseText);
-      
-      console.log('✅ GPT-5.2 작성 완료');
-      
-    } else {
-      // Gemini 사용 (기본값)
-      console.log('🔵 Using Gemini for text generation');
-      const response = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
-        contents: isCardNews ? cardNewsPrompt : blogPrompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              content: { type: Type.STRING },
-              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-              fact_check: {
-                type: Type.OBJECT,
-                properties: {
-                  fact_score: { type: Type.INTEGER },
-                  safety_score: { type: Type.INTEGER },
-                  conversion_score: { type: Type.INTEGER },
-                  ai_smell_score: { type: Type.INTEGER },
-                  verified_facts_count: { type: Type.INTEGER },
-                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
-              }
-            },
-            required: ["title", "content", "imagePrompts", "fact_check"]
-          }
+    
+    // GPT 호출 부분 주석 처리 (Gemini만 사용)
+    /*
+    const responseText = await callOpenAI_Staged(
+      isCardNews ? cardNewsPrompt : blogPrompt, 
+      contextData,
+      request.textLength || 2000,
+      safeProgress
+    );
+    console.log('📍 callOpenAI_Staged 응답 받음, 길이:', responseText?.length);
+    
+    result = JSON.parse(responseText);
+    
+    console.log('✅ GPT-5.2 작성 완료');
+    */
+    
+    // Gemini 사용 (기본값)
+    console.log('🔵 Using Gemini for text generation');
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: isCardNews ? cardNewsPrompt : blogPrompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            content: { type: Type.STRING },
+            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+            fact_check: {
+              type: Type.OBJECT,
+              properties: {
+                fact_score: { type: Type.INTEGER },
+                safety_score: { type: Type.INTEGER },
+                conversion_score: { type: Type.INTEGER },
+                ai_smell_score: { type: Type.INTEGER },
+                verified_facts_count: { type: Type.INTEGER },
+                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+              },
+              required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
+            }
+          },
+          required: ["title", "content", "imagePrompts", "fact_check"]
         }
-      });
-      result = JSON.parse(response.text || "{}");
-    }
+      }
+    });
+    result = JSON.parse(response.text || "{}");
     
     // 🔧 GPT-5.2는 다양한 필드명으로 반환할 수 있음 → content로 정규화
     if (!result.content) {
-      // 가능한 모든 필드명 체크
-      const possibleContentFields = ['contentHtml', 'body', 'html', 'htmlContent', 'bodyHtml', 'article', 'text'];
-      for (const field of possibleContentFields) {
-        if (result[field]) {
-          console.log(`✅ GPT-5.2 '${field}' 필드를 content로 정규화`);
-          result.content = result[field];
-          break;
-        }
+    // 가능한 모든 필드명 체크
+    const possibleContentFields = ['contentHtml', 'body', 'html', 'htmlContent', 'bodyHtml', 'article', 'text'];
+    for (const field of possibleContentFields) {
+      if (result[field]) {
+        console.log(`✅ GPT-5.2 '${field}' 필드를 content로 정규화`);
+        result.content = result[field];
+        break;
       }
+    }
     }
     
     // 디버그: result 객체의 모든 필드 출력
     console.log('📋 result 객체 필드:', Object.keys(result));
     if (!result.content) {
-      console.error('❌ content 필드를 찾을 수 없습니다. result:', JSON.stringify(result).substring(0, 500));
+    console.error('❌ content 필드를 찾을 수 없습니다. result:', JSON.stringify(result).substring(0, 500));
     }
     
     // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
     if (result.content && typeof result.content !== 'string') {
-      console.warn('AI returned non-string content, attempting to extract HTML...');
-      if (Array.isArray(result.content)) {
-        // 배열인 경우 각 항목에서 HTML 추출
-        result.content = result.content.map((item: any) => {
-          if (typeof item === 'string') return item;
-          if (item?.content) return item.content;
-          if (item?.html) return item.html;
-          return '';
-        }).join('');
-      } else if (typeof result.content === 'object') {
-        // 객체인 경우 content나 html 필드 추출
-        result.content = result.content.content || result.content.html || JSON.stringify(result.content);
-      }
+    console.warn('AI returned non-string content, attempting to extract HTML...');
+    if (Array.isArray(result.content)) {
+      // 배열인 경우 각 항목에서 HTML 추출
+      result.content = result.content.map((item: any) => {
+        if (typeof item === 'string') return item;
+        if (item?.content) return item.content;
+        if (item?.html) return item.html;
+        return '';
+      }).join('');
+    } else if (typeof result.content === 'object') {
+      // 객체인 경우 content나 html 필드 추출
+      result.content = result.content.content || result.content.html || JSON.stringify(result.content);
+    }
     }
     
     // 분석된 스타일 정보 추가
     if (analyzedBgColor) {
-      result.analyzedStyle = { backgroundColor: analyzedBgColor };
+    result.analyzedStyle = { backgroundColor: analyzedBgColor };
     }
     
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -7935,60 +7936,60 @@ ${JSON.stringify(searchResults, null, 2)}
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const hasContent = result.content || result.contentHtml;
     if (!isCardNews && hasContent && result.title) {
-      console.log('📊 SEO 자동 평가 시작...');
-      if (typeof onProgress === 'function') {
-        safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
-      }
-      
-      const MAX_REGENERATE_ATTEMPTS = 2; // 최대 재생성 횟수
-      let currentAttempt = 0;
-      
-      while (currentAttempt < MAX_REGENERATE_ATTEMPTS) {
-        try {
-          // content 또는 contentHtml 필드 지원
-          const htmlContent = result.contentHtml || result.content;
-          if (!htmlContent) {
-            console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
-            console.error('   - result 필드:', Object.keys(result));
+    console.log('📊 SEO 자동 평가 시작...');
+    if (typeof onProgress === 'function') {
+      safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
+    }
+    
+    const MAX_REGENERATE_ATTEMPTS = 2; // 최대 재생성 횟수
+    let currentAttempt = 0;
+    
+    while (currentAttempt < MAX_REGENERATE_ATTEMPTS) {
+      try {
+        // content 또는 contentHtml 필드 지원
+        const htmlContent = result.contentHtml || result.content;
+        if (!htmlContent) {
+          console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
+          console.error('   - result 필드:', Object.keys(result));
+          break;
+        }
+        
+        const seoReport = await evaluateSeoScore(
+          htmlContent,
+          result.title,
+          request.topic,
+          request.keywords || ''
+        );
+        
+        console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
+        
+        // SEO 점수를 결과에 추가
+        result.seoScore = seoReport;
+        
+        if (seoReport.total >= 90) {
+          console.log('✅ SEO 점수 90점 이상! 통과');
+          if (typeof onProgress === 'function') {
+            safeProgress(`✅ SEO 점수 ${seoReport.total}점 - 통과!`);
+          }
+          break;
+        } else {
+          currentAttempt++;
+          console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 90점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
+          
+          if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
+            console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
+            if (typeof onProgress === 'function') {
+              safeProgress(`⚠️ SEO 점수 ${seoReport.total}점 - 개선 권장`);
+            }
             break;
           }
           
-          const seoReport = await evaluateSeoScore(
-            htmlContent,
-            result.title,
-            request.topic,
-            request.keywords || ''
-          );
+          if (typeof onProgress === 'function') {
+            safeProgress(`🔄 SEO 점수 ${seoReport.total}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+          }
           
-          console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
-          
-          // SEO 점수를 결과에 추가
-          result.seoScore = seoReport;
-          
-          if (seoReport.total >= 90) {
-            console.log('✅ SEO 점수 90점 이상! 통과');
-            if (typeof onProgress === 'function') {
-              safeProgress(`✅ SEO 점수 ${seoReport.total}점 - 통과!`);
-            }
-            break;
-          } else {
-            currentAttempt++;
-            console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 90점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
-            
-            if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
-              console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
-              if (typeof onProgress === 'function') {
-                safeProgress(`⚠️ SEO 점수 ${seoReport.total}점 - 개선 권장`);
-              }
-              break;
-            }
-            
-            if (typeof onProgress === 'function') {
-              safeProgress(`🔄 SEO 점수 ${seoReport.total}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
-            }
-            
-            // SEO 개선 포인트를 포함한 재생성 프롬프트
-            const improvementPrompt = `
+          // SEO 개선 포인트를 포함한 재생성 프롬프트
+          const improvementPrompt = `
 [🚨 SEO 점수 개선 필수!]
 이전 글의 SEO 점수: ${seoReport.total}점 (90점 이상 필요)
 
@@ -8004,36 +8005,36 @@ ${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제�
 
 ${blogPrompt}`;
 
-            // 재생성
-            if (providerSettings.textGeneration === 'openai') {
-              const regenerateSystemPrompt = getGPT52Prompt();
-              const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
-              result = JSON.parse(newResponseText);
-            } else {
-              const newResponse = await ai.models.generateContent({
-                model: "gemini-3-pro-preview",
-                contents: improvementPrompt,
-                config: {
-                  tools: [{ googleSearch: {} }],
-                  responseMimeType: "application/json"
-                }
-              });
-              result = JSON.parse(newResponse.text || "{}");
-            }
-            
-            // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
-            if (!result.content && result.contentHtml) {
-              console.log('✅ 재생성 후 contentHtml을 content로 정규화');
-              result.content = result.contentHtml;
-            }
-            
-            console.log('🔄 재생성 완료, 다시 SEO 평가...');
+          // 재생성
+          if (providerSettings.textGeneration === 'openai') {
+            const regenerateSystemPrompt = getGPT52Prompt();
+            const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
+            result = JSON.parse(newResponseText);
+          } else {
+            const newResponse = await ai.models.generateContent({
+              model: "gemini-3-pro-preview",
+              contents: improvementPrompt,
+              config: {
+                tools: [{ googleSearch: {} }],
+                responseMimeType: "application/json"
+              }
+            });
+            result = JSON.parse(newResponse.text || "{}");
           }
-        } catch (seoError) {
-          console.error('❌ SEO 평가 오류:', seoError);
-          break;
+          
+          // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
+          if (!result.content && result.contentHtml) {
+            console.log('✅ 재생성 후 contentHtml을 content로 정규화');
+            result.content = result.contentHtml;
+          }
+          
+          console.log('🔄 재생성 완료, 다시 SEO 평가...');
         }
+      } catch (seoError) {
+        console.error('❌ SEO 평가 오류:', seoError);
+        break;
       }
+    }
     }
     
     return result;
@@ -8067,10 +8068,10 @@ const generatePressRelease = async (request: GenerationRequest, onProgress: (msg
   let learnedStyleInstruction = '';
   if (request.learnedStyleId) {
     try {
-      const { getStyleById, getStylePromptForGeneration } = await import('./writingStyleService');
-      const learnedStyle = getStyleById(request.learnedStyleId);
-      if (learnedStyle) {
-        learnedStyleInstruction = `
+    const { getStyleById, getStylePromptForGeneration } = await import('./writingStyleService');
+    const learnedStyle = getStyleById(request.learnedStyleId);
+    if (learnedStyle) {
+      learnedStyleInstruction = `
 [🎓 학습된 말투 적용 - 보도자료 스타일 유지하며 적용!]
 ${getStylePromptForGeneration(learnedStyle)}
 
@@ -8079,10 +8080,10 @@ ${getStylePromptForGeneration(learnedStyle)}
 - 문장 끝 패턴과 표현 스타일만 반영
 - 과도한 구어체는 지양
 `;
-        console.log('📝 보도자료에 학습된 말투 적용:', learnedStyle.name);
-      }
+      console.log('📝 보도자료에 학습된 말투 적용:', learnedStyle.name);
+    }
     } catch (e) {
-      console.warn('학습된 말투 로드 실패:', e);
+    console.warn('학습된 말투 로드 실패:', e);
     }
   }
   
@@ -8128,15 +8129,15 @@ ${learnedStyleInstruction}
     <h3>■ 주요 내용</h3>
     <p>[보도 핵심 내용 상세 설명 - 300~400자]</p>
     <ul>
-      <li>핵심 포인트 1</li>
-      <li>핵심 포인트 2</li>
-      <li>핵심 포인트 3</li>
+    <li>핵심 포인트 1</li>
+    <li>핵심 포인트 2</li>
+    <li>핵심 포인트 3</li>
     </ul>
     
     <h3>■ 전문가 코멘트</h3>
     <blockquote class="press-quote">
-      <p>"[${doctorName} ${doctorTitle}의 전문적이고 신뢰감 있는 코멘트 - 100~150자]"</p>
-      <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
+    <p>"[${doctorName} ${doctorTitle}의 전문적이고 신뢰감 있는 코멘트 - 100~150자]"</p>
+    <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
     </blockquote>
     
     <h3>■ 향후 계획</h3>
@@ -8145,15 +8146,15 @@ ${learnedStyleInstruction}
   
   <div class="press-footer">
     <div class="press-contact">
-      <h4>▣ 문의처</h4>
-      <p>${hospitalName} 홍보팀</p>
-      <p>전화: 02-0000-0000 / 이메일: pr@hospital.com</p>
+    <h4>▣ 문의처</h4>
+    <p>${hospitalName} 홍보팀</p>
+    <p>전화: 02-0000-0000 / 이메일: pr@hospital.com</p>
     </div>
     
     <div class="press-disclaimer">
-      <p>※ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.</p>
-      <p>※ 의학적 정보는 참고용이며, 정확한 진단과 치료는 반드시 전문의와 상담하시기 바랍니다.</p>
-      <p>※ 본 보도자료는 배포 전 반드시 내용 검토가 필요합니다.</p>
+    <p>※ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.</p>
+    <p>※ 의학적 정보는 참고용이며, 정확한 진단과 치료는 반드시 전문의와 상담하시기 바랍니다.</p>
+    <p>※ 본 보도자료는 배포 전 반드시 내용 검토가 필요합니다.</p>
     </div>
   </div>
 </div>
@@ -8237,7 +8238,7 @@ ${learnedStyleInstruction}
     model: 'gemini-3-pro-preview',
     contents: pressPrompt,
     config: {
-      responseMimeType: "text/plain"
+    responseMimeType: "text/plain"
     }
   });
   let pressContent = result.text || '';
@@ -8406,13 +8407,13 @@ ${learnedStyleInstruction}
     fullHtml: finalHtml,
     tags: [hospitalName, request.category, pressTypeLabel, request.topic],
     factCheck: {
-      fact_score: 90,
-      safety_score: 95,
-      conversion_score: 70,
-      ai_smell_score: 12, // 보도자료 기본값 - 경계선 수준
-      verified_facts_count: 5,
-      issues: [],
-      recommendations: ['보도 전 법무팀 검토 권장', '인용 통계 출처 확인 필요', 'AI 냄새 점수 확인 - 문장 패턴 다양화 권장']
+    fact_score: 90,
+    safety_score: 95,
+    conversion_score: 70,
+    ai_smell_score: 12, // 보도자료 기본값 - 경계선 수준
+    verified_facts_count: 5,
+    issues: [],
+    recommendations: ['보도 전 법무팀 검토 권장', '인용 통계 출처 확인 필요', 'AI 냄새 점수 확인 - 문장 패턴 다양화 권장']
     },
     postType: 'press_release'
   };
@@ -8439,83 +8440,83 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     safeProgress('🤖 미니 에이전트 방식으로 카드뉴스 생성 시작...');
     
     try {
-      // 미니 에이전트로 스토리 기획 + HTML 조립 + 이미지 프롬프트 생성
-      const agentResult = await generateCardNewsWithAgents(request, safeProgress);
-      
-      // 이미지 생성
-      const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
-      safeProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
-      
-      // 🎨 이미지 = 카드 전체! (텍스트가 이미지 안에 포함된 완성형)
-      const maxImages = request.slideCount || 6;
-      safeProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
-      
-      // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
-      const referenceImage = request.coverStyleImage || request.contentStyleImage;
-      const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
-      
-      // 🔍 디버그: imagePrompts 내용 확인
-      console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
-      
-      const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
-        generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt, referenceImage, copyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
-      ));
-      
-      // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
-      // 🚨 alt 속성에도 코드 문자열이 들어가지 않도록 필터링!
-      const cleanAltText = (text: string) => text
-        .replace(/[A-Za-z0-9+/=_-]{10,}/g, '')
-        .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '')
-        .replace(/[^\uAC00-\uD7AF가-힣a-zA-Z0-9\s.,!?~():\-]+/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .substring(0, 100); // alt 텍스트 길이 제한
-      
-      const cardSlides = images.map((img, idx) => {
-        if (img.data) {
-          return `
-            <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
-              <img src="${img.data}" alt="${cleanAltText(img.prompt)}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
-            </div>`;
-        }
-        return '';
-      }).filter(Boolean).join('\n');
-      
-      const finalHtml = `
-        <div class="card-news-container">
-          <h2 class="hidden-title">${agentResult.title}</h2>
-          <div class="card-grid-wrapper">
-            ${cardSlides}
-          </div>
-          <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
+    // 미니 에이전트로 스토리 기획 + HTML 조립 + 이미지 프롬프트 생성
+    const agentResult = await generateCardNewsWithAgents(request, safeProgress);
+    
+    // 이미지 생성
+    const styleName = STYLE_NAMES[request.imageStyle] || STYLE_NAMES.illustration;
+    safeProgress(`🎨 ${styleName} 스타일로 4:3 이미지 생성 중...`);
+    
+    // 🎨 이미지 = 카드 전체! (텍스트가 이미지 안에 포함된 완성형)
+    const maxImages = request.slideCount || 6;
+    safeProgress(`🎨 ${maxImages}장의 완성형 카드 이미지 생성 중...`);
+    
+    // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
+    const referenceImage = request.coverStyleImage || request.contentStyleImage;
+    const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
+    
+    // 🔍 디버그: imagePrompts 내용 확인
+    console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
+    
+    const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
+      generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt, referenceImage, copyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
+    ));
+    
+    // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
+    // 🚨 alt 속성에도 코드 문자열이 들어가지 않도록 필터링!
+    const cleanAltText = (text: string) => text
+      .replace(/[A-Za-z0-9+/=_-]{10,}/g, '')
+      .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '')
+      .replace(/[^\uAC00-\uD7AF가-힣a-zA-Z0-9\s.,!?~():\-]+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 100); // alt 텍스트 길이 제한
+    
+    const cardSlides = images.map((img, idx) => {
+      if (img.data) {
+        return `
+          <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
+            <img src="${img.data}" alt="${cleanAltText(img.prompt)}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: 100%; object-fit: cover;" />
+          </div>`;
+      }
+      return '';
+    }).filter(Boolean).join('\n');
+    
+    const finalHtml = `
+      <div class="card-news-container">
+        <h2 class="hidden-title">${agentResult.title}</h2>
+        <div class="card-grid-wrapper">
+          ${cardSlides}
         </div>
-      `.trim();
-      
-      safeProgress('✅ 카드뉴스 생성 완료!');
-      
-      return {
-        title: agentResult.title,
-        htmlContent: finalHtml,
-        imageUrl: images[0]?.data || "",
-        fullHtml: finalHtml,
-        tags: [],
-        factCheck: {
-          fact_score: 85,
-          safety_score: 90,
-          conversion_score: 80,
-          verified_facts_count: 5,
-          issues: [],
-          recommendations: []
-        },
-        postType: 'card_news',
-        imageStyle: request.imageStyle,
-        customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
-        cardPrompts: agentResult.cardPrompts // 재생성용 프롬프트 데이터
-      };
+        <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
+      </div>
+    `.trim();
+    
+    safeProgress('✅ 카드뉴스 생성 완료!');
+    
+    return {
+      title: agentResult.title,
+      htmlContent: finalHtml,
+      imageUrl: images[0]?.data || "",
+      fullHtml: finalHtml,
+      tags: [],
+      factCheck: {
+        fact_score: 85,
+        safety_score: 90,
+        conversion_score: 80,
+        verified_facts_count: 5,
+        issues: [],
+        recommendations: []
+      },
+      postType: 'card_news',
+      imageStyle: request.imageStyle,
+      customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
+      cardPrompts: agentResult.cardPrompts // 재생성용 프롬프트 데이터
+    };
     } catch (error) {
-      console.error('미니 에이전트 방식 실패, 기존 방식으로 폴백:', error);
-      safeProgress('⚠️ 미니 에이전트 실패, 기존 방식으로 재시도...');
-      // 기존 방식으로 폴백 (아래 코드로 계속)
+    console.error('미니 에이전트 방식 실패, 기존 방식으로 폴백:', error);
+    safeProgress('⚠️ 미니 에이전트 실패, 기존 방식으로 재시도...');
+    // 기존 방식으로 폴백 (아래 코드로 계속)
     }
   }
   
@@ -8523,19 +8524,19 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   const hasStyleRef = request.postType === 'card_news' && (request.coverStyleImage || request.contentStyleImage);
   if (hasStyleRef) {
     if (request.coverStyleImage && request.contentStyleImage) {
-      safeProgress('🎨 표지/본문 스타일 분석 중...');
+    safeProgress('🎨 표지/본문 스타일 분석 중...');
     } else if (request.coverStyleImage) {
-      safeProgress('🎨 표지 스타일 분석 중 (본문도 동일 적용)...');
+    safeProgress('🎨 표지 스타일 분석 중 (본문도 동일 적용)...');
     } else {
-      safeProgress('🎨 본문 스타일 분석 중...');
+    safeProgress('🎨 본문 스타일 분석 중...');
     }
   }
   
   const step1Msg = hasStyleRef
-      ? `✨ 참고 이미지 스타일로 카드뉴스 생성 중...`
-      : request.referenceUrl 
-      ? `🔗 레퍼런스 URL 분석 및 ${request.postType === 'card_news' ? '카드뉴스 템플릿 모방' : '스타일 벤치마킹'} 중...` 
-      : `네이버 로직 분석 및 ${request.postType === 'card_news' ? '카드뉴스 기획' : '블로그 원고 작성'} 중...`;
+    ? `✨ 참고 이미지 스타일로 카드뉴스 생성 중...`
+    : request.referenceUrl 
+    ? `🔗 레퍼런스 URL 분석 및 ${request.postType === 'card_news' ? '카드뉴스 템플릿 모방' : '스타일 벤치마킹'} 중...` 
+    : `네이버 로직 분석 및 ${request.postType === 'card_news' ? '카드뉴스 기획' : '블로그 원고 작성'} 중...`;
   
   safeProgress(step1Msg);
   
@@ -8561,15 +8562,15 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   if (maxImages > 0) {
     safeProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 ${maxImages}장 생성 중...`);
     images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
-      if (request.postType === 'card_news') {
-        // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
-        return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
-          .then(img => ({ index: i + 1, data: img, prompt: p }));
-      } else {
-        // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
-        return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
-          .then(img => ({ index: i + 1, data: img, prompt: p }));
-      }
+    if (request.postType === 'card_news') {
+      // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
+      return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
+        .then(img => ({ index: i + 1, data: img, prompt: p }));
+    } else {
+      // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
+      return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
+        .then(img => ({ index: i + 1, data: img, prompt: p }));
+    }
     }));
   } else {
     console.log('🖼️ 이미지 0장 설정 - 이미지 생성 스킵');
@@ -8590,14 +8591,14 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   if (body && (body.startsWith('[{') || body.startsWith('{"'))) {
     console.error('AI returned JSON instead of HTML, attempting to extract...');
     try {
-      const parsed = JSON.parse(body);
-      if (Array.isArray(parsed)) {
-        body = parsed.map(item => item.content || item.html || '').join('');
-      } else if (parsed.content || parsed.html) {
-        body = parsed.content || parsed.html;
-      }
+    const parsed = JSON.parse(body);
+    if (Array.isArray(parsed)) {
+      body = parsed.map(item => item.content || item.html || '').join('');
+    } else if (parsed.content || parsed.html) {
+      body = parsed.content || parsed.html;
+    }
     } catch (e) {
-      console.error('Failed to parse JSON content:', e);
+    console.error('Failed to parse JSON content:', e);
     }
   }
   
@@ -8618,29 +8619,29 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     const sentences = plainText.split(/[.!?。]/).filter(s => s.trim().length > 5);
     
     for (let i = 0; i < slideCount; i++) {
-      const isFirst = i === 0;
-      const isLast = i === slideCount - 1;
-      const sentenceIdx = Math.min(i, sentences.length - 1);
-      const sentence = sentences[sentenceIdx] || request.topic;
-      
-      let subtitle = isFirst ? '알아보자!' : isLast ? '함께 실천해요' : `포인트 ${i}`;
-      let mainTitle = isFirst 
-        ? `${request.topic}<br/><span class="card-highlight">총정리</span>`
-        : isLast 
-        ? `건강한 습관<br/><span class="card-highlight">시작해요!</span>`
-        : sentence.slice(0, 15) + (sentence.length > 15 ? '...' : '');
-      let desc = sentence.slice(0, 50) || '건강한 생활을 위한 정보를 확인하세요.';
-      
-      fallbackSlides.push(`
-        <div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; overflow: hidden;">
-          <div style="padding: 32px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%;">
-            <p class="card-subtitle" style="font-size: 14px; font-weight: 700; color: #3B82F6; margin-bottom: 8px;">${subtitle}</p>
-            <p class="card-main-title" style="font-size: 28px; font-weight: 900; color: #1E293B; line-height: 1.3; margin: 0 0 16px 0;">${mainTitle}</p>
-            <div class="card-img-container" style="width: 100%; margin: 16px 0;">[IMG_${i + 1}]</div>
-            <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.6; font-weight: 500; max-width: 90%;">${desc}</p>
-          </div>
+    const isFirst = i === 0;
+    const isLast = i === slideCount - 1;
+    const sentenceIdx = Math.min(i, sentences.length - 1);
+    const sentence = sentences[sentenceIdx] || request.topic;
+    
+    let subtitle = isFirst ? '알아보자!' : isLast ? '함께 실천해요' : `포인트 ${i}`;
+    let mainTitle = isFirst 
+      ? `${request.topic}<br/><span class="card-highlight">총정리</span>`
+      : isLast 
+      ? `건강한 습관<br/><span class="card-highlight">시작해요!</span>`
+      : sentence.slice(0, 15) + (sentence.length > 15 ? '...' : '');
+    let desc = sentence.slice(0, 50) || '건강한 생활을 위한 정보를 확인하세요.';
+    
+    fallbackSlides.push(`
+      <div class="card-slide" style="background: linear-gradient(180deg, #E8F4FD 0%, #F0F9FF 100%); border-radius: 24px; overflow: hidden;">
+        <div style="padding: 32px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; height: 100%;">
+          <p class="card-subtitle" style="font-size: 14px; font-weight: 700; color: #3B82F6; margin-bottom: 8px;">${subtitle}</p>
+          <p class="card-main-title" style="font-size: 28px; font-weight: 900; color: #1E293B; line-height: 1.3; margin: 0 0 16px 0;">${mainTitle}</p>
+          <div class="card-img-container" style="width: 100%; margin: 16px 0;">[IMG_${i + 1}]</div>
+          <p class="card-desc" style="font-size: 15px; color: #475569; line-height: 1.6; font-weight: 500; max-width: 90%;">${desc}</p>
         </div>
-      `);
+      </div>
+    `);
     }
     body = fallbackSlides.join('\n');
   }
@@ -8648,16 +8649,16 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   images.forEach(img => {
     const pattern = new RegExp(`\\[IMG_${img.index}\\]`, "gi");
     if (img.data) {
-      let imgHtml = "";
-      if (request.postType === 'card_news') {
-          imgHtml = `<img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: auto; display: block;" />`;
-      } else {
-          imgHtml = `<div class="content-image-wrapper"><img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" /></div>`;
-      }
-      body = body.replace(pattern, imgHtml);
+    let imgHtml = "";
+    if (request.postType === 'card_news') {
+        imgHtml = `<img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" class="card-full-img" style="width: 100%; height: auto; display: block;" />`;
     } else {
-      // 이미지 생성 실패 시 마커 제거
-      body = body.replace(pattern, '');
+        imgHtml = `<div class="content-image-wrapper"><img src="${img.data}" alt="${img.prompt}" data-index="${img.index}" /></div>`;
+    }
+    body = body.replace(pattern, imgHtml);
+    } else {
+    // 이미지 생성 실패 시 마커 제거
+    body = body.replace(pattern, '');
     }
   });
   
@@ -8670,64 +8671,64 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     const bgGradient = bgColor.includes('gradient') ? bgColor : `linear-gradient(180deg, ${bgColor} 0%, ${bgColor}dd 100%)`;
     // 기존 card-slide의 background 스타일을 분석된 색상으로 교체
     body = body.replace(
-      /(<div[^>]*class="[^"]*card-slide[^"]*"[^>]*style="[^"]*)background:[^;]*;?/gi,
-      `$1background: ${bgGradient};`
+    /(<div[^>]*class="[^"]*card-slide[^"]*"[^>]*style="[^"]*)background:[^;]*;?/gi,
+    `$1background: ${bgGradient};`
     );
     // 만약 background 스타일이 없는 card-slide가 있다면 추가
     body = body.replace(
-      /<div([^>]*)class="([^"]*card-slide[^"]*)"([^>]*)>/gi,
-      (match, pre, cls, post) => {
-        if (match.includes('style="')) {
-          // 이미 style이 있지만 background가 없으면 추가
-          if (!match.includes('background:')) {
-            return match.replace('style="', `style="background: ${bgGradient}; `);
-          }
-          return match;
-        } else {
-          // style이 없으면 추가
-          return `<div${pre}class="${cls}"${post} style="background: ${bgGradient};">`;
+    /<div([^>]*)class="([^"]*card-slide[^"]*)"([^>]*)>/gi,
+    (match, pre, cls, post) => {
+      if (match.includes('style="')) {
+        // 이미 style이 있지만 background가 없으면 추가
+        if (!match.includes('background:')) {
+          return match.replace('style="', `style="background: ${bgGradient}; `);
         }
+        return match;
+      } else {
+        // style이 없으면 추가
+        return `<div${pre}class="${cls}"${post} style="background: ${bgGradient};">`;
       }
+    }
     );
     safeProgress(`🎨 템플릿 색상(${bgColor}) 적용 완료`);
   }
 
   let finalHtml = "";
   if (request.postType === 'card_news') {
-      finalHtml = `
-      <div class="card-news-container">
-         <h2 class="hidden-title">${textData.title}</h2>
-         <div class="card-grid-wrapper">
-            ${body}
-         </div>
-         <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
-      </div>
-      `.trim();
+    finalHtml = `
+    <div class="card-news-container">
+       <h2 class="hidden-title">${textData.title}</h2>
+       <div class="card-grid-wrapper">
+          ${body}
+       </div>
+       <div class="legal-box-card">${MEDICAL_DISCLAIMER}</div>
+    </div>
+    `.trim();
   } else {
-      // 블로그 포스트: 맨 위에 메인 제목(h2) 추가 (중복 방지)
-      const mainTitle = request.topic || textData.title;
-      
-      // 이미 main-title이 있는지 확인
-      const hasMainTitle = body.includes('class="main-title"') || body.includes('class=\'main-title\'');
-      
-      if (hasMainTitle) {
-        // 이미 제목이 있으면 그대로 사용
-        if (body.includes('class="naver-post-container"')) {
-          finalHtml = body;
-        } else {
-          finalHtml = `<div class="naver-post-container">${body}</div>`;
-        }
+    // 블로그 포스트: 맨 위에 메인 제목(h2) 추가 (중복 방지)
+    const mainTitle = request.topic || textData.title;
+    
+    // 이미 main-title이 있는지 확인
+    const hasMainTitle = body.includes('class="main-title"') || body.includes('class=\'main-title\'');
+    
+    if (hasMainTitle) {
+      // 이미 제목이 있으면 그대로 사용
+      if (body.includes('class="naver-post-container"')) {
+        finalHtml = body;
       } else {
-        // 제목이 없으면 추가
-        if (body.includes('class="naver-post-container"')) {
-          finalHtml = body.replace(
-            '<div class="naver-post-container">',
-            `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>`
-          );
-        } else {
-          finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
-        }
+        finalHtml = `<div class="naver-post-container">${body}</div>`;
       }
+    } else {
+      // 제목이 없으면 추가
+      if (body.includes('class="naver-post-container"')) {
+        finalHtml = body.replace(
+          '<div class="naver-post-container">',
+          `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>`
+        );
+      } else {
+        finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
+      }
+    }
   }
 
   // ============================================
@@ -8739,13 +8740,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   // 블로그 포스트인 경우 SEO 점수 확인 (이미 평가된 경우 스킵)
   if (request.postType === 'blog') {
     if (seoScore) {
-      // 이미 generateWithAgentMode에서 SEO 평가 및 재생성이 완료됨
-      console.log('📊 이미 평가된 SEO 점수 사용:', seoScore.total);
-      if (seoScore.total >= 90) {
-        safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
-      } else {
-        safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
-      }
+    // 이미 generateWithAgentMode에서 SEO 평가 및 재생성이 완료됨
+    console.log('📊 이미 평가된 SEO 점수 사용:', seoScore.total);
+    if (seoScore.total >= 90) {
+      safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
+    } else {
+      safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
+    }
     }
     
     // ============================================
@@ -8755,11 +8756,11 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     const MAX_AI_SMELL_SCORE = 15;
     
     if (aiSmellScore > MAX_AI_SMELL_SCORE) {
-      console.log(`🤖 AI 냄새 점수 ${aiSmellScore}점 > 15점, 자동 개선 시도`);
-      safeProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
-      
-      try {
-        const aiSmellImprovementPrompt = `
+    console.log(`🤖 AI 냄새 점수 ${aiSmellScore}점 > 15점, 자동 개선 시도`);
+    safeProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
+    
+    try {
+      const aiSmellImprovementPrompt = `
 당신은 AI 냄새를 제거하는 전문가입니다.
 아래 블로그 글의 AI 냄새 점수가 ${aiSmellScore}점입니다. 15점 이하로 줄여주세요.
 
@@ -8779,83 +8780,83 @@ ${finalHtml.substring(0, 6000)}
   "improved_body": "개선된 본문 HTML (naver-post-container 클래스 유지)",
   "changes_made": ["변경한 내용 1", "변경한 내용 2", ...]
 }`;
-        
-        const improvedAiText = await callOpenAI(aiSmellImprovementPrompt, 'AI 냄새 제거 전문가로서 사람이 쓴 것처럼 자연스럽게 개선해주세요.');
-        
-        let improvedAiData;
-        try {
-          const jsonMatch = improvedAiText.match(/\{[\s\S]*\}/);
-          improvedAiData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-        } catch {
-          console.warn('AI 냄새 개선 응답 JSON 파싱 실패');
-        }
-        
-        if (improvedAiData?.improved_body) {
-          const improvedMainTitle = request.topic || textData.title;
-          if (improvedAiData.improved_body.includes('class="naver-post-container"')) {
-            finalHtml = improvedAiData.improved_body.replace(
-              '<div class="naver-post-container">',
-              `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>`
-            );
-          } else {
-            finalHtml = `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>${improvedAiData.improved_body}</div>`;
-          }
-          
-          // fact_check의 ai_smell_score 업데이트 (추정값)
-          if (textData.fact_check) {
-            textData.fact_check.ai_smell_score = Math.max(0, aiSmellScore - 10);
-          }
-          
-          console.log('✅ AI 냄새 개선 완료:', improvedAiData.changes_made);
-          safeProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
-        }
-        
-      } catch (aiSmellError) {
-        console.error('AI 냄새 개선 실패:', aiSmellError);
-        safeProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
-      }
-    } else if (aiSmellScore >= 8 && aiSmellScore <= 15) {
-      // ============================================
-      // 🔍 8~15점 경계선: 수정 위치 상세 분석
-      // ============================================
-      console.log(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...`);
-      safeProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
       
+      const improvedAiText = await callOpenAI(aiSmellImprovementPrompt, 'AI 냄새 제거 전문가로서 사람이 쓴 것처럼 자연스럽게 개선해주세요.');
+      
+      let improvedAiData;
       try {
-        const aiSmellAnalysis = await analyzeAiSmell(finalHtml, request.topic);
-        
-        // fact_check에 상세 분석 결과 추가
-        if (textData.fact_check) {
-          textData.fact_check.ai_smell_analysis = aiSmellAnalysis;
-        }
-        
-        // 우선 수정 항목 출력
-        const topIssues = aiSmellAnalysis.priority_fixes?.slice(0, 3) || [];
-        console.log('🔍 AI 냄새 수정 필요 위치:', topIssues);
-        
-        if (topIssues.length > 0) {
-          safeProgress(`🔍 수정 필요 위치 발견! 상세 분석 완료`);
-          console.log('📋 상세 분석 결과:', {
-            total_score: aiSmellAnalysis.total_score,
-            sentence_rhythm: aiSmellAnalysis.sentence_rhythm?.score,
-            judgment_avoidance: aiSmellAnalysis.judgment_avoidance?.score,
-            lack_of_realism: aiSmellAnalysis.lack_of_realism?.score,
-            template_structure: aiSmellAnalysis.template_structure?.score,
-            fake_empathy: aiSmellAnalysis.fake_empathy?.score,
-            cta_failure: aiSmellAnalysis.cta_failure?.score
-          });
-        }
-        
-        safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
-        
-      } catch (analysisError) {
-        console.error('AI 냄새 상세 분석 실패:', analysisError);
-        safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
+        const jsonMatch = improvedAiText.match(/\{[\s\S]*\}/);
+        improvedAiData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        console.warn('AI 냄새 개선 응답 JSON 파싱 실패');
       }
       
+      if (improvedAiData?.improved_body) {
+        const improvedMainTitle = request.topic || textData.title;
+        if (improvedAiData.improved_body.includes('class="naver-post-container"')) {
+          finalHtml = improvedAiData.improved_body.replace(
+            '<div class="naver-post-container">',
+            `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>`
+          );
+        } else {
+          finalHtml = `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>${improvedAiData.improved_body}</div>`;
+        }
+        
+        // fact_check의 ai_smell_score 업데이트 (추정값)
+        if (textData.fact_check) {
+          textData.fact_check.ai_smell_score = Math.max(0, aiSmellScore - 10);
+        }
+        
+        console.log('✅ AI 냄새 개선 완료:', improvedAiData.changes_made);
+        safeProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
+      }
+      
+    } catch (aiSmellError) {
+      console.error('AI 냄새 개선 실패:', aiSmellError);
+      safeProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
+    }
+    } else if (aiSmellScore >= 8 && aiSmellScore <= 15) {
+    // ============================================
+    // 🔍 8~15점 경계선: 수정 위치 상세 분석
+    // ============================================
+    console.log(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...`);
+    safeProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
+    
+    try {
+      const aiSmellAnalysis = await analyzeAiSmell(finalHtml, request.topic);
+      
+      // fact_check에 상세 분석 결과 추가
+      if (textData.fact_check) {
+        textData.fact_check.ai_smell_analysis = aiSmellAnalysis;
+      }
+      
+      // 우선 수정 항목 출력
+      const topIssues = aiSmellAnalysis.priority_fixes?.slice(0, 3) || [];
+      console.log('🔍 AI 냄새 수정 필요 위치:', topIssues);
+      
+      if (topIssues.length > 0) {
+        safeProgress(`🔍 수정 필요 위치 발견! 상세 분석 완료`);
+        console.log('📋 상세 분석 결과:', {
+          total_score: aiSmellAnalysis.total_score,
+          sentence_rhythm: aiSmellAnalysis.sentence_rhythm?.score,
+          judgment_avoidance: aiSmellAnalysis.judgment_avoidance?.score,
+          lack_of_realism: aiSmellAnalysis.lack_of_realism?.score,
+          template_structure: aiSmellAnalysis.template_structure?.score,
+          fake_empathy: aiSmellAnalysis.fake_empathy?.score,
+          cta_failure: aiSmellAnalysis.cta_failure?.score
+        });
+      }
+      
+      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
+      
+    } catch (analysisError) {
+      console.error('AI 냄새 상세 분석 실패:', analysisError);
+      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
+    }
+    
     } else {
-      console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (7점 이하)`);
-      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
+    console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (7점 이하)`);
+    safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
     }
   }
 
