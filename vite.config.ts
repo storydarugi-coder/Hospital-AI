@@ -11,12 +11,19 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: './src/client.tsx',
           output: {
-            entryFileNames: 'static/client.js'
+            entryFileNames: 'static/client.js',
+            manualChunks: {
+              'vendor-react': ['react', 'react-dom'],
+              'vendor-google': ['@google/genai'],
+              'vendor-utils': ['docx', 'file-saver', 'html2canvas'],
+              'supabase': ['@supabase/supabase-js']
+            }
           }
         },
         outDir: 'dist',
         emptyOutDir: false,
-        copyPublicDir: false
+        copyPublicDir: false,
+        chunkSizeWarningLimit: 1000
       },
       plugins: [react()]
     }
