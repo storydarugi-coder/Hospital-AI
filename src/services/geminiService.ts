@@ -5,6 +5,9 @@ import { getStagePrompt } from "../lib/gpt52-prompts-staged";
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
 
+// OpenAI API 프록시 URL (CORS 해결)
+const OPENAI_PROXY_URL = '/api/openai-chat';
+
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
   if (!apiKey) {
@@ -956,11 +959,11 @@ const callOpenAI_Staged = async (
     console.log(`🔍 [1단계] System Prompt 길이: ${stage1SystemPrompt.length}자`);
     console.log(`🔍 [1단계] User Prompt 길이: ${initialPrompt.length}자`);
     
-    const response1 = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response1 = await fetch(OPENAI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-OpenAI-Key': apiKey
       },
       body: JSON.stringify({
         model: 'gpt-5.2',
@@ -999,11 +1002,11 @@ const callOpenAI_Staged = async (
     const stage2Prompt = getStagePrompt(2, textLength);
     const stage2SystemPrompt = `${stage2Prompt}\n\n아래는 1단계에서 생성된 초안입니다. AI 냄새를 제거하고 자연스럽게 수정해주세요.`;
     
-    const response2 = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response2 = await fetch(OPENAI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-OpenAI-Key': apiKey
       },
       body: JSON.stringify({
         model: 'gpt-5.2',
@@ -1040,11 +1043,11 @@ const callOpenAI_Staged = async (
     const stage3Prompt = getStagePrompt(3);
     const stage3SystemPrompt = `${stage3Prompt}\n\n아래는 2단계까지 수정된 글입니다. SEO를 최적화해주세요.`;
     
-    const response3 = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response3 = await fetch(OPENAI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-OpenAI-Key': apiKey
       },
       body: JSON.stringify({
         model: 'gpt-5.2',
@@ -1081,11 +1084,11 @@ const callOpenAI_Staged = async (
     const stage4Prompt = getStagePrompt(4);
     const stage4SystemPrompt = `${stage4Prompt}\n\n아래는 3단계까지 수정된 글입니다. 의료법을 100% 준수하도록 검증하고 수정해주세요.`;
     
-    const response4 = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response4 = await fetch(OPENAI_PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'X-OpenAI-Key': apiKey
       },
       body: JSON.stringify({
         model: 'gpt-5.2',
@@ -1143,11 +1146,11 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
         ? prompt 
         : `${prompt}\n\n(응답은 반드시 JSON 형식으로 해주세요)`;
       
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(OPENAI_PROXY_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
+          'X-OpenAI-Key': apiKey
         },
         body: JSON.stringify({
           model: 'gpt-5.2',
