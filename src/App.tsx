@@ -326,6 +326,8 @@ const App: React.FC = () => {
         // 로그인 성공 시 앱으로 이동 (OAuth 리다이렉트 포함)
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('[Auth Event] Login success, navigating to app');
+          // 🔧 authLoading을 false로 설정 (로딩 화면 해제)
+          setAuthLoading(false);
           // URL 정리 후 앱으로 이동
           if (window.location.hash.includes('access_token') || window.location.hash.includes('refresh_token')) {
             window.history.replaceState(null, '', window.location.pathname + '#app');
@@ -337,6 +339,8 @@ const App: React.FC = () => {
         setSupabaseUser(null);
         setUserProfile(null);
         setIsLoggedIn(false);
+        // 🔧 로그아웃 시에도 authLoading 해제
+        setAuthLoading(false);
       }
     });
 
