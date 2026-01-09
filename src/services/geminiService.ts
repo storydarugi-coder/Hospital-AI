@@ -7950,6 +7950,12 @@ ${blogPrompt}`;
               result = JSON.parse(newResponse.text || "{}");
             }
             
+            // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
+            if (!result.content && result.contentHtml) {
+              console.log('✅ 재생성 후 contentHtml을 content로 정규화');
+              result.content = result.contentHtml;
+            }
+            
             console.log('🔄 재생성 완료, 다시 SEO 평가...');
           }
         } catch (seoError) {
@@ -8499,11 +8505,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     safeProgress('📝 이미지 없이 텍스트만 생성 완료');
   }
 
-  let body = textData.content || '';
+  // 🔧 content 또는 contentHtml 필드 둘 다 지원
+  let body = textData.content || textData.contentHtml || '';
   
   // 방어 코드: body가 없으면 에러
   if (!body || body.trim() === '') {
-    console.error('❌ textData.content가 비어있습니다:', textData);
+    console.error('❌ textData.content/contentHtml 둘 다 비어있습니다:', textData);
+    console.error('   - 사용 가능한 필드:', Object.keys(textData));
     throw new Error('AI가 콘텐츠를 생성하지 못했습니다. 다시 시도해주세요.');
   }
   
