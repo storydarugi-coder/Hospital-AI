@@ -7245,8 +7245,8 @@ ${getStylePromptForGeneration(learnedStyle)}
     - 반드시 <div class="card-slide"> 구조의 슬라이드 형식으로 작성하세요!
     - 각 슬라이드는 짧은 텍스트(제목 12자, 설명 20자 이내)만 포함합니다!
     
-    ${MEDICAL_SAFETY_SYSTEM_PROMPT}
-    ${getAIFeedbackPrompt()}
+    ${medicalSafetyPrompt}
+    ${aiFeedbackRules}
     ${writingStylePrompt}
     ${getWritingStyleCommonRules()}
     ${benchmarkingInstruction}
