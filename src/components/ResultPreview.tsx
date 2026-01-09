@@ -3334,37 +3334,6 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
         </div>
         
-        {/* 블로그 레이아웃 스타일 (블로그만 표시) */}
-        {content.postType !== 'card_news' && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`text-xs font-black ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>🎨 블로그 레이아웃 스타일:</span>
-              <span className={`text-[10px] font-medium ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{CSS_THEMES[currentTheme].description}</span>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              {(['modern', 'premium', 'minimal', 'warm', 'professional'] as CssTheme[]).map((theme) => {
-                const themeInfo = CSS_THEMES[theme];
-                const isActive = currentTheme === theme;
-                return (
-                  <button
-                    key={theme}
-                    type="button"
-                    onClick={() => setCurrentTheme(theme)}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold transition-all border-2 ${
-                      isActive
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
-                        : darkMode 
-                          ? 'bg-slate-700 text-slate-300 border-slate-600 hover:border-slate-500'
-                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                    }`}
-                  >
-                    {themeInfo.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
       <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
