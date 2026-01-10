@@ -362,10 +362,6 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
-    console.log('🎯 handleGenerate 호출됨');
-    console.log('📦 request 전체:', JSON.stringify(request, null, 2));
-    console.log('📋 request.postType:', request.postType, 'typeof:', typeof request.postType);
-
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
       localStorage.removeItem('hospitalai_autosave');
