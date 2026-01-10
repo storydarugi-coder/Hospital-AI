@@ -1502,7 +1502,7 @@ const getMedicalSafetyPrompt = () => {
 ✅ "~도움이 될 수 있습니다", "~알려져 있습니다"
 
 ---
-📈 [SEO 90점 이상 확보 규칙] - 네이버 검색 최적화
+📈 [SEO 85점 이상 확보 규칙] - 네이버 검색 최적화
 ---
 
 **1. 핵심 키워드 배치 규칙 (과다 사용 금지!)**
@@ -5696,7 +5696,7 @@ ${JSON.stringify(searchResults, null, 2)}
     result.analyzedStyle = { backgroundColor: analyzedBgColor };
     }
     
-    // 🎯 SEO 자동 평가 + 90점 미만 시 재생성 (블로그만)
+    // 🎯 SEO 자동 평가 + 85점 미만 시 재생성 (블로그만)
     const hasContent = result.content || result.contentHtml;
     if (!isCardNews && hasContent && result.title) {
     console.log('📊 SEO 자동 평가 시작...');
@@ -5734,15 +5734,15 @@ ${JSON.stringify(searchResults, null, 2)}
           safeProgress(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
         }
         
-        if (seoReport.total >= 90) {
-          console.log('✅ SEO 점수 90점 이상! 통과');
+        if (seoReport.total >= 85) {
+          console.log('✅ SEO 점수 85점 이상! 통과');
           if (typeof onProgress === 'function') {
             safeProgress(`✅ SEO 점수 ${seoReport.total}점 - 통과!`);
           }
           break;
         } else {
           currentAttempt++;
-          console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 90점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
+          console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 85점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
           
           if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
             console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
@@ -5759,12 +5759,12 @@ ${JSON.stringify(searchResults, null, 2)}
           // SEO 개선 포인트를 포함한 재생성 프롬프트
           const improvementPrompt = `
 [🚨 SEO 점수 개선 필수!]
-이전 글의 SEO 점수: ${seoReport.total}점 (90점 이상 필요)
+이전 글의 SEO 점수: ${seoReport.total}점 (85점 이상 필요)
 
 [개선이 필요한 항목]
 ${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제목 개선\n- 구조화 강화'}
 
-위 피드백을 반영하여 SEO 점수 90점 이상이 되도록 다시 작성해주세요.
+위 피드백을 반영하여 SEO 점수 85점 이상이 되도록 다시 작성해주세요.
 특히:
 1. 제목 앞 50%에 핵심 키워드 배치
 2. 본문에 키워드 자연스럽게 5-8회 포함
@@ -6537,7 +6537,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     if (seoScore) {
     // 이미 generateWithAgentMode에서 SEO 평가 및 재생성이 완료됨
     console.log('📊 이미 평가된 SEO 점수 사용:', seoScore.total);
-    if (seoScore.total >= 90) {
+    if (seoScore.total >= 85) {
       safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
     } else {
       safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
@@ -7013,7 +7013,7 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
  * ④ 의료법 안전성 + 신뢰 신호 (20점)
  * ⑤ 전환 연결성 (10점)
  * 
- * 90점 미만: 재설계/재작성 권장
+ * 85점 미만: 재설계/재작성 권장
  */
 export const evaluateSeoScore = async (
   htmlContent: string,
@@ -7165,7 +7165,7 @@ ${safeHtmlContent.substring(0, 8000)}
 [중요]
 
 1. SEO 점수는 "완성도"가 아니라 "비교 지표"로 활용됩니다
-2. 90점 미만은 재설계/재작성이 필요한 수준입니다
+2. 85점 미만은 재설계/재작성이 필요한 수준입니다
 3. 각 항목별로 구체적인 개선 피드백을 반드시 작성하세요
 4. 의료법 안전성은 다른 항목보다 엄격하게 평가하세요
 5. 현재 시점(${currentYear}년) 기준 네이버 SEO 트렌드 반영
@@ -7176,7 +7176,7 @@ ${safeHtmlContent.substring(0, 8000)}
 - 구체적인 개선 방법 제안
 
 🎯 **improvement_suggestions 필수 작성!**
-90점 이상 달성을 위한 구체적이고 실행 가능한 개선 제안 3~5개를 배열로 제공해주세요.
+85점 이상 달성을 위한 구체적이고 실행 가능한 개선 제안 3~5개를 배열로 제공해주세요.
 예시:
 - "제목 앞부분에 '겨울철' 시기 키워드 추가"
 - "첫 문단에 구체적인 상황 묘사 추가 (예: '아침에 일어났는데...')"
@@ -7255,7 +7255,7 @@ JSON 형식으로 응답해주세요.`;
             improvement_suggestions: {
               type: Type.ARRAY,
               items: { type: Type.STRING },
-              description: "90점 이상 달성을 위한 구체적인 개선 제안 3~5개"
+              description: "85점 이상 달성을 위한 구체적인 개선 제안 3~5개"
             }
           },
           required: ["total", "title", "keyword_structure", "user_retention", "medical_safety", "conversion", "improvement_suggestions"]

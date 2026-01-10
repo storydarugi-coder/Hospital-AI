@@ -2113,14 +2113,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   <div className="flex items-center gap-2">
                     {seoScore ? (
                       <>
-                        <span className={`text-3xl font-black ${seoScore.total >= 90 ? 'text-emerald-400' : seoScore.total >= 70 ? 'text-amber-400' : 'text-red-400'}`}>
+                        <span className={`text-3xl font-black ${seoScore.total >= 85 ? 'text-emerald-400' : seoScore.total >= 70 ? 'text-amber-400' : 'text-red-400'}`}>
                           {seoScore.total}점
                         </span>
                         <button
                           onClick={() => setShowSeoDetail(true)}
                           className="text-[10px] opacity-70 hover:opacity-100 underline"
                         >
-                          {seoScore.total >= 90 ? '✅ 최적화' : seoScore.total >= 70 ? '⚠️ 개선필요' : '🚨 재설계'}
+                          {seoScore.total >= 85 ? '✅ 최적화' : seoScore.total >= 70 ? '⚠️ 개선필요' : '🚨 재설계'}
                         </button>
                       </>
                     ) : (
@@ -2311,7 +2311,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black ${
-                  seoScore.total >= 90 ? 'bg-emerald-100 text-emerald-600' : 
+                  seoScore.total >= 85 ? 'bg-emerald-100 text-emerald-600' : 
                   seoScore.total >= 70 ? 'bg-amber-100 text-amber-600' : 
                   'bg-red-100 text-red-600'
                 }`}>
@@ -2320,7 +2320,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 <div>
                   <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>📊 SEO 점수 분석</div>
                   <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {seoScore.total >= 90 ? '✅ 상위 노출 가능성 높음' : seoScore.total >= 70 ? '⚠️ 개선 권장' : '🚨 90점 미만 - 재설계 필요'}
+                    {seoScore.total >= 85 ? '✅ 상위 노출 가능성 높음' : seoScore.total >= 70 ? '⚠️ 개선 권장' : '🚨 85점 미만 - 재설계 필요'}
                   </div>
                 </div>
               </div>
@@ -2456,21 +2456,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
               {/* 결론 */}
               <div className={`rounded-xl p-4 border-2 ${
-                seoScore.total >= 90 ? 'border-emerald-400 bg-emerald-50' : 
+                seoScore.total >= 85 ? 'border-emerald-400 bg-emerald-50' : 
                 seoScore.total >= 70 ? 'border-amber-400 bg-amber-50' : 
                 'border-red-400 bg-red-50'
               } ${darkMode ? 'bg-opacity-10' : ''}`}>
                 <div className={`text-sm font-black mb-2 ${
-                  seoScore.total >= 90 ? 'text-emerald-700' : 
+                  seoScore.total >= 85 ? 'text-emerald-700' : 
                   seoScore.total >= 70 ? 'text-amber-700' : 
                   'text-red-700'
                 }`}>
-                  {seoScore.total >= 90 ? '✅ 우수한 SEO 점수입니다!' : 
+                  {seoScore.total >= 85 ? '✅ 우수한 SEO 점수입니다!' : 
                    seoScore.total >= 70 ? '⚠️ 개선이 필요한 영역이 있습니다' : 
-                   '🚨 90점 미만 - 재설계/재작성을 권장합니다'}
+                   '🚨 85점 미만 - 재설계/재작성을 권장합니다'}
                 </div>
                 <p className={`text-xs ${
-                  seoScore.total >= 90 ? 'text-emerald-600' : 
+                  seoScore.total >= 85 ? 'text-emerald-600' : 
                   seoScore.total >= 70 ? 'text-amber-600' : 
                   'text-red-600'
                 }`}>
