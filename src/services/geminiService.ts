@@ -3961,7 +3961,7 @@ ${timeContext}
 ⚠️ 목표 길이: 공백 제외 ${targetLength}자 반드시 맞추기!
 
 [검색 정보 활용]
-${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하세요:\n${JSON.stringify(searchResults, null, 2)}` : ''}
+(검색 정보는 generateWithAgentMode에서 자동으로 수집됩니다)
 
 [작성 시작]
 위 요청사항과 검색 정보를 바탕으로 전문적이고 신뢰도 높은 콘텐츠를 작성해주세요.
@@ -4600,32 +4600,34 @@ ${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하�
 - 주제: ${request.topic}
 - 키워드: ${request.keywords}
 
-🔎 **[필수 검색 순서 - 반드시 이 순서대로 검색!]** 🔎
+🚨🚨🚨 **[최우선 검색 - health.kdca.go.kr 필수!]** 🚨🚨🚨
 
-1순위:1순위 (최우선! 반드시 먼저 검색!)**: 
-   검색어: "${request.topic} site:health.kdca.go.kr"
+**1순위 (최우선! 반드시 가장 먼저 검색!)**: 
+   🔴 검색어: "${request.topic} site:health.kdca.go.kr"
+   🔴 URL: https://health.kdca.go.kr/healthinfo/
    → 질병관리청 건강정보포털 (일반인 대상 건강정보)
+   → ⚠️ 이 사이트에서 반드시 최소 2개 이상의 정보를 수집하세요!
    → ⚠️ 이 사이트에서 충분한 자료를 찾았다면 해외 사이트 검색 생략!
-   → URL 형식: https://health.kdca.go.kr/...
+   → 예시 URL: https://health.kdca.go.kr/healthinfo/biz/health/...
 
-2순위:2순위**: 
+**2순위**: 
    검색어: "${request.topic} site:kdca.go.kr"
    → 질병관리청 공식 사이트 (보도자료, 통계, 감염병 정보)
 
-3순위:3순위**: 
+**3순위**: 
    검색어: "${request.topic} site:mohw.go.kr OR site:nhis.or.kr OR site:hira.or.kr"
    → 보건복지부, 국민건강보험공단, 건강보험심사평가원
 
-4순위:4순위**: 
+**4순위**: 
    검색어: "${request.topic} 대한${request.category}학회 가이드라인 ${getCurrentYear()}"
    → 국내 학회 최신 지침 확인
 
-5. **5순위 (선택적 - 국내 자료 부족 시에만!)**: 
+**5순위 (선택적 - 국내 자료 부족 시에만!)**: 
    검색어: "${request.topic} site:pubmed.ncbi.nlm.nih.gov ${getCurrentYear()}"
-   → 최신 논문/연구 결과 확인
    → ⚠️ 1~4순위에서 충분한 자료를 찾았다면 이 단계는 생략!
 
-📋 **검색 전략:**
+📋 **검색 전략 (health.kdca.go.kr 최우선!):**
+🔴 1순위: health.kdca.go.kr에서 반드시 먼저 검색! (최소 2개 이상 수집 목표)
 ✅ health.kdca.go.kr에서 관련 정보를 충분히 찾았다면 → 해외 논문 검색 생략!
 ✅ 국내 공신력 있는 자료가 부족할 때만 → PubMed 등 해외 자료 참고
 ✅ 항상 한국 실정에 맞는 정보를 우선으로!
@@ -4638,8 +4640,8 @@ ${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하�
 - storybongbong.co.kr, keyzard.cc (절대 금지!)
 
 [검색 지시]
+- 🔴 health.kdca.go.kr 결과를 가장 먼저, 가장 많이 수집 (최우선!)
 - 현재 ${getCurrentYear()}년 기준 최신 자료 우선
-- health.kdca.go.kr 결과를 가장 먼저, 가장 많이 수집
 - 블로그, 카페, SNS, 유튜브 정보는 절대 수집 금지
 - 통계는 반드시 출처와 연도 포함
 
@@ -4650,7 +4652,7 @@ ${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하�
       "fact": "수집한 사실 정보",
       "source": "출처 (학회/기관명)",
       "year": ${getCurrentYear()},
-      "url": "참고 URL (있는 경우, health.kdca.go.kr URL 우선)"
+      "url": "참고 URL (health.kdca.go.kr URL 최우선!)"
     }
   ],
   "key_statistics": [
@@ -4714,42 +4716,57 @@ ${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하�
     
     // 🔀 크로스체크: 두 결과 병합 및 검증
     
-    // health.kdca.go.kr 우선순위 정렬 함수
+    // health.kdca.go.kr 우선순위 정렬 함수 (1순위: health.kdca.go.kr)
     const sortByKdcaHealthPriority = (items: any[]) => {
       if (!items || !Array.isArray(items)) return items;
       
-      // health.kdca.go.kr URL이 있는 항목을 최상단에 배치
+      // 🔴 1순위: health.kdca.go.kr URL이 있는 항목을 최상단에 배치 (최우선!)
       const kdcaHealthItems = items.filter((item: any) => 
         item.url?.includes('health.kdca.go.kr') || 
         item.source?.includes('질병관리청 건강정보') ||
-        item.source?.includes('health.kdca.go.kr')
+        item.source?.includes('health.kdca.go.kr') ||
+        item.source?.includes('건강정보포털')
       );
       
-      // kdca.go.kr (메인 사이트) 항목
+      // 2순위: kdca.go.kr (메인 사이트) 항목
       const kdcaMainItems = items.filter((item: any) => 
         !item.url?.includes('health.kdca.go.kr') && 
+        !item.source?.includes('health.kdca.go.kr') &&
+        !item.source?.includes('건강정보포털') &&
         (item.url?.includes('kdca.go.kr') || item.source?.includes('질병관리청'))
       );
       
-      // 기타 정부 기관 (mohw.go.kr, nhis.or.kr 등)
+      // 3순위: 기타 정부 기관 (mohw.go.kr, nhis.or.kr 등)
       const otherGovItems = items.filter((item: any) => 
         !item.url?.includes('kdca.go.kr') &&
+        !item.source?.includes('질병관리청') &&
         (item.url?.includes('.go.kr') || item.url?.includes('.or.kr'))
       );
       
-      // 나머지 항목
+      // 4순위: 나머지 항목
       const otherItems = items.filter((item: any) => 
         !item.url?.includes('health.kdca.go.kr') &&
         !item.url?.includes('kdca.go.kr') &&
         !item.url?.includes('.go.kr') &&
-        !item.url?.includes('.or.kr')
+        !item.url?.includes('.or.kr') &&
+        !item.source?.includes('질병관리청') &&
+        !item.source?.includes('건강정보포털')
       );
       
       const sortedItems = [...kdcaHealthItems, ...kdcaMainItems, ...otherGovItems, ...otherItems];
       
-      // 로그 출력
+      // 로그 출력 (health.kdca.go.kr 강조)
       if (kdcaHealthItems.length > 0) {
-        console.log(`health.kdca.go.kr 결과 ${kdcaHealthItems.length}개 최우선 배치`);
+        console.log(`🔴 [1순위] health.kdca.go.kr 결과 ${kdcaHealthItems.length}개 최우선 배치!`);
+        kdcaHealthItems.forEach((item: any, idx: number) => {
+          console.log(`   ${idx + 1}. ${item.url || item.source || '(URL 없음)'}`);
+        });
+      }
+      if (kdcaMainItems.length > 0) {
+        console.log(`   [2순위] kdca.go.kr 결과 ${kdcaMainItems.length}개`);
+      }
+      if (otherGovItems.length > 0) {
+        console.log(`   [3순위] 기타 정부기관 결과 ${otherGovItems.length}개`);
       }
       
       return sortedItems;
