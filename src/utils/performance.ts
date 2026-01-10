@@ -44,103 +44,144 @@ export class PerformanceMonitor {
    * LCP 측정 (목표: 2.5초 이하)
    */
   private static observeLCP() {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      const lastEntry = entries[entries.length - 1] as any;
+    try {
+      if (!('PerformanceObserver' in window)) return;
       
-      const value = lastEntry.renderTime || lastEntry.loadTime;
-      const rating = value <= 2500 ? 'good' : value <= 4000 ? 'needs-improvement' : 'poor';
-      
-      this.recordMetric('LCP', value, rating);
-      log.perf('LCP', value);
-    });
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        const lastEntry = entries[entries.length - 1] as any;
+        
+        const value = lastEntry.renderTime || lastEntry.loadTime;
+        const rating = value <= 2500 ? 'good' : value <= 4000 ? 'needs-improvement' : 'poor';
+        
+        this.recordMetric('LCP', value, rating);
+        if (log && typeof log.perf === 'function') {
+          log.perf('LCP', value);
+        }
+      });
 
-    observer.observe({ entryTypes: ['largest-contentful-paint'] });
+      observer.observe({ entryTypes: ['largest-contentful-paint'] });
+    } catch (error) {
+      // PerformanceObserver 지원하지 않거나 에러 발생 시 무시
+      console.debug('LCP observation failed:', error);
+    }
   }
 
   /**
    * FID 측정 (목표: 100ms 이하)
    */
   private static observeFID() {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry: any) => {
-        const value = entry.processingStart - entry.startTime;
-        const rating = value <= 100 ? 'good' : value <= 300 ? 'needs-improvement' : 'poor';
-        
-        this.recordMetric('FID', value, rating);
-        log.perf('FID', value);
+    try {
+      if (!('PerformanceObserver' in window)) return;
+      
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry: any) => {
+          const value = entry.processingStart - entry.startTime;
+          const rating = value <= 100 ? 'good' : value <= 300 ? 'needs-improvement' : 'poor';
+          
+          this.recordMetric('FID', value, rating);
+          if (log && typeof log.perf === 'function') {
+            log.perf('FID', value);
+          }
+        });
       });
-    });
 
-    observer.observe({ entryTypes: ['first-input'] });
+      observer.observe({ entryTypes: ['first-input'] });
+    } catch (error) {
+      console.debug('FID observation failed:', error);
+    }
   }
 
   /**
    * CLS 측정 (목표: 0.1 이하)
    */
   private static observeCLS() {
-    let clsValue = 0;
-    let clsEntries: any[] = [];
-
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
+    try {
+      if (!('PerformanceObserver' in window)) return;
       
-      entries.forEach((entry: any) => {
-        if (!entry.hadRecentInput) {
-          clsValue += entry.value;
-          clsEntries.push(entry);
-        }
+      let clsValue = 0;
+      let clsEntries: any[] = [];
+
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        
+        entries.forEach((entry: any) => {
+          if (!entry.hadRecentInput) {
+            clsValue += entry.value;
+            clsEntries.push(entry);
+          }
+        });
+
+        const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
+        this.recordMetric('CLS', clsValue, rating);
       });
 
-      const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
-      this.recordMetric('CLS', clsValue, rating);
-    });
+      observer.observe({ entryTypes: ['layout-shift'] });
 
-    observer.observe({ entryTypes: ['layout-shift'] });
-
-    // 페이지 언로드 시 최종 CLS 기록
-    window.addEventListener('beforeunload', () => {
-      const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
-      this.recordMetric('CLS', clsValue, rating);
-      log.perf('CLS', clsValue);
-    });
+      // 페이지 언로드 시 최종 CLS 기록
+      window.addEventListener('beforeunload', () => {
+        const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
+        this.recordMetric('CLS', clsValue, rating);
+        if (log && typeof log.perf === 'function') {
+          log.perf('CLS', clsValue);
+        }
+      });
+    } catch (error) {
+      console.debug('CLS observation failed:', error);
+    }
   }
 
   /**
    * TTFB 측정 (목표: 600ms 이하)
    */
   private static observeTTFB() {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry: any) => {
-        const value = entry.responseStart - entry.requestStart;
-        const rating = value <= 600 ? 'good' : value <= 1500 ? 'needs-improvement' : 'poor';
-        
-        this.recordMetric('TTFB', value, rating);
-        log.perf('TTFB', value);
+    try {
+      if (!('PerformanceObserver' in window)) return;
+      
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry: any) => {
+          const value = entry.responseStart - entry.requestStart;
+          const rating = value <= 600 ? 'good' : value <= 1500 ? 'needs-improvement' : 'poor';
+          
+          this.recordMetric('TTFB', value, rating);
+          if (log && typeof log.perf === 'function') {
+            log.perf('TTFB', value);
+          }
+        });
       });
-    });
 
-    observer.observe({ entryTypes: ['navigation'] });
+      observer.observe({ entryTypes: ['navigation'] });
+    } catch (error) {
+      console.debug('TTFB observation failed:', error);
+    }
   }
 
   /**
    * FCP 측정 (목표: 1.8초 이하)
    */
   private static observeFCP() {
-    const observer = new PerformanceObserver((list) => {
-      const entries = list.getEntries();
-      entries.forEach((entry: any) => {
-        const value = entry.startTime;
-        const rating = value <= 1800 ? 'good' : value <= 3000 ? 'needs-improvement' : 'poor';
-        
-        this.recordMetric('FCP', value, rating);
-        log.perf('FCP', value);
+    try {
+      if (!('PerformanceObserver' in window)) return;
+      
+      const observer = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        entries.forEach((entry: any) => {
+          const value = entry.startTime;
+          const rating = value <= 1800 ? 'good' : value <= 3000 ? 'needs-improvement' : 'poor';
+          
+          this.recordMetric('FCP', value, rating);
+          if (log && typeof log.perf === 'function') {
+            log.perf('FCP', value);
+          }
+        });
       });
-    });
 
-    observer.observe({ entryTypes: ['paint'] });
+      observer.observe({ entryTypes: ['paint'] });
+    } catch (error) {
+      console.debug('FCP observation failed:', error);
+    }
   }
 
   /**
