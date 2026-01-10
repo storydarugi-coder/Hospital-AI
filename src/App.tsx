@@ -333,32 +333,12 @@ const App: React.FC = () => {
     setIsDeleting(false);
   };
 
-  // 서버에서 API 키 불러오기 (Cloudflare 환경변수)
+  // localStorage에서 API 키 확인
   useEffect(() => {
-    const loadConfigFromServer = async () => {
-      try {
-        const res = await fetch('/api/config');
-        if (res.ok) {
-          const config = await res.json() as { geminiKey?: string };
-          // 서버에서 받은 키를 localStorage에 저장
-          if (config.geminiKey) {
-            localStorage.setItem('GEMINI_API_KEY', config.geminiKey);
-            localStorage.setItem('GLOBAL_GEMINI_API_KEY', config.geminiKey);
-          }
-          setApiKeyReady(!!config.geminiKey);
-        }
-      } catch (err) {
-        console.log('서버 config 로드 실패, localStorage 사용');
-      }
-      
-      // 서버에서 못 받으면 localStorage 확인
-      const localGemini = localStorage.getItem('GEMINI_API_KEY');
-      if (localGemini) {
-        setApiKeyReady(true);
-      }
-    };
-    
-    loadConfigFromServer();
+    const localGemini = localStorage.getItem('GEMINI_API_KEY');
+    if (localGemini) {
+      setApiKeyReady(true);
+    }
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
