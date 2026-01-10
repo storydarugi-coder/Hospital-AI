@@ -4822,8 +4822,7 @@ ${timeContext}
         collected_facts: sortByKdcaHealthPriority(mergedFacts),
         key_statistics: sortByKdcaHealthPriority(mergedStats),
         latest_guidelines: sortByKdcaHealthPriority(mergedGuidelines),
-        sources: gptResults.sources || [], // GPT 출처 정보
-        cross_check_status: 'dual_verified',
+        sources: gptResults.sources || [],
         gemini_found: geminiFactCount + geminiStatCount,
         gpt_found: gptFactCount + gptStatCount
       };
@@ -4928,43 +4927,33 @@ ${timeContext}
       safeProgress(`✅ 크로스체크 완료: Gemini ${geminiTotal}개 + GPT ${gptTotal}개 → ${crossVerifiedCount}개 교차검증`);
       
     } else if (geminiResults) {
-      // Gemini만 성공
-      console.log('🔵 Gemini만 검색 성공');
+      // Gemini 검색 성공
+      console.log('🔵 Gemini 검색 성공');
       searchResults = {
         collected_facts: sortByKdcaHealthPriority(geminiResults.collected_facts || []),
         key_statistics: sortByKdcaHealthPriority(geminiResults.key_statistics || []),
         latest_guidelines: sortByKdcaHealthPriority(geminiResults.latest_guidelines || []),
-        cross_check_status: 'gemini_only',
-        gemini_found: geminiFactCount + geminiStatCount,
-        gpt_found: 0
+        gemini_found: geminiFactCount + geminiStatCount
       };
       safeProgress(`✅ Gemini 검색 완료: ${geminiFactCount + geminiStatCount}개 정보 수집`);
       
     } else if (gptResults) {
-      // GPT만 성공
-      console.log('🟢 GPT-5.2만 검색 성공');
+      // GPT만 성공 (현재 비활성화)
+      console.log('🟢 GPT 검색 성공');
       searchResults = {
         collected_facts: sortByKdcaHealthPriority(gptResults.collected_facts || []),
         key_statistics: sortByKdcaHealthPriority(gptResults.key_statistics || []),
         latest_guidelines: sortByKdcaHealthPriority(gptResults.latest_guidelines || []),
         sources: gptResults.sources || [],
-        cross_check_status: 'gpt_only',
-        gemini_found: 0,
         gpt_found: gptFactCount + gptStatCount
       };
-      safeProgress(`✅ GPT-5.2 검색 완료: ${gptFactCount + gptStatCount}개 정보 수집`);
+      safeProgress(`✅ GPT 검색 완료: ${gptFactCount + gptStatCount}개 정보 수집`);
       
     } else {
-      // 둘 다 실패
-      console.error('❌ 듀얼 검색 모두 실패');
+      // 둘 다 실패 - 단순화된 에러 처리 (크로스체크 필드 제거)
+      console.error('❌ 검색 실패');
       safeProgress('⚠️ 검색 실패 - AI 학습 데이터 기반으로 진행');
-      searchResults = {
-        collected_facts: [],
-        key_statistics: [],
-        latest_guidelines: [],
-        cross_check_status: 'failed',
-        error: '검색 실패'
-      };
+      searchResults = {};
     }
     
     // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
