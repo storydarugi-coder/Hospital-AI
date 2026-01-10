@@ -143,8 +143,15 @@ app.get('/sitemap.xml', (c) => {
 </urlset>`, 200, { 'Content-Type': 'application/xml' });
 });
 
-// Main HTML page
+// Main HTML page (정적 파일 경로 제외)
 app.get('*', (c) => {
+  const path = new URL(c.req.url).pathname;
+  
+  // 정적 파일 경로는 Cloudflare Pages가 직접 서빙하도록 건너뛰기
+  if (path.startsWith('/assets/') || path.startsWith('/static/')) {
+    return c.notFound();
+  }
+  
   // 환경변수를 HTML에 직접 주입
   const geminiKey = c.env.GEMINI_API_KEY || '';
   const portoneStoreId = c.env.PORTONE_STORE_ID || '';
