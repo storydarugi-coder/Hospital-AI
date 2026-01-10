@@ -115,6 +115,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [isRecheckingAiSmell, setIsRecheckingAiSmell] = useState(false);
   const [recheckResult, setRecheckResult] = useState<FactCheckReport | null>(null);
   
+  // 🖼️ 이미지 최적화 상태
+  const [isOptimizingImages, setIsOptimizingImages] = useState(false);
+  const [optimizationProgress, setOptimizationProgress] = useState('');
+  const [optimizationStats, setOptimizationStats] = useState<{ totalSaved: number; imageCount: number } | null>(null);
+  
   // content.seoScore가 있으면 자동으로 설정
   useEffect(() => {
     if (content.seoScore) {
@@ -1090,6 +1095,39 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       setTimeout(() => setEditProgress(''), 2000);
     } finally {
       setIsRecheckingAiSmell(false);
+    }
+  };
+
+  // 🖼️ 이미지 최적화 함수
+  const handleOptimizeImages = async () => {
+    if (isOptimizingImages) return;
+    
+    setIsOptimizingImages(true);
+    setOptimizationProgress('이미지 분석 중...');
+    
+    try {
+      const result = await optimizeAllImagesInHtml(
+        localHtml,
+        { quality: 0.85, maxWidth: 1200, format: 'webp' },
+        (message) => setOptimizationProgress(message)
+      );
+      
+      setLocalHtml(result.html);
+      setOptimizationStats(result.stats);
+      
+      if (result.stats.imageCount > 0) {
+        setOptimizationProgress(`✅ ${result.stats.imageCount}개 이미지 최적화 완료! (${formatFileSize(result.stats.totalSaved)} 절약)`);
+      } else {
+        setOptimizationProgress('✅ Lazy loading 적용 완료!');
+      }
+      
+      setTimeout(() => setOptimizationProgress(''), 4000);
+    } catch (error) {
+      console.error('이미지 최적화 실패:', error);
+      setOptimizationProgress('❌ 이미지 최적화 실패');
+      setTimeout(() => setOptimizationProgress(''), 2000);
+    } finally {
+      setIsOptimizingImages(false);
     }
   };
 
@@ -2211,6 +2249,35 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             )}
           </div>
           <div className="flex items-center gap-2">
+             {/* 🖼️ 이미지 최적화 버튼 */}
+             <button 
+               onClick={handleOptimizeImages} 
+               disabled={isOptimizingImages}
+               className={`${
+                 optimizationStats 
+                   ? 'bg-green-500 hover:bg-green-600' 
+                   : 'bg-amber-500 hover:bg-amber-600'
+               } text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 relative`}
+               title={optimizationStats 
+                 ? `✅ ${optimizationStats.imageCount}개 이미지 최적화됨 (${formatFileSize(optimizationStats.totalSaved)} 절약)` 
+                 : 'WebP 변환 + Lazy Loading 적용'
+               }
+             >
+               {isOptimizingImages ? (
+                 <>
+                   <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                   </svg>
+                   <span className="hidden lg:inline">최적화 중...</span>
+                 </>
+               ) : (
+                 <>
+                   🖼️ <span className="hidden lg:inline">{optimizationStats ? '최적화됨' : '이미지 최적화'}</span>
+                 </>
+               )}
+             </button>
+             
              <span className="text-[10px] font-black uppercase text-slate-400 mr-2 hidden lg:inline">다운로드</span>
              {content.postType === 'card_news' ? (
                <>
@@ -3357,6 +3424,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         </div>
         
       </div>
+
+      {/* 콘텐츠 분석 패널 - 블로그/보도자료에만 표시 */}
+      {content.postType !== 'card_news' && (
+        <div className="px-4 lg:px-8 pt-4">
+          <ContentAnalysisPanel
+            html={localHtml}
+            title={content.title || ''}
+            keyword={content.tags?.[0] || ''}
+            darkMode={darkMode}
+          />
+        </div>
+      )}
 
       <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {activeTab === 'preview' ? (
