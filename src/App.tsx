@@ -5,7 +5,6 @@ import InputForm from './components/InputForm';
 import LandingPage from './components/LandingPage';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
-import { PLANS, savePaymentRecord, generatePaymentId } from './services/paymentService';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load heavy components
@@ -14,17 +13,14 @@ const ScriptPreview = lazy(() => import('./components/ScriptPreview'));
 const PromptPreview = lazy(() => import('./components/PromptPreview'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
-const PricingPage = lazy(() => import('./components/PricingPage').then(module => ({ default: module.PricingPage })));
 
-type PageType = 'landing' | 'app' | 'admin' | 'auth' | 'pricing';
+type PageType = 'landing' | 'app' | 'admin' | 'auth';
 
 // 사용자 정보 타입
 interface UserProfile {
   id: string;
   email: string;
   name: string;
-  plan: 'free' | 'basic' | 'standard' | 'premium';
-  remainingCredits: number;
 }
 
 const App: React.FC = () => {
@@ -55,10 +51,7 @@ const App: React.FC = () => {
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
   
-  // 쿠폰 모달 상태
-  const [showCouponModal, setShowCouponModal] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   
   // 도움말 모달 상태
   const [showHelpModal, setShowHelpModal] = useState(false);
@@ -86,95 +79,7 @@ const App: React.FC = () => {
     localStorage.setItem('darkMode', String(newMode));
   };
   
-  // 유효한 쿠폰 목록
-  const currentYear = new Date().getFullYear();
-  const VALID_COUPONS: Record<string, { credits: number; description: string }> = {
-    [`MARKETING${currentYear}`]: { credits: 5, description: `마케팅 ${currentYear} 프로모션` },
-    [`WELCOME${currentYear}`]: { credits: 3, description: '신규 가입 환영' },
-    'HOSPITAL100': { credits: 10, description: '병원 마케팅 100일 기념' },
-  };
-  
-  // 사용한 쿠폰 저장 (localStorage)
-  const getUsedCoupons = (): string[] => {
-    try {
-      return JSON.parse(localStorage.getItem('used_coupons') || '[]');
-    } catch {
-      return [];
-    }
-  };
-  
-  // 크레딧 저장/불러오기 (localStorage)
-  const saveUserCredits = (userId: string, credits: number, plan: string, expiresAt?: string) => {
-    const creditData = { credits, plan, expiresAt, updatedAt: new Date().toISOString() };
-    localStorage.setItem(`user_credits_${userId}`, JSON.stringify(creditData));
-  };
-  
-  const loadUserCredits = (userId: string): { credits: number; plan: string; expiresAt?: string } | null => {
-    try {
-      const data = localStorage.getItem(`user_credits_${userId}`);
-      if (data) {
-        const parsed = JSON.parse(data);
-        // 만료일 체크 (프리미엄 구독)
-        if (parsed.expiresAt && new Date(parsed.expiresAt) < new Date()) {
-          // 구독 만료됨
-          return { credits: 0, plan: 'free' };
-        }
-        return parsed;
-      }
-    } catch {
-      // ignore
-    }
-    return null;
-  };
-  
-  const handleApplyCoupon = () => {
-    const code = couponCode.toUpperCase().trim();
-    setCouponMessage(null);
-    
-    if (!code) {
-      setCouponMessage({ type: 'error', text: '쿠폰 코드를 입력해주세요.' });
-      return;
-    }
-    
-    const usedCoupons = getUsedCoupons();
-    
-    if (usedCoupons.includes(code)) {
-      setCouponMessage({ type: 'error', text: '이미 사용한 쿠폰입니다.' });
-      return;
-    }
-    
-    const coupon = VALID_COUPONS[code];
-    
-    if (!coupon) {
-      setCouponMessage({ type: 'error', text: '유효하지 않은 쿠폰 코드입니다.' });
-      return;
-    }
-    
-    // 쿠폰 적용
-    if (userProfile) {
-      const currentCredits = userProfile.remainingCredits === -1 ? 0 : userProfile.remainingCredits;
-      const newCredits = currentCredits + coupon.credits;
-      const updatedProfile = { ...userProfile, remainingCredits: newCredits };
-      setUserProfile(updatedProfile);
-      
-      // 사용한 쿠폰 저장
-      localStorage.setItem('used_coupons', JSON.stringify([...usedCoupons, code]));
-      
-      // 크레딧 저장
-      saveUserCredits(userProfile.id, newCredits, userProfile.plan);
-      
-      setCouponMessage({ type: 'success', text: `🎉 ${coupon.description} 쿠폰 적용! +${coupon.credits}회 추가되었습니다.` });
-      setCouponCode('');
-      
-      // 3초 후 모달 닫기
-      setTimeout(() => {
-        setShowCouponModal(false);
-        setCouponMessage(null);
-      }, 2000);
-    } else {
-      setCouponMessage({ type: 'error', text: '로그인 후 쿠폰을 사용할 수 있습니다.' });
-    }
-  };
+
 
   // Supabase 인증 상태 감시
   useEffect(() => {
@@ -184,21 +89,7 @@ const App: React.FC = () => {
       setIsAdmin(true);
     }
     
-    // 저장된 크레딧 불러오기 함수
-    const loadSavedCredits = (user: User) => {
-      const savedCredits = loadUserCredits(user.id);
-      if (savedCredits) {
-        return {
-          plan: savedCredits.plan as 'free' | 'basic' | 'standard' | 'premium',
-          remainingCredits: savedCredits.credits
-        };
-      }
-      // 신규 사용자: 무료 3회 (오픈 이벤트 기간에는 999)
-      return {
-        plan: 'free' as const,
-        remainingCredits: 999 // 🎉 오픈 이벤트: 무제한 무료 사용
-      };
-    };
+
     
     // OAuth 콜백 처리 (URL hash에 access_token이 있는 경우)
     const handleOAuthCallback = async () => {
@@ -250,14 +141,11 @@ const App: React.FC = () => {
         console.log('[Session Check] User found, setting isLoggedIn to true');
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
-        // 프로필 정보 설정 (저장된 크레딧 불러오기)
-        const { plan, remainingCredits } = loadSavedCredits(session.user);
+        // 프로필 정보 설정
         setUserProfile({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
-          plan,
-          remainingCredits
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자'
         });
         
         // 세션이 있고 현재 auth 페이지면 app으로 이동
@@ -283,14 +171,11 @@ const App: React.FC = () => {
       if (session?.user) {
         setSupabaseUser(session.user);
         setIsLoggedIn(true);
-        // 프로필 정보 설정 (저장된 크레딧 불러오기)
-        const { plan, remainingCredits } = loadSavedCredits(session.user);
+        // 프로필 정보 설정
         setUserProfile({
           id: session.user.id,
           email: session.user.email || '',
-          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
-          plan,
-          remainingCredits
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자'
         });
         
         // 🔧 로그인/OAuth 성공 시 profiles 없으면 자동 생성
@@ -382,8 +267,6 @@ const App: React.FC = () => {
         setCurrentPage('app');
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
         setCurrentPage('auth');
-      } else if (hash === '#pricing') {
-        setCurrentPage('pricing');
       } else {
         // 🚀 랜딩 페이지 스킵: 기본 페이지를 로그인/앱으로 변경
         if (isLoggedIn || isAdmin) {
@@ -482,19 +365,6 @@ const App: React.FC = () => {
     console.log('🎯 handleGenerate 호출됨');
     console.log('📦 request 전체:', JSON.stringify(request, null, 2));
     console.log('📋 request.postType:', request.postType, 'typeof:', typeof request.postType);
-    console.log('🔐 크레딧 체크 - isLoggedIn:', isLoggedIn, 'userProfile:', userProfile, 'isAdmin:', isAdmin);
-    
-    // 크레딧 체크 (로그인 시에만, 관리자 제외)
-    if (isLoggedIn && userProfile && !isAdmin && userProfile.remainingCredits <= 0 && userProfile.plan !== 'premium') {
-      console.error('❌ 크레딧 부족!');
-      setState(prev => ({ 
-        ...prev, 
-        error: '크레딧이 부족합니다. 상단 "💎 결제" 버튼을 눌러 크레딧을 충전하거나 요금제를 업그레이드해주세요. 🎟️ 쿠폰이 있다면 우측 상단 크레딧 버튼을 클릭하세요!' 
-      }));
-      return;
-    }
-    
-    console.log('✅ 크레딧 체크 통과!');
 
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
@@ -551,15 +421,6 @@ const App: React.FC = () => {
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
-      
-      // 크레딧 차감 (로그인 시에만, 프리미엄/관리자 제외)
-      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && userProfile.remainingCredits !== -1 && !isAdmin) {
-        const newCredits = userProfile.remainingCredits - 1;
-        const updatedProfile = { ...userProfile, remainingCredits: newCredits };
-        setUserProfile(updatedProfile);
-        // localStorage에 저장
-        saveUserCredits(userProfile.id, newCredits, userProfile.plan);
-      }
     } catch (err: any) {
        const errorMsg = err.message || '알 수 없는 오류가 발생했습니다.';
        const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('네트워크');
@@ -704,14 +565,6 @@ const App: React.FC = () => {
         progress: ''
       });
       
-      // 크레딧 차감
-      if (isLoggedIn && userProfile && userProfile.plan !== 'premium' && userProfile.remainingCredits !== -1 && !isAdmin) {
-        const newCredits = userProfile.remainingCredits - 1;
-        const updatedProfile = { ...userProfile, remainingCredits: newCredits };
-        setUserProfile(updatedProfile);
-        saveUserCredits(userProfile.id, newCredits, userProfile.plan);
-      }
-      
       // 상태 초기화
       setCardNewsScript(null);
       setCardNewsPrompts(null);
@@ -760,77 +613,7 @@ const App: React.FC = () => {
     );
   }
 
-  // 결제 완료 콜백
-  const handlePaymentComplete = (planId: string, credits: number) => {
-    if (!userProfile) return;
-    
-    const plan = PLANS[planId];
-    if (!plan) return;
-    
-    // 결제 기록 저장
-    savePaymentRecord({
-      paymentId: generatePaymentId(),
-      planId,
-      planName: plan.name,
-      credits: plan.credits,
-      amount: plan.price,
-      status: 'completed',
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
-      userId: userProfile.id
-    });
-    
-    // 크레딧 업데이트
-    let newPlan: 'free' | 'basic' | 'standard' | 'premium';
-    let newCredits: number;
-    let expiresAt: string | undefined;
-    
-    if (credits === -1) {
-      // 프리미엄 (무제한)
-      newPlan = 'premium';
-      newCredits = -1;
-      // 만료일 설정 (월간: 30일, 연간: 365일)
-      const days = plan.duration === 'yearly' ? 365 : 30;
-      expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-    } else {
-      // 베이직/스탠다드 (크레딧 추가)
-      const currentCredits = userProfile.remainingCredits === -1 ? 0 : userProfile.remainingCredits;
-      newCredits = currentCredits + credits;
-      newPlan = planId.includes('standard') ? 'standard' : 'basic';
-      // 유효기간 3개월
-      expiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
-    }
-    
-    // 프로필 업데이트
-    const updatedProfile = {
-      ...userProfile,
-      plan: newPlan,
-      remainingCredits: newCredits
-    };
-    setUserProfile(updatedProfile);
-    
-    // localStorage에 저장
-    saveUserCredits(userProfile.id, newCredits, newPlan, expiresAt);
-    
-    console.log(`결제 완료: ${plan.name}, 크레딧: ${credits === -1 ? '무제한' : `+${credits}회`}, 저장됨`);
-  };
 
-  // Pricing 페이지 렌더링
-  if (currentPage === 'pricing') {
-    return (
-      <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
-        <PricingPage 
-          onNavigate={handleNavigate}
-          isLoggedIn={isLoggedIn}
-          currentPlan={userProfile?.plan || 'free'}
-          remainingCredits={userProfile?.remainingCredits || 0}
-          onPaymentComplete={handlePaymentComplete}
-          userEmail={userProfile?.email}
-          userName={userProfile?.name}
-        />
-      </Suspense>
-    );
-  }
 
   // Landing 페이지 렌더링
   if (currentPage === 'landing') {
@@ -880,31 +663,11 @@ const App: React.FC = () => {
           </a>
           
           <div className="flex items-center gap-3">
-             {/* 크레딧 표시 */}
-             {isLoggedIn && userProfile && (
-               <button 
-                 onClick={() => setShowCouponModal(true)}
-                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-all"
-               >
-                 <span className="text-sm text-slate-500">크레딧:</span>
-                 <span className="text-sm font-bold text-emerald-600">
-                   {userProfile.plan === 'premium' ? '∞' : userProfile.remainingCredits}
-                 </span>
-                 <span className="text-xs text-emerald-500">🎟️</span>
-               </button>
-             )}
-             
              <a 
                href="#" 
                className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
              >
                 🏠 홈
-             </a>
-             <a 
-               href="#pricing" 
-               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
-             >
-                💎 결제
              </a>
              <button 
                onClick={() => setShowHelpModal(true)}
@@ -1223,8 +986,8 @@ const App: React.FC = () => {
                       a: `모든 글은 ${new Date().getFullYear()}년 최신 의료광고법 가이드라인을 적용하여 생성됩니다. AI가 과장 표현, 비교 광고, 보장성 문구 등을 자동으로 필터링하지만, 최종 확인은 업로드 전에 한 번 더 해주세요.`
                     },
                     {
-                      q: "크레딧은 어떻게 충전하나요?",
-                      a: "상단 '결제' 버튼 또는 홈페이지 요금제 페이지에서 원하는 플랜을 선택하여 충전할 수 있습니다. 쿠폰 코드가 있다면 크레딧 버튼을 클릭하여 등록하세요."
+                      q: "혼자 쓰는 거라 무제한인가요?",
+                      a: "네! 이 도구는 개인 전용이라 크레딧 제한 없이 무제한으로 사용하실 수 있습니다. 마음껏 생성하세요! 🎉"
                     },
                     {
                       q: "레퍼런스 URL은 뭔가요?",
@@ -1279,65 +1042,7 @@ const App: React.FC = () => {
         </div>
       )}
       
-      {/* 쿠폰 모달 */}
-      {showCouponModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black text-slate-800">🎟️ 쿠폰 등록</h3>
-              <button 
-                onClick={() => { setShowCouponModal(false); setCouponMessage(null); setCouponCode(''); }}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-sm text-slate-500 mb-4">
-                현재 크레딧: <span className="font-bold text-emerald-600">{userProfile?.remainingCredits || 0}회</span>
-              </p>
-              
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="쿠폰 코드 입력"
-                  className="flex-1 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono uppercase"
-                  onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                />
-                <button
-                  onClick={handleApplyCoupon}
-                  className="px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all"
-                >
-                  적용
-                </button>
-              </div>
-            </div>
-            
-            {couponMessage && (
-              <div className={`p-4 rounded-xl mb-4 ${
-                couponMessage.type === 'success' 
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                  : 'bg-red-50 text-red-700 border border-red-200'
-              }`}>
-                <p className="text-sm font-medium">{couponMessage.text}</p>
-              </div>
-            )}
-            
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-xs text-slate-500 mb-2">💡 쿠폰 사용 안내</p>
-              <ul className="text-xs text-slate-400 space-y-1">
-                <li>• 쿠폰은 계정당 1회만 사용 가능합니다.</li>
-                <li>• 대소문자 구분 없이 입력하세요.</li>
-                <li>• 추가된 크레딧은 즉시 적용됩니다.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-      
+
       {/* 회원 탈퇴 확인 모달 */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
