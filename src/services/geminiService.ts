@@ -3933,7 +3933,14 @@ ${timeContext}
 }
 
 ⚠️ ai_smell_score는 낮을수록 좋음 (7점 이하 목표, 15점 초과 시 재작성)
-⚠️ 목표 길이 ${targetLength}자 반드시 맞추기!
+⚠️ 목표 길이: 공백 제외 ${targetLength}자 반드시 맞추기!
+
+[검색 정보 활용]
+${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하세요:\n${JSON.stringify(searchResults, null, 2)}` : ''}
+
+[작성 시작]
+위 요청사항과 검색 정보를 바탕으로 전문적이고 신뢰도 높은 콘텐츠를 작성해주세요.
+반드시 JSON 형식으로 응답하고, 목표 길이(공백 제외 ${targetLength}자)를 준수해주세요.
   `;
 
   /* 기존 상세 프롬프트 주석 처리 (API 타임아웃 방지)
@@ -5010,7 +5017,7 @@ ${JSON.stringify(searchResults, null, 2)}
         
         const stream = await ai.models.streamGenerateContent({
           model: "gemini-3-pro-preview",
-          contents: isCardNews ? cardNewsPrompt : blogPrompt,
+          contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,  // ← 검색 결과(contextData) 추가!
           config: {
             tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
