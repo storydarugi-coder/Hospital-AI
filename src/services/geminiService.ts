@@ -4909,24 +4909,14 @@ ${searchResults ? `아래 최신 검색 정보를 적극 활용하여 작성하�
     const gptSystemPrompt = getGPT52Prompt();
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
-    const crossCheckGuide = searchResults.cross_check_status === 'dual_verified'
-      ? `🎯 듀얼 검색 크로스체크 완료!
-- Gemini 검색 결과: ${searchResults.gemini_found || 0}개 정보
-- GPT 검색 결과: ${searchResults.gpt_found || 0}개 정보  
-- 교차 검증된 정보: ${searchResults.cross_verified_count || 0}개 (가장 신뢰도 높음!)
-
-★ 우선순위: cross_verified=true 또는 verified_by='both' 정보 > 단일 소스 정보`
-      : searchResults.cross_check_status === 'gemini_only'
-      ? '🔵 Gemini 단일 검색 결과입니다. GPT 검색이 실패하여 교차 검증되지 않았습니다.'
-      : '🟢 GPT 단일 검색 결과입니다. Gemini 검색이 실패하여 교차 검증되지 않았습니다.';
+    // crossCheckGuide 제거 (GPT 없으므로 불필요)
     
     const systemPrompt = `${gptSystemPrompt}
 
-[• 듀얼 검색 + 크로스체크 결과]
-${crossCheckGuide}
+[📚 검색 결과 - 최신 정보]
 
-아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
-교차 검증된 정보(cross_verified 또는 verified_by='both')를 최우선으로 사용하세요!
+아래는 Google Search로 수집한 최신 정보입니다.
+신뢰할 수 있는 출처의 정보를 우선적으로 활용하세요.
 
 ${JSON.stringify(searchResults, null, 2)}
 
@@ -4963,21 +4953,18 @@ ${JSON.stringify(searchResults, null, 2)}
     console.log('📍 시스템 프롬프트(검색 결과) 길이:', JSON.stringify(searchResults, null, 2).length);
     
     // 🚀 새로운 단계별 처리 시스템 사용
-    const contextData = `[• 듀얼 검색 + 크로스체크 결과]
-${crossCheckGuide}
+    const contextData = `[📚 검색 결과 - 최신 정보]
 
-아래는 Gemini + GPT 듀얼 검색으로 수집한 공신력 있는 최신 정보입니다.
-교차 검증된 정보(cross_verified 또는 verified_by='both')를 최우선으로 사용하세요!
+아래는 Google Search로 수집한 최신 정보입니다.
+신뢰할 수 있는 출처의 정보를 우선적으로 활용하세요.
 
 ${JSON.stringify(searchResults, null, 2)}
 
-[⚠️ 크로스체크 기반 작성 규칙]
-1. ${searchResults.cross_check_status === 'dual_verified' 
-    ? '🎯 교차 검증된 정보(cross_verified=true)를 최우선으로 사용하세요 - 가장 신뢰도 높음!' 
-    : '단일 소스 검색 결과이므로 출처 표기에 더욱 신경 쓰세요'}
+[✅ 정보 활용 규칙]
+1. 공신력 있는 출처(의료기관, 학회, 정부기관)의 정보를 우선 사용
 2. 통계/수치 사용 시 반드시 출처와 연도를 함께 표기
-3. 교차 검증되지 않은 정보는 "~로 알려져 있습니다" 등 완화 표현 사용
-4. 두 소스에서 상충되는 정보가 있다면 더 공신력 있는 출처(학회, 정부기관) 우선`;
+3. 의학적 정보는 "~로 알려져 있습니다" 등 완화 표현 사용
+4. 최신 정보를 적극 반영하되, 검증된 정보를 우선`;
     
     // GPT 호출 부분 주석 처리 (Gemini만 사용)
     /*
