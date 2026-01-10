@@ -489,7 +489,7 @@ const App: React.FC = () => {
       console.error('❌ 크레딧 부족!');
       setState(prev => ({ 
         ...prev, 
-        error: '크레딧이 부족합니다. 요금제를 업그레이드해주세요.' 
+        error: '크레딧이 부족합니다. 상단 "💎 결제" 버튼을 눌러 크레딧을 충전하거나 요금제를 업그레이드해주세요. 🎟️ 쿠폰이 있다면 우측 상단 크레딧 버튼을 클릭하세요!' 
       }));
       return;
     }
@@ -561,7 +561,12 @@ const App: React.FC = () => {
         saveUserCredits(userProfile.id, newCredits, userProfile.plan);
       }
     } catch (err: any) {
-       setState(prev => ({ ...prev, isLoading: false, error: err.message }));
+       const errorMsg = err.message || '알 수 없는 오류가 발생했습니다.';
+       const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('네트워크');
+       const friendlyError = isNetworkError 
+         ? '⚠️ 인터넷 연결이 불안정합니다. 네트워크 상태를 확인하고 다시 시도해주세요.'
+         : `❌ 오류 발생: ${errorMsg}`;
+       setState(prev => ({ ...prev, isLoading: false, error: friendlyError }));
        setMobileTab('input');
     }
   };

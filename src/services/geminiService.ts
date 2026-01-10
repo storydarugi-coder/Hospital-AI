@@ -18,7 +18,7 @@ const getAiClient = () => {
 
 // AI Provider 설정 읽기 - Gemini만 사용
 const getAiProviderSettings = (): { textGeneration: 'gemini', imageGeneration: 'gemini' } => {
-  console.log('🔧 AI 설정: Gemini 3 Pro Preview (GPT 제거됨)');
+  console.log('🔧 AI 설정: Gemini 3 Pro Preview');
   return { textGeneration: 'gemini', imageGeneration: 'gemini' };
 };
 
@@ -4934,37 +4934,63 @@ ${JSON.stringify(searchResults, null, 2)}
     
     // Gemini 사용 (기본값)
     console.log('🔵 Using Gemini for text generation');
-    const response = await ai.models.generateContent({
-      model: "gemini-3-pro-preview",
-      contents: isCardNews ? cardNewsPrompt : blogPrompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            content: { type: Type.STRING },
-            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-            fact_check: {
-              type: Type.OBJECT,
-              properties: {
-                fact_score: { type: Type.INTEGER },
-                safety_score: { type: Type.INTEGER },
-                conversion_score: { type: Type.INTEGER },
-                ai_smell_score: { type: Type.INTEGER },
-                verified_facts_count: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
-            }
-          },
-          required: ["title", "content", "imagePrompts", "fact_check"]
+    safeProgress('✍️ Gemini가 콘텐츠를 작성하고 있습니다...');
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: isCardNews ? cardNewsPrompt : blogPrompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              content: { type: Type.STRING },
+              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+              fact_check: {
+                type: Type.OBJECT,
+                properties: {
+                  fact_score: { type: Type.INTEGER },
+                  safety_score: { type: Type.INTEGER },
+                  conversion_score: { type: Type.INTEGER },
+                  ai_smell_score: { type: Type.INTEGER },
+                  verified_facts_count: { type: Type.INTEGER },
+                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
+              }
+            },
+            required: ["title", "content", "imagePrompts", "fact_check"]
+          }
         }
+      });
+      
+      console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
+      
+      if (!response.text) {
+        throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
       }
-    });
-    result = JSON.parse(response.text || "{}");
+      
+      result = JSON.parse(response.text);
+      console.log('✅ Gemini JSON 파싱 성공');
+      
+    } catch (geminiError: any) {
+      console.error('❌ Gemini 생성 실패:', geminiError);
+      
+      // 에러 타입별 처리
+      if (geminiError.message?.includes('timeout') || geminiError.message?.includes('시간초과')) {
+        throw new Error('⏱️ AI 생성 시간이 초과되었습니다. 주제를 더 간단하게 하거나 다시 시도해주세요.');
+      } else if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit')) {
+        throw new Error('🚫 API 사용량 한계에 도달했습니다. 잠시 후 다시 시도해주세요.');
+      } else if (geminiError.message?.includes('JSON')) {
+        throw new Error('📋 AI 응답 형식 오류가 발생했습니다. 다시 시도해주세요.');
+      } else {
+        throw new Error(`❌ Gemini 오류: ${geminiError.message || '알 수 없는 오류'}`);
+      }
+    }
     
     // 🔧 GPT-5.2는 다양한 필드명으로 반환할 수 있음 → content로 정규화
     if (!result.content) {
@@ -5542,9 +5568,20 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     // • 디버그: imagePrompts 내용 확인
     console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
     
-    const images = await Promise.all(agentResult.imagePrompts.slice(0, maxImages).map((p, i) => 
-      generateSingleImage(p, request.imageStyle, "1:1", request.customImagePrompt, referenceImage, copyMode).then(img => ({ index: i + 1, data: img, prompt: p }))
-    ));
+    // 순차 생성으로 진행률 표시
+    const images: { index: number; data: string; prompt: string }[] = [];
+    for (let i = 0; i < Math.min(maxImages, agentResult.imagePrompts.length); i++) {
+      safeProgress(`🎨 카드 이미지 ${i + 1}/${maxImages}장 생성 중...`);
+      const img = await generateSingleImage(
+        agentResult.imagePrompts[i], 
+        request.imageStyle, 
+        "1:1", 
+        request.customImagePrompt, 
+        referenceImage, 
+        copyMode
+      );
+      images.push({ index: i + 1, data: img, prompt: agentResult.imagePrompts[i] });
+    }
     
     // 이미지 자체가 카드 전체! (HTML 텍스트 없이 이미지만)
     // 🚨 alt 속성에도 코드 문자열이 들어가지 않도록 필터링!
@@ -5644,18 +5681,22 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   let images: { index: number; data: string; prompt: string }[] = [];
   
   if (maxImages > 0) {
-    safeProgress(`🎨 ${styleName} 스타일로 ${imgRatio} 이미지 ${maxImages}장 생성 중...`);
-    images = await Promise.all(textData.imagePrompts.slice(0, maxImages).map((p, i) => {
-    if (request.postType === 'card_news') {
-      // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
-      return generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode)
-        .then(img => ({ index: i + 1, data: img, prompt: p }));
-    } else {
-      // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
-      return generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt)
-        .then(img => ({ index: i + 1, data: img, prompt: p }));
+    // 순차 생성으로 진행률 표시
+    for (let i = 0; i < Math.min(maxImages, textData.imagePrompts.length); i++) {
+      safeProgress(`🎨 이미지 ${i + 1}/${maxImages}장 생성 중...`);
+      const p = textData.imagePrompts[i];
+      let img: string;
+      
+      if (request.postType === 'card_news') {
+        // 카드뉴스: 기존 함수 사용 (텍스트 포함, 브라우저 프레임)
+        img = await generateSingleImage(p, request.imageStyle, imgRatio, request.customImagePrompt, fallbackReferenceImage, fallbackCopyMode);
+      } else {
+        // 블로그: 새 함수 사용 (텍스트 없는 순수 이미지)
+        img = await generateBlogImage(p, request.imageStyle, imgRatio, request.customImagePrompt);
+      }
+      
+      images.push({ index: i + 1, data: img, prompt: p });
     }
-    }));
   } else {
     console.log('🖼️ 이미지 0장 설정 - 이미지 생성 스킵');
     safeProgress('📝 이미지 없이 텍스트만 생성 완료');
