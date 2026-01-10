@@ -3823,7 +3823,7 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   const targetImageCount = request.imageCount ?? 1;
   const imageMarkers = targetImageCount > 0 
     ? Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ')
-    : '(이미지 없음)';
+    : '';
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
   const writingStylePrompt = getWritingStylePrompts()[writingStyle];
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
@@ -5157,6 +5157,17 @@ ${JSON.stringify(searchResults, null, 2)}
       // 객체인 경우 content나 html 필드 추출
       result.content = result.content.content || result.content.html || JSON.stringify(result.content);
     }
+    }
+    
+    // 🧹 불필요한 텍스트 제거 (AI가 실수로 삽입한 마커/메타 텍스트)
+    if (result.content && typeof result.content === 'string') {
+      result.content = result.content
+        .replace(/\(이미지 없음\)/g, '')
+        .replace(/\(이미지가 없습니다\)/g, '')
+        .replace(/\[이미지 없음\]/g, '')
+        .replace(/\[IMG_\d+\]/g, '') // 남아있는 이미지 마커 제거
+        .replace(/<p>\s*<\/p>/g, '') // 빈 p 태그 제거
+        .trim();
     }
     
     // 분석된 스타일 정보 추가
