@@ -5047,15 +5047,19 @@ ${JSON.stringify(searchResults, null, 2)}
             // 🎯 실시간 프로그레스 업데이트 (0.5초마다)
             const now = Date.now();
             if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-              const charCount = accumulatedText.length;
-              const estimatedProgress = Math.min(95, Math.floor((charCount / 5000) * 100)); // 대략적인 진행률
-              safeProgress(`✍️ AI가 작성 중... ${charCount}자 생성됨 (${estimatedProgress}%)`);
+              // 공백 제외 글자수 계산
+              const charCountWithSpaces = accumulatedText.length;
+              const charCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
+              const estimatedProgress = Math.min(95, Math.floor((charCountNoSpaces / targetLength) * 100)); // 목표 대비 진행률
+              safeProgress(`✍️ AI가 작성 중... ${charCountNoSpaces}자 생성됨 (공백제외, ${estimatedProgress}%)`);
               lastProgressUpdate = now;
             }
           }
         }
         
-        console.log('✅ 스트리밍 완료:', accumulatedText.length, 'chars');
+        const finalCharCount = accumulatedText.length;
+        const finalCharCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
+        console.log(`✅ 스트리밍 완료: ${finalCharCountNoSpaces}자 (공백제외) / ${finalCharCount}자 (공백포함)`);
         return { text: accumulatedText };
       })();
       
@@ -5229,14 +5233,18 @@ ${blogPrompt}`;
                 
                 const now = Date.now();
                 if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-                  const charCount = accumulatedText.length;
-                  safeProgress(`🔄 재생성 중... ${charCount}자 생성됨 (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+                  // 공백 제외 글자수 계산
+                  const charCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
+                  const estimatedProgress = Math.min(95, Math.floor((charCountNoSpaces / targetLength) * 100));
+                  safeProgress(`🔄 재생성 중... ${charCountNoSpaces}자 생성됨 (공백제외, ${estimatedProgress}%, ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
                   lastProgressUpdate = now;
                 }
               }
             }
             
-            console.log('✅ 재생성 스트리밍 완료:', accumulatedText.length, 'chars');
+            const finalCharCount = accumulatedText.length;
+            const finalCharCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
+            console.log(`✅ 재생성 스트리밍 완료: ${finalCharCountNoSpaces}자 (공백제외) / ${finalCharCount}자 (공백포함)`);
             result = JSON.parse(accumulatedText || "{}");
           }
           
