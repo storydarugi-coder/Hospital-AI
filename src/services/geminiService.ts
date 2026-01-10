@@ -4934,9 +4934,12 @@ ${JSON.stringify(searchResults, null, 2)}
     
     // Gemini 사용 (기본값)
     console.log('🔵 Using Gemini for text generation');
+    console.log('📏 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length, 'chars');
+    console.log('📋 프롬프트 미리보기:', (isCardNews ? cardNewsPrompt : blogPrompt).substring(0, 200));
     safeProgress('✍️ Gemini가 콘텐츠를 작성하고 있습니다...');
     
     try {
+      console.log('🔄 Gemini API 호출 시작...');
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: isCardNews ? cardNewsPrompt : blogPrompt,
