@@ -5601,18 +5601,19 @@ ${timeContext}
       searchResults = {};
     }
     
-    // 📍 Step 2: GPT-5.2가 검색 결과를 바탕으로 글 작성
-    console.log('📍 Step 2 시작: GPT-5.2 글쓰기...');
+    // 📍 Step 2: AI가 검색 결과를 바탕으로 글 작성
+    console.log('📍 Step 2 시작: AI 글쓰기...');
     if (typeof onProgress === 'function') {
-      safeProgress('✍️ Step 2: GPT-5.2가 자연스러운 글을 작성하고 있습니다...');
+      safeProgress('✍️ Step 2: AI가 자연스러운 글을 작성하고 있습니다...');
     }
     
-    const gptSystemPrompt = getGPT52Prompt();
+    // Gemini 전용 프롬프트 사용
+    const geminiSystemPrompt = getMedicalSafetyPrompt() + getAIFeedbackPrompt();
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
     // crossCheckGuide 제거 (GPT 없으므로 불필요)
     
-    const systemPrompt = `${gptSystemPrompt}
+    const systemPrompt = `${geminiSystemPrompt}
 
 [📚 검색 결과 - 최신 정보]
 
