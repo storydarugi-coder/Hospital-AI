@@ -2694,23 +2694,76 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
   const month = koreaTime.getMonth() + 1;
   const day = koreaTime.getDate();
   const hour = koreaTime.getHours();
-  const dateStr = `${year}년 ${month}월 ${day}일 ${hour}시`;
+  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][koreaTime.getDay()];
+  const dateStr = `${year}년 ${month}월 ${day}일 (${dayOfWeek}) ${hour}시`;
+  
+  // 랜덤 시드로 다양성 확보
+  const randomSeed = Math.floor(Math.random() * 1000);
+  
+  // 계절별 특성
+  const seasonalContext: Record<number, string> = {
+    1: '신년 건강검진 시즌, 겨울철 독감/감기, 난방으로 인한 건조, 동상/저체온증',
+    2: '설 연휴 후 피로, 환절기 시작, 미세먼지 증가, 꽃샘추위',
+    3: '본격 환절기, 꽃가루 알레르기, 황사/미세먼지, 춘곤증',
+    4: '봄철 야외활동 증가, 알레르기 비염 최고조, 자외선 증가',
+    5: '초여름, 식중독 주의 시작, 냉방병 예고, 가정의달 건강검진',
+    6: '장마철 습도, 무좀/피부질환, 식중독 급증, 냉방병',
+    7: '폭염, 열사병/일사병, 냉방병 본격화, 여름휴가 전 건강관리',
+    8: '극심한 폭염, 온열질환 피크, 휴가 후 피로, 수인성 질환',
+    9: '환절기 시작, 가을 알레르기, 일교차 큰 시기, 추석 연휴',
+    10: '환절기 감기, 건조해지는 날씨, 독감 예방접종 시즌, 건강검진 시즌',
+    11: '본격 독감 시즌, 난방 시작, 건조한 피부, 연말 건강검진',
+    12: '독감 절정기, 연말 피로, 동상/저체온증, 송년회 후 건강'
+  };
+  
+  // 진료과별 세부 키워드 힌트
+  const categoryHints: Record<string, string> = {
+    '정형외과': '관절통, 허리디스크, 어깨통증, 무릎연골, 손목터널증후군, 오십견, 척추관협착증, 골다공증',
+    '피부과': '여드름, 아토피, 건선, 탈모, 피부건조, 두드러기, 대상포진, 사마귀, 점제거',
+    '내과': '당뇨, 고혈압, 갑상선, 위장질환, 간기능, 콜레스테롤, 빈혈, 건강검진',
+    '치과': '충치, 잇몸질환, 임플란트, 치아미백, 교정, 사랑니, 구취, 치주염',
+    '안과': '안구건조증, 노안, 백내장, 녹내장, 시력교정, 눈피로, 결막염, 다래끼',
+    '이비인후과': '비염, 축농증, 어지럼증, 이명, 인후통, 편도염, 코막힘, 수면무호흡',
+    '산부인과': '생리통, 자궁근종, 난소낭종, 갱년기, 임신준비, 질염, 유방검사',
+    '비뇨의학과': '전립선, 방광염, 요로결석, 혈뇨, 빈뇨, 남성갱년기, 발기부전',
+    '신경과': '두통, 어지럼증, 손발저림, 불면증, 치매예방, 뇌졸중예방, 편두통',
+    '정신건강의학과': '우울증, 불안장애, 공황장애, 수면장애, 번아웃, 스트레스, ADHD'
+  };
+  
+  const categoryKeywords = categoryHints[category] || '일반적인 건강 증상, 예방, 관리';
+  const currentSeasonContext = seasonalContext[month] || '';
   
   // Gemini AI 기반 트렌드 분석 (구글 검색 기반)
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: `[현재 시각: ${dateStr} (한국 표준시)]
+    contents: `[🕐 정확한 현재 시각: ${dateStr} 기준 (한국 표준시)]
+[🎲 다양성 시드: ${randomSeed}]
 
-'${category}' 진료과와 관련된 건강/의료 트렌드 5가지를 분석해주세요.
+당신은 네이버/구글 검색 트렌드 분석 전문가입니다.
+'${category}' 진료과와 관련하여 **지금 이 시점**에 검색량이 급상승하거나 관심이 높은 건강/의료 주제 5가지를 추천해주세요.
 
-[점수 산정 기준]
-1. SEO 적합도 점수(0~100): 뉴스 보도량 + 대중적 관심도가 높을수록, 블로그 경쟁도가 낮을수록 높은 점수
-2. 점수 높은 순서대로 정렬
+[📅 ${month}월 시즌 특성]
+${currentSeasonContext}
 
-[제약조건]
-1. 실제 '질병명', '증상', '치료법', '건강 뉴스' 내용만 추출
-2. seasonal_factor에는 "왜 지금 이 주제가 뜨는지" 근거를 짧게 작성
-3. ${month}월 계절적 특성 반영 (예: 1월=독감/동상, 7월=열사병/식중독 등)`,
+[🏥 ${category} 관련 키워드 풀]
+${categoryKeywords}
+
+[⚠️ 중요 규칙]
+1. **매번 다른 결과 필수**: 이전 응답과 다른 새로운 주제를 선정하세요 (시드: ${randomSeed})
+2. **구체적인 주제**: "어깨통증" 대신 "겨울철 난방 후 어깨 뻣뻣함" 처럼 구체적으로
+3. **현재 시점 반영**: ${month}월 ${day}일 기준 계절/시기 특성 반드시 반영
+4. **롱테일 키워드**: 블로그 작성에 바로 쓸 수 있는 구체적인 키워드 조합 제시
+5. **다양한 난이도**: 경쟁 높은 주제 2개 + 틈새 주제 3개 섞어서
+
+[📊 점수 산정]
+- SEO 점수(0~100): 검색량 높고 + 블로그 경쟁도 낮을수록 고점수
+- 점수 높은 순 정렬
+
+[🎯 출력 형식]
+- topic: 구체적인 주제명 (예: "겨울철 어깨 뻣뻣함 원인")
+- keywords: 블로그 제목에 쓸 롱테일 키워드 (예: "겨울 어깨통증, 난방 어깨 뻣뻣, 아침 어깨 굳음")
+- score: SEO 점수 (70~95 사이)
+- seasonal_factor: 왜 지금 이 주제가 뜨는지 한 줄 설명`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -2725,7 +2778,8 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
           },
           required: ["topic", "keywords", "score", "seasonal_factor"]
         }
-      }
+      },
+      temperature: 0.9 // 다양성을 위해 temperature 높임
     }
   });
   return JSON.parse(response.text || "[]");
