@@ -3,7 +3,7 @@ import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport
 import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { saveAs } from 'file-saver';
-import ContentAnalysisPanel from './ContentAnalysisPanel';
+
 
 // 동적 임포트: 초기 번들 크기 최적화
 let docxModule: any = null;
@@ -3426,17 +3426,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         
       </div>
 
-      {/* 콘텐츠 분석 패널 - 블로그/보도자료에만 표시 */}
-      {content.postType !== 'card_news' && (
-        <div className="px-4 lg:px-8 pt-4">
-          <ContentAnalysisPanel
-            html={localHtml}
-            title={content.title || ''}
-            keyword={content.tags?.[0] || ''}
-            darkMode={darkMode}
-          />
-        </div>
-      )}
+
 
       <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {activeTab === 'preview' ? (
