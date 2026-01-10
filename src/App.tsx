@@ -385,7 +385,16 @@ const App: React.FC = () => {
       } else if (hash === '#pricing') {
         setCurrentPage('pricing');
       } else {
-        setCurrentPage('landing');
+        // 🚀 랜딩 페이지 스킵: 기본 페이지를 로그인/앱으로 변경
+        if (isLoggedIn || isAdmin) {
+          // 로그인 되어있으면 바로 앱으로
+          setCurrentPage('app');
+          window.location.hash = 'app';
+        } else if (!authLoading) {
+          // 비로그인이면 로그인 페이지로
+          setCurrentPage('auth');
+          window.location.hash = 'auth';
+        }
       }
     };
 
