@@ -109,6 +109,12 @@ const callGPTWebSearch = async (query: string): Promise<any> => {
 - 통계는 반드시 출처와 연도 포함
 - 가이드라인은 발표 기관과 연도 명시
 
+🚨 출처 검증 필수 (P1 - 위반 시 즉시 제외)
+- URL 내용이 현재 주제 "${query}"와 정확히 일치하는지 확인
+- 다른 질환/증상 페이지는 절대 사용 금지
+- 예: 어지럼증 주제에 당뇨병/척추골절 URL 사용 금지
+- 주제와 무관하면 해당 출처 제외하고 다른 출처 찾기
+
 반드시 아래 JSON 형식으로 응답하세요 (health.kdca.go.kr URL 우선!):
 {
   "collected_facts": [
