@@ -5035,7 +5035,7 @@ ${JSON.stringify(searchResults, null, 2)}
     safeProgress('✍️ Gemini가 콘텐츠를 작성하고 있습니다...');
     
     try {
-      console.log('🔄 Gemini API 스트리밍 시작...');
+      console.log('🔄 Gemini API 호출 시작...');
       console.log('📦 contextData 길이:', contextData?.length || 0);
       console.log('📦 blogPrompt 길이:', blogPrompt?.length || 0);
       console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
@@ -5046,15 +5046,13 @@ ${JSON.stringify(searchResults, null, 2)}
         setTimeout(() => reject(new Error('⏱️ AI 생성 시간이 초과되었습니다 (2분). 다시 시도해주세요.')), TIMEOUT_MS)
       );
       
-      // 🎬 스트리밍으로 변경 (실시간 텍스트 생성 표시)
+      // 🎬 일반 generateContent 사용 (스트리밍 API 미지원)
       const generatePromise = (async () => {
-        let accumulatedText = '';
-        let lastProgressUpdate = Date.now();
-        const PROGRESS_UPDATE_INTERVAL = 500; // 0.5초마다 업데이트
+        safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
         
-        const stream = await ai.models.streamGenerateContent({
+        const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,  // ← 검색 결과(contextData) 추가!
+          contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
           config: {
             tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
@@ -5078,36 +5076,19 @@ ${JSON.stringify(searchResults, null, 2)}
                   }
                 }
               },
-              required: ["title", "content"]  // imagePrompts, fact_check는 선택적으로 변경
+              required: ["title", "content"]
             }
           }
         });
         
-        // 스트리밍 청크 처리
-        for await (const chunk of stream) {
-          if (chunk.text) {
-            accumulatedText += chunk.text;
-            
-            // 🎯 실시간 프로그레스 업데이트 (0.5초마다)
-            const now = Date.now();
-            if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-              // 공백 제외 글자수 계산
-              const charCountWithSpaces = accumulatedText.length;
-              const charCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
-              const estimatedProgress = Math.min(95, Math.floor((charCountNoSpaces / targetLength) * 100)); // 목표 대비 진행률
-              safeProgress(`✍️ AI가 작성 중... ${charCountNoSpaces}자 생성됨 (공백제외, ${estimatedProgress}%)`);
-              lastProgressUpdate = now;
-            }
-          }
-        }
-        
-        const finalCharCount = accumulatedText.length;
-        const finalCharCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
-        console.log(`✅ 스트리밍 완료: ${finalCharCountNoSpaces}자 (공백제외) / ${finalCharCount}자 (공백포함)`);
-        return { text: accumulatedText };
+        const text = response.text || '';
+        const charCountNoSpaces = text.replace(/\s/g, '').length;
+        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${text.length}자 (공백포함)`);
+        safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
+        return { text };
       })();
       
-      const response = await Promise.race([generatePromise, timeoutPromise]);
+      const response = await Promise.race([generatePromise, timeoutPromise]) as { text: string };
       
       console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
       
@@ -5251,18 +5232,16 @@ ${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제�
 
 ${blogPrompt}`;
 
-          // 재생성 (스트리밍 적용!)
+          // 재생성 (일반 generateContent 사용)
           if (providerSettings.textGeneration === 'openai') {
             const regenerateSystemPrompt = getGPT52Prompt();
             const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
             result = JSON.parse(newResponseText);
           } else {
-            // 🎬 재생성도 스트리밍으로!
-            let accumulatedText = '';
-            let lastProgressUpdate = Date.now();
-            const PROGRESS_UPDATE_INTERVAL = 500;
+            // 🎬 재생성도 일반 generateContent 사용
+            safeProgress(`🔄 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
             
-            const stream = await ai.models.streamGenerateContent({
+            const regenerateResponse = await ai.models.generateContent({
               model: "gemini-3-pro-preview",
               contents: improvementPrompt,
               config: {
@@ -5271,25 +5250,10 @@ ${blogPrompt}`;
               }
             });
             
-            for await (const chunk of stream) {
-              if (chunk.text) {
-                accumulatedText += chunk.text;
-                
-                const now = Date.now();
-                if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
-                  // 공백 제외 글자수 계산
-                  const charCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
-                  const estimatedProgress = Math.min(95, Math.floor((charCountNoSpaces / targetLength) * 100));
-                  safeProgress(`🔄 재생성 중... ${charCountNoSpaces}자 생성됨 (공백제외, ${estimatedProgress}%, ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
-                  lastProgressUpdate = now;
-                }
-              }
-            }
-            
-            const finalCharCount = accumulatedText.length;
-            const finalCharCountNoSpaces = accumulatedText.replace(/\s/g, '').length;
-            console.log(`✅ 재생성 스트리밍 완료: ${finalCharCountNoSpaces}자 (공백제외) / ${finalCharCount}자 (공백포함)`);
-            result = JSON.parse(accumulatedText || "{}");
+            const regeneratedText = regenerateResponse.text || '{}';
+            const charCountNoSpaces = regeneratedText.replace(/\s/g, '').length;
+            console.log(`✅ 재생성 완료: ${charCountNoSpaces}자 (공백제외) / ${regeneratedText.length}자 (공백포함)`);
+            result = JSON.parse(regeneratedText);
           }
           
           // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
