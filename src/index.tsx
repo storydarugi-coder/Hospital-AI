@@ -147,9 +147,13 @@ app.get('/sitemap.xml', (c) => {
 app.get('*', (c) => {
   const path = new URL(c.req.url).pathname;
   
-  // 정적 파일 경로는 Cloudflare Pages가 직접 서빙하도록 건너뛰기
-  if (path.startsWith('/assets/') || path.startsWith('/static/')) {
-    return c.notFound();
+  // 정적 파일 경로는 Cloudflare Pages가 직접 서빙하도록 완전히 우회
+  // Worker를 건너뛰고 asset 서빙으로 fallback
+  if (path.startsWith('/assets/') || path.startsWith('/static/') || 
+      path.endsWith('.js') || path.endsWith('.css') || 
+      path.endsWith('.png') || path.endsWith('.jpg') || 
+      path.endsWith('.svg') || path.endsWith('.ico')) {
+    return new Response(null, { status: 404 });
   }
   
   // 환경변수를 HTML에 직접 주입
@@ -290,4 +294,23 @@ app.get('*', (c) => {
   `)
 })
 
-export default app
+// Cloudflare Pages 환경에서 정적 asset 서빙을 위한 래퍼
+export default {
+  async fetch(request: Request, env: any, ctx: any) {
+    const url = new URL(request.url);
+    const path = url.pathname;
+    
+    // 정적 파일 경로는 Cloudflare Pages asset 서빙으로 넘김
+    if (path.startsWith('/assets/') || path.startsWith('/static/')) {
+      // env.ASSETS가 있으면 (Cloudflare Pages 환경)
+      if (env.ASSETS) {
+        return env.ASSETS.fetch(request);
+      }
+      // 없으면 404 (로컬 개발 환경)
+      return new Response('Not Found', { status: 404 });
+    }
+    
+    // 나머지는 Hono 앱이 처리
+    return app.fetch(request, env, ctx);
+  }
+}
