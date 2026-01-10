@@ -24,8 +24,8 @@ export const CATEGORIES = [
 ];
 
 export const PERSONAS = [
-  { value: 'director_1st', label: '대표원장 1인칭 (진정성/전문성)' },
   { value: 'hospital_info', label: '병원 공식 블로그 (정보성/객관적)' },
+  { value: 'director_1st', label: '대표원장 1인칭 (진정성/전문성)' },
   { value: 'coordinator', label: '상담 실장님 (친근함/후기형)' },
 ];
 
