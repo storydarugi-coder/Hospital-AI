@@ -8,7 +8,7 @@ import {
 } from '../lib/supabase';
 
 interface AuthPageProps {
-  onNavigate: (page: 'landing' | 'app' | 'admin' | 'auth' | 'pricing') => void;
+  onNavigate: (page: 'app' | 'admin' | 'auth') => void;
 }
 
 type AuthMode = 'login' | 'register' | 'forgot';
@@ -196,15 +196,12 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <button 
-            onClick={() => onNavigate('landing')}
-            className="inline-flex items-center gap-2 text-white hover:opacity-80 transition-opacity"
-          >
+          <div className="inline-flex items-center gap-2 text-white">
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
               <span className="text-2xl font-bold text-white">H</span>
             </div>
             <span className="text-2xl font-bold">HospitalAI</span>
-          </button>
+          </div>
         </div>
 
         {/* Auth Card */}
@@ -435,15 +432,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* Bottom Links */}
-        <div className="mt-6 text-center text-sm text-slate-400">
-          <button
-            onClick={() => onNavigate('landing')}
-            className="hover:text-emerald-400 transition-colors"
-          >
-            ← 홈으로 돌아가기
-          </button>
-        </div>
       </div>
     </div>
   );

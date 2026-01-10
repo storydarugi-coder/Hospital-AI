@@ -2,7 +2,6 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import InputForm from './components/InputForm';
-import LandingPage from './components/LandingPage';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -14,7 +13,7 @@ const PromptPreview = lazy(() => import('./components/PromptPreview'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
 
-type PageType = 'landing' | 'app' | 'admin' | 'auth';
+type PageType = 'app' | 'admin' | 'auth';
 
 // 사용자 정보 타입
 interface UserProfile {
@@ -24,7 +23,7 @@ interface UserProfile {
 }
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<PageType>('landing');
+  const [currentPage, setCurrentPage] = useState<PageType>('app');
   const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
   const [state, setState] = useState<GenerationState>({
     isLoading: false,
@@ -288,11 +287,7 @@ const App: React.FC = () => {
 
   // 페이지 네비게이션 헬퍼
   const handleNavigate = (page: PageType) => {
-    if (page === 'landing') {
-      window.location.hash = '';
-    } else {
-      window.location.hash = page;
-    }
+    window.location.hash = page;
     setCurrentPage(page);
   };
 
@@ -302,8 +297,8 @@ const App: React.FC = () => {
     setSupabaseUser(null);
     setUserProfile(null);
     setIsLoggedIn(false);
-    window.location.hash = '';
-    setCurrentPage('landing');
+    window.location.hash = 'auth';
+    setCurrentPage('auth');
   };
 
   // 회원 탈퇴 핸들러
@@ -323,8 +318,8 @@ const App: React.FC = () => {
       setIsLoggedIn(false);
       setShowDeleteModal(false);
       setDeleteConfirmText('');
-      window.location.hash = '';
-      setCurrentPage('landing');
+      window.location.hash = 'auth';
+      setCurrentPage('auth');
       alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
     } else {
       setDeleteError(error || '탈퇴 처리 중 오류가 발생했습니다.');
@@ -590,12 +585,6 @@ const App: React.FC = () => {
   }
 
 
-
-  // Landing 페이지 렌더링
-  if (currentPage === 'landing') {
-    console.log('Landing page - isLoggedIn:', isLoggedIn, 'userName:', userProfile?.name);
-    return <LandingPage isLoggedIn={isLoggedIn} userName={userProfile?.name} onLogout={handleLogout} />;
-  }
 
   // Admin 페이지 렌더링
   if (currentPage === 'admin') {
