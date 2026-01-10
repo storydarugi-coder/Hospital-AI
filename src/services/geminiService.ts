@@ -4994,7 +4994,7 @@ ${JSON.stringify(searchResults, null, 2)}
     safeProgress('✍️ Gemini가 콘텐츠를 작성하고 있습니다...');
     
     try {
-      console.log('🔄 Gemini API 호출 시작...');
+      console.log('🔄 Gemini API 스트리밍 시작...');
       
       // ⏱️ 타임아웃 설정 (2분)
       const TIMEOUT_MS = 120000; // 2분
@@ -5002,36 +5002,62 @@ ${JSON.stringify(searchResults, null, 2)}
         setTimeout(() => reject(new Error('⏱️ AI 생성 시간이 초과되었습니다 (2분). 다시 시도해주세요.')), TIMEOUT_MS)
       );
       
-      const generatePromise = ai.models.generateContent({
-        model: "gemini-3-pro-preview",
-        contents: isCardNews ? cardNewsPrompt : blogPrompt,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              content: { type: Type.STRING },
-              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-              fact_check: {
-                type: Type.OBJECT,
-                properties: {
-                  fact_score: { type: Type.INTEGER },
-                  safety_score: { type: Type.INTEGER },
-                  conversion_score: { type: Type.INTEGER },
-                  ai_smell_score: { type: Type.INTEGER },
-                  verified_facts_count: { type: Type.INTEGER },
-                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+      // 🎬 스트리밍으로 변경 (실시간 텍스트 생성 표시)
+      const generatePromise = (async () => {
+        let accumulatedText = '';
+        let lastProgressUpdate = Date.now();
+        const PROGRESS_UPDATE_INTERVAL = 500; // 0.5초마다 업데이트
+        
+        const stream = await ai.models.streamGenerateContent({
+          model: "gemini-3-pro-preview",
+          contents: isCardNews ? cardNewsPrompt : blogPrompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                content: { type: Type.STRING },
+                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fact_check: {
+                  type: Type.OBJECT,
+                  properties: {
+                    fact_score: { type: Type.INTEGER },
+                    safety_score: { type: Type.INTEGER },
+                    conversion_score: { type: Type.INTEGER },
+                    ai_smell_score: { type: Type.INTEGER },
+                    verified_facts_count: { type: Type.INTEGER },
+                    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+                  }
                 }
-              }
-            },
-            required: ["title", "content"]  // imagePrompts, fact_check는 선택적으로 변경
+              },
+              required: ["title", "content"]  // imagePrompts, fact_check는 선택적으로 변경
+            }
+          }
+        });
+        
+        // 스트리밍 청크 처리
+        for await (const chunk of stream) {
+          if (chunk.text) {
+            accumulatedText += chunk.text;
+            
+            // 🎯 실시간 프로그레스 업데이트 (0.5초마다)
+            const now = Date.now();
+            if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
+              const charCount = accumulatedText.length;
+              const estimatedProgress = Math.min(95, Math.floor((charCount / 5000) * 100)); // 대략적인 진행률
+              safeProgress(`✍️ AI가 작성 중... ${charCount}자 생성됨 (${estimatedProgress}%)`);
+              lastProgressUpdate = now;
+            }
           }
         }
-      });
+        
+        console.log('✅ 스트리밍 완료:', accumulatedText.length, 'chars');
+        return { text: accumulatedText };
+      })();
       
       const response = await Promise.race([generatePromise, timeoutPromise]);
       
@@ -5177,13 +5203,18 @@ ${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제�
 
 ${blogPrompt}`;
 
-          // 재생성
+          // 재생성 (스트리밍 적용!)
           if (providerSettings.textGeneration === 'openai') {
             const regenerateSystemPrompt = getGPT52Prompt();
             const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
             result = JSON.parse(newResponseText);
           } else {
-            const newResponse = await ai.models.generateContent({
+            // 🎬 재생성도 스트리밍으로!
+            let accumulatedText = '';
+            let lastProgressUpdate = Date.now();
+            const PROGRESS_UPDATE_INTERVAL = 500;
+            
+            const stream = await ai.models.streamGenerateContent({
               model: "gemini-3-pro-preview",
               contents: improvementPrompt,
               config: {
@@ -5191,7 +5222,22 @@ ${blogPrompt}`;
                 responseMimeType: "application/json"
               }
             });
-            result = JSON.parse(newResponse.text || "{}");
+            
+            for await (const chunk of stream) {
+              if (chunk.text) {
+                accumulatedText += chunk.text;
+                
+                const now = Date.now();
+                if (now - lastProgressUpdate > PROGRESS_UPDATE_INTERVAL) {
+                  const charCount = accumulatedText.length;
+                  safeProgress(`🔄 재생성 중... ${charCount}자 생성됨 (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+                  lastProgressUpdate = now;
+                }
+              }
+            }
+            
+            console.log('✅ 재생성 스트리밍 완료:', accumulatedText.length, 'chars');
+            result = JSON.parse(accumulatedText || "{}");
           }
           
           // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
