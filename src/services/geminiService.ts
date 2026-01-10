@@ -1043,8 +1043,76 @@ const callOpenAI_Staged = async (
     } else {
       try {
         const data3 = JSON.parse(responseText3);
-        currentContent = data3.choices[0]?.message?.content || currentContent;
-        console.log('✅ [3단계] SEO 최적화 완료');
+        const stage3Content = data3.choices[0]?.message?.content || currentContent;
+        
+        // 🔥 SEO 점수 체크 및 재생성 로직 (85점 이하면 재생성)
+        const MIN_SEO_SCORE = 85;
+        const MAX_SEO_RETRIES = 2;
+        let seoRetryCount = 0;
+        let finalStage3Content = stage3Content;
+        
+        // SEO 점수 추출 함수
+        const extractSeoScore = (content: string): number => {
+          try {
+            const parsed = JSON.parse(content);
+            return parsed?.seo_improvements?.estimated_score || 
+                   parsed?.fact_check?.seo_score || 
+                   parsed?.seo_score || 
+                   90; // 기본값
+          } catch {
+            return 90; // 파싱 실패시 기본값
+          }
+        };
+        
+        let currentSeoScore = extractSeoScore(finalStage3Content);
+        console.log(`📊 [3단계] SEO 점수: ${currentSeoScore}점`);
+        
+        // SEO 점수가 85점 이하면 재생성 시도
+        while (currentSeoScore < MIN_SEO_SCORE && seoRetryCount < MAX_SEO_RETRIES) {
+          seoRetryCount++;
+          safeProgress(`🔄 [3단계] SEO 점수 ${currentSeoScore}점 → 재생성 시도 ${seoRetryCount}/${MAX_SEO_RETRIES}...`);
+          console.log(`🔄 [3단계] SEO 점수 ${currentSeoScore}점 미달, 재생성 시도 ${seoRetryCount}/${MAX_SEO_RETRIES}`);
+          
+          const retryResponse = await fetch(OPENAI_PROXY_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-OpenAI-Key': apiKey
+            },
+            body: JSON.stringify({
+              model: 'gpt-5.2',
+              messages: [
+                { role: 'system', content: `${stage3SystemPrompt}\n\n⚠️ 이전 결과의 SEO 점수가 ${currentSeoScore}점으로 낮습니다. 반드시 ${MIN_SEO_SCORE}점 이상이 되도록 키워드 배치와 구조를 더 최적화해주세요.\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
+                { role: 'user', content: `${finalStage3Content}\n\n(SEO 점수 ${MIN_SEO_SCORE}점 이상 달성 필수! 응답은 반드시 JSON 형식으로 해주세요)` }
+              ],
+              response_format: { type: 'json_object' },
+              temperature: 0.5 // 약간 더 창의적으로
+            })
+          });
+          
+          if (retryResponse.ok) {
+            const retryText = await retryResponse.text();
+            try {
+              const retryData = JSON.parse(retryText);
+              const retryContent = retryData.choices[0]?.message?.content;
+              if (retryContent) {
+                finalStage3Content = retryContent;
+                currentSeoScore = extractSeoScore(finalStage3Content);
+                console.log(`📊 [3단계] 재생성 후 SEO 점수: ${currentSeoScore}점`);
+              }
+            } catch {
+              console.warn('⚠️ [3단계] 재생성 파싱 실패');
+            }
+          }
+        }
+        
+        if (currentSeoScore >= MIN_SEO_SCORE) {
+          console.log(`✅ [3단계] SEO 최적화 완료 (점수: ${currentSeoScore}점)`);
+        } else {
+          console.warn(`⚠️ [3단계] SEO 점수 ${currentSeoScore}점 (목표 ${MIN_SEO_SCORE}점 미달, 최선의 결과 사용)`);
+        }
+        
+        currentContent = finalStage3Content;
       } catch (parseError) {
         console.warn('⚠️ [3단계] JSON 파싱 오류, 2단계 결과 유지');
         console.warn('   - 응답:', responseText3.substring(0, 200));

@@ -244,7 +244,7 @@ export const getStage2_RemoveAiSmell = (textLength: number = 2000) => {
  * 핵심: 키워드 배치 + 소제목 최적화 + 검색 의도 반영
  */
 export const getStage3_SeoOptimization = () => {
-  return `[3단계 목표] 네이버 검색 상위 노출 (SEO 90점 이상)
+  return `[3단계 목표] 네이버 검색 상위 노출 (SEO 85점 이상)
 
 ---
 🎯 핵심 작업 3가지
