@@ -5700,7 +5700,7 @@ ${JSON.stringify(searchResults, null, 2)}
       
       const geminiResponse = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
-        contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
+        contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
         config: {
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json",
