@@ -5334,7 +5334,29 @@ ${timeContext}
             responseMimeType: "application/json"
           }
         });
-        const result = JSON.parse(searchResponse.text || "{}");
+        
+        // 안전한 JSON 파싱
+        let result;
+        const rawText = searchResponse.text || "{}";
+        
+        try {
+          // JSON 블록 추출 시도 (```json ... ``` 형태일 수 있음)
+          const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                           rawText.match(/```\s*([\s\S]*?)\s*```/) ||
+                           [null, rawText];
+          
+          const cleanedText = jsonMatch[1].trim();
+          result = JSON.parse(cleanedText);
+        } catch (parseError) {
+          console.warn('⚠️ JSON 파싱 실패, 원본 텍스트 일부:', rawText.substring(0, 200));
+          // 빈 객체로 폴백
+          result = {
+            collected_facts: [],
+            key_statistics: [],
+            latest_guidelines: []
+          };
+        }
+        
         const factCount = result.collected_facts?.length || 0;
         const statCount = result.key_statistics?.length || 0;
         console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
