@@ -1075,9 +1075,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       // 결과에 따라 메시지 표시
       const aiSmellScore = result.ai_smell_score || 0;
-      if (aiSmellScore <= 7) {
+      if (aiSmellScore <= 20) {
         setEditProgress(`✅ AI 냄새 점수: ${aiSmellScore}점 - 사람 글 수준! 🎉`);
-      } else if (aiSmellScore <= 15) {
+      } else if (aiSmellScore <= 40) {
         setEditProgress(`⚠️ AI 냄새 점수: ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
       } else {
         setEditProgress(`❌ AI 냄새 점수: ${aiSmellScore}점 - 재작성 필요`);
@@ -2159,11 +2159,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   <div className="flex items-center gap-2">
                     {recheckResult ? (
                       <>
-                        <span className={`text-2xl font-black ${recheckResult.ai_smell_score! <= 7 ? 'text-green-400' : recheckResult.ai_smell_score! <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
+                        <span className={`text-2xl font-black ${recheckResult.ai_smell_score! <= 20 ? 'text-green-400' : recheckResult.ai_smell_score! <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
                           {recheckResult.ai_smell_score}점
                         </span>
                         <span className="text-[10px] opacity-70">
-                          {recheckResult.ai_smell_score! <= 7 ? '✅ 사람글' : recheckResult.ai_smell_score! <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
+                          {recheckResult.ai_smell_score! <= 20 ? '✅ 사람글' : recheckResult.ai_smell_score! <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
                         </span>
                         <button
                           onClick={handleRecheckAiSmell}
@@ -2175,11 +2175,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       </>
                     ) : (
                       <>
-                        <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 7 ? 'text-green-400' : content.factCheck.ai_smell_score <= 15 ? 'text-amber-400' : 'text-red-400'}`}>
+                        <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 20 ? 'text-green-400' : content.factCheck.ai_smell_score <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
                           {content.factCheck.ai_smell_score}점
                         </span>
                         <span className="text-[10px] opacity-70">
-                          {content.factCheck.ai_smell_score <= 7 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 15 ? '⚠️ 수정필요' : '🚨 재작성'}
+                          {content.factCheck.ai_smell_score <= 20 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
                         </span>
                         <button
                           onClick={handleRecheckAiSmell}
@@ -2451,11 +2451,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 <div>
                   <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🤖 AI 냄새 분석 결과</div>
                   <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {(recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 7 
-                      ? '✅ 사람 글 수준 (0~7점) - 바로 발행 가능!'
-                      : (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 15 
-                        ? '⚠️ 경계선 (8~15점) - 부분 수정 후 발행 가능'
-                        : '🚨 AI 냄새 강함 (16점 이상) - 재작성 권장'}
+                    {(recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 20 
+                      ? '✅ 사람 글 수준 (0~20점) - 바로 발행 가능!'
+                      : (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 40 
+                        ? '⚠️ 경계선 (21~40점) - 부분 수정 후 발행 가능'
+                        : '🚨 AI 냄새 강함 (41점 이상) - 재작성 권장'}
                   </div>
                 </div>
               </div>
@@ -2687,9 +2687,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               <div className={`rounded-xl p-4 text-center ${darkMode ? 'bg-slate-700/30' : 'bg-slate-100'}`}>
                 <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
                   <span className="font-bold">📊 AI 냄새 점수 기준</span><br />
-                  <span className="text-green-500">0~7점: 사람 글 ✅</span> | 
-                  <span className="text-amber-500"> 8~15점: 경계선 ⚠️</span> | 
-                  <span className="text-red-500"> 16점↑: AI 확정 🚨</span>
+                  <span className="text-green-500">0~20점: 사람 글 ✅</span> | 
+                  <span className="text-amber-500"> 21~40점: 경계선 ⚠️</span> | 
+                  <span className="text-red-500"> 41점↑: AI 확정 🚨</span>
                 </div>
               </div>
             </div>
