@@ -5014,6 +5014,9 @@ ${JSON.stringify(searchResults, null, 2)}
     
     try {
       console.log('🔄 Gemini API 스트리밍 시작...');
+      console.log('📦 contextData 길이:', contextData?.length || 0);
+      console.log('📦 blogPrompt 길이:', blogPrompt?.length || 0);
+      console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
       
       // ⏱️ 타임아웃 설정 (2분)
       const TIMEOUT_MS = 120000; // 2분
