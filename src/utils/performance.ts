@@ -6,7 +6,7 @@
  * - 번들 로딩 시간
  */
 
-import { logger } from './logger';
+import { log } from './logger';
 
 export interface PerformanceMetric {
   name: string;
@@ -52,7 +52,7 @@ export class PerformanceMonitor {
       const rating = value <= 2500 ? 'good' : value <= 4000 ? 'needs-improvement' : 'poor';
       
       this.recordMetric('LCP', value, rating);
-      logger.perf('LCP', value);
+      log.perf('LCP', value);
     });
 
     observer.observe({ entryTypes: ['largest-contentful-paint'] });
@@ -69,7 +69,7 @@ export class PerformanceMonitor {
         const rating = value <= 100 ? 'good' : value <= 300 ? 'needs-improvement' : 'poor';
         
         this.recordMetric('FID', value, rating);
-        logger.perf('FID', value);
+        log.perf('FID', value);
       });
     });
 
@@ -103,7 +103,7 @@ export class PerformanceMonitor {
     window.addEventListener('beforeunload', () => {
       const rating = clsValue <= 0.1 ? 'good' : clsValue <= 0.25 ? 'needs-improvement' : 'poor';
       this.recordMetric('CLS', clsValue, rating);
-      logger.perf('CLS', clsValue);
+      log.perf('CLS', clsValue);
     });
   }
 
@@ -118,7 +118,7 @@ export class PerformanceMonitor {
         const rating = value <= 600 ? 'good' : value <= 1500 ? 'needs-improvement' : 'poor';
         
         this.recordMetric('TTFB', value, rating);
-        logger.perf('TTFB', value);
+        log.perf('TTFB', value);
       });
     });
 
@@ -136,7 +136,7 @@ export class PerformanceMonitor {
         const rating = value <= 1800 ? 'good' : value <= 3000 ? 'needs-improvement' : 'poor';
         
         this.recordMetric('FCP', value, rating);
-        logger.perf('FCP', value);
+        log.perf('FCP', value);
       });
     });
 
@@ -152,11 +152,11 @@ export class PerformanceMonitor {
     return () => {
       const duration = performance.now() - start;
       this.recordMetric(`Render_${componentName}`, duration, this.getRating(duration, 16, 50));
-      logger.perf(`Render_${componentName}`, duration);
+      log.perf(`Render_${componentName}`, duration);
       
       // 16ms (60fps) 이상이면 경고
       if (duration > 16) {
-        logger.warn(`Slow render: ${componentName}`, { duration });
+        log.warn(`Slow render: ${componentName}`, { duration });
       }
     };
   }
@@ -171,12 +171,12 @@ export class PerformanceMonitor {
       end: (success: boolean) => {
         const duration = performance.now() - start;
         this.recordMetric(`API_${endpoint}`, duration, this.getRating(duration, 500, 2000));
-        logger.perf(`API_${endpoint}`, duration);
+        log.perf(`API_${endpoint}`, duration);
         
         if (success) {
-          logger.info(`API success: ${endpoint}`, { duration });
+          log.info(`API success: ${endpoint}`, { duration });
         } else {
-          logger.error(`API failed: ${endpoint}`, { duration });
+          log.error(`API failed: ${endpoint}`, { duration });
         }
       }
     };
@@ -203,10 +203,10 @@ export class PerformanceMonitor {
         };
 
         Object.entries(metrics).forEach(([name, value]) => {
-          logger.perf(`Bundle_${name}`, value);
+          log.perf(`Bundle_${name}`, value);
         });
 
-        logger.info('Bundle load complete', metrics);
+        log.info('Bundle load complete', metrics);
       }
     });
   }
