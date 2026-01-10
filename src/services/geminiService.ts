@@ -4707,6 +4707,11 @@ ${timeContext}
     
     geminiResults = geminiResult.success ? geminiResult.data : null;
     
+    // GPT 검색 비활성화 (Gemini만 사용)
+    const gptResults: any = null;
+    const gptFactCount = 0;
+    const gptStatCount = 0;
+    
     // 상세 로그
     const geminiFactCount = geminiResults?.collected_facts?.length || 0;
     const geminiStatCount = geminiResults?.key_statistics?.length || 0;
