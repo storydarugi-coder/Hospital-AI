@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import TermsPage from './TermsPage';
 import PrivacyPage from './PrivacyPage';
-import PaymentModal from './PaymentModal';
 
 interface LandingPageProps {
   isLoggedIn?: boolean;
@@ -15,7 +14,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
   const [showHelp, setShowHelp] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -24,13 +22,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
   }, []);
   
   useEffect(() => {
-    if (mobileMenuOpen || showHelp || showTerms || showPrivacy || showPayment) {
+    if (mobileMenuOpen || showHelp || showTerms || showPrivacy) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [mobileMenuOpen, showHelp, showTerms, showPrivacy, showPayment]);
+  }, [mobileMenuOpen, showHelp, showTerms, showPrivacy]);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
@@ -359,59 +357,37 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               <a href="#auth" className="block w-full py-3 text-center bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all">무료 체험</a>
             </div>
 
-            {/* Basic */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all">
-              <h3 className="text-xl font-black text-slate-800 mb-1">베이직</h3>
-              <p className="text-sm text-slate-400 mb-4">개인 블로거용</p>
-              <div className="text-3xl font-black text-slate-900 mb-1">₩15,900</div>
-              <p className="text-sm text-emerald-600 font-medium mb-6">10회 | 3개월</p>
-              <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 블로그/카드뉴스/보도자료</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
-              </ul>
-              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all">구매하기</button>
-            </div>
-
-            {/* Standard */}
-            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-6 rounded-2xl shadow-xl shadow-emerald-200 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-black rounded-full">인기</div>
-              <h3 className="text-xl font-black text-white mb-1">스탠다드</h3>
-              <p className="text-sm text-emerald-100 mb-4">소규모 병원용</p>
-              <div className="text-3xl font-black text-white mb-1">₩29,900</div>
-              <p className="text-sm text-emerald-200 font-medium mb-6">20회 | 3개월</p>
-              <ul className="space-y-2 text-sm text-white/90 mb-6">
-                <li className="flex items-center gap-2"><span>✓</span> 블로그/카드뉴스/보도자료</li>
-                <li className="flex items-center gap-2"><span>✓</span> AI 이미지 생성</li>
-                <li className="flex items-center gap-2"><span>✓</span> 모든 기능 동일</li>
-              </ul>
-              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-white text-emerald-600 font-bold rounded-xl hover:bg-emerald-50 transition-all">구매하기</button>
-            </div>
-
-            {/* Premium */}
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all relative">
-              <div className="absolute -top-3 right-4 px-3 py-1 bg-red-500 text-white text-xs font-black rounded-full">BEST</div>
-              <h3 className="text-xl font-black text-slate-800 mb-1">프리미엄</h3>
-              <p className="text-sm text-slate-400 mb-4">대형 병원/대행사</p>
-              <div className="text-3xl font-black text-slate-900 mb-1">₩55,900</div>
-              <p className="text-sm text-emerald-600 font-medium mb-6">50회 | 3개월</p>
-              <ul className="space-y-2 text-sm text-slate-600 mb-6">
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 블로그/카드뉴스/보도자료</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> AI 이미지 생성</li>
-                <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> 모든 기능 동일</li>
-              </ul>
-              <button onClick={() => setShowPayment(true)} className="block w-full py-3 text-center bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition-all">구매하기</button>
+            {/* Free Plan - 개인 전용 */}
+            <div className="bg-gradient-to-br from-emerald-500 to-green-600 p-8 rounded-3xl shadow-2xl shadow-emerald-200 relative col-span-full max-w-2xl mx-auto">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-yellow-400 text-yellow-900 text-sm font-black rounded-full shadow-lg">🎉 개인 전용 무료!</div>
+              <div className="text-center">
+                <h3 className="text-3xl font-black text-white mb-2">무제한 무료 사용</h3>
+                <p className="text-lg text-emerald-100 mb-6">개인 사용자 전용 - 제한 없이 사용하세요!</p>
+                <div className="text-5xl font-black text-white mb-2">FREE</div>
+                <p className="text-sm text-emerald-200 font-medium mb-8">무제한 생성 | 영구 무료</p>
+                <ul className="grid sm:grid-cols-2 gap-3 text-sm text-white/95 mb-8 max-w-lg mx-auto">
+                  <li className="flex items-center gap-2"><span>✓</span> 블로그 포스팅</li>
+                  <li className="flex items-center gap-2"><span>✓</span> 카드뉴스</li>
+                  <li className="flex items-center gap-2"><span>✓</span> 보도자료</li>
+                  <li className="flex items-center gap-2"><span>✓</span> AI 이미지 생성</li>
+                  <li className="flex items-center gap-2"><span>✓</span> 무제한 생성</li>
+                  <li className="flex items-center gap-2"><span>✓</span> 모든 기능 완전 무료</li>
+                </ul>
+                <a href="#app" className="inline-block px-12 py-4 text-center bg-white text-emerald-600 font-black text-lg rounded-2xl hover:bg-emerald-50 transition-all shadow-xl">
+                  🚀 지금 바로 시작하기
+                </a>
+              </div>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto mt-8">
             <div className="bg-slate-50 p-6 rounded-2xl text-center">
-              <div className="text-3xl font-black text-emerald-600 mb-1">89%</div>
-              <div className="text-sm text-slate-500 font-medium">비용 절감</div>
+              <div className="text-3xl font-black text-emerald-600 mb-1">100%</div>
+              <div className="text-sm text-slate-500 font-medium">완전 무료</div>
             </div>
             <div className="bg-slate-50 p-6 rounded-2xl text-center">
-              <div className="text-3xl font-black text-emerald-600 mb-1">99%</div>
-              <div className="text-sm text-slate-500 font-medium">시간 절약</div>
+              <div className="text-3xl font-black text-emerald-600 mb-1">∞</div>
+              <div className="text-sm text-slate-500 font-medium">무제한 생성</div>
             </div>
             <div className="bg-slate-50 p-6 rounded-2xl text-center">
               <div className="text-3xl font-black text-emerald-600 mb-1">100%</div>
@@ -468,13 +444,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
               </div>
               <div>
                 <h4 className="font-bold text-white mb-2">서비스 안내</h4>
-                <p>결제 즉시 이용 가능</p>
-                <p>이용권: 결제일로부터 90일</p>
+                <p>개인 사용자 전용</p>
+                <p>무제한 무료 사용</p>
               </div>
               <div>
-                <h4 className="font-bold text-white mb-2">환불 규정</h4>
-                <p>미사용 시: 7일 이내 전액 환불</p>
-                <p>사용 시: 잔여분 비례 환불</p>
+                <h4 className="font-bold text-white mb-2">이용 안내</h4>
+                <p>회원가입 후 즉시 이용</p>
+                <p>모든 기능 완전 무료</p>
               </div>
             </div>
             
@@ -601,15 +577,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ isLoggedIn = false, userName,
 
       {/* 개인정보처리방침 모달 */}
       {showPrivacy && <PrivacyPage onClose={() => setShowPrivacy(false)} />}
-
-      {/* 결제 모달 */}
-      <PaymentModal 
-        isOpen={showPayment} 
-        onClose={() => setShowPayment(false)}
-        onSuccess={(credits) => {
-          console.log(`${credits} 크레딧 충전 완료!`);
-        }}
-      />
     </div>
   );
 };
