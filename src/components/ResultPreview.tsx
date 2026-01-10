@@ -3,6 +3,7 @@ import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport
 import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { saveAs } from 'file-saver';
+import ContentAnalysisPanel from './ContentAnalysisPanel';
 
 // 동적 임포트: 초기 번들 크기 최적화
 let docxModule: any = null;
