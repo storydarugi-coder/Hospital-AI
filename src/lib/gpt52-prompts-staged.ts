@@ -189,11 +189,17 @@ export const getStage4_FinalCheck = () => getStage2_AiRemovalAndCompliance();
 /**
  * 프롬프트 가져오기
  */
-export const getStagePrompt = (stageNumber: 1 | 2, textLength: number = 2000): string => {
+export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 2000): string => {
   switch (stageNumber) {
     case 1:
       return getStage1_ContentGeneration(textLength);
     case 2:
+      return getStage2_AiRemovalAndCompliance(textLength);
+    case 3:
+      // SEO 최적화 = 1단계 재사용 (키워드 배치 최적화)
+      return getStage1_ContentGeneration(textLength);
+    case 4:
+      // 최종 검증 = 2단계 재사용 (의료법 + AI 제거)
       return getStage2_AiRemovalAndCompliance(textLength);
     default:
       throw new Error(`Invalid stage: ${stageNumber}`);

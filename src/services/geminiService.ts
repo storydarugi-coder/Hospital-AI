@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
-import { getStagePrompt } from "../lib/gpt52-prompts-staged";
+import { getStagePrompt, SYSTEM_PROMPT as GPT52_SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
 
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
@@ -5737,8 +5737,9 @@ ${timeContext}
       safeProgress('✍️ Step 2: AI가 자연스러운 글을 작성하고 있습니다...');
     }
     
-    // Gemini 전용 프롬프트 사용
-    const geminiSystemPrompt = getMedicalSafetyPrompt() + getAIFeedbackPrompt();
+    // Gemini 전용 프롬프트 사용 - v5.3 프롬프트 적용
+    // GPT52_SYSTEM_PROMPT: 의료광고법 + 금지어 사전 + 종결어미 + 키워드 + SEO + 출처검증 + 자가체크
+    const geminiSystemPrompt = GPT52_SYSTEM_PROMPT;
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
     // crossCheckGuide 제거 (GPT 없으므로 불필요)
