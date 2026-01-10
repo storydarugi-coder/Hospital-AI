@@ -130,12 +130,6 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
             {/* 미니 점수 표시 */}
             <div className="hidden sm:flex items-center gap-3 mr-2">
               <div className="text-center">
-                <div className={`text-xs font-black ${analysis.medicalLaw.safetyScore >= 80 ? 'text-emerald-500' : analysis.medicalLaw.safetyScore >= 60 ? 'text-yellow-500' : 'text-red-500'}`}>
-                  {analysis.medicalLaw.safetyScore}
-                </div>
-                <div className={`text-[9px] ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>의료법</div>
-              </div>
-              <div className="text-center">
                 <div className={`text-xs font-black ${analysis.seo.totalScore >= 80 ? 'text-emerald-500' : analysis.seo.totalScore >= 60 ? 'text-yellow-500' : 'text-red-500'}`}>
                   {analysis.seo.totalScore}
                 </div>
@@ -210,11 +204,6 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
       {/* 점수 요약 */}
       <div className={`flex justify-around p-4 border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
         <ScoreGauge 
-          score={analysis.medicalLaw.safetyScore} 
-          label="의료법" 
-          color={analysis.medicalLaw.safetyScore >= 80 ? '#10B981' : analysis.medicalLaw.safetyScore >= 60 ? '#F59E0B' : '#EF4444'}
-        />
-        <ScoreGauge 
           score={analysis.seo.totalScore} 
           label="SEO" 
           color={analysis.seo.totalScore >= 80 ? '#10B981' : analysis.seo.totalScore >= 60 ? '#F59E0B' : '#EF4444'}
@@ -230,7 +219,6 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
       <div className={`flex border-b ${darkMode ? 'border-slate-700' : 'border-slate-100'}`}>
         {[
           { id: 'overview', label: '요약', icon: '📊' },
-          { id: 'medical', label: '의료법', icon: '⚖️', count: analysis.medicalLaw.totalViolations },
           { id: 'seo', label: 'SEO', icon: '🔍' },
           { id: 'ai', label: 'AI냄새', icon: '🤖', count: analysis.aiSmell.issues.length }
         ].map(tab => (
@@ -299,22 +287,6 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
                   ))}
                 </ul>
               </div>
-            )}
-          </div>
-        )}
-        
-        {/* 의료법 탭 */}
-        {activeTab === 'medical' && (
-          <div className="space-y-3">
-            {analysis.medicalLaw.violations.length === 0 ? (
-              <div className={`text-center py-8 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                <div className="text-4xl mb-2">✅</div>
-                <div className="font-bold">금지어가 발견되지 않았습니다</div>
-              </div>
-            ) : (
-              analysis.medicalLaw.violations.map((v, idx) => (
-                <ViolationCard key={idx} violation={v} darkMode={darkMode} />
-              ))
             )}
           </div>
         )}
