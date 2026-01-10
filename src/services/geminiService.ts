@@ -2686,6 +2686,64 @@ ${cleanPromptText}
 };
 
 
+// 🗞️ 뉴스 검색 전용 함수 - 키워드 추천에만 사용! (글쓰기 검색과 분리)
+// ⚠️ 허용 도메인: 연합뉴스, 중앙일보, 조선일보, 동아일보, 한겨레, 경향신문, KBS, MBC, SBS 등 신뢰할 수 있는 언론사
+const searchNewsForTrends = async (category: string, month: number): Promise<string> => {
+  const ai = getAiClient();
+  
+  // 진료과별 뉴스 검색 키워드
+  const categoryNewsKeywords: Record<string, string> = {
+    '정형외과': '관절 통증 겨울 OR 허리디스크 OR 어깨 통증',
+    '피부과': '피부 건조 겨울 OR 아토피 OR 습진',
+    '내과': '독감 OR 감기 OR 당뇨 OR 고혈압 건강',
+    '치과': '치아 건강 OR 잇몸 질환 OR 구강 건조',
+    '안과': '안구건조 OR 눈 건강 OR 시력',
+    '이비인후과': '비염 OR 코막힘 OR 목감기 OR 인후통',
+    '산부인과': '여성 건강 OR 갱년기 OR 생리통',
+    '비뇨의학과': '전립선 OR 방광염 OR 비뇨기 건강',
+    '신경과': '두통 OR 어지럼증 OR 수면 OR 불면증',
+    '정신건강의학과': '우울증 OR 스트레스 OR 번아웃 OR 불안'
+  };
+  
+  const searchKeyword = categoryNewsKeywords[category] || '건강 의료 뉴스';
+  
+  try {
+    console.log(`📰 뉴스 트렌드 검색 시작: ${category} (${searchKeyword})`);
+    
+    // Gemini 구글 검색 도구로 최신 뉴스 검색
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: `최근 1주일간 한국 뉴스에서 "${searchKeyword}" 관련 기사를 검색하고, 
+가장 많이 다뤄지는 건강/의료 이슈 3가지를 요약해주세요.
+
+[🚨 검색 허용 뉴스 도메인만 참고!]
+✅ 허용: yna.co.kr(연합뉴스), joongang.co.kr(중앙일보), chosun.com(조선일보), 
+   donga.com(동아일보), hani.co.kr(한겨레), khan.co.kr(경향신문),
+   kbs.co.kr, mbc.co.kr, sbs.co.kr, ytn.co.kr, jtbc.co.kr, mbn.co.kr
+❌ 제외: 블로그, 카페, 개인 사이트, 건강 정보 사이트 (하이닥, 헬스조선 등)
+
+[출력 형식]
+각 이슈마다:
+- 이슈: (한 줄 요약)
+- 관련 증상/키워드: (블로그 작성에 활용할 키워드)
+- 뉴스 트렌드 이유: (왜 지금 이슈가 되는지)`,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "text/plain",
+        temperature: 0.3
+      }
+    });
+    
+    const newsContext = response.text || '';
+    console.log(`📰 뉴스 트렌드 검색 완료: ${newsContext.substring(0, 200)}...`);
+    return newsContext;
+    
+  } catch (error) {
+    console.warn('⚠️ 뉴스 검색 실패, 기본 트렌드로 진행:', error);
+    return '';
+  }
+};
+
 export const getTrendingTopics = async (category: string): Promise<TrendingItem[]> => {
   const ai = getAiClient();
   const now = new Date();
@@ -2733,7 +2791,11 @@ export const getTrendingTopics = async (category: string): Promise<TrendingItem[
   const categoryKeywords = categoryHints[category] || '일반적인 건강 증상, 예방, 관리';
   const currentSeasonContext = seasonalContext[month] || '';
   
-  // Gemini AI 기반 트렌드 분석 (구글 검색 기반)
+  // 🗞️ 뉴스 검색으로 현재 트렌드 파악 (키워드 추천 전용!)
+  // ⚠️ 이 뉴스 검색은 글쓰기 검색(callGPTWebSearch)과 완전히 분리됨!
+  const newsContext = await searchNewsForTrends(category, month);
+  
+  // Gemini AI 기반 트렌드 분석 (구글 검색 + 뉴스 컨텍스트 기반)
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: `[🕐 정확한 현재 시각: ${dateStr} 기준 (한국 표준시)]
@@ -2748,12 +2810,19 @@ ${currentSeasonContext}
 [🏥 ${category} 관련 키워드 풀]
 ${categoryKeywords}
 
+${newsContext ? `[📰 최신 뉴스 트렌드 - 현재 이슈! 🔥]
+${newsContext}
+
+⚠️ 위 뉴스 트렌드를 반드시 반영하여 현재 상황에 맞는 주제를 추천하세요!
+뉴스에서 언급된 이슈와 연관된 블로그 키워드를 제안해주세요.` : ''}
+
 [⚠️ 중요 규칙]
 1. **매번 다른 결과 필수**: 이전 응답과 다른 새로운 주제를 선정하세요 (시드: ${randomSeed})
 2. **구체적인 주제**: "어깨통증" 대신 "겨울철 난방 후 어깨 뻣뻣함" 처럼 구체적으로
 3. **현재 시점 반영**: ${month}월 ${day}일 기준 계절/시기 특성 반드시 반영
 4. **롱테일 키워드**: 블로그 작성에 바로 쓸 수 있는 구체적인 키워드 조합 제시
 5. **다양한 난이도**: 경쟁 높은 주제 2개 + 틈새 주제 3개 섞어서
+${newsContext ? '6. **뉴스 트렌드 반영 필수**: 위 뉴스에서 언급된 이슈 중 1~2개는 반드시 포함!' : ''}
 
 [📊 점수 산정]
 - SEO 점수(0~100): 검색량 높고 + 블로그 경쟁도 낮을수록 고점수
@@ -2763,8 +2832,9 @@ ${categoryKeywords}
 - topic: 구체적인 주제명 (예: "겨울철 어깨 뻣뻣함 원인")
 - keywords: 블로그 제목에 쓸 롱테일 키워드 (예: "겨울 어깨통증, 난방 어깨 뻣뻣, 아침 어깨 굳음")
 - score: SEO 점수 (70~95 사이)
-- seasonal_factor: 왜 지금 이 주제가 뜨는지 한 줄 설명`,
+- seasonal_factor: 왜 지금 이 주제가 뜨는지 한 줄 설명 ${newsContext ? '(뉴스 기반이면 "📰 뉴스 트렌드" 표시)' : ''}`,
     config: {
+      tools: [{ googleSearch: {} }], // 구글 검색 도구 활성화
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.ARRAY,
