@@ -3875,13 +3875,68 @@ ${getStylePromptForGeneration(learnedStyle)}
   const medicalSafetyPrompt = getMedicalSafetyPrompt();
   const aiFeedbackRules = getAIFeedbackPrompt();
   
+  // 🎯 간소화된 핵심 프롬프트 (API 타임아웃 방지 - 기존 21KB → 약 2KB)
   const blogPrompt = `
-    ${medicalSafetyPrompt}
-    ${aiFeedbackRules}
-    ${writingStylePrompt}
-    ${getWritingStyleCommonRules()}
-    ${learnedStyleInstruction}
-    ${benchmarkingInstruction}
+당신은 전문 의료 블로그 작가입니다.
+
+[작성 요청]
+- 진료과: ${request.category}
+- 주제: ${request.topic}
+- 목표 길이: ${targetLength}자 (중요!)
+- 이미지: ${targetImageCount}장 (${imageMarkers} 마커 사용)
+${learnedStyleInstruction ? '- 말투: 학습된 스타일 적용\n' + learnedStyleInstruction : ''}
+
+[현재 시점]
+${timeContext}
+
+[핵심 규칙]
+1. "~인지, ~인지" 나열 금지 → 문단으로 풀어쓰기
+2. 글 서두 메타 설명 금지 → 바로 본론 시작
+3. 의료법 준수: 효과 단정, 직접 내원 권유("방문하세요") 금지
+4. 자연스러운 문장 리듬, 현장감 있는 표현, 독자 공감형 서술
+
+[HTML 구조]
+<div class="naver-post-container">
+  <h3>서론 제목 (공감 유도)</h3>
+  <p>구체적 상황 묘사 (200자 이상)</p>
+  ${targetImageCount >= 1 ? '\n  [IMG_1]\n' : ''}
+  <h3>본론 1: 핵심 설명</h3>
+  <p>상세 내용 (350자 이상)</p>
+  <ul><li>포인트 1</li><li>포인트 2</li></ul>
+  ${targetImageCount >= 2 ? '\n  [IMG_2]\n' : ''}
+  <h3>본론 2: 원인/증상</h3>
+  <p>구체적 설명 (350자 이상)</p>
+  ${targetImageCount >= 3 ? '\n  [IMG_3]\n' : ''}
+  <h3>마무리</h3>
+  <p>핵심 요약 (200자 이상)</p>
+  <p>해시태그 10개</p>
+</div>
+
+[이미지 프롬프트 규칙 - 한국어 작성]
+- 이미지에 텍스트/로고 절대 금지
+- 스타일 키워드: ${imageStyleGuide}
+
+[JSON 응답]
+{
+  "title": "제목 (상태 점검형 질문)",
+  "content": "HTML 본문",
+  "imagePrompts": ["한국어 프롬프트1", "한국어 프롬프트2"],
+  "fact_check": {
+    "fact_score": 85,
+    "safety_score": 95,
+    "conversion_score": 80,
+    "ai_smell_score": 10,
+    "verified_facts_count": 5,
+    "issues": ["문제점"],
+    "recommendations": ["권장사항"]
+  }
+}
+
+⚠️ ai_smell_score는 낮을수록 좋음 (7점 이하 목표, 15점 초과 시 재작성)
+⚠️ 목표 길이 ${targetLength}자 반드시 맞추기!
+  `;
+
+  /* 기존 상세 프롬프트 주석 처리 (API 타임아웃 방지)
     
     [📅 현재 시점 정보 - 최신 정보 기반 작성 필수!]
     ${timeContext}
@@ -4292,7 +4347,7 @@ ${getStylePromptForGeneration(learnedStyle)}
     □ 첫 문장이 상황 서술형으로 시작?
     □ 분량 ${targetLength}자 이상 유지?
     □ AI 냄새 점수 15점 이하? (7점 이하 목표!)
-  `;
+  */  // 기존 상세 프롬프트 끝
 
 
   const cardNewsPrompt = `
@@ -4940,12 +4995,20 @@ ${JSON.stringify(searchResults, null, 2)}
     
     try {
       console.log('🔄 Gemini API 호출 시작...');
-      const response = await ai.models.generateContent({
+      
+      // ⏱️ 타임아웃 설정 (2분)
+      const TIMEOUT_MS = 120000; // 2분
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('⏱️ AI 생성 시간이 초과되었습니다 (2분). 다시 시도해주세요.')), TIMEOUT_MS)
+      );
+      
+      const generatePromise = ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: isCardNews ? cardNewsPrompt : blogPrompt,
         config: {
           tools: [{ googleSearch: {} }],
           responseMimeType: "application/json",
+          // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
           responseSchema: {
             type: Type.OBJECT,
             properties: {
@@ -4962,14 +5025,15 @@ ${JSON.stringify(searchResults, null, 2)}
                   verified_facts_count: { type: Type.INTEGER },
                   issues: { type: Type.ARRAY, items: { type: Type.STRING } },
                   recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-                },
-                required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score", "verified_facts_count", "issues", "recommendations"]
+                }
               }
             },
-            required: ["title", "content", "imagePrompts", "fact_check"]
+            required: ["title", "content"]  // imagePrompts, fact_check는 선택적으로 변경
           }
         }
       });
+      
+      const response = await Promise.race([generatePromise, timeoutPromise]);
       
       console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
       
