@@ -5506,55 +5506,46 @@ ${JSON.stringify(searchResults, null, 2)}
       console.log('📦 blogPrompt 길이:', blogPrompt?.length || 0);
       console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
       
-      // ⏱️ 타임아웃 설정 (2분)
-      const TIMEOUT_MS = 120000; // 2분
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('⏱️ AI 생성 시간이 초과되었습니다 (2분). 다시 시도해주세요.')), TIMEOUT_MS)
-      );
+      // 🎬 일반 generateContent 사용 (타임아웃 제거 - Gemini가 알아서 처리)
+      safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
       
-      // 🎬 일반 generateContent 사용 (스트리밍 API 미지원)
-      const generatePromise = (async () => {
-        safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
-        
-        const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
-          config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                content: { type: Type.STRING },
-                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fact_check: {
-                  type: Type.OBJECT,
-                  properties: {
-                    fact_score: { type: Type.INTEGER },
-                    safety_score: { type: Type.INTEGER },
-                    conversion_score: { type: Type.INTEGER },
-                    ai_smell_score: { type: Type.INTEGER },
-                    verified_facts_count: { type: Type.INTEGER },
-                    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  }
+      const geminiResponse = await ai.models.generateContent({
+        model: "gemini-3-pro-preview",
+        contents: `${contextData}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json",
+          // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              content: { type: Type.STRING },
+              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+              fact_check: {
+                type: Type.OBJECT,
+                properties: {
+                  fact_score: { type: Type.INTEGER },
+                  safety_score: { type: Type.INTEGER },
+                  conversion_score: { type: Type.INTEGER },
+                  ai_smell_score: { type: Type.INTEGER },
+                  verified_facts_count: { type: Type.INTEGER },
+                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
                 }
-              },
-              required: ["title", "content"]
-            }
+              }
+            },
+            required: ["title", "content"]
           }
-        });
-        
-        const text = response.text || '';
-        const charCountNoSpaces = text.replace(/\s/g, '').length;
-        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${text.length}자 (공백포함)`);
-        safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
-        return { text };
-      })();
+        }
+      });
       
-      const response = await Promise.race([generatePromise, timeoutPromise]) as { text: string };
+      const responseText = geminiResponse.text || '';
+      const charCountNoSpaces = responseText.replace(/\s/g, '').length;
+      console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
+      safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
+      
+      const response = { text: responseText };
       
       console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
       
@@ -5569,9 +5560,7 @@ ${JSON.stringify(searchResults, null, 2)}
       console.error('❌ Gemini 생성 실패:', geminiError);
       
       // 에러 타입별 처리
-      if (geminiError.message?.includes('timeout') || geminiError.message?.includes('시간초과')) {
-        throw new Error('⏱️ AI 생성 시간이 초과되었습니다. 주제를 더 간단하게 하거나 다시 시도해주세요.');
-      } else if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit')) {
+      if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
         throw new Error('🚫 API 사용량 한계에 도달했습니다. 잠시 후 다시 시도해주세요.');
       } else if (geminiError.message?.includes('JSON')) {
         throw new Error('📋 AI 응답 형식 오류가 발생했습니다. 다시 시도해주세요.');
