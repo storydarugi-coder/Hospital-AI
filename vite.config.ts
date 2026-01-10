@@ -8,9 +8,7 @@ import { resolve } from 'path'
 export default defineConfig({
   build: {
     rollupOptions: {
-      input: './src/client.tsx',
       output: {
-        entryFileNames: 'static/client.js',
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-google': ['@google/genai'],
@@ -21,7 +19,7 @@ export default defineConfig({
     },
     outDir: 'dist',
     emptyOutDir: true,
-    copyPublicDir: true, // public/ 폴더 복사 (index.html 포함)
+    copyPublicDir: true,
     chunkSizeWarningLimit: 1000
   },
   plugins: [
