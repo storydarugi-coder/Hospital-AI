@@ -72,7 +72,7 @@ OO이란 ~질환 → 자주 거론되는 것 중 하나
 export const getStage1_ContentGeneration = (textLength: number = 2000) => {
   return `■ 작성 규칙
 [P1] 물음표 금지, 제목 15자 이하
-[P2] 분량 ${textLength}±100자 엄수, 소제목 4~6개
+[P2] 분량 ${textLength}~${textLength + 100}자 엄수, 소제목 4~6개
 [P3] 체류요소: 자가체크/단계별/비교 중 1개+
 
 ■ 제목: 키워드 앞배치, 15자 이하
@@ -109,7 +109,7 @@ export const getStage2_AiRemovalAndCompliance = (textLength: number = 2000) => {
 ■ 필수 확인
 □ 물음표 0개
 □ 제목 15자 이하
-□ 분량 ${textLength}±100자 엄수
+□ 분량 ${textLength}~${textLength + 100}자 엄수
 □ 금지어 0개
 □ "판단/진단/가능성/의심" 3회 이하
 □ 기관명(연도) 형식 0개
