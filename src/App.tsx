@@ -1008,6 +1008,75 @@ const App: React.FC = () => {
       )}
       
 
+      {/* API 에러 모달 */}
+      {state.error && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`rounded-3xl p-8 max-w-md w-full shadow-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className={`text-xl font-black flex items-center gap-2 ${
+                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                  ? 'text-amber-600'
+                  : 'text-red-600'
+              }`}>
+                {state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                  ? '⚠️ API 사용량 한도 초과'
+                  : state.error.includes('네트워크') || state.error.includes('인터넷')
+                  ? '📡 네트워크 오류'
+                  : '❌ 오류 발생'}
+              </h3>
+              <button 
+                onClick={() => setState(prev => ({ ...prev, error: null }))}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                  darkMode ? 'bg-slate-700 text-slate-400 hover:bg-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className={`rounded-xl p-4 mb-6 ${
+              state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                ? darkMode ? 'bg-amber-900/30 border border-amber-700' : 'bg-amber-50 border border-amber-200'
+                : darkMode ? 'bg-red-900/30 border border-red-700' : 'bg-red-50 border border-red-200'
+            }`}>
+              <p className={`text-sm font-medium mb-3 ${
+                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                  ? darkMode ? 'text-amber-300' : 'text-amber-700'
+                  : darkMode ? 'text-red-300' : 'text-red-700'
+              }`}>
+                {state.error}
+              </p>
+              
+              {(state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')) && (
+                <div className={`text-xs space-y-1 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
+                  <p>• Gemini API 일일 사용량 한도에 도달했습니다.</p>
+                  <p>• 보통 1-2시간 후 다시 사용 가능합니다.</p>
+                  <p>• 급하시면 잠시 후 다시 시도해주세요.</p>
+                </div>
+              )}
+              
+              {(state.error.includes('네트워크') || state.error.includes('인터넷')) && (
+                <div className={`text-xs space-y-1 ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                  <p>• 인터넷 연결을 확인해주세요.</p>
+                  <p>• VPN을 사용 중이라면 끄고 다시 시도해주세요.</p>
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={() => setState(prev => ({ ...prev, error: null }))}
+              className={`w-full px-4 py-3 font-bold rounded-xl transition-all ${
+                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+              }`}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 회원 탈퇴 확인 모달 */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
