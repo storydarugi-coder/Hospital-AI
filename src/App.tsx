@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
+import { saveContentToServer } from './services/apiService';
 import InputForm from './components/InputForm';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -262,7 +263,7 @@ const App: React.FC = () => {
     };
   }, []);
 
-  // URL hash 기반 라우팅
+  // URL hash 기반 라우팅 (로그인 체크 제거)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -272,26 +273,13 @@ const App: React.FC = () => {
       
       if (hash === '#admin') {
         setCurrentPage('admin');
-      } else if (hash === '#app' || hash.includes('access_token')) {
-        // 비로그인 시 #app 접근 차단 (관리자는 예외, authLoading 중이면 일단 허용)
-        if (!authLoading && !isLoggedIn && !isAdmin) {
-          window.location.hash = 'auth';
-          setCurrentPage('auth');
-          return;
-        }
-        setCurrentPage('app');
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
         setCurrentPage('auth');
       } else {
-        // 🚀 랜딩 페이지 스킵: 기본 페이지를 로그인/앱으로 변경
-        if (isLoggedIn || isAdmin) {
-          // 로그인 되어있으면 바로 앱으로
-          setCurrentPage('app');
+        // 🚀 기본적으로 앱 페이지로 (로그인 불필요)
+        setCurrentPage('app');
+        if (!hash || hash === '#') {
           window.location.hash = 'app';
-        } else if (!authLoading) {
-          // 비로그인이면 로그인 페이지로
-          setCurrentPage('auth');
-          window.location.hash = 'auth';
         }
       }
     };
@@ -299,7 +287,7 @@ const App: React.FC = () => {
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [isLoggedIn, isAdmin, authLoading]);
+  }, []);
 
   // 페이지 네비게이션 헬퍼
   const handleNavigate = (page: PageType) => {
@@ -425,6 +413,30 @@ const App: React.FC = () => {
     try {
       const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
       setState({ isLoading: false, error: null, data: result, progress: '' });
+      
+      // 🆕 API 서버에 자동 저장
+      try {
+        console.log('💾 API 서버에 콘텐츠 저장 중...');
+        const saveResult = await saveContentToServer({
+          title: result.title,
+          content: result.htmlContent,
+          category: request.category,
+          postType: request.postType,
+          metadata: {
+            keywords: request.keywords,
+            seoScore: result.seoScore?.total,
+            aiSmellScore: result.factCheck?.ai_smell_score,
+          },
+        });
+        
+        if (saveResult.success) {
+          console.log('✅ 서버 저장 완료! ID:', saveResult.id);
+        } else {
+          console.warn('⚠️ 서버 저장 실패:', saveResult.error);
+        }
+      } catch (saveErr) {
+        console.warn('⚠️ 서버 저장 중 오류 (무시하고 계속):', saveErr);
+      }
     } catch (err: any) {
        const errorMsg = err.message || '알 수 없는 오류가 발생했습니다.';
        const isNetworkError = errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError') || errorMsg.includes('네트워크');
@@ -704,8 +716,8 @@ const App: React.FC = () => {
                 {darkMode ? '☀️' : '🌙'}
              </button>
              
-             {/* 로그인/사용자 버튼 */}
-             {isLoggedIn && userProfile ? (
+             {/* 로그인/사용자 버튼 (선택사항, 숨김 처리) */}
+             {false && isLoggedIn && userProfile ? (
                <div className="flex items-center gap-2">
                  {isAdmin && (
                    <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">
@@ -751,14 +763,14 @@ const App: React.FC = () => {
                    )}
                  </div>
                </div>
-             ) : (
+             ) : false ? (
                <a 
                  href="#auth" 
                  className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all"
                >
                  로그인
                </a>
-             )}
+             ) : null}
           </div>
         </div>
       </header>
