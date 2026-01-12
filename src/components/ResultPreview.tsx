@@ -2104,9 +2104,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         </div>
       )}
 
-      {content.factCheck && (
-        <div className="bg-slate-900 p-6 flex items-center justify-between text-white flex-none">
-          <div className="flex items-center gap-4">
+      {/* 항상 표시: 점수 표시 & 다운로드 버튼 */}
+      <div className="bg-slate-900 p-6 flex items-center justify-between text-white flex-none">
+        <div className="flex items-center gap-4">
+          {content.factCheck && (
+            <>
             {/* 📊 SEO 점수 (블로그에만 표시) - 가장 앞에 배치 */}
             {content.postType !== 'card_news' && (
               <>
@@ -2249,8 +2251,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                    <span className="text-xs font-bold text-blue-400 border border-blue-400 px-2 py-1 rounded-lg">카드뉴스 모드</span>
                 </div>
             )}
-          </div>
-          <div className="flex items-center gap-2">
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
              {/* 🖼️ 이미지 최적화 버튼 */}
              <button 
                onClick={handleOptimizeImages} 
@@ -2301,9 +2305,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                  </button>
                </>
              )}
-          </div>
         </div>
-      )}
+      </div>
       
       {/* 📊 SEO 점수 상세 모달 */}
       {showSeoDetail && seoScore && (
