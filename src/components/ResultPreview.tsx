@@ -2107,10 +2107,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       {/* 항상 표시: 점수 표시 & 다운로드 버튼 */}
       <div className="bg-slate-900 p-6 flex items-center justify-between text-white flex-none">
         <div className="flex items-center gap-4">
-          {content.factCheck && (
+          {content.factCheck ? (
             <>
-            {/* 📊 SEO 점수 (블로그에만 표시) - 가장 앞에 배치 */}
-            {content.postType !== 'card_news' && (
+              {/* 📊 SEO 점수 (블로그에만 표시) - 가장 앞에 배치 */}
+              {content.postType !== 'card_news' && (
               <>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">📊 SEO 점수</span>
@@ -2247,11 +2247,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             )}
             
             {content.postType === 'card_news' && (
-                <div className="hidden lg:block ml-4">
-                   <span className="text-xs font-bold text-blue-400 border border-blue-400 px-2 py-1 rounded-lg">카드뉴스 모드</span>
-                </div>
+              <div className="hidden lg:block ml-4">
+                <span className="text-xs font-bold text-blue-400 border border-blue-400 px-2 py-1 rounded-lg">카드뉴스 모드</span>
+              </div>
             )}
-            </>
+          </>
+          ) : (
+            <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              💡 콘텐츠를 생성하면 점수가 표시됩니다
+            </div>
           )}
         </div>
         <div className="flex items-center gap-2">
