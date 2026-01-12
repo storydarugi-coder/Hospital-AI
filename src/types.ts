@@ -72,6 +72,7 @@ export interface GenerationRequest {
   customImagePrompt?: string; // 커스텀 이미지 스타일 프롬프트
   styleCopyMode?: boolean; // true=레이아웃 복제, false=느낌만 참고
   learnedStyleId?: string; // 학습된 말투 스타일 ID
+  customSubheadings?: string; // 사용자가 직접 입력한 소제목들 (줄바꿈으로 구분)
   // 보도자료용 필드
   hospitalName?: string; // 병원명
   doctorName?: string; // 의료진 이름

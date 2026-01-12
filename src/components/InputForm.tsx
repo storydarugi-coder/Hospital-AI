@@ -51,6 +51,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [doctorTitle, setDoctorTitle] = useState<string>('원장');
   const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'>('achievement');
   
+  // 커스텀 소제목
+  const [customSubheadings, setCustomSubheadings] = useState<string>('');
+  
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [isLoadingTrends, setIsLoadingTrends] = useState(false);
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
@@ -91,6 +94,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       })(),
       // 📝 학습된 말투 스타일 ID
       learnedStyleId,
+      // 📋 커스텀 소제목
+      customSubheadings: customSubheadings.trim() || undefined,
       // 🗞️ 보도자료용 필드
       hospitalName: postType === 'press_release' ? hospitalName : undefined,
       doctorName: postType === 'press_release' ? doctorName : undefined,
@@ -398,7 +403,25 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
           <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
           <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="SEO 키워드 (쉼표 구분, 예: 피부건조, 겨울철 피부관리, 보습)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium mb-4 focus:border-emerald-500 outline-none" />
           
-          <button type="button" onClick={handleRecommendTitles} disabled={isLoadingTitles || !topic} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-black transition-all">
+          {/* 소제목 직접 입력 영역 */}
+          <div className="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-black text-blue-700">📝 소제목 직접 입력 (선택사항)</label>
+              <span className="text-[10px] text-blue-600 font-medium">한 줄에 하나씩 입력</span>
+            </div>
+            <textarea
+              value={customSubheadings}
+              onChange={(e) => setCustomSubheadings(e.target.value)}
+              placeholder={"소제목을 한 줄에 하나씩 입력하세요\n예:\n무릎 통증의 주요 원인\n통증을 줄이는 생활 습관\n병원 방문이 필요한 시점"}
+              className="w-full p-3 bg-white border border-blue-200 rounded-xl text-sm font-medium focus:border-blue-400 outline-none resize-none"
+              rows={5}
+            />
+            <p className="text-[10px] text-blue-600 mt-2">
+              💡 소제목을 직접 입력하면 AI가 그대로 사용하여 문단을 작성합니다. 입력하지 않으면 AI가 자동으로 소제목을 생성합니다.
+            </p>
+          </div>
+          
+          <button type="button" onClick={handleRecommendTitles} disabled={isLoadingTitles || !topic} className="w-full py-3 bg-slate-900 text-white rounded-2xl text-xs font-black hover:bg-black transition-all mt-4">
             {isLoadingTitles ? '생성 중...' : '🎯 AI 제목 추천받기'}
           </button>
           

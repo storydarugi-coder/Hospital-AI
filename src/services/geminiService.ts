@@ -4652,6 +4652,28 @@ ${getStylePromptForGeneration(learnedStyle)}
     }
   }
   
+  // 커스텀 소제목 적용
+  let customSubheadingInstruction = '';
+  if (request.customSubheadings && request.customSubheadings.trim()) {
+    const subheadings = request.customSubheadings.trim().split('\n').filter(h => h.trim());
+    if (subheadings.length > 0) {
+      customSubheadingInstruction = `
+[📋📋📋 소제목 필수 사용 - 사용자 지정 소제목! 📋📋📋]
+아래 소제목들을 **정확히 그대로** 사용하여 문단을 작성하세요!
+소제목 개수: ${subheadings.length}개
+
+${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
+
+🚨 **필수 규칙:**
+- 위 소제목을 **순서대로 정확히 그대로** 사용할 것!
+- 소제목 텍스트를 절대 수정하지 말 것!
+- 각 소제목에 맞는 내용으로 문단을 작성할 것!
+- H3 태그(<h3>)를 사용하여 소제목을 표시할 것!
+`;
+      console.log('📋 커스텀 소제목 적용:', subheadings.length, '개');
+    }
+  }
+  
   // 현재 한국 시간 정보 (최신 정보 기반 글 작성용)
   const now = new Date();
   const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
@@ -4686,6 +4708,7 @@ ${getStylePromptForGeneration(learnedStyle)}
 - 목표 길이: ${targetLength}자 (중요!)
 - 이미지: ${targetImageCount}장 (${imageMarkers} 마커 사용)
 ${learnedStyleInstruction ? '- 말투: 학습된 스타일 적용\n' + learnedStyleInstruction : ''}
+${customSubheadingInstruction ? customSubheadingInstruction : ''}
 
 [현재 시점]
 ${timeContext}
