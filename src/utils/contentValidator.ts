@@ -43,13 +43,14 @@ export class ContentValidator {
     ],
   };
 
-  // 권장 출처 목록
-  private static readonly TRUSTED_SOURCES = [
-    'kdca.go.kr', 'health.kdca.go.kr',
-    'mohw.go.kr', 'nhis.or.kr', 'hira.or.kr', 'mfds.go.kr',
+  // 🚫 의료광고법: 출처/공공기관명 사용 금지
+  // 이 목록은 검증에서 제외됨 (의료광고법 준수)
+  private static readonly FORBIDDEN_SOURCES = [
+    'kdca.go.kr', 'health.kdca.go.kr', '질병관리청',
+    'mohw.go.kr', '보건복지부', 'nhis.or.kr', 'hira.or.kr', 'mfds.go.kr',
     'who.int', 'cdc.gov', 'nih.gov',
     'pubmed.ncbi.nlm.nih.gov', 'jamanetwork.com', 'nejm.org', 'thelancet.com',
-    '대한의학회', '대한내과학회', '대한외과학회'
+    '대한의학회', '대한내과학회', '대한외과학회', '대한', '학회'
   ];
 
   /**
@@ -77,9 +78,9 @@ export class ContentValidator {
       warnings.push(`🤖 AI 냄새 감지 (${aiSmell.score}점): ${aiSmell.reasons.join(', ')}`);
     }
 
-    // 출처 경고
-    if (!sourceCheck.hasSource) {
-      warnings.push('📚 신뢰할 수 있는 출처가 없습니다');
+    // 출처 금지 확인 (의료광고법)
+    if (sourceCheck.hasForbiddenSource) {
+      violations.push('🚨 출처/공공기관명 사용 금지 (의료광고법): ' + sourceCheck.sources.join(', '));
     }
 
     // 가독성 경고
@@ -88,18 +89,21 @@ export class ContentValidator {
       suggestions.push('문장을 더 짧고 간결하게 작성해보세요');
     }
 
-    // 종합 점수 계산
+    // 종합 점수 계산 (출처 체크 제거 - 의료광고법 준수)
     const medicalLawScore = 100 - (
       medicalLawViolations.critical.length * 30 +
       medicalLawViolations.high.length * 15 +
       medicalLawViolations.medium.length * 5
     );
 
+    // 출처 위반 시 점수 차감
+    const sourceDeduction = sourceCheck.hasForbiddenSource ? 40 : 0;
+
     const overallScore = Math.max(0, Math.round(
-      medicalLawScore * 0.4 +
-      aiSmell.score * 0.3 +
-      sourceCheck.score * 0.2 +
-      readability * 0.1
+      medicalLawScore * 0.5 +
+      aiSmell.score * 0.4 +
+      readability * 0.1 -
+      sourceDeduction
     ));
 
     return {
@@ -208,25 +212,27 @@ export class ContentValidator {
   }
 
   /**
-   * 출처 신뢰도 검증
+   * 출처 금지 검증 (의료광고법)
+   * 공공기관명, 학회명 등 출처 사용 금지
    */
   private static verifySourceCredibility(text: string): {
-    hasSource: boolean;
+    hasForbiddenSource: boolean;
     score: number;
     sources: string[];
   } {
     const foundSources: string[] = [];
 
-    this.TRUSTED_SOURCES.forEach(source => {
+    this.FORBIDDEN_SOURCES.forEach(source => {
       if (text.includes(source)) {
         foundSources.push(source);
       }
     });
 
-    const hasSource = foundSources.length > 0;
-    const score = hasSource ? Math.min(100, 50 + foundSources.length * 25) : 30;
+    const hasForbiddenSource = foundSources.length > 0;
+    // 출처가 없으면 100점 (의료광고법 준수)
+    const score = hasForbiddenSource ? 0 : 100;
 
-    return { hasSource, score, sources: foundSources };
+    return { hasForbiddenSource, score, sources: foundSources };
   }
 
   /**
@@ -307,7 +313,7 @@ export class ContentValidator {
     }
 
     if (report.sourceCredibility < 60) {
-      fixes.push('신뢰할 수 있는 출처(질병관리청, 대한의학회 등)를 추가하세요');
+      fixes.push('🚫 출처/공공기관명을 제거하세요 (의료광고법 준수)');
     }
 
     if (report.readabilityScore < 60) {
