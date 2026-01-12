@@ -1107,9 +1107,6 @@ const callOpenAI_Staged = async (
         const stage3Content = data3.choices[0]?.message?.content || currentContent;
         
         // ℹ️ SEO 점수 체크 (참고용, 재생성 안 함)
-        let finalStage3Content = stage3Content;
-        
-        // SEO 점수 추출 함수
         const extractSeoScore = (content: string): number => {
           try {
             const parsed = JSON.parse(content);
@@ -1122,32 +1119,11 @@ const callOpenAI_Staged = async (
           }
         };
         
-        let currentSeoScore = extractSeoScore(finalStage3Content);
+        const currentSeoScore = extractSeoScore(stage3Content);
         console.log(`📊 [3단계] SEO 점수: ${currentSeoScore}점 (참고용)`);
         safeProgress(`📊 [3단계] SEO 점수: ${currentSeoScore}점`);
-              temperature: 0.5 // 약간 더 창의적으로
-            })
-          });
-          
-          if (retryResponse.ok) {
-            const retryText = await retryResponse.text();
-            try {
-              const retryData = JSON.parse(retryText);
-              const retryContent = retryData.choices[0]?.message?.content;
-              if (retryContent) {
-                finalStage3Content = retryContent;
-                currentSeoScore = extractSeoScore(finalStage3Content);
-                console.log(`📊 [3단계] 재생성 후 SEO 점수: ${currentSeoScore}점`);
-              }
-            } catch {
-              console.warn('⚠️ [3단계] 재생성 파싱 실패');
-            }
-          }
-        }
         
-        if (currentSeoScore >= MIN_SEO_SCORE) {
-        
-        currentContent = finalStage3Content;
+        currentContent = stage3Content;
       } catch (parseError) {
         console.warn('⚠️ [3단계] JSON 파싱 오류, 2단계 결과 유지');
         console.warn('   - 응답:', responseText3.substring(0, 200));
@@ -6062,15 +6038,6 @@ ${JSON.stringify(searchResults, null, 2)}
             safeProgress(`ℹ️ SEO 점수 ${seoReport.total}점`);
           }
         }
-              }
-            });
-            
-            const regeneratedText = regenerateResponse.text || '{}';
-            const charCountNoSpaces = regeneratedText.replace(/\s/g, '').length;
-            console.log(`✅ 재생성 완료: ${charCountNoSpaces}자 (공백제외) / ${regeneratedText.length}자 (공백포함)`);
-            result = JSON.parse(regeneratedText);
-          }
-          
       }
     } catch (seoError) {
       console.error('❌ SEO 평가 오류:', seoError);
