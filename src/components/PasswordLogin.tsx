@@ -157,11 +157,6 @@ const PasswordLogin: React.FC<PasswordLoginProps> = ({ onSuccess }) => {
             {isLoading ? '확인 중...' : '확인'}
           </button>
         </form>
-
-        {/* 힌트 (개발용 - 나중에 제거 가능) */}
-        <p className="text-center text-xs text-slate-400 mt-4">
-          힌트: 0000
-        </p>
       </div>
     </div>
   );
