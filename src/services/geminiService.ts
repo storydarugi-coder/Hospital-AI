@@ -9,7 +9,14 @@ const CURRENT_YEAR = new Date().getFullYear();
 const OPENAI_PROXY_URL = '/api/openai-chat';
 
 const getAiClient = () => {
-  const apiKey = localStorage.getItem('GEMINI_API_KEY');
+  // 1순위: Cloudflare Pages 환경변수 (빌드 시 주입됨)
+  let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  
+  // 2순위: localStorage
+  if (!apiKey) {
+    apiKey = localStorage.getItem('GEMINI_API_KEY');
+  }
+  
   if (!apiKey) {
     throw new Error("API Key가 설정되지 않았습니다. API Key를 입력해주세요.");
   }
