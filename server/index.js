@@ -15,11 +15,19 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 let contents = [];
 let nextId = 1;
 
-// API 키 저장소
+// API 키 저장소 (환경변수에서 초기값 로드)
 let apiKeys = {
-  gemini: null,
-  openai: null
+  gemini: process.env.GEMINI_API_KEY || null,
+  openai: process.env.OPENAI_API_KEY || null
 };
+
+// 서버 시작 시 API 키 상태 로그
+if (apiKeys.gemini) {
+  console.log('✅ Gemini API 키 환경변수에서 로드됨');
+}
+if (apiKeys.openai) {
+  console.log('✅ OpenAI API 키 환경변수에서 로드됨');
+}
 
 // 비밀번호 설정 (0000)
 const APP_PASSWORD = '0000';
