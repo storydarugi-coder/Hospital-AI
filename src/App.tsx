@@ -62,6 +62,22 @@ const App: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   
+  // 사용자 드롭다운 상태
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showUserDropdown && !target.closest('.user-dropdown-container')) {
+        setShowUserDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserDropdown]);
+  
   // 다크모드 상태
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -680,33 +696,42 @@ const App: React.FC = () => {
                    </span>
                  )}
                  {/* 사용자 이름 클릭 시 드롭다운 */}
-                 <div className="relative group">
+                 <div className="relative user-dropdown-container">
                    <button 
+                     onClick={() => setShowUserDropdown(!showUserDropdown)}
                      className={`px-3 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                    >
                      <span>{userProfile.name} 님</span>
-                     <span className="text-xs">▼</span>
+                     <span className={`text-xs transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}>▼</span>
                    </button>
-                   <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                     <div className="py-2">
-                       <div className={`px-4 py-2 text-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                         {userProfile.email}
+                   {showUserDropdown && (
+                     <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border z-50 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
+                       <div className="py-2">
+                         <div className={`px-4 py-2 text-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                           {userProfile.email}
+                         </div>
+                         <hr className={darkMode ? 'border-slate-700' : 'border-slate-100'} />
+                         <button 
+                           onClick={() => {
+                             setShowUserDropdown(false);
+                             handleLogout();
+                           }}
+                           className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-all ${darkMode ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                         >
+                           🚪 로그아웃
+                         </button>
+                         <button 
+                           onClick={() => {
+                             setShowUserDropdown(false);
+                             setShowDeleteModal(true);
+                           }}
+                           className={`w-full px-4 py-2.5 text-left text-sm font-medium text-red-500 transition-all ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
+                         >
+                           ⚠️ 회원 탈퇴
+                         </button>
                        </div>
-                       <hr className={darkMode ? 'border-slate-700' : 'border-slate-100'} />
-                       <button 
-                         onClick={handleLogout}
-                         className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-all ${darkMode ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                       >
-                         🚪 로그아웃
-                       </button>
-                       <button 
-                         onClick={() => setShowDeleteModal(true)}
-                         className={`w-full px-4 py-2.5 text-left text-sm font-medium text-red-500 transition-all ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
-                       >
-                         ⚠️ 회원 탈퇴
-                       </button>
                      </div>
-                   </div>
+                   )}
                  </div>
                </div>
              ) : (
