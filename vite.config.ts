@@ -6,6 +6,14 @@ import { resolve } from 'path'
 
 // 클라이언트 전용 빌드 (SSR/Worker 제거)
 export default defineConfig({
+  server: {
+    host: true, // 모든 네트워크 인터페이스에서 접근 허용
+    allowedHosts: [
+      '.sandbox.novita.ai',
+      'localhost',
+      '127.0.0.1'
+    ]
+  },
   build: {
     rollupOptions: {
       output: {
