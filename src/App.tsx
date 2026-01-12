@@ -634,13 +634,16 @@ const App: React.FC = () => {
              >
                 🏠 홈
              </a>
-             <button 
-               onClick={() => setShowHelpModal(true)}
-               className={`w-9 h-9 rounded-xl transition-all text-lg font-black flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
-               title="도움말"
-             >
-                ?
-             </button>
+             {/* 도움말 버튼 숨김 처리 */}
+             {false && (
+               <button 
+                 onClick={() => setShowHelpModal(true)}
+                 className={`w-9 h-9 rounded-xl transition-all text-lg font-black flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
+                 title="도움말"
+               >
+                  ?
+               </button>
+             )}
              
              {/* 다크모드 토글 */}
              <button 
