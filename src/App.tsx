@@ -293,12 +293,29 @@ const App: React.FC = () => {
 
   // 로그아웃 핸들러
   const handleLogout = async () => {
-    await signOut();
-    setSupabaseUser(null);
-    setUserProfile(null);
-    setIsLoggedIn(false);
-    window.location.hash = 'auth';
-    setCurrentPage('auth');
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('로그아웃 에러 (무시하고 강제 로그아웃 진행):', error);
+    } finally {
+      // 🔴 강제 로그아웃: 에러가 나더라도 로컬 세션은 무조건 삭제
+      setSupabaseUser(null);
+      setUserProfile(null);
+      setIsLoggedIn(false);
+      
+      // 로컬스토리지 완전 초기화
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-hospitalai-auth-token');
+      
+      // 세션 스토리지도 초기화
+      sessionStorage.clear();
+      
+      window.location.hash = 'auth';
+      setCurrentPage('auth');
+      
+      // 페이지 새로고침으로 완전 초기화
+      window.location.reload();
+    }
   };
 
   // 회원 탈퇴 핸들러

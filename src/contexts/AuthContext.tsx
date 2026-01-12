@@ -285,10 +285,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await client.auth.signOut();
-    setUser(null);
-    setProfile(null);
-    setSubscription(null);
+    try {
+      await client.auth.signOut();
+    } catch (error) {
+      console.error('Supabase signOut 에러 (무시하고 로컬 세션 삭제):', error);
+    } finally {
+      // 🔴 강제 로그아웃: 에러가 나더라도 로컬 상태는 무조건 초기화
+      setUser(null);
+      setProfile(null);
+      setSubscription(null);
+      
+      // 로컬스토리지에서 Supabase 세션 삭제
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
   };
 
   const canGenerate = useCallback((): boolean => {
