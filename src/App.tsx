@@ -55,10 +55,7 @@ const App: React.FC = () => {
   
 
   
-  // 도움말 모달 상태
-  const [showHelpModal, setShowHelpModal] = useState(false);
-  const [helpTab, setHelpTab] = useState<'guide' | 'faq'>('guide');
-  
+
   // API 키 설정 모달 상태
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
@@ -73,28 +70,7 @@ const App: React.FC = () => {
     }
   }, []);
   
-  // 회원 탈퇴 모달 상태
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  
-  // 사용자 드롭다운 상태
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  
-  // 드롭다운 외부 클릭 시 닫기
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (showUserDropdown && !target.closest('.user-dropdown-container')) {
-        setShowUserDropdown(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserDropdown]);
-  
+
   // 다크모드 상태
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -336,33 +312,6 @@ const App: React.FC = () => {
       // 페이지 새로고침으로 완전 초기화
       window.location.reload();
     }
-  };
-
-  // 회원 탈퇴 핸들러
-  const handleDeleteAccount = async () => {
-    if (!userProfile || deleteConfirmText !== '탈퇴합니다') {
-      return;
-    }
-    
-    setIsDeleting(true);
-    setDeleteError(null);
-    
-    const { success, error } = await deleteAccount(userProfile.id);
-    
-    if (success) {
-      setSupabaseUser(null);
-      setUserProfile(null);
-      setIsLoggedIn(false);
-      setShowDeleteModal(false);
-      setDeleteConfirmText('');
-      window.location.hash = 'auth';
-      setCurrentPage('auth');
-      alert('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.');
-    } else {
-      setDeleteError(error || '탈퇴 처리 중 오류가 발생했습니다.');
-    }
-    
-    setIsDeleting(false);
   };
 
   // 서버에서 API 키 로드 및 localStorage 동기화
@@ -737,17 +686,7 @@ const App: React.FC = () => {
              >
                 🏠 홈
              </a>
-             {/* 도움말 버튼 숨김 처리 */}
-             {false && (
-               <button 
-                 onClick={() => setShowHelpModal(true)}
-                 className={`w-9 h-9 rounded-xl transition-all text-lg font-black flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
-                 title="도움말"
-               >
-                  ?
-               </button>
-             )}
-             
+
              {/* 긴급 탈출 버튼 (숨김 - 더블클릭으로 강제 로그아웃) */}
              {isLoggedIn && (
                <button 
@@ -782,62 +721,7 @@ const App: React.FC = () => {
              >
                 {darkMode ? '☀️' : '🌙'}
              </button>
-             
-             {/* 로그인/사용자 버튼 (선택사항, 숨김 처리) */}
-             {false && isLoggedIn && userProfile ? (
-               <div className="flex items-center gap-2">
-                 {isAdmin && (
-                   <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-bold">
-                     👑 관리자
-                   </span>
-                 )}
-                 {/* 사용자 이름 클릭 시 드롭다운 */}
-                 <div className="relative user-dropdown-container">
-                   <button 
-                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                     className={`px-3 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${darkMode ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                   >
-                     <span>{userProfile.name} 님</span>
-                     <span className={`text-xs transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}>▼</span>
-                   </button>
-                   {showUserDropdown && (
-                     <div className={`absolute right-0 mt-2 w-48 rounded-xl shadow-xl border z-50 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                       <div className="py-2">
-                         <div className={`px-4 py-2 text-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
-                           {userProfile.email}
-                         </div>
-                         <hr className={darkMode ? 'border-slate-700' : 'border-slate-100'} />
-                         <button 
-                           onClick={() => {
-                             setShowUserDropdown(false);
-                             handleLogout();
-                           }}
-                           className={`w-full px-4 py-2.5 text-left text-sm font-medium transition-all ${darkMode ? 'text-slate-300 hover:bg-slate-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                         >
-                           🚪 로그아웃
-                         </button>
-                         <button 
-                           onClick={() => {
-                             setShowUserDropdown(false);
-                             setShowDeleteModal(true);
-                           }}
-                           className={`w-full px-4 py-2.5 text-left text-sm font-medium text-red-500 transition-all ${darkMode ? 'hover:bg-red-900/30' : 'hover:bg-red-50'}`}
-                         >
-                           ⚠️ 회원 탈퇴
-                         </button>
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             ) : false ? (
-               <a 
-                 href="#auth" 
-                 className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-all"
-               >
-                 로그인
-               </a>
-             ) : null}
+
           </div>
         </div>
       </header>
@@ -913,241 +797,7 @@ const App: React.FC = () => {
         <button onClick={() => setMobileTab('result')} className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all ${mobileTab === 'result' ? 'bg-emerald-600 text-white shadow-lg' : darkMode ? 'text-slate-400' : 'text-slate-400'}`}>📄 결과</button>
       </div>
       
-      {/* 도움말 모달 */}
-      {showHelpModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl max-h-[85vh] flex flex-col">
-            {/* 헤더 */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 flex-shrink-0">
-              <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                <span className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">?</span>
-                도움말
-              </h3>
-              <button 
-                onClick={() => setShowHelpModal(false)}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-all"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* 탭 */}
-            <div className="flex p-2 mx-6 mt-4 bg-slate-100 rounded-xl flex-shrink-0">
-              <button
-                onClick={() => setHelpTab('guide')}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${helpTab === 'guide' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                📖 사용 설명서
-              </button>
-              <button
-                onClick={() => setHelpTab('faq')}
-                className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${helpTab === 'faq' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                💬 자주 묻는 질문
-              </button>
-            </div>
-            
-            {/* 컨텐츠 */}
-            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
-              {helpTab === 'guide' ? (
-                <div className="space-y-6">
-                  {/* 사용 설명서 내용 */}
-                  <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
-                    <h4 className="font-black text-emerald-800 mb-3 flex items-center gap-2">
-                      <span>🚀</span> 빠른 시작 가이드
-                    </h4>
-                    <ol className="text-sm text-emerald-700 space-y-2">
-                      <li className="flex gap-2"><span className="font-black">1.</span> 진료과를 선택하세요 (내과, 정형외과, 피부과 등)</li>
-                      <li className="flex gap-2"><span className="font-black">2.</span> 블로그 주제를 입력하세요 (예: "겨울철 관절 통증")</li>
-                      <li className="flex gap-2"><span className="font-black">3.</span> 키워드를 입력하세요 (네이버 검색 키워드)</li>
-                      <li className="flex gap-2"><span className="font-black">4.</span> 이미지 스타일을 선택하세요 (실사/3D/의학)</li>
-                      <li className="flex gap-2"><span className="font-black">5.</span> "생성하기" 버튼을 클릭!</li>
-                    </ol>
-                  </div>
-                  
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                    <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2">
-                      <span>📝</span> 콘텐츠 타입
-                    </h4>
-                    <div className="text-sm text-slate-600 space-y-3">
-                      <div className="flex gap-3">
-                        <span className="text-lg">📄</span>
-                        <div>
-                          <p className="font-bold text-slate-700">블로그 포스팅</p>
-                          <p className="text-slate-500">네이버 블로그에 최적화된 긴 글 형식</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span className="text-lg">🎴</span>
-                        <div>
-                          <p className="font-bold text-slate-700">카드뉴스</p>
-                          <p className="text-slate-500">인스타그램/SNS용 정사각형 슬라이드</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-indigo-50 rounded-2xl p-5 border border-indigo-100">
-                    <h4 className="font-black text-indigo-800 mb-3 flex items-center gap-2">
-                      <span>🎨</span> 카드뉴스 스타일 참고 기능
-                    </h4>
-                    <div className="text-sm text-indigo-700 space-y-3">
-                      <p className="text-indigo-600 mb-2">따라하고 싶은 카드뉴스 디자인이 있다면:</p>
-                      <div className="flex gap-3">
-                        <span className="text-lg">📕</span>
-                        <div>
-                          <p className="font-bold text-indigo-700">표지 스타일 (1장)</p>
-                          <p className="text-indigo-500">첫 장 디자인 참고 이미지 업로드</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span className="text-lg">📄</span>
-                        <div>
-                          <p className="font-bold text-indigo-700">본문 스타일 (2장~)</p>
-                          <p className="text-indigo-500">본문 디자인 참고 이미지 업로드</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span className="text-lg">🔗</span>
-                        <div>
-                          <p className="font-bold text-indigo-700">URL 벤치마킹</p>
-                          <p className="text-indigo-500">블로그/뉴스 링크로 구조 분석 (4단계)</p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-indigo-500 bg-indigo-100 p-2 rounded-lg mt-2">
-                        💡 표지만 업로드하면 본문도 같은 스타일로 생성됩니다!
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
-                    <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2">
-                      <span>🎨</span> 이미지 스타일 설명
-                    </h4>
-                    <div className="text-sm text-slate-600 space-y-3">
-                      <div className="flex gap-3">
-                        <span className="text-lg">📸</span>
-                        <div>
-                          <p className="font-bold text-slate-700">실사 촬영</p>
-                          <p className="text-slate-500">DSLR로 촬영한 듯한 실제 병원 사진 스타일</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span className="text-lg">🎨</span>
-                        <div>
-                          <p className="font-bold text-slate-700">3D 일러스트</p>
-                          <p className="text-slate-500">친근한 클레이/인포그래픽 스타일</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <span className="text-lg">🫀</span>
-                        <div>
-                          <p className="font-bold text-slate-700">의학 3D</p>
-                          <p className="text-slate-500">해부학적 구조를 보여주는 전문 의학 이미지</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
-                    <h4 className="font-black text-blue-800 mb-3 flex items-center gap-2">
-                      <span>✏️</span> 결과 수정하기
-                    </h4>
-                    <div className="text-sm text-blue-700 space-y-2">
-                      <p>• <strong>직접 편집:</strong> 미리보기 화면에서 텍스트를 클릭하여 직접 수정</p>
-                      <p>• <strong>AI 수정:</strong> 하단 입력창에 수정 요청 입력 (예: "첫 문단 더 친근하게")</p>
-                      <p>• <strong>이미지 재생성:</strong> 이미지 클릭 → 프롬프트 수정 → 재생성</p>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-purple-50 rounded-2xl p-5 border border-purple-100">
-                    <h4 className="font-black text-purple-800 mb-3 flex items-center gap-2">
-                      <span>📋</span> 복사 & 다운로드
-                    </h4>
-                    <div className="text-sm text-purple-700 space-y-2">
-                      <p>• <strong>Word 다운로드:</strong> .docx 파일로 저장 → 네이버 블로그에 업로드</p>
-                      <p>• <strong>이미지 저장:</strong> 개별 이미지 클릭 후 우클릭 저장</p>
-                      <p>• <strong>HTML 복사:</strong> 티스토리 등 HTML 지원 블로그용</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* FAQ 내용 */}
-                  {[
-                    {
-                      q: "생성된 글을 네이버 블로그에 어떻게 올리나요?",
-                      a: "'Word 다운로드' 버튼으로 .docx 파일을 저장한 후, 네이버 블로그 에디터에서 Word 파일을 직접 업로드하세요. 네이버 블로그는 HTML 붙여넣기가 지원되지 않아 Word 파일로 올리는 게 가장 편리합니다."
-                    },
-                    {
-                      q: "이미지가 마음에 들지 않아요. 다시 생성할 수 있나요?",
-                      a: "네! 이미지를 클릭하면 재생성 팝업이 나타납니다. 프롬프트를 수정하거나 'AI 추천' 버튼으로 새로운 프롬프트를 받아 재생성할 수 있습니다."
-                    },
-                    {
-                      q: "글 내용을 부분적으로 수정하고 싶어요.",
-                      a: "두 가지 방법이 있습니다: 1) 미리보기에서 직접 텍스트 클릭 후 수정, 2) 하단 입력창에 '두 번째 문단 더 자세하게 써줘' 같은 요청 입력"
-                    },
-                    {
-                      q: "의료광고법에 문제없는 건가요?",
-                      a: `모든 글은 ${new Date().getFullYear()}년 최신 의료광고법 가이드라인을 적용하여 생성됩니다. AI가 과장 표현, 비교 광고, 보장성 문구 등을 자동으로 필터링하지만, 최종 확인은 업로드 전에 한 번 더 해주세요.`
-                    },
-                    {
-                      q: "혼자 쓰는 거라 무제한인가요?",
-                      a: "네! 이 도구는 개인 전용이라 크레딧 제한 없이 무제한으로 사용하실 수 있습니다. 마음껏 생성하세요! 🎉"
-                    },
-                    {
-                      q: "레퍼런스 URL은 뭔가요?",
-                      a: "벤치마킹하고 싶은 블로그 글의 URL을 입력하면, 해당 글의 스타일과 구조를 참고하여 콘텐츠를 생성합니다. 경쟁 병원의 인기 글을 분석할 때 유용합니다."
-                    },
-                    {
-                      q: "카드뉴스와 블로그 포스팅의 차이는?",
-                      a: "블로그 포스팅은 긴 글 형식(16:9 이미지)이고, 카드뉴스는 인스타그램/SNS용 정사각형 슬라이드 형식입니다. 목적에 맞게 선택하세요."
-                    },
-                    {
-                      q: "카드뉴스 스타일 참고 이미지는 어떻게 사용하나요?",
-                      a: "캔바나 인스타에서 마음에 드는 카드뉴스를 캡처해서 업로드하세요. AI가 색상, 레이아웃, 타이포그래피를 분석해서 동일한 스타일로 생성합니다. 표지(1장)와 본문(2장~)을 따로 지정할 수도 있고, 표지만 업로드하면 본문도 같은 스타일로 만들어집니다. (참고: 캔바/인스타는 로그인이 필요해서 URL 분석이 안 되니 이미지 캡처 후 업로드해주세요!)"
-                    },
-                    {
-                      q: "생성 속도가 느려요.",
-                      a: "글 작성 + 이미지 생성에 약 1-2분이 소요됩니다. 이미지 개수가 많을수록 시간이 더 걸립니다. 잠시만 기다려주세요!"
-                    }
-                  ].map((item, idx) => (
-                    <details key={idx} className="bg-slate-50 rounded-xl border border-slate-200 group">
-                      <summary className="p-4 cursor-pointer font-bold text-slate-700 flex items-center justify-between hover:bg-slate-100 rounded-xl transition-all">
-                        <span className="flex items-center gap-2">
-                          <span className="text-emerald-500">Q.</span>
-                          {item.q}
-                        </span>
-                        <span className="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                      </summary>
-                      <div className="px-4 pb-4 text-sm text-slate-600 leading-relaxed">
-                        <span className="text-emerald-600 font-bold">A.</span> {item.a}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* 문의 안내 푸터 */}
-            <div className="p-6 border-t border-slate-100 bg-slate-50 rounded-b-3xl flex-shrink-0">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div>
-                  <p className="text-sm font-bold text-slate-700">📧 문의 및 건의사항</p>
-                  <p className="text-xs text-slate-500">기능 제안, 오류 신고, 기타 문의</p>
-                </div>
-                <a 
-                  href="mailto:story.darugi@gmail.com?subject=[HospitalAI 문의]" 
-                  className="px-5 py-2.5 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-all text-sm flex items-center gap-2"
-                >
-                  ✉️ 메일 보내기
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
+
 
       {/* API 에러 모달 */}
       {state.error && (
@@ -1218,80 +868,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 회원 탈퇴 확인 모달 */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-black text-red-600">⚠️ 회원 탈퇴</h3>
-              <button 
-                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteError(null); }}
-                className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="mb-6">
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-                <p className="text-sm text-red-700 font-medium mb-2">정말 탈퇴하시겠습니까?</p>
-                <ul className="text-xs text-red-600 space-y-1">
-                  <li>• 모든 계정 정보가 삭제됩니다.</li>
-                  <li>• 남은 크레딧은 환불되지 않습니다.</li>
-                  <li>• 생성한 콘텐츠 기록이 삭제됩니다.</li>
-                  <li>• 이 작업은 되돌릴 수 없습니다.</li>
-                </ul>
-              </div>
-              
-              <div className="mb-4">
-                <p className="text-sm text-slate-600 mb-2">
-                  탈퇴를 진행하려면 <span className="font-bold text-red-600">'탈퇴합니다'</span>를 입력하세요.
-                </p>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="탈퇴합니다"
-                  className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-              
-              {deleteError && (
-                <div className="p-3 bg-red-100 border border-red-200 rounded-xl mb-4">
-                  <p className="text-sm text-red-700">{deleteError}</p>
-                </div>
-              )}
-              
-              <div className="flex gap-3">
-                <button
-                  onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(''); setDeleteError(null); }}
-                  className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirmText !== '탈퇴합니다' || isDeleting}
-                  className="flex-1 px-4 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isDeleting ? '처리 중...' : '탈퇴하기'}
-                </button>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <p className="text-xs text-slate-400">
-                문의사항이 있으시면{' '}
-                <a href="mailto:story.darugi@gmail.com" className="text-emerald-500 hover:underline">
-                  story.darugi@gmail.com
-                </a>
-                으로 연락주세요.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* API 키 설정 모달 */}
       {showApiKeyModal && (
         <Suspense fallback={<div>Loading...</div>}>
