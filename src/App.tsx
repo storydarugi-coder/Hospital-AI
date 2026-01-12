@@ -14,6 +14,7 @@ const PromptPreview = lazy(() => import('./components/PromptPreview'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
 const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
+const PasswordLogin = lazy(() => import('./components/PasswordLogin'));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -60,6 +61,17 @@ const App: React.FC = () => {
   
   // API 키 설정 모달 상태
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  
+  // 비밀번호 인증 상태
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  // 앱 시작 시 인증 확인
+  useEffect(() => {
+    const auth = sessionStorage.getItem('hospital_ai_auth');
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
   
   // 회원 탈퇴 모달 상태
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -691,6 +703,15 @@ const App: React.FC = () => {
   }
 
   // 메인 앱 렌더링
+  // 비밀번호 인증 화면 표시
+  if (!isAuthenticated) {
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+        <PasswordLogin onSuccess={() => setIsAuthenticated(true)} />
+      </Suspense>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col font-sans relative transition-colors duration-300 ${darkMode ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       <header className={`backdrop-blur-xl border-b sticky top-0 z-30 h-16 flex items-center shadow-sm flex-none transition-colors duration-300 ${darkMode ? 'bg-slate-800/80 border-slate-700' : 'bg-white/80 border-slate-100'}`}>
