@@ -145,20 +145,38 @@ export class CacheManager {
 
   /**
    * 만료된 캐시 정리
+   * 🚀 성능 개선: requestIdleCallback으로 백그라운드 실행
    */
   cleanup(): void {
     const now = Date.now();
 
-    // 메모리 캐시 정리
+    // 메모리 캐시 정리 (빠르므로 즉시 실행)
     for (const [key, item] of this.memoryCache.entries()) {
       if (now >= item.expiry) {
         this.memoryCache.delete(key);
       }
     }
 
-    // LocalStorage 정리
+    // 🚀 LocalStorage 정리는 백그라운드에서 (UI 블로킹 방지)
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(() => {
+        this.cleanupLocalStorage(now);
+      });
+    } else {
+      // requestIdleCallback 미지원 환경 (fallback)
+      setTimeout(() => this.cleanupLocalStorage(now), 0);
+    }
+  }
+
+  /**
+   * LocalStorage 정리 (내부 메서드)
+   */
+  private cleanupLocalStorage(now: number): void {
     try {
+      // 🚀 성능 개선: 배치 처리 - 삭제할 키들을 먼저 수집
+      const keysToRemove: string[] = [];
       const keys = Object.keys(localStorage);
+
       keys.forEach(key => {
         if (key.startsWith(this.prefix)) {
           const stored = localStorage.getItem(key);
@@ -166,15 +184,18 @@ export class CacheManager {
             try {
               const item: CacheItem<any> = JSON.parse(stored);
               if (now >= item.expiry) {
-                localStorage.removeItem(key);
+                keysToRemove.push(key);
               }
             } catch {
               // 파싱 실패한 항목은 삭제
-              localStorage.removeItem(key);
+              keysToRemove.push(key);
             }
           }
         }
       });
+
+      // 수집된 키들을 일괄 삭제
+      keysToRemove.forEach(key => localStorage.removeItem(key));
     } catch (error) {
       console.warn('LocalStorage 정리 실패:', error);
     }
