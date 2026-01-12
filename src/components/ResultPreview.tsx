@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
 import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
+import { optimizeAllImagesInHtml, formatFileSize } from '../utils/imageOptimizer';
 import { saveAs } from 'file-saver';
 
 
@@ -2511,17 +2512,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             <div className={`px-6 py-4 border-b flex items-center justify-between ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black ${
-                  (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 7 ? 'bg-green-100 text-green-600' :
-                  (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 15 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                  (recheckResult?.ai_smell_score ?? content.factCheck?.ai_smell_score ?? 0) <= 7 ? 'bg-green-100 text-green-600' :
+                  (recheckResult?.ai_smell_score ?? content.factCheck?.ai_smell_score ?? 0) <= 15 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
                 }`}>
-                  {recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0}
+                  {recheckResult?.ai_smell_score ?? content.factCheck?.ai_smell_score ?? 0}
                 </div>
                 <div>
                   <div className={`text-lg font-black ${darkMode ? 'text-slate-100' : 'text-slate-900'}`}>🤖 AI 냄새 분석 결과</div>
                   <div className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {(recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 20 
+                    {(recheckResult?.ai_smell_score ?? content.factCheck?.ai_smell_score ?? 0) <= 20 
                       ? '✅ 사람 글 수준 (0~20점) - 바로 발행 가능!'
-                      : (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score ?? 0) <= 40 
+                      : (recheckResult?.ai_smell_score ?? content.factCheck?.ai_smell_score ?? 0) <= 40 
                         ? '⚠️ 경계선 (21~40점) - 부분 수정 후 발행 가능'
                         : '🚨 AI 냄새 강함 (41점 이상) - 재작성 권장'}
                   </div>

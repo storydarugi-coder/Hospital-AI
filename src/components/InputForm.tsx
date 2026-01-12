@@ -122,7 +122,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     setSeoTitles([]);
     try {
         // postType에 따라 블로그/카드뉴스용 제목 추천
-        const titles = await recommendSeoTitles(topic, keywords, postType);
+        // press_release는 blog로 처리
+        const titles = await recommendSeoTitles(topic, keywords, postType === 'press_release' ? 'blog' : postType);
         const sortedTitles = titles.sort((a, b) => b.score - a.score);
         setSeoTitles(sortedTitles);
     } catch (e) {
