@@ -252,48 +252,87 @@ console.log(report);
 
 ## 💡 실전 사용 예시
 
-### geminiService.ts에 적용하기
+### 방법 1: 헬퍼 함수 사용 (가장 쉬움) ⭐ 추천
+
+```typescript
+import { createOptimizedWorkflow } from './utils/contentOptimizationHelper';
+
+export async function generateBlogPost(request: GenerationRequest) {
+  // 워크플로우 생성
+  const workflow = createOptimizedWorkflow();
+
+  // 1단계: 프롬프트 최적화
+  const { prompt, savedTokens } = workflow.preparePrompt(
+    `블로그 작성: ${request.topic}...`,
+    request.category,
+    'empathy'
+  );
+  console.log(`✅ ${savedTokens} 토큰 절약!`);
+
+  // 2단계: AI 생성
+  const generated = await ai.generate(prompt);
+
+  // 3단계: 자동 수정
+  const result = workflow.postProcess(generated);
+  console.log(`✅ ${result.changeCount}건 자동 수정`);
+  console.log(`✅ AI 냄새: ${result.aiSmellScore}/100`);
+
+  // 통계 확인
+  console.log('📊 워크플로우 통계:', workflow.getStats());
+
+  return {
+    content: result.fixedText,
+    report: result.report,
+    passed: result.passed
+  };
+}
+```
+
+### 방법 2: 간단한 함수 사용
+
+```typescript
+import { prepareOptimizedPrompt, postProcessContent } from './utils/contentOptimizationHelper';
+
+// 프롬프트 준비
+const { prompt, savedPercentage } = prepareOptimizedPrompt(
+  originalPrompt,
+  'internal_medicine',
+  'empathy'
+);
+console.log(`${savedPercentage}% 토큰 절약!`);
+
+// AI 생성
+const generated = await ai.generate(prompt);
+
+// 후처리
+const { fixedText, report } = postProcessContent(generated);
+console.log(report);
+```
+
+### 방법 3: 개별 기능 사용 (커스텀)
 
 ```typescript
 import { optimizePrompt, estimateTokens } from './utils/promptOptimizer';
 import { generateHumanWritingPrompt } from './utils/humanWritingPrompts';
 import { autoFixMedicalLaw } from './utils/autoMedicalLawFixer';
-import { contentCache } from './utils/contentCache';
-import { performAdvancedFactCheck } from './utils/advancedFactChecker';
 
-export async function generateBlogPost(request: GenerationRequest) {
-  // 1. 캐시 확인
-  const cachedStructure = contentCache.getStructure(request.category);
+// 1. 프롬프트 최적화
+let prompt = optimizePrompt(originalPrompt, { maxLength: 1000 });
 
-  // 2. 프롬프트 최적화
-  let basePrompt = `블로그 작성...`;
-  basePrompt = optimizePrompt(basePrompt, { maxLength: 1000 });
+// 2. 사람같은 글쓰기 규칙 추가
+const humanRules = generateHumanWritingPrompt('internal_medicine', 'empathy');
+prompt += '\n\n' + humanRules;
 
-  // 3. 사람같은 글쓰기 규칙 추가
-  const humanPrompt = generateHumanWritingPrompt(request.category, 'empathy');
-  const finalPrompt = basePrompt + '\n\n' + humanPrompt;
+console.log(`토큰: ${estimateTokens(prompt)}`);
 
-  console.log(`토큰 추정: ${estimateTokens(finalPrompt)}`);
+// 3. AI 생성
+const generated = await ai.generate(prompt);
 
-  // 4. AI 생성
-  const generated = await callGeminiAPI(finalPrompt);
+// 4. 자동 수정
+const fixed = autoFixMedicalLaw(generated);
+console.log(`수정: ${fixed.changes.length}건`);
 
-  // 5. 자동 수정
-  const fixed = autoFixMedicalLaw(generated);
-  console.log(`자동 수정: ${fixed.changes.length}건`);
-
-  // 6. 팩트체크
-  const factCheck = performAdvancedFactCheck(fixed.fixedText);
-  if (!factCheck.passed) {
-    console.warn('⚠️ 의료광고법 위반 감지:', factCheck.violations);
-  }
-
-  return {
-    content: fixed.fixedText,
-    factCheck,
-    autoFixReport: generateFixReport(fixed)
-  };
-}
+return fixed.fixedText;
 ```
 
 ---

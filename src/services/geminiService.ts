@@ -1,6 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 import { getStagePrompt, SYSTEM_PROMPT as GPT52_SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
+// 🚀 콘텐츠 최적화 시스템
+import { optimizePrompt, estimateTokens } from "../utils/promptOptimizer";
+import { generateHumanWritingPrompt, detectAiSmell } from "../utils/humanWritingPrompts";
+import { autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
+import { contentCache } from "../utils/contentCache";
 
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
