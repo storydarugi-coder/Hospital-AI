@@ -1,6 +1,7 @@
 // API 서버에 콘텐츠 저장하는 서비스
 
-const API_BASE_URL = 'https://api.genspark.ai'; // 실제 API 서버 URL로 변경 필요
+// 개발 환경에서는 로컬 서버, 프로덕션에서는 배포된 서버 URL 사용
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://3001-i7sb1xuomdisn8dq0jtnt-c07dda5e.sandbox.novita.ai';
 
 export interface SaveContentRequest {
   title: string;
