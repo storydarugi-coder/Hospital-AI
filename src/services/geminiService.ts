@@ -1106,10 +1106,7 @@ const callOpenAI_Staged = async (
         const data3 = JSON.parse(responseText3);
         const stage3Content = data3.choices[0]?.message?.content || currentContent;
         
-        // 🔥 SEO 점수 체크 및 재생성 로직 (85점 이하면 재생성)
-        const MIN_SEO_SCORE = 85;
-        const MAX_SEO_RETRIES = 2;
-        let seoRetryCount = 0;
+        // ℹ️ SEO 점수 체크 (참고용, 재생성 안 함)
         let finalStage3Content = stage3Content;
         
         // SEO 점수 추출 함수
@@ -1126,27 +1123,8 @@ const callOpenAI_Staged = async (
         };
         
         let currentSeoScore = extractSeoScore(finalStage3Content);
-        console.log(`📊 [3단계] SEO 점수: ${currentSeoScore}점`);
-        
-        // SEO 점수가 85점 이하면 재생성 시도
-        while (currentSeoScore < MIN_SEO_SCORE && seoRetryCount < MAX_SEO_RETRIES) {
-          seoRetryCount++;
-          safeProgress(`🔄 [3단계] SEO 점수 ${currentSeoScore}점 → 재생성 시도 ${seoRetryCount}/${MAX_SEO_RETRIES}...`);
-          console.log(`🔄 [3단계] SEO 점수 ${currentSeoScore}점 미달, 재생성 시도 ${seoRetryCount}/${MAX_SEO_RETRIES}`);
-          
-          const retryResponse = await fetch(OPENAI_PROXY_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-OpenAI-Key': apiKey
-            },
-            body: JSON.stringify({
-              model: 'gpt-5.2',
-              messages: [
-                { role: 'system', content: `${stage3SystemPrompt}\n\n⚠️ 이전 결과의 SEO 점수가 ${currentSeoScore}점으로 낮습니다. 반드시 ${MIN_SEO_SCORE}점 이상이 되도록 키워드 배치와 구조를 더 최적화해주세요.\n\n반드시 유효한 JSON 형식으로 응답하세요.` },
-                { role: 'user', content: `${finalStage3Content}\n\n(SEO 점수 ${MIN_SEO_SCORE}점 이상 달성 필수! 응답은 반드시 JSON 형식으로 해주세요)` }
-              ],
-              response_format: { type: 'json_object' },
+        console.log(`📊 [3단계] SEO 점수: ${currentSeoScore}점 (참고용)`);
+        safeProgress(`📊 [3단계] SEO 점수: ${currentSeoScore}점`);
               temperature: 0.5 // 약간 더 창의적으로
             })
           });
@@ -1168,10 +1146,6 @@ const callOpenAI_Staged = async (
         }
         
         if (currentSeoScore >= MIN_SEO_SCORE) {
-          console.log(`✅ [3단계] SEO 최적화 완료 (점수: ${currentSeoScore}점)`);
-        } else {
-          console.warn(`⚠️ [3단계] SEO 점수 ${currentSeoScore}점 (목표 ${MIN_SEO_SCORE}점 미달, 최선의 결과 사용)`);
-        }
         
         currentContent = finalStage3Content;
       } catch (parseError) {
@@ -1653,7 +1627,7 @@ const getMedicalSafetyPrompt = () => {
 - 같은 그룹 내에서도 다른 표현 사용!
 
 ---
-📈 [SEO 85점 이상 확보 규칙] - 네이버 검색 최적화
+📈 [SEO 최적화 규칙] - 네이버 검색 최적화
 ---
 
 **1. 핵심 키워드 배치 규칙 (과다 사용 금지!)**
@@ -6045,7 +6019,7 @@ ${JSON.stringify(searchResults, null, 2)}
     result.analyzedStyle = { backgroundColor: analyzedBgColor };
     }
     
-    // 🎯 SEO 자동 평가 + 85점 미만 시 재생성 (블로그만)
+    // 🎯 SEO 자동 평가 (재생성 없이 평가만 수행)
     const hasContent = result.content || result.contentHtml;
     if (!isCardNews && hasContent && result.title) {
     console.log('📊 SEO 자동 평가 시작...');
@@ -6053,19 +6027,13 @@ ${JSON.stringify(searchResults, null, 2)}
       safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
     }
     
-    const MAX_REGENERATE_ATTEMPTS = 2; // 최대 재생성 횟수
-    let currentAttempt = 0;
-    
-    while (currentAttempt < MAX_REGENERATE_ATTEMPTS) {
-      try {
-        // content 또는 contentHtml 필드 지원
-        const htmlContent = result.contentHtml || result.content;
-        if (!htmlContent) {
-          console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
-          console.error('   - result 필드:', Object.keys(result));
-          break;
-        }
-        
+    try {
+      // content 또는 contentHtml 필드 지원
+      const htmlContent = result.contentHtml || result.content;
+      if (!htmlContent) {
+        console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
+        console.error('   - result 필드:', Object.keys(result));
+      } else {
         const seoReport = await evaluateSeoScore(
           htmlContent,
           result.title,
@@ -6084,59 +6052,16 @@ ${JSON.stringify(searchResults, null, 2)}
         }
         
         if (seoReport.total >= 85) {
-          console.log('✅ SEO 점수 85점 이상! 통과');
+          console.log('✅ SEO 점수 85점 이상!');
           if (typeof onProgress === 'function') {
-            safeProgress(`✅ SEO 점수 ${seoReport.total}점 - 통과!`);
+            safeProgress(`✅ SEO 점수 ${seoReport.total}점`);
           }
-          break;
         } else {
-          currentAttempt++;
-          console.log(`⚠️ SEO 점수 ${seoReport.total}점 - 85점 미만! 재생성 시도 ${currentAttempt}/${MAX_REGENERATE_ATTEMPTS}`);
-          
-          if (currentAttempt >= MAX_REGENERATE_ATTEMPTS) {
-            console.log('⚠️ 최대 재생성 횟수 도달, 현재 결과 사용');
-            if (typeof onProgress === 'function') {
-              safeProgress(`⚠️ SEO 점수 ${seoReport.total}점 - 개선 권장`);
-            }
-            break;
-          }
-          
+          console.log(`ℹ️ SEO 점수 ${seoReport.total}점 - 참고용`);
           if (typeof onProgress === 'function') {
-            safeProgress(`🔄 SEO 점수 ${seoReport.total}점 - 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
+            safeProgress(`ℹ️ SEO 점수 ${seoReport.total}점`);
           }
-          
-          // SEO 개선 포인트를 포함한 재생성 프롬프트
-          const improvementPrompt = `
-[🚨 SEO 점수 개선 필수!]
-이전 글의 SEO 점수: ${seoReport.total}점 (85점 이상 필요)
-
-[개선이 필요한 항목]
-${seoReport.recommendations?.join('\n') || '- 키워드 배치 최적화\n- 제목 개선\n- 구조화 강화'}
-
-위 피드백을 반영하여 SEO 점수 85점 이상이 되도록 다시 작성해주세요.
-특히:
-1. 제목 앞 50%에 핵심 키워드 배치
-2. 본문에 키워드 자연스럽게 5-8회 포함
-3. 소제목(H3)에 키워드 변형 포함
-4. 첫 3줄에 공감/질문으로 시작
-
-${blogPrompt}`;
-
-          // 재생성 (일반 generateContent 사용)
-          if (providerSettings.textGeneration === 'openai') {
-            const regenerateSystemPrompt = getGPT52Prompt();
-            const newResponseText = await callOpenAI(improvementPrompt, regenerateSystemPrompt);
-            result = JSON.parse(newResponseText);
-          } else {
-            // 🎬 재생성도 일반 generateContent 사용
-            safeProgress(`🔄 재생성 중... (${currentAttempt}/${MAX_REGENERATE_ATTEMPTS})`);
-            
-            const regenerateResponse = await ai.models.generateContent({
-              model: "gemini-3-pro-preview",
-              contents: improvementPrompt,
-              config: {
-                tools: [{ googleSearch: {} }],
-                responseMimeType: "application/json"
+        }
               }
             });
             
@@ -6146,18 +6071,9 @@ ${blogPrompt}`;
             result = JSON.parse(regeneratedText);
           }
           
-          // 🔧 재생성 후에도 contentHtml → content 정규화 필요!
-          if (!result.content && result.contentHtml) {
-            console.log('✅ 재생성 후 contentHtml을 content로 정규화');
-            result.content = result.contentHtml;
-          }
-          
-          console.log('🔄 재생성 완료, 다시 SEO 평가...');
-        }
-      } catch (seoError) {
-        console.error('❌ SEO 평가 오류:', seoError);
-        break;
       }
+    } catch (seoError) {
+      console.error('❌ SEO 평가 오류:', seoError);
     }
     
     // SEO 평가 완료 메시지
@@ -6884,12 +6800,12 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   // 블로그 포스트인 경우 SEO 점수 확인 (이미 평가된 경우 스킵)
   if (request.postType === 'blog') {
     if (seoScore) {
-    // 이미 generateWithAgentMode에서 SEO 평가 및 재생성이 완료됨
+    // 이미 generateWithAgentMode에서 SEO 평가가 완료됨
     console.log('📊 이미 평가된 SEO 점수 사용:', seoScore.total);
     if (seoScore.total >= 85) {
-      safeProgress(`✅ SEO 점수 ${seoScore.total}점 - 기준 충족!`);
+      safeProgress(`✅ SEO 점수 ${seoScore.total}점`);
     } else {
-      safeProgress(`⚠️ SEO 점수 ${seoScore.total}점 - 수동 개선 권장`);
+      safeProgress(`ℹ️ SEO 점수 ${seoScore.total}점`);
     }
     }
     

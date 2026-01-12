@@ -130,7 +130,7 @@ export interface AiSmellAnalysis {
 
 // SEO 점수 상세 리포트 (총 100점)
 export interface SeoScoreReport {
-  total: number;  // 총점 (100점 만점) - 85점 미만 시 재작성
+  total: number;  // 총점 (100점 만점) - 참고용
   title: {  // ① 제목 최적화 (25점)
     score: number;
     keyword_natural: number;      // 핵심 키워드 자연 포함 (10점)
