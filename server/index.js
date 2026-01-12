@@ -15,13 +15,105 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 let contents = [];
 let nextId = 1;
 
+// API 키 저장소
+let apiKeys = {
+  gemini: null,
+  openai: null
+};
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Hospital AI API Server is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    apiKeys: {
+      gemini: !!apiKeys.gemini,
+      openai: !!apiKeys.openai
+    }
   });
+});
+
+// API 키 저장
+app.post('/api-keys/save', (req, res) => {
+  try {
+    const { geminiKey, openaiKey } = req.body;
+    
+    if (geminiKey) {
+      apiKeys.gemini = geminiKey;
+      console.log('✅ Gemini API 키 저장 완료');
+    }
+    
+    if (openaiKey) {
+      apiKeys.openai = openaiKey;
+      console.log('✅ OpenAI API 키 저장 완료');
+    }
+    
+    res.json({
+      success: true,
+      message: 'API 키가 저장되었습니다.',
+      saved: {
+        gemini: !!apiKeys.gemini,
+        openai: !!apiKeys.openai
+      }
+    });
+  } catch (error) {
+    console.error('❌ API 키 저장 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// API 키 조회 (프론트엔드에서 사용)
+app.get('/api-keys/get', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      apiKeys: {
+        gemini: apiKeys.gemini,
+        openai: apiKeys.openai
+      }
+    });
+  } catch (error) {
+    console.error('❌ API 키 조회 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// API 키 삭제
+app.delete('/api-keys/delete', (req, res) => {
+  try {
+    const { type } = req.query; // 'gemini' or 'openai'
+    
+    if (type === 'gemini') {
+      apiKeys.gemini = null;
+      console.log('🗑️ Gemini API 키 삭제 완료');
+    } else if (type === 'openai') {
+      apiKeys.openai = null;
+      console.log('🗑️ OpenAI API 키 삭제 완료');
+    } else if (!type) {
+      // 모두 삭제
+      apiKeys.gemini = null;
+      apiKeys.openai = null;
+      console.log('🗑️ 모든 API 키 삭제 완료');
+    }
+    
+    res.json({
+      success: true,
+      message: 'API 키가 삭제되었습니다.'
+    });
+  } catch (error) {
+    console.error('❌ API 키 삭제 오류:', error);
+    res.status(500).json({
+      success: false,
+      error: '서버 오류가 발생했습니다.'
+    });
+  }
 });
 
 // 콘텐츠 저장

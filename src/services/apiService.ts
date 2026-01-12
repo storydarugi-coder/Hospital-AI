@@ -71,3 +71,84 @@ export const getContentList = async (): Promise<any[]> => {
     return [];
   }
 };
+
+/**
+ * API 키를 서버에 저장
+ */
+export const saveApiKeys = async (geminiKey?: string, openaiKey?: string): Promise<SaveContentResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api-keys/save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        geminiKey,
+        openaiKey,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('API 키 저장 실패:', error);
+    return {
+      success: false,
+      error: error.message || 'API 키 저장 중 오류가 발생했습니다.',
+    };
+  }
+};
+
+/**
+ * 서버에서 API 키 가져오기
+ */
+export const getApiKeys = async (): Promise<{ gemini: string | null; openai: string | null }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api-keys/get`);
+    
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.apiKeys || { gemini: null, openai: null };
+  } catch (error) {
+    console.error('API 키 가져오기 실패:', error);
+    return { gemini: null, openai: null };
+  }
+};
+
+/**
+ * API 키 삭제
+ */
+export const deleteApiKeys = async (type?: 'gemini' | 'openai'): Promise<SaveContentResponse> => {
+  try {
+    const url = type 
+      ? `${API_BASE_URL}/api-keys/delete?type=${type}`
+      : `${API_BASE_URL}/api-keys/delete`;
+      
+    const response = await fetch(url, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류: ${response.status}`);
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error: any) {
+    console.error('API 키 삭제 실패:', error);
+    return {
+      success: false,
+      error: error.message || 'API 키 삭제 중 오류가 발생했습니다.',
+    };
+  }
+};

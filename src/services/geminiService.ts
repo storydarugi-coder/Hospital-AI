@@ -11,7 +11,7 @@ const OPENAI_PROXY_URL = '/api/openai-chat';
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
   if (!apiKey) {
-    throw new Error("API Key가 설정되지 않았습니다. 우측 상단 설정(⚙️) 버튼을 눌러 API Key를 입력해주세요.");
+    throw new Error("API Key가 설정되지 않았습니다. API Key를 입력해주세요.");
   }
   return new GoogleGenAI({ apiKey });
 };

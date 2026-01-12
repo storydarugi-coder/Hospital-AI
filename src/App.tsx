@@ -13,6 +13,7 @@ const ScriptPreview = lazy(() => import('./components/ScriptPreview'));
 const PromptPreview = lazy(() => import('./components/PromptPreview'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
+const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -56,6 +57,9 @@ const App: React.FC = () => {
   // 도움말 모달 상태
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpTab, setHelpTab] = useState<'guide' | 'faq'>('guide');
+  
+  // API 키 설정 모달 상태
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   
   // 회원 탈퇴 모달 상태
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -349,12 +353,38 @@ const App: React.FC = () => {
     setIsDeleting(false);
   };
 
-  // localStorage에서 API 키 확인
+  // 서버에서 API 키 로드 및 localStorage 동기화
   useEffect(() => {
-    const localGemini = localStorage.getItem('GEMINI_API_KEY');
-    if (localGemini) {
-      setApiKeyReady(true);
-    }
+    const loadApiKeys = async () => {
+      try {
+        // 먼저 localStorage 확인
+        const localGemini = localStorage.getItem('GEMINI_API_KEY');
+        if (localGemini) {
+          setApiKeyReady(true);
+          console.log('✅ localStorage에서 API 키 확인');
+          return;
+        }
+        
+        // localStorage에 없으면 서버에서 가져오기
+        const { getApiKeys } = await import('./services/apiService');
+        const apiKeys = await getApiKeys();
+        
+        if (apiKeys.gemini) {
+          localStorage.setItem('GEMINI_API_KEY', apiKeys.gemini);
+          setApiKeyReady(true);
+          console.log('✅ 서버에서 API 키 로드 완료');
+        }
+        
+        if (apiKeys.openai) {
+          localStorage.setItem('OPENAI_API_KEY', apiKeys.openai);
+          console.log('✅ OpenAI API 키 로드 완료');
+        }
+      } catch (error) {
+        console.error('❌ API 키 로드 실패:', error);
+      }
+    };
+    
+    loadApiKeys();
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
@@ -706,6 +736,15 @@ const App: React.FC = () => {
                   🆘
                </button>
              )}
+             
+             {/* API 키 설정 버튼 */}
+             <button 
+               onClick={() => setShowApiKeyModal(true)}
+               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
+               title="API 키 설정"
+             >
+                ⚙️
+             </button>
              
              {/* 다크모드 토글 */}
              <button 
@@ -1223,6 +1262,13 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* API 키 설정 모달 */}
+      {showApiKeyModal && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <ApiKeySettings onClose={() => setShowApiKeyModal(false)} />
+        </Suspense>
       )}
     </div>
   );
