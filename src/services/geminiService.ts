@@ -4652,7 +4652,7 @@ ${getStylePromptForGeneration(learnedStyle)}
   // 커스텀 소제목 적용
   let customSubheadingInstruction = '';
   if (request.customSubheadings && request.customSubheadings.trim()) {
-    const subheadings = request.customSubheadings.trim().split('\n').filter(h => h.trim());
+    const subheadings = request.customSubheadings.trim().split(/\r\n|\r|\n/).filter(h => h.trim());
     if (subheadings.length > 0) {
       customSubheadingInstruction = `
 [📋📋📋 소제목 필수 사용 - 사용자 지정 소제목! 📋📋📋]
