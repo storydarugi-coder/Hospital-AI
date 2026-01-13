@@ -1,7 +1,8 @@
 // API 서버에 콘텐츠 저장하는 서비스
 
-// 개발 환경에서는 로컬 서버, 프로덕션에서는 배포된 서버 URL 사용
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://3001-i7sb1xuomdisn8dq0jtnt-c07dda5e.sandbox.novita.ai';
+// Cloudflare Pages Functions 사용 - 같은 도메인에서 API 제공
+// 개발: http://localhost:3000, 프로덕션: https://story-darugi.com
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export interface SaveContentRequest {
   title: string;
