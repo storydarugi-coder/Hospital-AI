@@ -28,7 +28,7 @@ export interface SaveContentResponse {
  */
 export const saveContentToServer = async (data: SaveContentRequest): Promise<SaveContentResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/content/save`, {
+    const response = await fetch(`${API_BASE_URL}/api/content/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export const saveContentToServer = async (data: SaveContentRequest): Promise<Sav
  */
 export const getContentList = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/content/list`);
+    const response = await fetch(`${API_BASE_URL}/api/content/list`);
     
     if (!response.ok) {
       throw new Error(`서버 응답 오류: ${response.status}`);
@@ -78,7 +78,7 @@ export const getContentList = async (): Promise<any[]> => {
  */
 export const saveApiKeys = async (geminiKey?: string, openaiKey?: string): Promise<SaveContentResponse> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api-keys/save`, {
+    const response = await fetch(`${API_BASE_URL}/api/api-keys/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -111,7 +111,7 @@ export const saveApiKeys = async (geminiKey?: string, openaiKey?: string): Promi
  */
 export const getApiKeys = async (): Promise<{ gemini: string | null; openai: string | null }> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api-keys/get`);
+    const response = await fetch(`${API_BASE_URL}/api/api-keys/get`);
     
     if (!response.ok) {
       throw new Error(`서버 응답 오류: ${response.status}`);
@@ -131,8 +131,8 @@ export const getApiKeys = async (): Promise<{ gemini: string | null; openai: str
 export const deleteApiKeys = async (type?: 'gemini' | 'openai'): Promise<SaveContentResponse> => {
   try {
     const url = type 
-      ? `${API_BASE_URL}/api-keys/delete?type=${type}`
-      : `${API_BASE_URL}/api-keys/delete`;
+      ? `${API_BASE_URL}/api/api-keys/delete?type=${type}`
+      : `${API_BASE_URL}/api/api-keys/delete`;
       
     const response = await fetch(url, {
       method: 'DELETE',
