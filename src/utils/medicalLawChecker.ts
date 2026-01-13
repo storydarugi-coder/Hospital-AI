@@ -463,6 +463,45 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
       fixSuggestion: '다른 구조로 풀어서 작성'
     });
   }
+
+  // 7. 원 숫자 사용 체크 (AI 특유 패턴)
+  const circleNumbers = plainText.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g) || [];
+  if (circleNumbers.length > 0) {
+    deductions += circleNumbers.length * 10;
+    issues.push({
+      type: 'structure',
+      description: `원 숫자 사용 (${circleNumbers.length}개) - AI 특유 표현`,
+      examples: circleNumbers.slice(0, 3),
+      severity: 'high',
+      fixSuggestion: '일반 숫자(1, 2, 3) 또는 한글(첫째, 둘째)로 변경'
+    });
+  }
+
+  // 8. 연결어 과다 체크 (문장 흐름 부자연스러움)
+  const conjunctionMatches = plainText.match(/그러나|하지만|그런데|그렇지만|그럼에도|한편|반면에/g) || [];
+  if (conjunctionMatches.length >= 5) {
+    deductions += (conjunctionMatches.length - 4) * 5;
+    issues.push({
+      type: 'structure',
+      description: `연결어 과다 (${conjunctionMatches.length}회) - 딱딱한 문체`,
+      examples: conjunctionMatches.slice(0, 3),
+      severity: 'medium',
+      fixSuggestion: '연결어 없이 자연스러운 흐름으로 작성 (일부 문장 통합)'
+    });
+  }
+
+  // 9. 강조 부사 과다 체크 (과장된 표현)
+  const emphasisMatches = plainText.match(/매우|굉장히|상당히|아주|너무|정말|극도로|심각하게/g) || [];
+  if (emphasisMatches.length >= 6) {
+    deductions += (emphasisMatches.length - 5) * 4;
+    issues.push({
+      type: 'expression',
+      description: `강조 부사 과다 (${emphasisMatches.length}회) - 과장된 느낌`,
+      examples: emphasisMatches.slice(0, 3),
+      severity: 'medium',
+      fixSuggestion: '강조 부사 줄이고 구체적 수치나 사실로 표현 (예: "매우 많다" → "10명 중 7명")'
+    });
+  }
   
   // 제안 생성
   if (deductions > 30) {
