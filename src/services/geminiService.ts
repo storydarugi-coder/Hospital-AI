@@ -6388,7 +6388,10 @@ ${JSON.stringify(searchResults, null, 2)}
       }, 2000);
 
       try {
-        const geminiResponse = await ai.models.generateContent({
+        // 🚀 타임아웃 추가 (120초 = 2분) - 글쓰기는 오래 걸릴 수 있으므로 넉넉하게
+        const GENERATION_TIMEOUT = 120000;
+        
+        const generationPromise = ai.models.generateContent({
           model: "gemini-3-pro-preview",
           contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
           config: {
@@ -6419,6 +6422,12 @@ ${JSON.stringify(searchResults, null, 2)}
             }
           }
         });
+        
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('⏰ 글쓰기 타임아웃 (2분) - 다시 시도해주세요')), GENERATION_TIMEOUT);
+        });
+        
+        const geminiResponse = await Promise.race([generationPromise, timeoutPromise]);
         
         const responseText = geminiResponse.text || '';
         clearInterval(progressInterval); // 진행률 업데이트 중지
