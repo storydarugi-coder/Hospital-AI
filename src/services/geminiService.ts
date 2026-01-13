@@ -5002,14 +5002,14 @@ ${timeContext}
 }
 
 ⚠️ ai_smell_score는 낮을수록 좋음 (7점 이하 목표, 15점 초과 시 재작성)
-⚠️ 목표 길이: 공백 제외 ${targetLength}~${targetLength + 100}자 범위 내!
+⚠️ 목표 길이: 공백 제외 ${targetLength + 100}~${targetLength + 200}자 범위 내!
 
 [검색 정보 활용]
 (검색 정보는 generateWithAgentMode에서 자동으로 수집됩니다)
 
 [작성 시작]
 위 요청사항과 검색 정보를 바탕으로 전문적이고 신뢰도 높은 콘텐츠를 작성해주세요.
-반드시 JSON 형식으로 응답하고, 목표 길이(공백 제외 ${targetLength}~${targetLength + 100}자)를 준수해주세요.
+반드시 JSON 형식으로 응답하고, 목표 길이(공백 제외 ${targetLength + 100}~${targetLength + 200}자)를 준수해주세요.
   `;
 
   /* 기존 상세 프롬프트 주석 처리 (API 타임아웃 방지)
@@ -5101,18 +5101,18 @@ ${timeContext}
     진료과: ${request.category}, 페르소나: ${request.persona}, 주제: ${request.topic}
     
     [🚨 글자 수 - 가장 중요한 요구사항!!! 🚨]
-    ⚠️ 목표: 공백 제외 **정확히 ${targetLength}~${targetLength + 100}자** 범위 내 작성! ⚠️
+    ⚠️ 목표: 공백 제외 **정확히 ${targetLength + 100}~${targetLength + 200}자** 범위 내 작성! ⚠️
 
     [금지] **절대 금지:**
-    - ${targetLength}자보다 적게 쓰는 것!
-    - ${targetLength + 100}자보다 많이 쓰는 것! (즉시 중단!)
+    - ${targetLength + 100}자보다 적게 쓰는 것!
+    - ${targetLength + 200}자보다 많이 쓰는 것! (즉시 중단!)
 
-    ✅ **필수 준수 범위:** ${targetLength}자 ~ ${targetLength + 100}자
-    🎯 **이상적인 범위:** ${targetLength}자 ~ ${targetLength + 50}자
+    ✅ **필수 준수 범위:** ${targetLength + 100}자 ~ ${targetLength + 200}자
+    🎯 **이상적인 범위:** ${targetLength + 100}자 ~ ${targetLength + 150}자
 
     📌 **분량 제한 규칙:**
-    - 1500자 설정 → 1500~1600자 범위 (1600자 넘으면 안 됨!)
-    - 2000자 설정 → 2000~2100자 범위 (2100자 넘으면 안 됨!)
+    - 1500자 설정 → 1600~1700자 범위 (1700자 넘으면 안 됨!)
+    - 2000자 설정 → 2100~2200자 범위 (2200자 넘으면 안 됨!)
     - ⚠️ 상한선 도달 시 즉시 결론 작성하고 마무리!
     
     📏 분량 가이드 (${targetLength}자 기준):
@@ -5162,14 +5162,14 @@ ${timeContext}
     6. 소제목(h3) 섹션 수 늘리기!
     
     ❌ 절대 금지:
-    - **${targetLength}자보다 적게 쓰는 것 (분량 미달!)**
-    - **${targetLength + 100}자보다 많이 쓰는 것 (분량 초과! 즉시 중단!)**
+    - **${targetLength + 100}자보다 적게 쓰는 것 (분량 미달!)**
+    - **${targetLength + 200}자보다 많이 쓰는 것 (분량 초과! 즉시 중단!)**
     - 내용 없이 같은 말 반복하기
     - 해시태그로 글자 수 채우기
     - 불필요하게 길게 늘려쓰기
 
     🚨 **분량 초과 방지 (중요!):**
-    - ${targetLength + 100}자에 도달하면 즉시 마무리!
+    - ${targetLength + 200}자에 도달하면 즉시 마무리!
     - 마지막 소제목 작성 시 남은 글자 수 계산
     - 결론은 간결하게 (80~100자)
     - 해시태그 개수 조절로 미세 조정
@@ -5302,10 +5302,10 @@ ${timeContext}
     3. 본론 2 작성 후 → 누적 ${Math.round(targetLength * 0.5)}~${Math.round(targetLength * 0.6)}자 확인
     4. 본론 3 작성 후 → 누적 ${Math.round(targetLength * 0.75)}~${Math.round(targetLength * 0.8)}자 확인
     5. 마무리 전 → 누적 ${targetLength - 150}자 이상 확인
-    6. 해시태그 추가 후 → 최종 ${targetLength}~${targetLength + 100}자 확인
+    6. 해시태그 추가 후 → 최종 ${targetLength + 100}~${targetLength + 200}자 확인
 
     ⚠️ **글자 수 초과 방지:**
-    - ${targetLength + 80}자 도달 시 다음 소제목 스킵하고 마무리로 이동!
+    - ${targetLength + 180}자 도달 시 다음 소제목 스킵하고 마무리로 이동!
     - 마무리는 80~100자로 간결하게!
     - 해시태그로 미세 조정 (부족하면 2~3개 추가, 넘치면 줄이기)
     
@@ -5479,7 +5479,7 @@ ${timeContext}
     □ 물음표(?) 0개인지 확인!
     □ "~수 있습니다" 문단당 1회 이하?
     □ 첫 문장이 상황 서술형으로 시작?
-    □ 분량 ${targetLength}~${targetLength + 100}자 범위 내?
+    □ 분량 ${targetLength + 100}~${targetLength + 200}자 범위 내?
     □ AI 냄새 점수 15점 이하? (7점 이하 목표!)
   */  // 기존 상세 프롬프트 끝
 
