@@ -2887,21 +2887,14 @@ ${cleanPromptText}
 };
 
 
-// 네이버 뉴스 검색 API 설정
-const NAVER_CLIENT_ID = 'nvSs0FruHITuuYJd9ulW';
-const NAVER_CLIENT_SECRET = 'DdcN6hLEF4';
-
-// 네이버 뉴스 검색 API 호출 함수
+// 네이버 뉴스 검색 API 호출 함수 (서버 프록시 사용 - CORS 해결)
 const searchNaverNews = async (query: string, display: number = 10): Promise<{ title: string; description: string; pubDate: string; link: string }[]> => {
   try {
     console.log(`[네이버 뉴스] 검색 시작: ${query}`);
     
-    const response = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=${display}&sort=date`, {
+    // 서버 프록시를 통해 네이버 API 호출 (CORS 해결)
+    const response = await fetch(`/api/naver-news?query=${encodeURIComponent(query)}&display=${display}`, {
       method: 'GET',
-      headers: {
-        'X-Naver-Client-Id': NAVER_CLIENT_ID,
-        'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
-      }
     });
     
     if (!response.ok) {
