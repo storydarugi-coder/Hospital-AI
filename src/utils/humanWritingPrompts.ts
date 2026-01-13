@@ -15,6 +15,7 @@ export const HUMAN_WRITING_RULES = `
 - "다양한", "효과적인", "중요한" 남발
 - 과도한 이모지 🚫
 - "여러분", "오늘은" 등 틀에 박힌 서두
+- 동일 종결어미 3회 초과 (특히 ~입니다/~편입니다/~있습니다)
 
 ✅ 자연스러운 표현:
 - 짧은 문장과 긴 문장 자연스럽게 섞기
@@ -107,10 +108,12 @@ export const FEW_SHOT_EXAMPLES = `
 [나쁜 예시 - AI 티남]
 당뇨병은 현대인에게 흔한 질병입니다. 당뇨병에 대해 자세히 알아보겠습니다.
 다양한 증상이 나타날 수 있으며, 적절한 관리가 중요합니다.
+혈당 관리가 필요합니다. 합병증 예방이 중요합니다. 정기 검진이 필요합니다. (종결어미 반복)
 
 [좋은 예시 - 자연스러움]
-갈증이 심하고 화장실을 자주 간다면 당뇨병을 의심해볼 수 있습니다.
-혈당이 높아지면 우리 몸은 소변으로 당을 배출하려고 하기 때문입니다. (출처: 질병관리청)
+갈증이 심하고 화장실을 자주 간다면 당뇨병을 의심해볼 수 있다.
+혈당이 높아지면 우리 몸은 소변으로 당을 배출하려는 경향을 보인다.
+조절이 제대로 되지 않으면 혈관 건강에 영향을 줄 수 있는 것으로 알려져 있다.
 ---
 [나쁜 예시 - 의료광고법 위반]
 우리 병원의 최첨단 치료로 당뇨를 완치할 수 있습니다!
@@ -167,23 +170,30 @@ export function detectAiSmell(text: string): {
   patterns: string[];
   score: number; // 0-100, 높을수록 AI 냄새 강함
 } {
-  const aiPatterns = [
+  const aiPatterns: Array<{ pattern: RegExp; name: string; maxAllowed?: number }> = [
     { pattern: /에\s*대해\s*알아보[겠습니다|자]/g, name: '~에 대해 알아보겠습니다' },
     { pattern: /라고\s*할\s*수\s*있습니다/g, name: '~라고 할 수 있습니다' },
     { pattern: /것으로\s*나타났습니다/g, name: '~것으로 나타났습니다' },
-    { pattern: /다양한/g, name: '다양한 (과다 사용)' },
+    { pattern: /다양한/g, name: '다양한 (과다 사용)', maxAllowed: 2 },
     { pattern: /여러분/g, name: '여러분 (과다 사용)' },
     { pattern: /오늘은/g, name: '오늘은 (틀에 박힌 서두)' },
+    { pattern: /입니다(?![가-힣])/g, name: '~입니다 (종결어미 반복)', maxAllowed: 3 },
+    { pattern: /편입니다(?![가-힣])/g, name: '~편입니다 (종결어미 반복)', maxAllowed: 3 },
+    { pattern: /있습니다(?![가-힣])/g, name: '~있습니다 (종결어미 반복)', maxAllowed: 3 },
+    { pattern: /정리해보려\s*합니다/g, name: '~정리해보려 합니다 (메타 설명)' },
+    { pattern: /살펴보[겠습니다|자]/g, name: '~살펴보겠습니다 (메타 설명)' },
   ];
 
   const detected: string[] = [];
   let totalMatches = 0;
 
-  for (const { pattern, name } of aiPatterns) {
+  for (const item of aiPatterns) {
+    const { pattern, name } = item;
+    const maxAllowed = 'maxAllowed' in item ? item.maxAllowed : 0;
     const matches = text.match(pattern);
-    if (matches && matches.length > 0) {
-      detected.push(`${name} (${matches.length}회)`);
-      totalMatches += matches.length;
+    if (matches && matches.length > maxAllowed) {
+      detected.push(`${name} (${matches.length}회, 허용: ${maxAllowed}회)`);
+      totalMatches += matches.length - maxAllowed;
     }
   }
 
