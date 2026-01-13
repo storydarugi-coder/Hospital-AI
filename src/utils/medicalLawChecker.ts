@@ -502,7 +502,30 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
       fixSuggestion: '강조 부사 줄이고 구체적 상황으로 표현 (예: "매우 많다" → "적지 않은 분들이", "상당히 높다" → "드물지 않게")'
     });
   }
-  
+
+  // 10. 번역투 표현 체크 (영어 → 한국어 직역)
+  const translationPatterns = [
+    { pattern: /하는 것이[다|ㅂ니다|중요|필수|좋]/g, name: '~하는 것이다 (명사형 종결)' },
+    { pattern: /에 있어서/g, name: '~에 있어서' },
+    { pattern: /함으로써|하기 위해서는/g, name: '~함으로써/하기 위해서는' },
+    { pattern: /되어지|이루어지|여겨지/g, name: '피동태 과다 (되어지다)' },
+    { pattern: /을 통해|로 인해|에 의해/g, name: '~을 통해/로 인해/에 의해' }
+  ];
+
+  translationPatterns.forEach(({ pattern, name }) => {
+    const matches = plainText.match(pattern) || [];
+    if (matches.length >= 3) {
+      deductions += matches.length * 6;
+      issues.push({
+        type: 'structure',
+        description: `번역투 표현 "${name}" 과다 (${matches.length}회)`,
+        examples: matches.slice(0, 3),
+        severity: 'high',
+        fixSuggestion: '자연스러운 한국어로 변경 (예: "~하는 것이다" → "~습니다", "~에 있어서" → "~에서/때")'
+      });
+    }
+  });
+
   // 제안 생성
   if (deductions > 30) {
     suggestions.push('종결어미를 더 다양하게 사용해보세요.');
@@ -512,6 +535,9 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   }
   if (issues.some(i => i.type === 'expression' && i.severity === 'high')) {
     suggestions.push('도입부를 상황 묘사 형식으로 변경해보세요.');
+  }
+  if (issues.some(i => i.description.includes('번역투'))) {
+    suggestions.push('번역투 표현을 자연스러운 한국어로 변경해보세요.');
   }
   
   const totalScore = Math.max(0, Math.min(100, 100 - deductions));
