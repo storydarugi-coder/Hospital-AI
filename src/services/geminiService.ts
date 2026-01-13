@@ -6178,103 +6178,103 @@ ${JSON.stringify(searchResults, null, 2)}
       }, 2000);
 
       try {
-      const geminiResponse = await ai.models.generateContent({
-        model: "gemini-3-pro-preview",
-        contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
-        config: {
-          tools: [{ googleSearch: {} }],
-          responseMimeType: "application/json",
-          // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              content: { type: Type.STRING },
-              imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-              fact_check: {
-                type: Type.OBJECT,
-                properties: {
-                  fact_score: { type: Type.INTEGER },
-                  safety_score: { type: Type.INTEGER },
-                  conversion_score: { type: Type.INTEGER },
-                  ai_smell_score: { type: Type.INTEGER },
-                  verified_facts_count: { type: Type.INTEGER },
-                  issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+        const geminiResponse = await ai.models.generateContent({
+          model: "gemini-3-pro-preview",
+          contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
+          config: {
+            tools: [{ googleSearch: {} }],
+            responseMimeType: "application/json",
+            // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                content: { type: Type.STRING },
+                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                fact_check: {
+                  type: Type.OBJECT,
+                  properties: {
+                    fact_score: { type: Type.INTEGER },
+                    safety_score: { type: Type.INTEGER },
+                    conversion_score: { type: Type.INTEGER },
+                    ai_smell_score: { type: Type.INTEGER },
+                    verified_facts_count: { type: Type.INTEGER },
+                    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
+                  }
                 }
-              }
-            },
-            required: ["title", "content"]
+              },
+              required: ["title", "content"]
+            }
           }
+        });
+        
+        const responseText = geminiResponse.text || '';
+        clearInterval(progressInterval); // 진행률 업데이트 중지
+
+        const charCountNoSpaces = responseText.replace(/\s/g, '').length;
+        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
+        safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
+
+        const response = { text: responseText };
+
+        console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
+
+        if (!response.text) {
+          throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
         }
-      });
-      
-      const responseText = geminiResponse.text || '';
-      clearInterval(progressInterval); // 진행률 업데이트 중지
 
-      const charCountNoSpaces = responseText.replace(/\s/g, '').length;
-      console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
-      safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
-
-      const response = { text: responseText };
-
-      console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
-
-      if (!response.text) {
-        throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
-      }
-
-      result = JSON.parse(response.text);
-      console.log('✅ Gemini JSON 파싱 성공');
+        result = JSON.parse(response.text);
+        console.log('✅ Gemini JSON 파싱 성공');
 
       } catch (geminiError: any) {
         clearInterval(progressInterval); // 에러 시에도 중지
         console.error('❌ Gemini 생성 실패:', geminiError);
-      
-      // 에러 타입별 처리
-      if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
-        throw new Error('🚫 API 사용량 한계에 도달했습니다. 잠시 후 다시 시도해주세요.');
-      } else if (geminiError.message?.includes('JSON')) {
-        throw new Error('📋 AI 응답 형식 오류가 발생했습니다. 다시 시도해주세요.');
-      } else {
-        throw new Error(`❌ Gemini 오류: ${geminiError.message || '알 수 없는 오류'}`);
+        
+        // 에러 타입별 처리
+        if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
+          throw new Error('🚫 API 사용량 한계에 도달했습니다. 잠시 후 다시 시도해주세요.');
+        } else if (geminiError.message?.includes('JSON')) {
+          throw new Error('📋 AI 응답 형식 오류가 발생했습니다. 다시 시도해주세요.');
+        } else {
+          throw new Error(`❌ Gemini 오류: ${geminiError.message || '알 수 없는 오류'}`);
+        }
       }
-    }
     
     // 🔧 GPT-5.2는 다양한 필드명으로 반환할 수 있음 → content로 정규화
     if (!result.content) {
-    // 가능한 모든 필드명 체크
-    const possibleContentFields = ['contentHtml', 'body', 'html', 'htmlContent', 'bodyHtml', 'article', 'text'];
-    for (const field of possibleContentFields) {
-      if (result[field]) {
-        console.log(`✅ GPT-5.2 '${field}' 필드를 content로 정규화`);
-        result.content = result[field];
-        break;
+      // 가능한 모든 필드명 체크
+      const possibleContentFields = ['contentHtml', 'body', 'html', 'htmlContent', 'bodyHtml', 'article', 'text'];
+      for (const field of possibleContentFields) {
+        if (result[field]) {
+          console.log(`✅ GPT-5.2 '${field}' 필드를 content로 정규화`);
+          result.content = result[field];
+          break;
+        }
       }
-    }
     }
     
     // 디버그: result 객체의 모든 필드 출력
     console.log('📋 result 객체 필드:', Object.keys(result));
     if (!result.content) {
-    console.error('❌ content 필드를 찾을 수 없습니다. result:', JSON.stringify(result).substring(0, 500));
+      console.error('❌ content 필드를 찾을 수 없습니다. result:', JSON.stringify(result).substring(0, 500));
     }
     
     // AI가 content를 배열이나 객체로 반환한 경우 방어 처리
     if (result.content && typeof result.content !== 'string') {
-    console.warn('AI returned non-string content, attempting to extract HTML...');
-    if (Array.isArray(result.content)) {
-      // 배열인 경우 각 항목에서 HTML 추출
-      result.content = result.content.map((item: any) => {
-        if (typeof item === 'string') return item;
-        if (item?.content) return item.content;
-        if (item?.html) return item.html;
-        return '';
-      }).join('');
-    } else if (typeof result.content === 'object') {
-      // 객체인 경우 content나 html 필드 추출
-      result.content = result.content.content || result.content.html || JSON.stringify(result.content);
-    }
+      console.warn('AI returned non-string content, attempting to extract HTML...');
+      if (Array.isArray(result.content)) {
+        // 배열인 경우 각 항목에서 HTML 추출
+        result.content = result.content.map((item: any) => {
+          if (typeof item === 'string') return item;
+          if (item?.content) return item.content;
+          if (item?.html) return item.html;
+          return '';
+        }).join('');
+      } else if (typeof result.content === 'object') {
+        // 객체인 경우 content나 html 필드 추출
+        result.content = result.content.content || result.content.html || JSON.stringify(result.content);
+      }
     }
     
     // 🧹 불필요한 텍스트 제거 (AI가 실수로 삽입한 마커/메타 텍스트)
@@ -6290,61 +6290,65 @@ ${JSON.stringify(searchResults, null, 2)}
     
     // 분석된 스타일 정보 추가
     if (analyzedBgColor) {
-    result.analyzedStyle = { backgroundColor: analyzedBgColor };
+      result.analyzedStyle = { backgroundColor: analyzedBgColor };
     }
     
     // 🎯 SEO 자동 평가 (재생성 없이 평가만 수행)
     const hasContent = result.content || result.contentHtml;
     if (!isCardNews && hasContent && result.title) {
-    console.log('📊 SEO 자동 평가 시작...');
-    if (typeof onProgress === 'function') {
-      safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
-    }
-    
-    try {
-      // content 또는 contentHtml 필드 지원
-      const htmlContent = result.contentHtml || result.content;
-      if (!htmlContent) {
-        console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
-        console.error('   - result 필드:', Object.keys(result));
-      } else {
-        const seoReport = await evaluateSeoScore(
-          htmlContent,
-          result.title,
-          request.topic,
-          request.keywords || ''
-        );
-        
-        console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
-        
-        // SEO 점수를 결과에 추가
-        result.seoScore = seoReport;
-        
-        // 진행 상황 업데이트
-        if (typeof onProgress === 'function') {
-          safeProgress(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
-        }
-        
-        if (seoReport.total >= 85) {
-          console.log('✅ SEO 점수 85점 이상!');
-          if (typeof onProgress === 'function') {
-            safeProgress(`✅ SEO 점수 ${seoReport.total}점`);
-          }
-        } else {
-          console.log(`ℹ️ SEO 점수 ${seoReport.total}점 - 참고용`);
-          if (typeof onProgress === 'function') {
-            safeProgress(`ℹ️ SEO 점수 ${seoReport.total}점`);
-          }
-        }
+      console.log('📊 SEO 자동 평가 시작...');
+      if (typeof onProgress === 'function') {
+        safeProgress('📊 SEO 점수를 자동 평가하고 있습니다...');
       }
-    } catch (seoError) {
-      console.error('❌ SEO 평가 오류:', seoError);
+      
+      try {
+        // content 또는 contentHtml 필드 지원
+        const htmlContent = result.contentHtml || result.content;
+        if (!htmlContent) {
+          console.error('❌ SEO 평가 불가: result에 content 또는 contentHtml 필드가 없습니다');
+          console.error('   - result 필드:', Object.keys(result));
+        } else {
+          const seoReport = await evaluateSeoScore(
+            htmlContent,
+            result.title,
+            request.topic,
+            request.keywords || ''
+          );
+          
+          console.log(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
+          
+          // SEO 점수를 결과에 추가
+          result.seoScore = seoReport;
+          
+          // 진행 상황 업데이트
+          if (typeof onProgress === 'function') {
+            safeProgress(`📊 SEO 평가 완료 - 총점: ${seoReport.total}점`);
+          }
+          
+          if (seoReport.total >= 85) {
+            console.log('✅ SEO 점수 85점 이상!');
+            if (typeof onProgress === 'function') {
+              safeProgress(`✅ SEO 점수 ${seoReport.total}점`);
+            }
+          } else {
+            console.log(`ℹ️ SEO 점수 ${seoReport.total}점 - 참고용`);
+            if (typeof onProgress === 'function') {
+              safeProgress(`ℹ️ SEO 점수 ${seoReport.total}점`);
+            }
+          }
+        }
+      } catch (seoError) {
+        console.error('❌ SEO 평가 오류:', seoError);
+      }
+      
+      // SEO 평가 완료 메시지
+      if (typeof onProgress === 'function') {
+        safeProgress('✅ Step 2 완료: 글 작성 및 SEO 평가 완료');
+      }
     }
-    
-    // SEO 평가 완료 메시지
-    if (typeof onProgress === 'function') {
-      safeProgress('✅ Step 2 완료: 글 작성 및 SEO 평가 완료');
-    }
+    } catch (contentGenerationError: any) {
+      console.error('❌ 콘텐츠 생성 중 오류 발생:', contentGenerationError);
+      throw contentGenerationError;
     }
 
     // 📊 프롬프트 분석 로그 기록
