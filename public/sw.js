@@ -5,14 +5,21 @@
  * - PWA 지원
  */
 
-const CACHE_NAME = 'hospitalai-v1';
-const RUNTIME_CACHE = 'hospitalai-runtime-v1';
+// 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
+const CACHE_VERSION = 'v2-' + '20260113';
+const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
+const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
-// 캐시할 정적 자원
+// 캐시할 정적 자원 (해시가 바뀌는 JS/CSS는 제외!)
 const STATIC_ASSETS = [
   '/',
-  '/static/client.js',
   '/manifest.json',
+];
+
+// 캐시하지 않을 패턴 (해시가 포함된 빌드 파일)
+const NO_CACHE_PATTERNS = [
+  /\/assets\/.*\.js$/,
+  /\/assets\/.*\.css$/,
 ];
 
 // Service Worker 설치
@@ -76,8 +83,23 @@ self.addEventListener('fetch', (event) => {
 /**
  * 캐시 우선 전략 (Cache First)
  * - 정적 자원에 적합
+ * - 해시가 포함된 빌드 파일은 캐시하지 않음
  */
 async function cacheFirst(request) {
+  const url = new URL(request.url);
+  
+  // 해시가 포함된 빌드 파일은 항상 네트워크에서 가져옴 (캐시 X)
+  const shouldSkipCache = NO_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+  if (shouldSkipCache) {
+    console.log('[SW] Skip cache for hashed asset:', url.pathname);
+    try {
+      return await fetch(request);
+    } catch (error) {
+      console.error('[SW] Network fetch failed for asset:', error);
+      throw error;
+    }
+  }
+  
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   
