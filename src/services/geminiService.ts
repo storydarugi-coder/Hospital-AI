@@ -2887,65 +2887,113 @@ ${cleanPromptText}
 };
 
 
-// 🗞️ 뉴스 검색 전용 함수 - 키워드 추천에만 사용! (글쓰기 검색과 분리)
-// ⚠️ 허용 도메인: 연합뉴스, 중앙일보, 조선일보, 동아일보, 한겨레, 경향신문, KBS, MBC, SBS 등 신뢰할 수 있는 언론사
+// 네이버 뉴스 검색 API 설정
+const NAVER_CLIENT_ID = 'nvSs0FruHITuuYJd9ulW';
+const NAVER_CLIENT_SECRET = 'DdcN6hLEF4';
+
+// 네이버 뉴스 검색 API 호출 함수
+const searchNaverNews = async (query: string, display: number = 10): Promise<{ title: string; description: string; pubDate: string; link: string }[]> => {
+  try {
+    console.log(`[네이버 뉴스] 검색 시작: ${query}`);
+    
+    const response = await fetch(`https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=${display}&sort=date`, {
+      method: 'GET',
+      headers: {
+        'X-Naver-Client-Id': NAVER_CLIENT_ID,
+        'X-Naver-Client-Secret': NAVER_CLIENT_SECRET,
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`네이버 API 오류: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`[네이버 뉴스] ${data.items?.length || 0}개 결과 수신`);
+    
+    return (data.items || []).map((item: any) => ({
+      title: item.title.replace(/<[^>]*>/g, ''), // HTML 태그 제거
+      description: item.description.replace(/<[^>]*>/g, ''),
+      pubDate: item.pubDate,
+      link: item.link
+    }));
+  } catch (error) {
+    console.error('[네이버 뉴스] 검색 실패:', error);
+    throw error;
+  }
+};
+
+// 뉴스 검색 전용 함수 - 네이버 우선, Gemini 폴백
+// 허용 도메인: 연합뉴스, 중앙일보, 조선일보, 동아일보, 한겨레, 경향신문, KBS, MBC, SBS 등 신뢰할 수 있는 언론사
 const searchNewsForTrends = async (category: string, month: number): Promise<string> => {
-  const ai = getAiClient();
-  
   // 진료과별 뉴스 검색 키워드
   const categoryNewsKeywords: Record<string, string> = {
-    '정형외과': '관절 통증 겨울 OR 허리디스크 OR 어깨 통증',
-    '피부과': '피부 건조 겨울 OR 아토피 OR 습진',
-    '내과': '독감 OR 감기 OR 당뇨 OR 고혈압 건강',
-    '치과': '치아 건강 OR 잇몸 질환 OR 구강 건조',
+    '정형외과': '관절 통증 OR 허리디스크 OR 어깨 통증',
+    '피부과': '피부 건조 OR 아토피 OR 습진',
+    '내과': '독감 OR 감기 OR 당뇨 OR 고혈압',
+    '치과': '치아 건강 OR 잇몸 질환',
     '안과': '안구건조 OR 눈 건강 OR 시력',
-    '이비인후과': '비염 OR 코막힘 OR 목감기 OR 인후통',
-    '산부인과': '여성 건강 OR 갱년기 OR 생리통',
-    '비뇨의학과': '전립선 OR 방광염 OR 비뇨기 건강',
-    '신경과': '두통 OR 어지럼증 OR 수면 OR 불면증',
-    '정신건강의학과': '우울증 OR 스트레스 OR 번아웃 OR 불안'
+    '이비인후과': '비염 OR 코막힘 OR 목감기',
+    '산부인과': '여성 건강 OR 갱년기',
+    '비뇨의학과': '전립선 OR 방광염',
+    '신경과': '두통 OR 어지럼증 OR 불면증',
+    '정신건강의학과': '우울증 OR 스트레스 OR 번아웃',
+    '마취통증의학과': '통증 치료 OR 만성통증 OR 신경차단'
   };
   
-  const searchKeyword = categoryNewsKeywords[category] || '건강 의료 뉴스';
+  const searchKeyword = categoryNewsKeywords[category] || '건강 의료';
   
+  // 1차: 네이버 뉴스 검색 시도
   try {
-    console.log(`📰 뉴스 트렌드 검색 시작: ${category} (${searchKeyword})`);
+    console.log(`[뉴스 트렌드] 네이버 뉴스 검색 시작: ${category} (${searchKeyword})`);
     
-    // Gemini 구글 검색 도구로 최신 뉴스 검색
-    // ⚠️ 참고: Gemini API의 googleSearch 도구는 knowledge cutoff 한계로 최신 데이터를 못 가져올 수 있음
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `최근 1주일간 한국 뉴스에서 "${searchKeyword}" 관련 기사를 검색하고, 
+    const newsItems = await searchNaverNews(searchKeyword, 10);
+    
+    if (newsItems.length > 0) {
+      // 뉴스 결과를 텍스트로 포맷팅
+      const newsContext = newsItems.slice(0, 5).map((item, idx) => {
+        return `${idx + 1}. ${item.title}\n   - ${item.description.substring(0, 100)}...`;
+      }).join('\n\n');
+      
+      console.log(`[뉴스 트렌드] 네이버 뉴스 검색 완료: ${newsItems.length}개 기사`);
+      return `[최신 뉴스 트렌드 - 네이버 뉴스 검색 결과]\n\n${newsContext}`;
+    }
+    
+    throw new Error('네이버 뉴스 결과 없음');
+    
+  } catch (naverError) {
+    console.warn('[뉴스 트렌드] 네이버 검색 실패, Gemini로 폴백:', naverError);
+    
+    // 2차: Gemini 검색으로 폴백
+    try {
+      const ai = getAiClient();
+      
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-preview',
+        contents: `최근 한국 뉴스에서 "${searchKeyword}" 관련 기사를 검색하고, 
 가장 많이 다뤄지는 건강/의료 이슈 3가지를 요약해주세요.
 
-⚠️ 중요: 응답에 "검색 가능한 데이터가 XXX년입니다" 같은 메타 정보를 포함하지 마세요.
 연도 불일치 설명 없이 바로 이슈만 요약하세요.
-
-[🚨 검색 허용 뉴스 도메인만 참고!]
-✅ 허용: yna.co.kr(연합뉴스), joongang.co.kr(중앙일보), chosun.com(조선일보), 
-   donga.com(동아일보), hani.co.kr(한겨레), khan.co.kr(경향신문),
-   kbs.co.kr, mbc.co.kr, sbs.co.kr, ytn.co.kr, jtbc.co.kr, mbn.co.kr
-❌ 제외: 블로그, 카페, 개인 사이트, 건강 정보 사이트 (하이닥, 헬스조선 등)
 
 [출력 형식]
 각 이슈마다:
 - 이슈: (한 줄 요약)
-- 관련 증상/키워드: (블로그 작성에 활용할 키워드)
-- 뉴스 트렌드 이유: (왜 지금 이슈가 되는지)`,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "text/plain",
-        temperature: 0.3
-      }
-    });
-    
-    const newsContext = response.text || '';
-    console.log(`📰 뉴스 트렌드 검색 완료: ${newsContext.substring(0, 200)}...`);
-    return newsContext;
-    
-  } catch (error) {
-    console.warn('⚠️ 뉴스 검색 실패, 기본 트렌드로 진행:', error);
-    return '';
+- 관련 키워드: (블로그 작성에 활용할 키워드)`,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "text/plain",
+          temperature: 0.3
+        }
+      });
+      
+      const newsContext = response.text || '';
+      console.log(`[뉴스 트렌드] Gemini 검색 완료`);
+      return newsContext;
+      
+    } catch (geminiError) {
+      console.warn('[뉴스 트렌드] Gemini 검색도 실패:', geminiError);
+      return '';
+    }
   }
 };
 
