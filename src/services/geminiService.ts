@@ -4406,14 +4406,20 @@ export const generateCardNewsWithAgents = async (
 // 기존 블로그 포스트 생성 함수 (유지)
 // ============================================
 
-export const generateBlogPostText = async (request: GenerationRequest, onProgress?: (msg: string) => void): Promise<{ 
-    title: string; 
-    content: string; 
+export const generateBlogPostText = async (request: GenerationRequest, onProgress?: (msg: string) => void): Promise<{
+    title: string;
+    content: string;
     imagePrompts: string[];
     fact_check: FactCheckReport;
     analyzedStyle?: { backgroundColor?: string; borderColor?: string; };
     seoScore?: SeoScoreReport;
 }> => {
+  // 📊 성능 측정 시작
+  const startTime = Date.now();
+  let retryCount = 0;
+  let errorOccurred = false;
+  let errorMessage = '';
+
   // onProgress가 없으면 콘솔 로그로 대체
   const safeProgress = onProgress || ((msg: string) => console.log('📍 BlogText Progress:', msg));
   const ai = getAiClient();
@@ -6162,7 +6168,16 @@ ${JSON.stringify(searchResults, null, 2)}
       
       // 🎬 일반 generateContent 사용 (타임아웃 제거 - Gemini가 알아서 처리)
       safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
-      
+
+      // 📊 진행률 시뮬레이션 (실제 스트리밍 대신 예상 시간 기반)
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const estimatedTotal = targetLength * 10; // 글자당 10ms 예상
+        const progress = Math.min(90, (elapsed / estimatedTotal) * 100);
+        safeProgress(`✍️ 작성 중... ${Math.round(progress)}%`);
+      }, 2000);
+
+      try {
       const geminiResponse = await ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
@@ -6195,23 +6210,26 @@ ${JSON.stringify(searchResults, null, 2)}
       });
       
       const responseText = geminiResponse.text || '';
+      clearInterval(progressInterval); // 진행률 업데이트 중지
+
       const charCountNoSpaces = responseText.replace(/\s/g, '').length;
       console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
       safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
-      
+
       const response = { text: responseText };
-      
+
       console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
-      
+
       if (!response.text) {
         throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
       }
-      
+
       result = JSON.parse(response.text);
       console.log('✅ Gemini JSON 파싱 성공');
-      
-    } catch (geminiError: any) {
-      console.error('❌ Gemini 생성 실패:', geminiError);
+
+      } catch (geminiError: any) {
+        clearInterval(progressInterval); // 에러 시에도 중지
+        console.error('❌ Gemini 생성 실패:', geminiError);
       
       // 에러 타입별 처리
       if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
@@ -6328,9 +6346,44 @@ ${JSON.stringify(searchResults, null, 2)}
       safeProgress('✅ Step 2 완료: 글 작성 및 SEO 평가 완료');
     }
     }
-    
+
+    // 📊 프롬프트 분석 로그 기록
+    try {
+      const { logPromptGeneration } = await import('../utils/promptAnalytics');
+      const generationTime = Date.now() - startTime;
+      const actualContent = result.content || result.contentHtml || '';
+      const plainText = actualContent.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+      const actualLength = plainText.length;
+
+      logPromptGeneration({
+        promptVersion: 'v2.0_natural_writing',
+        category: request.category,
+        topic: request.topic,
+        targetLength: targetLength,
+        imageCount: request.imageCount || 0,
+        actualLength: actualLength,
+        ai_smell_score: result.fact_check?.ai_smell_score || 0,
+        safety_score: result.fact_check?.safety_score || 0,
+        fact_score: result.fact_check?.fact_score || 0,
+        conversion_score: result.fact_check?.conversion_score || 0,
+        generationTime: generationTime,
+        retryCount: retryCount,
+        errorOccurred: errorOccurred,
+        errorMessage: errorMessage,
+        wasEdited: false,
+        wasSaved: false
+      });
+    } catch (analyticsError) {
+      console.error('⚠️ Analytics logging failed:', analyticsError);
+      // 로그 실패해도 메인 기능은 계속
+    }
+
     return result;
-  } catch (error) { throw error; }
+  } catch (error) {
+    errorOccurred = true;
+    errorMessage = (error as Error).message || 'Unknown error';
+    throw error;
+  }
 };
 
 // 🗞️ 보도자료 생성 함수

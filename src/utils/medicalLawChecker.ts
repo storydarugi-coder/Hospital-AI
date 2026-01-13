@@ -526,6 +526,114 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
     }
   });
 
+  // 11. 문장 길이 패턴 체크 (균등하면 AI 냄새)
+  const sentences = plainText.split(/[.!?]\s+/).filter(s => s.length > 10);
+  if (sentences.length >= 5) {
+    const lengths = sentences.map(s => s.length);
+    const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+    const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / lengths.length;
+    const stdDev = Math.sqrt(variance);
+
+    // 표준편차가 15 이하면 너무 균등 (AI 패턴)
+    if (stdDev < 15 && sentences.length >= 8) {
+      deductions += 12;
+      issues.push({
+        type: 'structure',
+        description: `문장 길이가 너무 균등함 (표준편차: ${stdDev.toFixed(1)}) - AI 패턴 의심`,
+        examples: [`평균 ${avgLength.toFixed(0)}자 내외로 반복`],
+        severity: 'medium',
+        fixSuggestion: '짧은 문장(10~15자), 중간 문장(20~30자), 긴 문장(35~45자)을 섞어서 리듬감 있게 작성'
+      });
+    }
+  }
+
+  // 12. 문단 시작 패턴 반복 감지
+  const paragraphs = html.split(/<\/p>|<br\s*\/?>/i).filter(p => p.trim().length > 20);
+  const startPatterns: string[] = [];
+  paragraphs.forEach(p => {
+    const text = p.replace(/<[^>]*>/g, '').trim();
+    const firstChars = text.substring(0, 2);
+    if (firstChars) startPatterns.push(firstChars);
+  });
+
+  // 같은 시작 패턴 3회 연속 체크
+  let consecutiveCount = 1;
+  let maxConsecutive = 1;
+  for (let i = 1; i < startPatterns.length; i++) {
+    if (startPatterns[i] === startPatterns[i-1]) {
+      consecutiveCount++;
+      maxConsecutive = Math.max(maxConsecutive, consecutiveCount);
+    } else {
+      consecutiveCount = 1;
+    }
+  }
+
+  if (maxConsecutive >= 3) {
+    deductions += maxConsecutive * 5;
+    issues.push({
+      type: 'structure',
+      description: `같은 문단 시작 패턴 ${maxConsecutive}회 연속 - 단조로운 구조`,
+      examples: ['문단 시작을 다양하게 (설명형/상황형/조건형/시간형/비교형)'],
+      severity: 'medium',
+      fixSuggestion: '각 문단을 다른 방식으로 시작 (예: "무릎 통증은~" → "아침에 일어날 때~" → "만약 통증이~")'
+    });
+  }
+
+  // 13. 1인칭/2인칭 직접 지칭 체크 (체험담 느낌)
+  const firstPersonMatches = plainText.match(/저는|제가|우리|저희 병원|저희는/g) || [];
+  const secondPersonMatches = plainText.match(/당신은|당신의|여러분은|여러분의/g) || [];
+  const totalPersonal = firstPersonMatches.length + secondPersonMatches.length;
+
+  if (totalPersonal >= 2) {
+    deductions += totalPersonal * 8;
+    issues.push({
+      type: 'expression',
+      description: `인칭 대명사 과다 (${totalPersonal}회) - 체험담/광고 느낌`,
+      examples: [...firstPersonMatches.slice(0, 2), ...secondPersonMatches.slice(0, 2)],
+      severity: 'high',
+      fixSuggestion: '3인칭 관찰자 시점으로 변경 (예: "저는" → 삭제, "여러분은" → "~하는 분들은")'
+    });
+  }
+
+  // 14. 본문 내 이모지 과다 사용 감지
+  const emojiInContent = plainText.match(/[😀-🙏🌀-🗿]/g) || [];
+  if (emojiInContent.length > 5) {
+    deductions += emojiInContent.length * 3;
+    issues.push({
+      type: 'expression',
+      description: `본문 내 이모지 과다 (${emojiInContent.length}개) - 부적절`,
+      examples: emojiInContent.slice(0, 5),
+      severity: 'medium',
+      fixSuggestion: '이모지는 소제목(H3)에만 사용하고 본문에서는 제거'
+    });
+  }
+
+  // 15. 감정 과도 표현 체크
+  const emotionalMatches = plainText.match(/끔찍한|엄청난|심각한|굉장한|놀라운|대단한/g) || [];
+  if (emotionalMatches.length >= 3) {
+    deductions += emotionalMatches.length * 7;
+    issues.push({
+      type: 'expression',
+      description: `감정 과도 표현 (${emotionalMatches.length}회) - 과장된 느낌`,
+      examples: emotionalMatches.slice(0, 3),
+      severity: 'high',
+      fixSuggestion: '객관적 표현으로 변경 (예: "끔찍한 통증" → "밤잠을 설칠 정도의 통증")'
+    });
+  }
+
+  // 16. 구어체 표현 과다 체크 (자연스러움 목적이지만 과하면 부적절)
+  const colloquialMatches = plainText.match(/거든요|잖아요|더라고요|~ㅋㅋ|~ㅎㅎ|~요~/g) || [];
+  if (colloquialMatches.length > 10) {
+    deductions += (colloquialMatches.length - 10) * 4;
+    issues.push({
+      type: 'expression',
+      description: `구어체 과다 (${colloquialMatches.length}회) - 지나치게 캐주얼`,
+      examples: colloquialMatches.slice(0, 3),
+      severity: 'low',
+      fixSuggestion: '적당한 구어체만 유지 (글 전체 8~10회 이하 권장)'
+    });
+  }
+
   // 제안 생성
   if (deductions > 30) {
     suggestions.push('종결어미를 더 다양하게 사용해보세요.');
@@ -538,6 +646,15 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   }
   if (issues.some(i => i.description.includes('번역투'))) {
     suggestions.push('번역투 표현을 자연스러운 한국어로 변경해보세요.');
+  }
+  if (issues.some(i => i.description.includes('문장 길이'))) {
+    suggestions.push('문장 길이를 다양하게 (짧음/중간/긴 문장 섞기)');
+  }
+  if (issues.some(i => i.description.includes('인칭 대명사'))) {
+    suggestions.push('1인칭/2인칭 제거하고 3인칭 관찰자 시점으로 작성');
+  }
+  if (issues.some(i => i.description.includes('감정 과도'))) {
+    suggestions.push('과장된 감정 표현 대신 구체적 상황으로 표현');
   }
   
   const totalScore = Math.max(0, Math.min(100, 100 - deductions));
