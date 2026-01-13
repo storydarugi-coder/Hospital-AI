@@ -10,11 +10,11 @@
   "kv_namespaces": [
     {
       "binding": "API_KEYS",
-      "id": "placeholder_api_keys_kv_id"
+      "id": "c3e58f4d007b4462bb3db65c8eb5b2da"
     },
     {
       "binding": "CONTENT_KV",
-      "id": "placeholder_content_kv_id"
+      "id": "c9b8a80da1e14406af9dee9ba01ac058"
     }
   ]
 }
