@@ -499,7 +499,7 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
       description: `강조 부사 과다 (${emphasisMatches.length}회) - 과장된 느낌`,
       examples: emphasisMatches.slice(0, 3),
       severity: 'medium',
-      fixSuggestion: '강조 부사 줄이고 구체적 수치나 사실로 표현 (예: "매우 많다" → "10명 중 7명")'
+      fixSuggestion: '강조 부사 줄이고 구체적 상황으로 표현 (예: "매우 많다" → "적지 않은 분들이", "상당히 높다" → "드물지 않게")'
     });
   }
   
