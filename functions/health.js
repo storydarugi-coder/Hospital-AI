@@ -1,8 +1,9 @@
 // GET /health - 헬스체크
 export async function onRequestGet(context) {
   try {
-    const geminiKey = await context.env.API_KEYS.get('gemini');
-    const openaiKey = await context.env.API_KEYS.get('openai');
+    // KV에서 먼저 확인, 없으면 환경변수 사용 (fallback)
+    const geminiKey = await context.env.API_KEYS.get('gemini') || context.env.GEMINI_API_KEY;
+    const openaiKey = await context.env.API_KEYS.get('openai') || context.env.OPENAI_API_KEY;
 
     return new Response(JSON.stringify({
       status: 'ok',
