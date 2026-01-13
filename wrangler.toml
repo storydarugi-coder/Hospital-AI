@@ -1,0 +1,6 @@
+# Cloudflare Pages Functions 설정
+name = "hospital-ai"
+pages_build_output_dir = "dist"
+
+# Functions 설정이 루트의 functions/ 폴더에서 자동으로 로드됨
+# /api/* 경로는 functions/api/ 폴더의 핸들러로 라우팅됨
