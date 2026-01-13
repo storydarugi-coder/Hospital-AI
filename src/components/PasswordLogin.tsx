@@ -9,12 +9,10 @@ const PasswordLogin: React.FC<PasswordLoginProps> = ({ onSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 이미 인증되었는지 확인
+  // 비밀번호 없이 자동 인증
   useEffect(() => {
-    const isAuthenticated = sessionStorage.getItem('hospital_ai_auth');
-    if (isAuthenticated === 'true') {
-      onSuccess();
-    }
+    sessionStorage.setItem('hospital_ai_auth', 'true');
+    onSuccess();
   }, [onSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
