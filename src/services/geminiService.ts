@@ -3375,6 +3375,140 @@ export const recommendSeoTitles = async (topic: string, keywords: string, postTy
   return JSON.parse(response.text || "[]");
 };
 
+/**
+ * 추천된 제목들 중 가장 적합한 제목 선택 (순위 매기기)
+ */
+export const rankSeoTitles = async (
+  titles: SeoTitleItem[],
+  topic: string,
+  keywords: string,
+  postContent?: string
+): Promise<SeoTitleItem[]> => {
+  const ai = getAiClient();
+
+  // 현재 날짜 정보
+  const now = new Date();
+  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const currentYear = koreaTime.getFullYear();
+  const currentMonth = koreaTime.getMonth() + 1;
+  const seasons = ['겨울', '겨울', '봄', '봄', '봄', '여름', '여름', '여름', '가을', '가을', '가을', '겨울'];
+  const currentSeason = seasons[currentMonth - 1];
+
+  const titlesJson = JSON.stringify(titles.map((t, idx) => ({
+    index: idx + 1,
+    title: t.title,
+    originalScore: t.score,
+    type: t.type
+  })), null, 2);
+
+  const prompt = `너는 병원 블로그 제목 평가 전문가다.
+주어진 제목들을 종합적으로 평가하고 최종 순위를 매겨라.
+
+[📅 현재 시점: ${currentYear}년 ${currentMonth}월 (${currentSeason})]
+[※ 주제] ${topic}
+[※ SEO 키워드] ${keywords}
+${postContent ? `[※ 본문 일부]\n${postContent.substring(0, 300)}...\n` : ''}
+
+[평가할 제목 목록]
+${titlesJson}
+
+[평가 기준 (중요도 순)]
+
+1️⃣ **의료광고법 안전성 (50점) - 최우선!**
+   - 진단/판단/치료 유도 표현 없음 (+15점)
+   - 과장/단정 표현 없음 (+15점)
+   - 공포 조장/시간 압박 없음 (+10점)
+   - 병원/의원 홍보 느낌 없음 (+10점)
+
+   ❌ 위반 예시:
+   - "~일까요?" (진단 유도) → -20점
+   - "완치/치료/개선" → -20점
+   - "반드시/골든타임/즉시" → -15점
+   - "확인하세요/검사받으세요" → -15점
+
+2️⃣ **자연스러움 (25점)**
+   - 사람이 직접 지은 것 같음 (+10점)
+   - AI 단어 없음 (정리/분석/가이드/체크리스트/완벽) (+10점)
+   - 대화체/경험담 느낌 (+5점)
+
+   ❌ 감점 요소:
+   - AI 종결어 (흐름/상황/시점/사례/과정/포인트) → -10점
+   - 딱딱한 정보 나열형 → -5점
+
+3️⃣ **주제 연관성 (15점)**
+   - 주제 핵심 내용 포함 (+8점)
+   - SEO 키워드 자연스럽게 포함 (+7점)
+
+4️⃣ **클릭 유도력 (CTR 예측) (10점)**
+   - "이거 내 얘기다" 공감 유도 (+5점)
+   - 구체적 상황 제시 (+3점)
+   - 호기심 자극 (과장 없이) (+2점)
+
+[평가 방법]
+- 각 제목에 대해 4가지 기준별 점수 부여
+- 총점 (100점 만점) 계산
+- 최종 순위 (1~5위) 결정
+- 1위 제목 선정 이유 명확히 설명
+
+[중요]
+🚨 의료광고법 위반 요소가 있으면 무조건 감점!
+- "~일까요?" 있으면 -20점
+- "치료/완치/개선" 있으면 -20점
+- AI 단어 2개 이상이면 -15점
+
+[출력 형식]
+각 제목의 평가 결과를 JSON 배열로 반환:
+- title: 제목 원문
+- finalScore: 최종 점수 (0-100)
+- rank: 순위 (1-5)
+- legalSafety: 의료광고법 안전성 점수 (0-50)
+- naturalness: 자연스러움 점수 (0-25)
+- relevance: 주제 연관성 점수 (0-15)
+- ctr: 클릭 유도력 점수 (0-10)
+- reason: 평가 이유 (1-2문장)
+- recommendation: 1위만 개선 제안 (선택사항)
+
+정렬: finalScore 높은 순 (rank 1이 제일 위)`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            finalScore: { type: Type.NUMBER },
+            rank: { type: Type.NUMBER },
+            legalSafety: { type: Type.NUMBER },
+            naturalness: { type: Type.NUMBER },
+            relevance: { type: Type.NUMBER },
+            ctr: { type: Type.NUMBER },
+            reason: { type: Type.STRING },
+            recommendation: { type: Type.STRING }
+          },
+          required: ["title", "finalScore", "rank", "legalSafety", "naturalness", "relevance", "ctr", "reason"]
+        }
+      }
+    }
+  });
+
+  const rankedTitles = JSON.parse(response.text || "[]");
+
+  // 원래 type 정보 병합
+  return rankedTitles.map((ranked: any) => {
+    const original = titles.find(t => t.title === ranked.title);
+    return {
+      ...ranked,
+      type: original?.type || '정보제공',
+      score: ranked.finalScore // score 필드를 finalScore로 업데이트
+    };
+  });
+};
+
 // 카드뉴스 스타일 참고 이미지 분석 함수 (표지/본문 구분)
 export const analyzeStyleReferenceImage = async (base64Image: string, isCover: boolean = false): Promise<string> => {
   const ai = getAiClient();
