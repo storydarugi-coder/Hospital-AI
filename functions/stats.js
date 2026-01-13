@@ -1,12 +1,6 @@
-// GET /content/list - 콘텐츠 목록 조회
-export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (context) => {
+// GET /stats - 통계 정보
+export const onRequestGet = async (context) => {
   try {
-    const url = new URL(context.request.url);
-    const category = url.searchParams.get('category');
-    const postType = url.searchParams.get('postType');
-    const limit = parseInt(url.searchParams.get('limit') || '50');
-    const offset = parseInt(url.searchParams.get('offset') || '0');
-
     // 콘텐츠 ID 목록 가져오기
     const listKey = 'content:list';
     const existingList = await context.env.CONTENT_KV.get(listKey);
@@ -21,27 +15,24 @@ export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (c
       }
     }
 
-    // 필터링
-    let filteredContents = allContents;
-    if (category) {
-      filteredContents = filteredContents.filter(c => c.category === category);
-    }
-    if (postType) {
-      filteredContents = filteredContents.filter(c => c.postType === postType);
-    }
-
-    // 페이지네이션
-    const total = filteredContents.length;
-    const paginatedContents = filteredContents.slice(offset, offset + limit);
+    // 통계 계산
+    const totalContents = allContents.length;
+    const byCategory = allContents.reduce((acc, c) => {
+      acc[c.category] = (acc[c.category] || 0) + 1;
+      return acc;
+    }, {});
+    const byPostType = allContents.reduce((acc, c) => {
+      acc[c.postType] = (acc[c.postType] || 0) + 1;
+      return acc;
+    }, {});
 
     return new Response(JSON.stringify({
       success: true,
-      contents: paginatedContents,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total
+      stats: {
+        totalContents,
+        byCategory,
+        byPostType,
+        lastUpdated: new Date().toISOString()
       }
     }), {
       status: 200,
@@ -51,7 +42,7 @@ export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (c
       }
     });
   } catch (error) {
-    console.error('❌ 콘텐츠 목록 조회 오류:', error);
+    console.error('❌ 통계 조회 오류:', error);
     return new Response(JSON.stringify({
       success: false,
       error: '서버 오류가 발생했습니다.'
@@ -66,7 +57,7 @@ export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (c
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

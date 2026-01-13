@@ -1,9 +1,9 @@
 // GET /content/:id - 콘텐츠 상세 조회
 // DELETE /content/:id - 콘텐츠 삭제
 
-export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (context) => {
+export const onRequestGet = async (context) => {
   try {
-    const id = context.params.id as string;
+    const id = context.params.id;
 
     if (!id) {
       return new Response(JSON.stringify({
@@ -60,9 +60,9 @@ export const onRequestGet: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (c
   }
 };
 
-export const onRequestDelete: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (context) => {
+export const onRequestDelete = async (context) => {
   try {
-    const id = context.params.id as string;
+    const id = context.params.id;
 
     if (!id) {
       return new Response(JSON.stringify({
@@ -100,7 +100,7 @@ export const onRequestDelete: PagesFunction<{ CONTENT_KV: KVNamespace }> = async
     const existingList = await context.env.CONTENT_KV.get(listKey);
     if (existingList) {
       const contentIds = JSON.parse(existingList);
-      const updatedIds = contentIds.filter((cid: string) => cid !== id);
+      const updatedIds = contentIds.filter((cid) => cid !== id);
       await context.env.CONTENT_KV.put(listKey, JSON.stringify(updatedIds));
     }
 
@@ -132,7 +132,7 @@ export const onRequestDelete: PagesFunction<{ CONTENT_KV: KVNamespace }> = async
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

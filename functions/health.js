@@ -1,5 +1,5 @@
 // GET /health - 헬스체크
-export const onRequestGet: PagesFunction<{ API_KEYS: KVNamespace }> = async (context) => {
+export async function onRequestGet(context) {
   try {
     const geminiKey = await context.env.API_KEYS.get('gemini');
     const openaiKey = await context.env.API_KEYS.get('openai');
@@ -31,10 +31,10 @@ export const onRequestGet: PagesFunction<{ API_KEYS: KVNamespace }> = async (con
       }
     });
   }
-};
+}
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export async function onRequestOptions() {
   return new Response(null, {
     status: 204,
     headers: {
@@ -43,4 +43,4 @@ export const onRequestOptions: PagesFunction = async () => {
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     }
   });
-};
+}

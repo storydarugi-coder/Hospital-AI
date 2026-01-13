@@ -1,5 +1,5 @@
 // DELETE /api-keys/delete - API 키 삭제
-export const onRequestDelete: PagesFunction<{ API_KEYS: KVNamespace }> = async (context) => {
+export const onRequestDelete = async (context) => {
   try {
     const url = new URL(context.request.url);
     const type = url.searchParams.get('type'); // 'gemini' or 'openai'
@@ -72,7 +72,7 @@ export const onRequestDelete: PagesFunction<{ API_KEYS: KVNamespace }> = async (
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

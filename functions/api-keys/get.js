@@ -1,5 +1,5 @@
 // GET /api-keys/get - API 키 조회
-export const onRequestGet: PagesFunction<{ API_KEYS: KVNamespace }> = async (context) => {
+export const onRequestGet = async (context) => {
   try {
     const geminiKey = await context.env.API_KEYS.get('gemini');
     const openaiKey = await context.env.API_KEYS.get('openai');
@@ -32,7 +32,7 @@ export const onRequestGet: PagesFunction<{ API_KEYS: KVNamespace }> = async (con
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

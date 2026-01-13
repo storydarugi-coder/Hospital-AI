@@ -1,5 +1,5 @@
 // POST /content/save - 콘텐츠 저장
-export const onRequestPost: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (context) => {
+export const onRequestPost = async (context) => {
   try {
     const { title, content, category, postType, metadata } = await context.request.json();
 
@@ -71,7 +71,7 @@ export const onRequestPost: PagesFunction<{ CONTENT_KV: KVNamespace }> = async (
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

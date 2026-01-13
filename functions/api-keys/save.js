@@ -1,9 +1,9 @@
 // POST /api-keys/save - API 키 저장
-export const onRequestPost: PagesFunction<{ API_KEYS: KVNamespace }> = async (context) => {
+export const onRequestPost = async (context) => {
   try {
     const { geminiKey, openaiKey } = await context.request.json();
 
-    const saved: Record<string, boolean> = {};
+    const saved = {};
 
     if (geminiKey) {
       await context.env.API_KEYS.put('gemini', geminiKey);
@@ -43,7 +43,7 @@ export const onRequestPost: PagesFunction<{ API_KEYS: KVNamespace }> = async (co
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {

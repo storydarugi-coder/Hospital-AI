@@ -1,5 +1,5 @@
 // POST /auth/verify - 비밀번호 인증
-export const onRequestPost: PagesFunction = async (context) => {
+export const onRequestPost = async (context) => {
   try {
     const { password } = await context.request.json();
 
@@ -56,7 +56,7 @@ export const onRequestPost: PagesFunction = async (context) => {
 };
 
 // OPTIONS - CORS Preflight
-export const onRequestOptions: PagesFunction = async () => {
+export const onRequestOptions = async () => {
   return new Response(null, {
     status: 204,
     headers: {
