@@ -2862,10 +2862,14 @@ const searchNewsForTrends = async (category: string, month: number): Promise<str
     console.log(`📰 뉴스 트렌드 검색 시작: ${category} (${searchKeyword})`);
     
     // Gemini 구글 검색 도구로 최신 뉴스 검색
+    // ⚠️ 참고: Gemini API의 googleSearch 도구는 knowledge cutoff 한계로 최신 데이터를 못 가져올 수 있음
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `최근 1주일간 한국 뉴스에서 "${searchKeyword}" 관련 기사를 검색하고, 
 가장 많이 다뤄지는 건강/의료 이슈 3가지를 요약해주세요.
+
+⚠️ 중요: 응답에 "검색 가능한 데이터가 XXX년입니다" 같은 메타 정보를 포함하지 마세요.
+연도 불일치 설명 없이 바로 이슈만 요약하세요.
 
 [🚨 검색 허용 뉴스 도메인만 참고!]
 ✅ 허용: yna.co.kr(연합뉴스), joongang.co.kr(중앙일보), chosun.com(조선일보), 
