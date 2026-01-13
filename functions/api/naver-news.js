@@ -30,9 +30,19 @@ export async function onRequest(context) {
       });
     }
     
-    // 네이버 API 키
-    const NAVER_CLIENT_ID = 'nvSs0FruHITuuYJd9ulW';
-    const NAVER_CLIENT_SECRET = 'DdcN6hLEF4';
+    // 네이버 API 키 (Cloudflare 환경 변수에서 가져오기)
+    const NAVER_CLIENT_ID = context.env.NAVER_CLIENT_ID;
+    const NAVER_CLIENT_SECRET = context.env.NAVER_CLIENT_SECRET;
+    
+    if (!NAVER_CLIENT_ID || !NAVER_CLIENT_SECRET) {
+      return new Response(JSON.stringify({ 
+        error: 'Naver API credentials not configured',
+        message: '서버에 네이버 API 키가 설정되지 않았습니다.' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     // 네이버 뉴스 검색 API 호출
     const naverUrl = `https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=${display}&sort=date`;
