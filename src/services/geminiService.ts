@@ -6052,15 +6052,7 @@ ${JSON.stringify(searchResults, null, 2)}
       console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
       
       // 🎬 일반 generateContent 사용 (타임아웃 제거 - Gemini가 알아서 처리)
-      safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
-
-      // 📊 진행률 시뮬레이션 (실제 스트리밍 대신 예상 시간 기반)
-      const progressInterval = setInterval(() => {
-        const elapsed = Date.now() - startTime;
-        const estimatedTotal = targetLength * 10; // 글자당 10ms 예상
-        const progress = Math.min(90, (elapsed / estimatedTotal) * 100);
-        safeProgress(`✍️ 작성 중... ${Math.round(progress)}%`);
-      }, 2000);
+      safeProgress('AI가 콘텐츠를 작성하고 있습니다...');
 
       try {
         // 🚀 타임아웃 추가 (180초 = 3분) - 프롬프트가 길어서 생성 시간 필요
@@ -6105,7 +6097,6 @@ ${JSON.stringify(searchResults, null, 2)}
         const geminiResponse = await Promise.race([generationPromise, timeoutPromise]);
         
         const responseText = geminiResponse.text || '';
-        clearInterval(progressInterval); // 진행률 업데이트 중지
 
         const charCountNoSpaces = responseText.replace(/\s/g, '').length;
         console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
@@ -6123,7 +6114,6 @@ ${JSON.stringify(searchResults, null, 2)}
         console.log('✅ Gemini JSON 파싱 성공');
 
       } catch (geminiError: any) {
-        clearInterval(progressInterval); // 에러 시에도 중지
         console.error('❌ Gemini 생성 실패:', geminiError);
         
         // 에러 타입별 처리
