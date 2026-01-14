@@ -5006,15 +5006,15 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
 너는 한국 병·의원 네이버 블로그용 의료 콘텐츠 에디터다.
 
 [🚨 글자 수 절대 규칙 - 최우선 준수!]
-⚠️ 반드시 ${targetLength + 100}자 ~ ${targetLength + 200}자 (공백 제외) 작성!
-- 최소: ${targetLength + 100}자 (이보다 짧으면 탈락!)
-- 권장: ${targetLength + 150}자 
-- 최대: ${targetLength + 200}자
-- 🚨 절대 ${targetLength}자에 멈추지 마! 무조건 100~200자 더 써야 함!
+⚠️ 목표: ${targetLength + 100}자 (공백 제외) 정확히 작성!
+- 최소: ${targetLength + 80}자
+- 목표: ${targetLength + 100}자 (이 정도가 딱 좋음!)
+- 🚨 최대: ${targetLength + 120}자 (절대 이것보다 길게 쓰지 마!)
+- 📏 ${targetLength + 120}자 넘으면 탈락! 반드시 ${targetLength + 100}자 전후로!
 
 [작성 요청]
 - 진료과: ${request.category} / 주제: ${request.topic}
-- 목표: ${targetLength}자 (공백 제외) → 🚨 실제로는 ${targetLength + 100}~${targetLength + 200}자 작성!
+- 목표: ${targetLength}자 (공백 제외) → 🚨 실제로는 약 ${targetLength + 100}자 작성! (최대 ${targetLength + 120}자)
 - 이미지: ${targetImageCount}장 (${imageMarkers})
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
