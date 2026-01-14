@@ -202,13 +202,23 @@ export interface CardNewsSlideScript {
   imageKeyword: string;
 }
 
+export interface MedicalFactCheckReport {
+  totalClaims: number;
+  verifiedClaims: number;
+  unverifiedClaims: number;
+  accuracyScore: number;
+  overallRecommendation: 'safe' | 'warning' | 'danger';
+  suggestions: string[];
+}
+
 export interface GeneratedContent {
   htmlContent: string;
   title: string;
-  imageUrl: string; 
-  fullHtml: string; 
+  imageUrl: string;
+  fullHtml: string;
   tags: string[];
   factCheck?: FactCheckReport;
+  medicalFactCheck?: MedicalFactCheckReport; // 상세 팩트 체킹 결과
   postType: PostType;
   cssTheme?: CssTheme;
   imageStyle?: ImageStyle;

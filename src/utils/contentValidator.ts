@@ -3,10 +3,12 @@
  * - 의료법 위반 키워드 감지
  * - AI 냄새 점수 계산
  * - 출처 신뢰도 검증
+ * - 팩트 체킹 통합
  * - 종합 품질 점수
  */
 
 import { GeneratedContent } from '../types';
+import { MedicalFactCheckReport, checkContentFacts, normalizeSearchResults } from './factChecker';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -20,10 +22,12 @@ export interface QualityReport {
   aiSmellScore: number; // 0-100 (높을수록 자연스러움)
   sourceCredibility: number; // 0-100
   readabilityScore: number; // 0-100
+  factCheckScore: number; // 0-100 (팩트 체킹 정확성 점수)
   overallScore: number; // 0-100
   violations: string[];
   warnings: string[];
   suggestions: string[];
+  medicalFactCheck?: MedicalFactCheckReport; // 상세 팩트 체킹 결과
 }
 
 export class ContentValidator {
@@ -54,15 +58,28 @@ export class ContentValidator {
   ];
 
   /**
-   * 종합 품질 검증
+   * 종합 품질 검증 (팩트 체킹 포함)
    */
-  static validate(content: GeneratedContent): QualityReport {
-    const text = this.extractText(content.html);
-    
+  static validate(
+    content: GeneratedContent | { html: string },
+    searchResults?: { url: string; snippet: string }[]
+  ): QualityReport {
+    const html = 'html' in content ? content.html : content.htmlContent;
+    const text = this.extractText(html);
+
     const medicalLawViolations = this.checkMedicalLawViolations(text);
     const aiSmell = this.calculateAiSmellScore(text);
     const sourceCheck = this.verifySourceCredibility(text);
     const readability = this.calculateReadabilityScore(text);
+
+    // 팩트 체킹 수행 (검색 결과가 있는 경우)
+    let medicalFactCheck: MedicalFactCheckReport | undefined;
+    let factCheckScore = 100; // 기본값
+
+    if (searchResults && searchResults.length > 0) {
+      medicalFactCheck = checkContentFacts(html, searchResults);
+      factCheckScore = medicalFactCheck.accuracyScore;
+    }
 
     const violations: string[] = [];
     const warnings: string[] = [];
@@ -83,13 +100,25 @@ export class ContentValidator {
       violations.push('🚨 출처/공공기관명 사용 금지 (의료광고법): ' + sourceCheck.sources.join(', '));
     }
 
+    // 팩트 체킹 경고
+    if (medicalFactCheck) {
+      if (medicalFactCheck.overallRecommendation === 'danger') {
+        violations.push(`🚨 정보 정확성 문제 감지 (${medicalFactCheck.unverifiedClaims}개 주장 검증 실패)`);
+      } else if (medicalFactCheck.overallRecommendation === 'warning') {
+        warnings.push(`⚠️ 일부 정보 검증 필요 (정확성 점수: ${factCheckScore}점)`);
+      }
+
+      // 팩트 체킹 제안사항 추가
+      medicalFactCheck.suggestions.forEach(s => suggestions.push(`📊 ${s}`));
+    }
+
     // 가독성 경고
     if (readability < 60) {
       warnings.push(`📖 가독성이 낮습니다 (${readability}점)`);
       suggestions.push('문장을 더 짧고 간결하게 작성해보세요');
     }
 
-    // 종합 점수 계산 (출처 체크 제거 - 의료광고법 준수)
+    // 종합 점수 계산 (팩트 체킹 포함)
     const medicalLawScore = 100 - (
       medicalLawViolations.critical.length * 30 +
       medicalLawViolations.high.length * 15 +
@@ -99,9 +128,11 @@ export class ContentValidator {
     // 출처 위반 시 점수 차감
     const sourceDeduction = sourceCheck.hasForbiddenSource ? 40 : 0;
 
+    // 팩트 체킹 포함한 종합 점수 (가중치 조정)
     const overallScore = Math.max(0, Math.round(
-      medicalLawScore * 0.5 +
-      aiSmell.score * 0.4 +
+      medicalLawScore * 0.4 +
+      aiSmell.score * 0.3 +
+      factCheckScore * 0.2 +
       readability * 0.1 -
       sourceDeduction
     ));
@@ -111,10 +142,12 @@ export class ContentValidator {
       aiSmellScore: aiSmell.score,
       sourceCredibility: sourceCheck.score,
       readabilityScore: readability,
+      factCheckScore,
       overallScore,
       violations,
       warnings,
       suggestions,
+      medicalFactCheck,
     };
   }
 
