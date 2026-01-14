@@ -41,12 +41,14 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '혁신적', severity: 'high', replacement: ['새로운', '발전된'], reason: '과장 광고 금지', category: 'exaggeration' },
   { word: '타 병원', severity: 'high', replacement: ['(삭제)', '(삭제)'], reason: '비교 광고 금지', category: 'comparison' },
   { word: '다른 병원', severity: 'high', replacement: ['(삭제)', '(삭제)'], reason: '비교 광고 금지', category: 'comparison' },
-  { word: '어디보다', severity: 'high', replacement: ['(삭제)', '전문적으로'], reason: '비교 광고 금지', category: 'comparison' },
+  { word: '어디보다', severity: 'high', replacement: ['(삭제)', '의료적으로'], reason: '비교 광고 금지', category: 'comparison' },
   { word: '전문가', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
   { word: '전문의', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
   { word: '명의', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
   { word: '베테랑', severity: 'high', replacement: ['경험 있는', '의료진'], reason: '자격 강조 금지', category: 'exaggeration' },
   { word: '숙련된', severity: 'high', replacement: ['경험 있는', '의료진'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '전문적', severity: 'high', replacement: ['의료적인', '의학적인'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '전문', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
 
   // ===== Medium: 주의 필요 =====
   { word: '골든타임', severity: 'medium', replacement: ['적절한 시기', '시기를 놓치지 않고'], reason: '공포 조장 금지', category: 'urgency' },
