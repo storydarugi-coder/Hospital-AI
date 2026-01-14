@@ -192,6 +192,13 @@ export function detectAiSmell(text: string): {
     { pattern: /정리해보려\s*합니다/g, name: '~정리해보려 합니다 (메타 설명)' },
     { pattern: /살펴보[겠습니다|자]/g, name: '~살펴보겠습니다 (메타 설명)' },
     { pattern: /전문가|전문의|명의|베테랑|숙련된|전문적|(?<![가-힣])전문(?![가-힣의])/g, name: '자격 강조 표현 금지 (전문가/전문의/명의/전문/전문적)' },
+    // 🚨 의료광고법 위반 표현 추가 (절대 금지!)
+    { pattern: /의심/g, name: '의심 (의료광고법 위반 - 절대 금지!)', maxAllowed: 0 },
+    { pattern: /판단/g, name: '판단 (의료광고법 위반 - 절대 금지!)', maxAllowed: 0 },
+    { pattern: /가능성/g, name: '가능성 (의료광고법 위반 - 절대 금지!)', maxAllowed: 0 },
+    { pattern: /환자(?!.*분)/g, name: '환자 (독자 중심 표현 사용 권장)', maxAllowed: 0 },
+    { pattern: /내원/g, name: '내원 (독자 중심 표현 사용 권장)', maxAllowed: 0 },
+    { pattern: /\([가-힣]+\d{4}\)/g, name: '기관명(연도) 형식 (절대 금지!)', maxAllowed: 0 },
   ];
 
   const detected: string[] = [];
