@@ -206,7 +206,7 @@ export function detectAiSmell(text: string): {
 
   for (const item of aiPatterns) {
     const { pattern, name } = item;
-    const maxAllowed = 'maxAllowed' in item ? item.maxAllowed : 0;
+    const maxAllowed = item.maxAllowed ?? 0;
     const matches = text.match(pattern);
     if (matches && matches.length > maxAllowed) {
       detected.push(`${name} (${matches.length}회, 허용: ${maxAllowed}회)`);

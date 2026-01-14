@@ -71,8 +71,10 @@ class PromptCache {
     if (this.cache.size >= this.MAX_SIZE) {
       // LRU: 가장 오래된 항목 제거
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
-      console.log(`🗑️ [Cache] Evicted oldest: ${firstKey}`);
+      if (firstKey) {
+        this.cache.delete(firstKey);
+        console.log(`🗑️ [Cache] Evicted oldest: ${firstKey}`);
+      }
     }
 
     const entry: CacheEntry<T> = {

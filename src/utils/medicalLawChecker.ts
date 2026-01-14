@@ -603,7 +603,7 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   }
 
   // 14. 본문 내 이모지 과다 사용 감지
-  const emojiInContent = plainText.match(/[😀-🙏🌀-🗿]/g) || [];
+  const emojiInContent = plainText.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || [];
   if (emojiInContent.length > 5) {
     deductions += emojiInContent.length * 3;
     issues.push({

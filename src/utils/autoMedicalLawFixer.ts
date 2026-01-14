@@ -3,7 +3,16 @@
  * AI가 생성한 글을 자동으로 의료광고법에 맞게 수정
  */
 
-import { PROHIBITED_PATTERNS, TRUSTED_SOURCES } from './advancedFactChecker';
+// 의료광고법 금지 패턴
+const PROHIBITED_PATTERNS = {
+  // 기존 코드에서 사용되는 패턴 정의
+  suspicion: /의심/g,
+  judgment: /판단/g,
+  possibility: /가능성/g,
+};
+
+// 신뢰할 수 있는 출처 (사용하지 않으면 빈 배열)
+const TRUSTED_SOURCES: string[] = [];
 
 export interface FixResult {
   originalText: string;

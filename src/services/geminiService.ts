@@ -34,6 +34,19 @@ const getAiProviderSettings = (): { textGeneration: 'gemini', imageGeneration: '
   return { textGeneration: 'gemini', imageGeneration: 'gemini' };
 };
 
+// OpenAI API 키 가져오기
+const getOpenAIKey = (): string | null => {
+  // 1순위: 환경변수
+  let apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  
+  // 2순위: localStorage
+  if (!apiKey) {
+    apiKey = localStorage.getItem('OPENAI_API_KEY');
+  }
+  
+  return apiKey || null;
+};
+
 
 
 
@@ -1334,8 +1347,7 @@ const callOpenAI = async (prompt: string, systemPrompt?: string): Promise<string
       contents: fullPrompt,
       config: {
         temperature: 0.7,
-        responseMimeType: 'application/json',
-        thinkingMode: true // Think 모드 활성화 (글쓰기 품질 향상)
+        responseMimeType: 'application/json'
       }
     });
     
@@ -1989,10 +2001,11 @@ export const STYLE_NAMES = {
 };
 
 // 짧은 스타일 키워드 (프롬프트용) - 구체적으로 개선!
-export const STYLE_KEYWORDS = {
+export const STYLE_KEYWORDS: Record<ImageStyle, string> = {
   illustration: '3D 렌더 일러스트, Blender 스타일, 부드러운 조명, 파스텔 색상, 친근한 캐릭터, 깔끔한 배경',
   medical: '의학 3D 일러스트, 해부학적 구조, 장기 단면도, 임상 조명, 교육용 다이어그램, 전문적 분위기',
-  photo: '실사 사진, DSLR 촬영, 자연스러운 조명, 얕은 피사계심도, 전문 병원 환경, 사실적 질감'
+  photo: '실사 사진, DSLR 촬영, 자연스러운 조명, 얕은 피사계심도, 전문 병원 환경, 사실적 질감',
+  custom: '사용자 지정 스타일'
 };
 
 // =============================================
