@@ -5852,6 +5852,7 @@ JSON 형식으로 응답해주세요.`;
     // 🚀 타임아웃 추가 (30초) - AI 냄새 분석이 무한 대기하는 것 방지
     const ANALYSIS_TIMEOUT = 30000;
     
+    // 📊 스키마 단순화 - 중첩 객체 제거하여 타임아웃 방지
     const analysisPromise = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
@@ -5861,67 +5862,10 @@ JSON 형식으로 응답해주세요.`;
           type: Type.OBJECT,
           properties: {
             total_score: { type: Type.INTEGER },
-            sentence_rhythm: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            judgment_avoidance: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            lack_of_realism: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            template_structure: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            fake_empathy: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            cta_failure: {
-              type: Type.OBJECT,
-              properties: {
-                score: { type: Type.INTEGER },
-                issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fix_suggestions: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["score", "issues", "fix_suggestions"]
-            },
-            priority_fixes: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "우선 수정해야 할 항목 (점수 높은 순)"
-            }
+            issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            priority_fixes: { type: Type.ARRAY, items: { type: Type.STRING } }
           },
-          required: ["total_score", "sentence_rhythm", "judgment_avoidance", "lack_of_realism", "template_structure", "fake_empathy", "cta_failure", "priority_fixes"]
+          required: ["total_score", "issues", "priority_fixes"]
         }
       }
     });
@@ -5934,29 +5878,30 @@ JSON 형식으로 응답해주세요.`;
     
     const result = JSON.parse(response.text || "{}");
     
-    // 총점 재계산
-    const calculatedTotal = 
-      (result.sentence_rhythm?.score || 0) +
-      (result.judgment_avoidance?.score || 0) +
-      (result.lack_of_realism?.score || 0) +
-      (result.template_structure?.score || 0) +
-      (result.fake_empathy?.score || 0) +
-      (result.cta_failure?.score || 0);
+    // 단순화된 스키마에서 결과 변환 (호환성 유지)
+    const convertedResult = {
+      total_score: result.total_score || 0,
+      sentence_rhythm: { score: 0, issues: result.issues || [], fix_suggestions: [] },
+      judgment_avoidance: { score: 0, issues: [], fix_suggestions: [] },
+      lack_of_realism: { score: 0, issues: [], fix_suggestions: [] },
+      template_structure: { score: 0, issues: [], fix_suggestions: [] },
+      fake_empathy: { score: 0, issues: [], fix_suggestions: [] },
+      cta_failure: { score: 0, issues: [], fix_suggestions: [] },
+      priority_fixes: result.priority_fixes || []
+    };
     
-    result.total_score = calculatedTotal;
-    
-    console.log('🤖 AI 냄새 분석 완료:', result.total_score, '점');
-    return result;
+    console.log('🤖 AI 냄새 분석 완료:', convertedResult.total_score, '점');
+    return convertedResult;
   } catch (error) {
     console.error('AI 냄새 분석 실패:', error);
     return {
       total_score: 0,
       sentence_rhythm: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
-      judgment_avoidance: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
-      lack_of_realism: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
-      template_structure: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
-      fake_empathy: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
-      cta_failure: { score: 0, issues: ['분석 실패'], fix_suggestions: [] },
+      judgment_avoidance: { score: 0, issues: [], fix_suggestions: [] },
+      lack_of_realism: { score: 0, issues: [], fix_suggestions: [] },
+      template_structure: { score: 0, issues: [], fix_suggestions: [] },
+      fake_empathy: { score: 0, issues: [], fix_suggestions: [] },
+      cta_failure: { score: 0, issues: [], fix_suggestions: [] },
       priority_fixes: ['AI 냄새 분석 중 오류가 발생했습니다.']
     };
   }
