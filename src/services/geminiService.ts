@@ -3743,9 +3743,14 @@ ${JSON.stringify(searchResults, null, 2)}
     
     try {
       console.log('🔄 Gemini API 호출 시작...');
-      console.log('📦 contextData 길이:', contextData?.length || 0);
+      console.log('📦 systemPrompt 길이:', systemPrompt?.length || 0);
       console.log('📦 blogPrompt 길이:', blogPrompt?.length || 0);
-      console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
+      console.log('📦 cardNewsPrompt 길이:', cardNewsPrompt?.length || 0);
+      console.log('📦 isCardNews:', isCardNews);
+      const finalPrompt = isCardNews ? cardNewsPrompt : blogPrompt;
+      console.log('📦 최종 프롬프트 길이:', finalPrompt?.length || 0);
+      console.log('📦 전체 프롬프트 (시스템+유저) 길이:', (systemPrompt?.length || 0) + (finalPrompt?.length || 0));
+      console.log('📦 프롬프트 미리보기 (처음 1000자):', `${systemPrompt}\n\n${finalPrompt}`.substring(0, 1000));
       
       // 🎬 일반 generateContent 사용 (타임아웃 제거 - Gemini가 알아서 처리)
       safeProgress('AI가 콘텐츠를 작성하고 있습니다...');
@@ -3811,12 +3816,24 @@ ${JSON.stringify(searchResults, null, 2)}
 
       } catch (geminiError: any) {
         console.error('❌ Gemini 생성 실패:', geminiError);
+        console.error('❌ 에러 상세:', JSON.stringify({
+          name: geminiError?.name,
+          message: geminiError?.message,
+          code: geminiError?.code,
+          status: geminiError?.status,
+          stack: geminiError?.stack?.substring(0, 500)
+        }, null, 2));
         
         // 에러 타입별 처리
-        if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
+        if (geminiError.message?.includes('타임아웃') || geminiError.message?.includes('timeout')) {
+          // 실제 타임아웃 - 더 구체적인 메시지
+          throw new Error(`⏰ 글쓰기 타임아웃 (3분) - 콘솔에서 상세 에러 확인 필요. 원인: ${geminiError.message}`);
+        } else if (geminiError.message?.includes('quota') || geminiError.message?.includes('limit') || geminiError.message?.includes('429')) {
           throw new Error('🚫 API 사용량 한계에 도달했습니다. 잠시 후 다시 시도해주세요.');
         } else if (geminiError.message?.includes('JSON')) {
           throw new Error('📋 AI 응답 형식 오류가 발생했습니다. 다시 시도해주세요.');
+        } else if (geminiError.message?.includes('model') || geminiError.message?.includes('not found') || geminiError.message?.includes('404')) {
+          throw new Error(`🤖 모델 오류: ${geminiError.message}`);
         } else {
           throw new Error(`❌ Gemini 오류: ${geminiError.message || '알 수 없는 오류'}`);
         }
