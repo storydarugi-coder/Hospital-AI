@@ -3765,37 +3765,23 @@ ${JSON.stringify(searchResults, null, 2)}
         
         console.log('🚀 Gemini generateContent 호출 직전...');
         console.log('🚀 모델: gemini-3-pro-preview');
-        console.log('🚀 tools: 없음 (검색 결과는 이미 프롬프트에 포함됨)');
+        console.log('🚀 tools: googleSearch 사용');
         
         const generationPromise = ai.models.generateContent({
           model: "gemini-3-pro-preview",
           contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
           config: {
-            // 🔥 Google Search tool 제거! (검색은 이미 Step 1에서 완료됨)
-            // tools: [{ googleSearch: {} }],
+            tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
-            // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
+            // 📊 최소화된 응답 스키마 (복잡도 대폭 감소 → 생성 속도 향상)
             responseSchema: {
               type: Type.OBJECT,
               properties: {
                 title: { type: Type.STRING },
                 content: { type: Type.STRING },
-                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } },
-                fact_check: {
-                  type: Type.OBJECT,
-                  properties: {
-                    fact_score: { type: Type.INTEGER },
-                    safety_score: { type: Type.INTEGER },
-                    conversion_score: { type: Type.INTEGER },
-                    ai_smell_score: { type: Type.INTEGER },
-                    verified_facts_count: { type: Type.INTEGER },
-                    issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    recommendations: { type: Type.ARRAY, items: { type: Type.STRING } }
-                  },
-                  required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score"]
-                }
+                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } }
               },
-              required: ["title", "content", "imagePrompts", "fact_check"]
+              required: ["title", "content"]
             }
           }
         });
