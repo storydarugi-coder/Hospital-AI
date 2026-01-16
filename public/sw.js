@@ -6,7 +6,7 @@
  */
 
 // 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
-const CACHE_VERSION = 'v3-' + '20260116';
+const CACHE_VERSION = 'v4-' + '20260116b';
 const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
@@ -46,8 +46,10 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
   
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    (async () => {
+      // 모든 이전 캐시 삭제
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
             console.log('[SW] Deleting old cache:', cacheName);
@@ -55,11 +57,19 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+      
+      // 즉시 제어권 획득
+      await self.clients.claim();
+      
+      // 모든 클라이언트(탭)에 새로고침 메시지 전송
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => {
+        client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+      });
+      
+      console.log('[SW] Activated and notified clients');
+    })()
   );
-  
-  // 즉시 제어권 획득
-  return self.clients.claim();
 });
 
 // Fetch 이벤트 처리 (캐시 전략)
