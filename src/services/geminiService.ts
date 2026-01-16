@@ -3062,10 +3062,14 @@ ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
 ⚠️ 각 소제목(<h3>) 다음에 반드시 <p> 태그 2~3개!
 
-[이미지] 텍스트/로고 금지, 스타일: ${imageStyleGuide}
+[이미지 프롬프트 규칙]
+🚨 imagePrompts 배열의 프롬프트는 반드시 **한국어**로 작성!
+- 스타일: ${imageStyleGuide}
+- 텍스트/로고/워터마크 금지
+- 예시: "따뜻한 차 한 잔이 놓인 테이블, 부드러운 조명, 아늑한 분위기, 실사 사진, DSLR 촬영"
 
 [JSON]
-{"title":"제목","content":"HTML",${targetImageCount > 0 ? '"imagePrompts":["프롬프트"],' : ''}"fact_check":{"fact_score":85,"safety_score":95,"conversion_score":80,"ai_smell_score":10,"verified_facts_count":5,"issues":[],"recommendations":[]}}
+{"title":"제목","content":"HTML",${targetImageCount > 0 ? '"imagePrompts":["한국어 프롬프트"],' : ''}"fact_check":{"fact_score":85,"safety_score":95,"conversion_score":80,"ai_smell_score":10,"verified_facts_count":5,"issues":[],"recommendations":[]}}
   `;
 
   const cardNewsPrompt = `
