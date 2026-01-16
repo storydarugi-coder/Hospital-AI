@@ -6,7 +6,7 @@
  */
 
 // 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
-const CACHE_VERSION = 'v4-' + '20260116b';
+const CACHE_VERSION = 'v5-' + '20260116c';
 const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
@@ -76,6 +76,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  
+  // GET 요청만 처리 (POST, PUT 등은 캐시 불가)
+  if (request.method !== 'GET') {
+    return;
+  }
   
   // 같은 origin만 처리
   if (url.origin !== location.origin) {
