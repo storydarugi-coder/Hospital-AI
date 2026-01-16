@@ -4312,8 +4312,8 @@ ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
     }
     
     // Gemini 전용 프롬프트 사용 - v5.3 프롬프트 적용
-    // GPT52_SYSTEM_PROMPT: 의료광고법 + 금지어 사전 + 종결어미 + 키워드 + SEO + 출처검증 + 자가체크
-    const geminiSystemPrompt = GPT52_SYSTEM_PROMPT;
+    // SYSTEM_PROMPT: 의료광고법 + 금지어 사전 + 종결어미 + 키워드 + SEO + 출처검증 + 자가체크
+    const geminiSystemPrompt = SYSTEM_PROMPT;
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
     // crossCheckGuide 제거 (GPT 없으므로 불필요)
