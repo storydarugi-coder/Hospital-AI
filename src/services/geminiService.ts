@@ -6627,8 +6627,19 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     body = fallbackSlides.join('\n');
   }
   
+  // 🖼️ 이미지 삽입 전 디버그
+  console.log('🖼️ 이미지 삽입 시작:', {
+    '생성된 이미지 수': images.length,
+    'body에 [IMG_1] 포함?': body.includes('[IMG_1]'),
+    'body에 [IMG_2] 포함?': body.includes('[IMG_2]'),
+    'body 길이': body.length
+  });
+  
   images.forEach(img => {
     const pattern = new RegExp(`\\[IMG_${img.index}\\]`, "gi");
+    const hasMarker = body.match(pattern);
+    console.log(`🖼️ [IMG_${img.index}] 마커 존재?`, !!hasMarker, '이미지 데이터 존재?', !!img.data);
+    
     if (img.data) {
     let imgHtml = "";
     if (request.postType === 'card_news') {
