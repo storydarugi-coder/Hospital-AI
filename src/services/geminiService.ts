@@ -4885,6 +4885,50 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     body = fallbackSlides.join('\n');
   }
   
+  // 🖼️ 블로그 포스트에 [IMG_N] 마커가 없으면 자동 삽입
+  if (request.postType !== 'card_news' && images.length > 0 && !body.includes('[IMG_')) {
+    console.log('⚠️ 블로그에 [IMG_N] 마커가 없음! 자동 삽입 중...');
+    
+    // h3 소제목 다음에 이미지 마커 삽입
+    const h3Tags = body.match(/<h3[^>]*>.*?<\/h3>/gi) || [];
+    let imgIndex = 1;
+    
+    if (h3Tags.length > 0) {
+      // 각 h3 뒤의 첫 번째 </p> 다음에 이미지 마커 삽입
+      let h3Count = 0;
+      body = body.replace(
+        /(<h3[^>]*>.*?<\/h3>[\s\S]*?<\/p>)/gi,
+        (match) => {
+          h3Count++;
+          if (imgIndex <= images.length) {
+            const marker = `\n<div class="content-image-wrapper">[IMG_${imgIndex}]</div>\n`;
+            imgIndex++;
+            return match + marker;
+          }
+          return match;
+        }
+      );
+      console.log(`✅ 블로그: [IMG_1] ~ [IMG_${imgIndex - 1}] 마커 자동 삽입 완료`);
+    } else {
+      // h3가 없으면 첫 번째 p 태그들 사이에 삽입
+      const pTags = body.match(/<\/p>/gi) || [];
+      if (pTags.length >= 2) {
+        let pCount = 0;
+        body = body.replace(/<\/p>/gi, (match) => {
+          pCount++;
+          // 2번째, 4번째, 6번째 </p> 뒤에 이미지 삽입
+          if (pCount % 2 === 0 && imgIndex <= images.length) {
+            const marker = `\n<div class="content-image-wrapper">[IMG_${imgIndex}]</div>\n`;
+            imgIndex++;
+            return match + marker;
+          }
+          return match;
+        });
+        console.log(`✅ 블로그 (h3 없음): [IMG_1] ~ [IMG_${imgIndex - 1}] 마커 자동 삽입 완료`);
+      }
+    }
+  }
+  
   // 🖼️ 카드뉴스인데 [IMG_N] 마커가 없으면 자동 삽입
   if (request.postType === 'card_news' && images.length > 0) {
     // card-slide 안에 card-img-container가 없거나 [IMG_N] 마커가 없으면 추가
