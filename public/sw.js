@@ -6,7 +6,7 @@
  */
 
 // 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
-const CACHE_VERSION = 'v5-' + '20260116c';
+const CACHE_VERSION = 'v6-' + '20260116d';
 const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
@@ -87,6 +87,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
+  // Cloudflare 내부 경로 무시
+  if (url.pathname.startsWith('/cdn-cgi/')) {
+    return;
+  }
+  
   // API 요청은 네트워크 우선
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request));
@@ -103,6 +108,11 @@ self.addEventListener('fetch', (event) => {
  * - 해시가 포함된 빌드 파일은 캐시하지 않음
  */
 async function cacheFirst(request) {
+  // 안전장치: GET 요청만 캐시 가능
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
   const url = new URL(request.url);
   
   // 해시가 포함된 빌드 파일은 항상 네트워크에서 가져옴 (캐시 X)
