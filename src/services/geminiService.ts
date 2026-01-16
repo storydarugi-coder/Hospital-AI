@@ -6186,7 +6186,7 @@ ${JSON.stringify(searchResults, null, 2)}
                   required: ["fact_score", "safety_score", "conversion_score", "ai_smell_score"]
                 }
               },
-              required: ["title", "content", "fact_check"]
+              required: ["title", "content", "imagePrompts", "fact_check"]
             }
           }
         });
