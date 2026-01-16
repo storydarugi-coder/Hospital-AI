@@ -6,20 +6,22 @@
  */
 
 // 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
-const CACHE_VERSION = 'v2-' + '20260113';
+const CACHE_VERSION = 'v3-' + '20260116';
 const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
-// 캐시할 정적 자원 (해시가 바뀌는 JS/CSS는 제외!)
+// 캐시할 정적 자원 (해시가 바뀌는 JS/CSS와 index.html 제외!)
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
 ];
 
-// 캐시하지 않을 패턴 (해시가 포함된 빌드 파일)
+// 캐시하지 않을 패턴 (해시가 포함된 빌드 파일 + index.html)
 const NO_CACHE_PATTERNS = [
   /\/assets\/.*\.js$/,
   /\/assets\/.*\.css$/,
+  /^\/$/, // index.html (루트)
+  /\/index\.html$/,
+  /\/#/, // hash routes
 ];
 
 // Service Worker 설치
