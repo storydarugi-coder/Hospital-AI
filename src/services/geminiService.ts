@@ -3,7 +3,14 @@ import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, Seo
 import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
 // 🚀 콘텐츠 최적화 시스템
 import { optimizePrompt, estimateTokens } from "../utils/promptOptimizer";
-import { generateHumanWritingPrompt, detectAiSmell } from "../utils/humanWritingPrompts";
+import { 
+  generateHumanWritingPrompt, 
+  detectAiSmell, 
+  HUMAN_WRITING_RULES, 
+  MEDICAL_LAW_HUMAN_PROMPT, 
+  FEW_SHOT_EXAMPLES,
+  CATEGORY_SPECIFIC_PROMPTS 
+} from "../utils/humanWritingPrompts";
 import { autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
 import { contentCache } from "../utils/contentCache";
 
@@ -2364,12 +2371,21 @@ export const generateCardNewsScript = async (
   const writingStyle = request.writingStyle || 'empathy';
   const writingStylePrompt = getWritingStylePrompts()[writingStyle];
   
-  // 카드뉴스 원고용 간결한 프롬프트 (SYSTEM_PROMPT는 시스템 프롬프트로 별도 전달됨)
+  // 카드뉴스 원고용 프롬프트 - humanWritingPrompts 연결
   
   onProgress('📝 [1단계] 원고 기획 중...');
   
   const prompt = `
 ${writingStylePrompt}
+
+${HUMAN_WRITING_RULES}
+
+${MEDICAL_LAW_HUMAN_PROMPT}
+
+[진료과별 맞춤 가이드]
+${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  ? CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  : ''}
 
 [중요]
 🎯 카드뉴스 원고 작성 미션
@@ -2996,7 +3012,7 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
   
   // 의료광고법 프롬프트 - SYSTEM_PROMPT 사용 (중복 제거)
   
-  // 🚀 v8.4 의료광고법 준수 + 간결화 (API 타임아웃 방지)
+  // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts 연결
   const blogPrompt = `
 한국 병·의원 네이버 블로그용 의료 콘텐츠를 작성하세요.
 
@@ -3004,12 +3020,17 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
 [작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
-[절대 금지 - 시스템 프롬프트 규칙 준수]
-※ 상세 금지어/대체어는 시스템 프롬프트 참조
-❌ 숫자/수치 완전 금지 (나이, 기간, 비율, 횟수 등)
-❌ 독자에게 말 거는 표현 금지 (~있으신가요, ~해보세요 등)
-❌ 행동 권유 표현 금지 (확인해보세요, 살펴보세요 등)
-❌ 의료용어 금지 (의료진, 전문의, 진단, 검사 등)
+${HUMAN_WRITING_RULES}
+
+${MEDICAL_LAW_HUMAN_PROMPT}
+
+[진료과별 맞춤 가이드]
+${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  ? CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  : ''}
+
+[참고 예시 - 좋은 글 vs 나쁜 글]
+${FEW_SHOT_EXAMPLES}
 
 [글쓰기 원칙]
 1. 톤: 중립·담담·친근 (병원 홍보 ❌)
@@ -5278,6 +5299,13 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
       const modifyPrompt = `
 ${SYSTEM_PROMPT}
 
+${HUMAN_WRITING_RULES}
+
+${MEDICAL_LAW_HUMAN_PROMPT}
+
+[참고 예시 - 좋은 글 vs 나쁜 글]
+${FEW_SHOT_EXAMPLES}
+
 [현재 원고]
 ${sanitizedHtml}
 
@@ -5286,9 +5314,11 @@ ${userInstruction}
 
 [수정 규칙]
 1. 의료광고법 절대 준수 (단정·유도·권유 표현 금지)
-2. AI 냄새 제거 ("~인지, ~인지" 나열, "~이란?" 정의형, "알아보겠습니다" 금지)
+2. AI 냄새 제거 - 위 규칙 철저히 적용!
+   - 번역투 표현 완전 제거 (요소/요인→이유, 측면에서→쪽에서, 발생하다→생기다)
+   - "~에 대해 알아보겠습니다", "다양한", "이처럼" 등 금지
 3. 소제목당 문단 2~3개 유지
-4. 자연스러운 경험담 + 감각 묘사
+4. 자연스러운 경험담 + 감각 묘사 (찌릿한, 묵직한, 뻣뻣한 등)
 5. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지
 
 [이미지 재생성]
