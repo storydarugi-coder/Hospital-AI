@@ -3760,8 +3760,12 @@ ${JSON.stringify(searchResults, null, 2)}
       safeProgress('AI가 콘텐츠를 작성하고 있습니다...');
 
       try {
-        // 🚀 타임아웃 추가 (180초 = 3분) - 프롬프트가 길어서 생성 시간 필요
-        const GENERATION_TIMEOUT = 180000;
+        // 🚀 타임아웃 추가 (300초 = 5분) - Gemini API 응답 대기
+        const GENERATION_TIMEOUT = 300000;
+        
+        console.log('🚀 Gemini generateContent 호출 직전...');
+        console.log('🚀 모델: gemini-3-pro-preview');
+        console.log('🚀 tools: googleSearch 사용');
         
         const generationPromise = ai.models.generateContent({
           model: "gemini-3-pro-preview",
@@ -3795,8 +3799,10 @@ ${JSON.stringify(searchResults, null, 2)}
           }
         });
         
+        console.log('🚀 generateContent Promise 생성 완료, 응답 대기 중...');
+        
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('⏰ 글쓰기 타임아웃 (3분) - 프롬프트가 너무 깁니다')), GENERATION_TIMEOUT);
+          setTimeout(() => reject(new Error('⏰ 글쓰기 타임아웃 (5분) - API 응답 없음')), GENERATION_TIMEOUT);
         });
         
         const geminiResponse = await Promise.race([generationPromise, timeoutPromise]);
