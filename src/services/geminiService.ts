@@ -3765,13 +3765,14 @@ ${JSON.stringify(searchResults, null, 2)}
         
         console.log('🚀 Gemini generateContent 호출 직전...');
         console.log('🚀 모델: gemini-3-pro-preview');
-        console.log('🚀 tools: googleSearch 사용');
+        console.log('🚀 tools: 없음 (검색 결과는 이미 프롬프트에 포함됨)');
         
         const generationPromise = ai.models.generateContent({
           model: "gemini-3-pro-preview",
           contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
           config: {
-            tools: [{ googleSearch: {} }],
+            // 🔥 Google Search tool 제거! (검색은 이미 Step 1에서 완료됨)
+            // tools: [{ googleSearch: {} }],
             responseMimeType: "application/json",
             // 📊 간소화된 응답 스키마 (복잡도 감소 → 생성 속도 향상)
             responseSchema: {
