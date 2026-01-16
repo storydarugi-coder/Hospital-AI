@@ -6639,6 +6639,42 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     body = fallbackSlides.join('\n');
   }
   
+  // 🖼️ 카드뉴스인데 [IMG_N] 마커가 없으면 자동 삽입
+  if (request.postType === 'card_news' && images.length > 0) {
+    // card-slide 안에 card-img-container가 없거나 [IMG_N] 마커가 없으면 추가
+    const cardSlides = body.match(/<div[^>]*class="[^"]*card-slide[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>/gi) || [];
+    
+    if (cardSlides.length > 0 && !body.includes('[IMG_')) {
+      console.log('⚠️ 카드뉴스에 [IMG_N] 마커가 없음! 자동 삽입 중...');
+      
+      // 각 card-slide에 이미지 마커 삽입
+      let imgIndex = 1;
+      body = body.replace(
+        /(<div[^>]*class="[^"]*card-slide[^"]*"[^>]*>)([\s\S]*?)(<\/div>\s*<\/div>)/gi,
+        (match, openTag, content, closeTag) => {
+          // 이미 img 태그나 마커가 있으면 스킵
+          if (content.includes('[IMG_') || content.includes('<img')) {
+            return match;
+          }
+          // card-desc 또는 card-main-title 뒤에 이미지 컨테이너 삽입
+          const markerHtml = `<div class="card-img-container" style="width: 100%; margin: 16px 0; flex: 1; display: flex; align-items: center; justify-content: center;">[IMG_${imgIndex}]</div>`;
+          imgIndex++;
+          
+          // card-desc 앞에 삽입 (설명 위에 이미지)
+          if (content.includes('card-desc')) {
+            return openTag + content.replace(
+              /(<p[^>]*class="[^"]*card-desc[^"]*")/i,
+              markerHtml + '$1'
+            ) + closeTag;
+          }
+          // card-desc가 없으면 닫기 태그 앞에 삽입
+          return openTag + content + markerHtml + closeTag;
+        }
+      );
+      console.log(`✅ [IMG_1] ~ [IMG_${imgIndex - 1}] 마커 자동 삽입 완료`);
+    }
+  }
+  
   // 🖼️ 이미지 삽입 전 디버그
   console.log('🖼️ 이미지 삽입 시작:', {
     '생성된 이미지 수': images.length,
