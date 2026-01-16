@@ -7124,9 +7124,32 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
     );
     
     try {
+      const modifyPrompt = `
+${MEDICAL_SAFETY_SYSTEM_PROMPT}
+
+${getAIFeedbackPrompt()}
+
+[현재 원고]
+${sanitizedHtml}
+
+[사용자 수정 요청]
+${userInstruction}
+
+[수정 규칙]
+1. 의료광고법 절대 준수 (단정·유도·권유 표현 금지)
+2. AI 냄새 제거 ("~인지, ~인지" 나열, "~이란?" 정의형, "알아보겠습니다" 금지)
+3. 소제목당 문단 2~3개 유지
+4. 자연스러운 경험담 + 감각 묘사
+5. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지
+
+[이미지 재생성]
+- 이미지 관련 수정 요청 시 regenerateImageIndices, newImagePrompts 반환
+- 예: "그림을 현대적으로" → regenerateImageIndices: [1, 2], newImagePrompts: ["현대적인 스타일..."]
+`;
+
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",  // 고품질 글쓰기용 pro 모델
-        contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${sanitizedHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지하세요.`,
+        contents: modifyPrompt,
         config: { 
           responseMimeType: "application/json", 
           responseSchema: { 
