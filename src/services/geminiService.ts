@@ -5023,7 +5023,7 @@ ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 [이미지] 텍스트/로고 금지, 스타일: ${imageStyleGuide}
 
 [JSON]
-{"title":"제목","content":"HTML","imagePrompts":["프롬프트"],"fact_check":{"fact_score":85,"safety_score":95,"conversion_score":80,"ai_smell_score":10,"verified_facts_count":5,"issues":[],"recommendations":[]}}
+{"title":"제목","content":"HTML",${targetImageCount > 0 ? '"imagePrompts":["프롬프트"],' : ''}"fact_check":{"fact_score":85,"safety_score":95,"conversion_score":80,"ai_smell_score":10,"verified_facts_count":5,"issues":[],"recommendations":[]}}
   `;
 
   const cardNewsPrompt = `
@@ -5642,7 +5642,7 @@ ${JSON.stringify(searchResults, null, 2)}
 {
   "title": "제목 (상태 점검형 질문)",
   "content": "HTML 형식의 본문 내용 (크로스체크된 정보 우선 사용)",
-  ${targetImageCount > 0 ? '"imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],' : '⚠️ imagePrompts 필드 생략 - 이미지 0장 설정됨'}
+  ${targetImageCount > 0 ? '"imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],' : ''}
   "fact_check": {
     "fact_score": 0-100 (높을수록 좋음),
     "safety_score": 0-100 (높을수록 좋음),
@@ -6498,6 +6498,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   
   const maxImages = request.postType === 'card_news' ? (request.slideCount || 6) : (request.imageCount ?? 1);
   
+  console.log('🖼️ 이미지 생성 설정:', {
+    'request.imageCount': request.imageCount,
+    'maxImages': maxImages,
+    'postType': request.postType,
+    'imagePrompts 길이': textData.imagePrompts?.length || 0
+  });
+  
   // 폴백 방식에서도 참고 이미지 전달 (레이아웃 재가공 지원)
   const fallbackReferenceImage = request.coverStyleImage || request.contentStyleImage;
   const fallbackCopyMode = request.styleCopyMode;
@@ -6510,7 +6517,10 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
 
   // imagePrompts가 없으면 빈 배열로 초기화 (imageCount가 0일 때 AI가 생략할 수 있음)
   if (!textData.imagePrompts || !Array.isArray(textData.imagePrompts)) {
+    console.warn('⚠️ AI가 imagePrompts를 생성하지 않음! textData.imagePrompts:', textData.imagePrompts);
     textData.imagePrompts = [];
+  } else {
+    console.log('✅ AI가 imagePrompts 생성함:', textData.imagePrompts.length, '개');
   }
 
   if (maxImages > 0 && textData.imagePrompts.length > 0) {
