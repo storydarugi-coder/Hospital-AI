@@ -10,6 +10,43 @@ import { saveAs } from 'file-saver';
 let docxModule: any = null;
 let html2canvasModule: any = null;
 
+// oklch/oklab 색상을 RGB로 변환하는 함수 (html2canvas 호환성 문제 해결)
+const convertOklchToRgb = (element: HTMLElement) => {
+  const computedStyle = window.getComputedStyle(element);
+  const stylesToCheck = ['color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'outlineColor', 'boxShadow'];
+  
+  stylesToCheck.forEach(prop => {
+    const value = computedStyle.getPropertyValue(prop.replace(/([A-Z])/g, '-$1').toLowerCase());
+    if (value && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
+      // 계산된 스타일에서 RGB 값을 추출하여 적용
+      // 브라우저가 자동으로 RGB로 변환해줌 (getComputedStyle에서)
+      try {
+        // 폴백: 투명 또는 기본값으로 대체
+        if (prop === 'backgroundColor') {
+          element.style.backgroundColor = 'transparent';
+        } else if (prop === 'color') {
+          element.style.color = 'inherit';
+        } else if (prop === 'borderColor') {
+          element.style.borderColor = 'transparent';
+        }
+      } catch (e) {
+        // 스타일 적용 실패 시 무시
+      }
+    }
+  });
+};
+
+// DOM 트리 전체에서 oklch 색상 변환
+const convertAllOklchColors = (root: HTMLElement) => {
+  convertOklchToRgb(root);
+  const allElements = root.querySelectorAll('*');
+  allElements.forEach((el) => {
+    if (el instanceof HTMLElement) {
+      convertOklchToRgb(el);
+    }
+  });
+};
+
 interface ResultPreviewProps {
   content: GeneratedContent;
   darkMode?: boolean;
@@ -383,12 +420,19 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         backgroundColor: '#ffffff',
         logging: false,
         imageTimeout: 15000, // 이미지 로드 타임아웃 15초
-        onclone: (clonedDoc: Document) => {
+        onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
           // 클론된 문서에서 오버레이 제거
           const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
           const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
           if (clonedOverlay) clonedOverlay.remove();
           if (clonedBadge) clonedBadge.remove();
+          
+          // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
+          try {
+            convertAllOklchColors(clonedElement);
+          } catch (e) {
+            console.warn('oklch 색상 변환 실패:', e);
+          }
         }
       });
       
@@ -902,11 +946,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             allowTaint: true,
             logging: false,
             imageTimeout: 15000,
-            onclone: (clonedDoc: Document) => {
+            onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
               const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
               const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
               if (clonedOverlay) clonedOverlay.remove();
               if (clonedBadge) clonedBadge.remove();
+              
+              // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
+              try {
+                convertAllOklchColors(clonedElement);
+              } catch (e) {
+                console.warn('oklch 색상 변환 실패:', e);
+              }
             }
           });
           
