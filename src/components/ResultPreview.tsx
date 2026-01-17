@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GeneratedContent, ImageStyle as _ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
 import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide as _regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE as _CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
 import { CSS_THEMES as _CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
@@ -386,23 +386,35 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </button>
         `;
         card.appendChild(overlay);
-        
-        // 버튼 클릭 이벤트
-        overlay.querySelector('.regen')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openCardRegenModal(index);
-        });
-        
-        overlay.querySelector('.download')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          handleSingleCardDownload(index);
-        });
       });
     };
     
+    // 이벤트 위임 핸들러
+    const handleOverlayClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains('card-overlay-btn')) return;
+      
+      e.stopPropagation();
+      const index = parseInt(target.dataset.index || '0', 10);
+      
+      if (target.classList.contains('regen')) {
+        openCardRegenModal(index);
+      } else if (target.classList.contains('download')) {
+        handleSingleCardDownload(index);
+      }
+    };
+    
     // DOM 업데이트 후 실행
-    const timer = setTimeout(addOverlaysToCards, 100);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      addOverlaysToCards();
+      // 이벤트 위임: 부모 요소에 이벤트 리스너 등록
+      document.addEventListener('click', handleOverlayClick);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOverlayClick);
+    };
   }, [localHtml, content.postType]);
 
   // 단일 카드 다운로드
