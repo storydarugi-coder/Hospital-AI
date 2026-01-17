@@ -140,7 +140,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   // 카드 재생성 모달
   const [cardRegenModalOpen, setCardRegenModalOpen] = useState(false);
   const [cardRegenIndex, setCardRegenIndex] = useState(0);
-  const [_cardRegenInstruction, _setCardRegenInstruction] = useState(''); // 향후 재생성 지시사항 기능에 활용
+  const [cardRegenInstruction, setCardRegenInstruction] = useState(''); // 향후 재생성 지시사항 기능에 활용
   const [isRegeneratingCard, setIsRegeneratingCard] = useState(false);
   const [cardRegenProgress, setCardRegenProgress] = useState('');
   
@@ -1961,6 +1961,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            display: flex;
            align-items: center;
            gap: 8px;
+           user-select: none;
+           -webkit-user-select: none;
         }
         .card-overlay-btn:hover {
            transform: scale(1.05);
