@@ -56,23 +56,29 @@ app.post('/api/openai-chat', async (c) => {
 
     if (!openaiResponse.ok) {
       console.error('❌ OpenAI API Error:', responseData);
-      return c.json(responseData, { status: openaiResponse.status, headers: corsHeaders });
+      return new Response(JSON.stringify(responseData), { 
+        status: openaiResponse.status, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     console.log('✅ OpenAI API Success');
     
-    return c.json(responseData, { status: 200, headers: corsHeaders });
+    return new Response(JSON.stringify(responseData), { 
+      status: 200, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
     console.error('❌ Proxy Error:', error);
     
-    return c.json(
-      {
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500, headers: corsHeaders }
-    );
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 })
 

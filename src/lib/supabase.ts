@@ -60,7 +60,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
         full_name: name,
         avatar_url: null,
         created_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+      } as any, { onConflict: 'id' });
       
       // subscriptions 테이블에 무료 플랜 생성
       await supabase.from('subscriptions').upsert({
@@ -69,7 +69,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
         credits_total: 3,
         credits_used: 0,
         expires_at: null
-      }, { onConflict: 'user_id' });
+      } as any, { onConflict: 'user_id' });
       
       console.log('✅ 프로필 및 구독 정보 생성 완료:', data.user.email);
     } catch (profileError) {
@@ -105,7 +105,7 @@ export const signInWithEmail = async (email: string, password: string) => {
           full_name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '사용자',
           avatar_url: data.user.user_metadata?.avatar_url || null,
           created_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        } as any, { onConflict: 'id' });
         
         // subscriptions도 없으면 생성
         await supabase.from('subscriptions').upsert({
@@ -114,7 +114,7 @@ export const signInWithEmail = async (email: string, password: string) => {
           credits_total: 3,
           credits_used: 0,
           expires_at: null
-        }, { onConflict: 'user_id' });
+        } as any, { onConflict: 'user_id' });
         
         console.log('✅ 기존 유저 프로필 자동 생성:', data.user.email);
       }

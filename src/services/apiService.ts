@@ -40,7 +40,7 @@ export const saveContentToServer = async (data: SaveContentRequest): Promise<Sav
       throw new Error(`서버 응답 오류: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { id?: string };
     return {
       success: true,
       id: result.id,
@@ -70,7 +70,7 @@ export const deleteAllContent = async (): Promise<SaveContentResponse> => {
       throw new Error(`서버 응답 오류: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { deletedCount?: number };
     return {
       success: true,
       id: result.deletedCount?.toString(),
@@ -95,7 +95,7 @@ export const getContentList = async (): Promise<any[]> => {
       throw new Error(`서버 응답 오류: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { data?: any[] };
     return result.data || [];
   } catch (error) {
     console.error('콘텐츠 목록 가져오기 실패:', error);
@@ -147,7 +147,7 @@ export const getApiKeys = async (): Promise<{ gemini: string | null; openai: str
       throw new Error(`서버 응답 오류: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { apiKeys?: { gemini: string | null; openai: string | null } };
     return result.apiKeys || { gemini: null, openai: null };
   } catch (error) {
     console.error('API 키 가져오기 실패:', error);

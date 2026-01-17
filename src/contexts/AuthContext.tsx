@@ -331,9 +331,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user && subscription) {
       // 로그인 유저 - 크레딧 차감
       if (subscription.credits_total !== -1) {
-        const { error } = await client
-          .from('subscriptions')
-          .update({ credits_used: subscription.credits_used + 1 } as any)
+        const { error } = await (client
+          .from('subscriptions') as any)
+          .update({ credits_used: subscription.credits_used + 1 })
           .eq('user_id', user.id);
 
         if (error) return false;
@@ -346,11 +346,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // 🚀 성능 개선: 사용 로그는 백그라운드에서 비동기로 (await 제거)
-      client.from('usage_logs').insert({
+      void client.from('usage_logs').insert({
         user_id: user.id,
         ip_hash: ipHash || 'unknown',
         action_type: 'generate_blog'
-      } as any).catch(err => console.error('Usage log failed:', err));
+      } as any);
 
     } else if (ipHash) {
       // 비로그인 - IP 기반 무료 사용량 차감
@@ -374,11 +374,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setFreeUsesRemaining(prev => Math.max(0, prev - 1));
 
       // 🚀 성능 개선: 사용 로그는 백그라운드에서 비동기로 (await 제거)
-      client.from('usage_logs').insert({
+      void client.from('usage_logs').insert({
         user_id: null,
         ip_hash: ipHash,
         action_type: 'generate_blog'
-      } as any).catch(err => console.error('Usage log failed:', err));
+      } as any);
     }
 
     return true;

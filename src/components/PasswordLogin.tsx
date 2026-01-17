@@ -30,7 +30,7 @@ const PasswordLogin: React.FC<PasswordLoginProps> = ({ onSuccess }) => {
         body: JSON.stringify({ password }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as { success?: boolean; error?: string };
 
       if (response.ok && data.success) {
         // 인증 성공

@@ -202,7 +202,7 @@ const App: React.FC = () => {
                 full_name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
                 avatar_url: session.user.user_metadata?.avatar_url || null,
                 created_at: new Date().toISOString()
-              }, { onConflict: 'id' });
+              } as any, { onConflict: 'id' });
               
               await supabase.from('subscriptions').upsert({
                 user_id: session.user.id,
@@ -210,7 +210,7 @@ const App: React.FC = () => {
                 credits_total: 3,
                 credits_used: 0,
                 expires_at: null
-              }, { onConflict: 'user_id' });
+              } as any, { onConflict: 'user_id' });
               
               console.log('✅ 프로필 자동 생성 완료:', session.user.email);
             }
@@ -615,7 +615,7 @@ const App: React.FC = () => {
 
   // 로딩 중 (admin/pricing 페이지는 로딩 화면 없이 바로 표시)
   // app 페이지는 로딩 중에도 UI 표시 (apiKeyReady 체크에서 처리)
-  if (authLoading && currentPage !== 'admin' && currentPage !== 'pricing' && currentPage !== 'app') {
+  if (authLoading && currentPage !== 'admin' && (currentPage as string) !== 'pricing' && currentPage !== 'app') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">

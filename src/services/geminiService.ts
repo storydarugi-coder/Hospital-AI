@@ -243,10 +243,11 @@ export const DEFAULT_STYLE_PROMPTS: Record<string, string> = {
 };
 
 // 스타일 이름 (UI 표시용)
-export const STYLE_NAMES = {
+export const STYLE_NAMES: Record<ImageStyle, string> = {
   illustration: '3D 일러스트',
   medical: '의학 3D',
-  photo: '실사 사진'
+  photo: '실사 사진',
+  custom: '커스텀'
 };
 
 // 짧은 스타일 키워드 (프롬프트용) - 구체적으로 개선!
@@ -857,8 +858,8 @@ ${promptText}
   return `data:image/svg+xml;base64,${base64Placeholder}`;
 };
 
-// 🎴 기본 프레임 이미지 URL (보라색 테두리 + 흰색 배경)
-const DEFAULT_FRAME_IMAGE_URL = 'https://www.genspark.ai/api/files/s/R8v4us3T';
+// 🎴 기본 프레임 이미지 URL (로컬 파일 사용 - 외부 URL 403 에러 방지)
+const DEFAULT_FRAME_IMAGE_URL = '/default-card-frame.webp';
 
 // 기본 프레임 이미지 로드 (캐싱)
 let defaultFrameImageCache: string | null = null;
@@ -866,8 +867,9 @@ const loadDefaultFrameImage = async (): Promise<string | null> => {
   if (defaultFrameImageCache) return defaultFrameImageCache;
   
   try {
+    // 로컬 파일 사용 (public 폴더)
     const response = await fetch(DEFAULT_FRAME_IMAGE_URL);
-    if (!response.ok) throw new Error('Failed to fetch default frame');
+    if (!response.ok) throw new Error(`Failed to fetch default frame: ${response.status}`);
     const blob = await response.blob();
     const base64 = await new Promise<string>((resolve) => {
       const reader = new FileReader();
@@ -875,7 +877,7 @@ const loadDefaultFrameImage = async (): Promise<string | null> => {
       reader.readAsDataURL(blob);
     });
     defaultFrameImageCache = base64;
-    console.log('✅ 기본 프레임 이미지 로드 완료');
+    console.log('✅ 기본 프레임 이미지 로드 완료 (로컬)');
     return base64;
   } catch (error) {
     console.warn('⚠️ 기본 프레임 이미지 로드 실패:', error);
@@ -1118,7 +1120,7 @@ const searchNaverNews = async (query: string, display: number = 10): Promise<{ t
       throw new Error(`네이버 API 오류: ${response.status}`);
     }
     
-    const data = await response.json();
+    const data = await response.json() as { items?: any[] };
     console.log(`[네이버 뉴스] ${data.items?.length || 0}개 결과 수신`);
     
     return (data.items || []).map((item: any) => ({
@@ -2559,8 +2561,8 @@ ${HUMAN_WRITING_RULES}
 ${MEDICAL_LAW_HUMAN_PROMPT}
 
 [진료과별 맞춤 가이드]
-${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
-  ? CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  ? CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
   : ''}
 
 [중요]
@@ -3201,8 +3203,8 @@ ${HUMAN_WRITING_RULES}
 ${MEDICAL_LAW_HUMAN_PROMPT}
 
 [진료과별 맞춤 가이드]
-${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
-  ? CATEGORY_SPECIFIC_PROMPTS[request.category as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
+  ? CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
   : ''}
 
 [참고 예시 - 좋은 글 vs 나쁜 글]
@@ -4852,7 +4854,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   }
 
   // 🔧 content 또는 contentHtml 필드 둘 다 지원
-  let body = textData.content || textData.contentHtml || '';
+  let body = textData.content || (textData as any).contentHtml || '';
   
   // 방어 코드: body가 없으면 에러
   if (!body || body.trim() === '') {
@@ -4890,7 +4892,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     
     // body에서 텍스트 추출 시도
     const plainText = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    const sentences = plainText.split(/[.!?。]/).filter(s => s.trim().length > 5);
+    const sentences = plainText.split(/[.!?。]/).filter((s: string) => s.trim().length > 5);
     
     for (let i = 0; i < slideCount; i++) {
     const isFirst = i === 0;
@@ -4933,7 +4935,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       let h3Count = 0;
       body = body.replace(
         /(<h3[^>]*>.*?<\/h3>[\s\S]*?<\/p>)/gi,
-        (match) => {
+        (match: string) => {
           h3Count++;
           if (imgIndex <= images.length) {
             const marker = `\n<div class="content-image-wrapper">[IMG_${imgIndex}]</div>\n`;
@@ -4949,7 +4951,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       const pTags = body.match(/<\/p>/gi) || [];
       if (pTags.length >= 2) {
         let pCount = 0;
-        body = body.replace(/<\/p>/gi, (match) => {
+        body = body.replace(/<\/p>/gi, (match: string) => {
           pCount++;
           // 2번째, 4번째, 6번째 </p> 뒤에 이미지 삽입
           if (pCount % 2 === 0 && imgIndex <= images.length) {
@@ -4976,7 +4978,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       let imgIndex = 1;
       body = body.replace(
         /(<div[^>]*class="[^"]*card-slide[^"]*"[^>]*>)([\s\S]*?)(<\/div>\s*<\/div>)/gi,
-        (match, openTag, content, closeTag) => {
+        (match: string, openTag: string, content: string, closeTag: string) => {
           // 이미 img 태그나 마커가 있으면 스킵
           if (content.includes('[IMG_') || content.includes('<img')) {
             return match;
@@ -5042,7 +5044,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     // 만약 background 스타일이 없는 card-slide가 있다면 추가
     body = body.replace(
     /<div([^>]*)class="([^"]*card-slide[^"]*)"([^>]*)>/gi,
-    (match, pre, cls, post) => {
+    (match: string, pre: string, cls: string, post: string) => {
       if (match.includes('style="')) {
         // 이미 style이 있지만 background가 없으면 추가
         if (!match.includes('background:')) {
@@ -5146,7 +5148,14 @@ ${finalHtml.substring(0, 6000)}
   "changes_made": ["변경한 내용 1", "변경한 내용 2", ...]
 }`;
       
-      const improvedAiText = await callOpenAI(aiSmellImprovementPrompt, 'AI 냄새 제거 전문가로서 사람이 쓴 것처럼 자연스럽게 개선해주세요.');
+      // Gemini AI 사용 (callOpenAI 대신)
+      const ai = getAiClient();
+      const improvedAiResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-preview-05-20',
+        contents: aiSmellImprovementPrompt,
+        config: { temperature: 0.7 }
+      });
+      const improvedAiText = improvedAiResponse.text || '';
       
       let improvedAiData;
       try {
@@ -5303,7 +5312,7 @@ export const regenerateCardSlide = async (
     ? '마무리 (마지막 장)' 
     : `본문 (${cardIndex + 1}장)`;
   
-  const imageStyleGuide = STYLE_KEYWORDS[context.imageStyle] || STYLE_KEYWORDS.illustration;
+  const imageStyleGuide = STYLE_KEYWORDS[context.imageStyle || 'illustration'] || STYLE_KEYWORDS.illustration;
   
   // 현재 HTML에서 이미지를 마커로 교체 (기존 이미지 제거)
   const cleanedHtml = currentCardHtml

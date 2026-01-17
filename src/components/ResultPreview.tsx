@@ -458,7 +458,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       // Promise로 toBlob 처리
       const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+        canvas.toBlob((b: Blob | null) => resolve(b), 'image/png', 1.0);
       });
       
       if (blob) {
@@ -980,7 +980,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           // Promise로 toBlob 처리 (타임아웃 포함)
           const blob = await Promise.race([
             new Promise<Blob | null>((resolve) => {
-              canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+              canvas.toBlob((b: Blob | null) => resolve(b), 'image/png', 1.0);
             }),
             new Promise<null>((_, reject) => 
               setTimeout(() => reject(new Error('Blob 생성 타임아웃')), 10000)

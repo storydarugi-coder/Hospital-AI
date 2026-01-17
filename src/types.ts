@@ -88,6 +88,7 @@ export interface FactCheckReport {
   ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 낮을수록 좋음, 15점 초과 시 재작성 대상
   ai_smell_analysis?: AiSmellAnalysis;  // AI 냄새 상세 분석 (8~15점 구간 수정 가이드)
   seo_score?: SeoScoreReport;  // SEO 최적화 점수 (총 100점)
+  patternCheckIssues?: string[];  // 빠른 패턴 검사에서 발견한 치명적 문제
   issues: string[];
   recommendations: string[];
 }

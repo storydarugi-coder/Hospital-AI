@@ -217,12 +217,24 @@ export async function optimizeAndGenerate<T>(
 /**
  * 캐시 확인 및 활용
  */
-export function getCachedOrGenerate<T>(
+export async function getCachedOrGenerate<T>(
   cacheKey: string,
   generateFn: () => Promise<T>,
   ttlHours: number = 12
 ): Promise<T> {
-  // TODO: promptResultCache 활용
-  // 현재는 generateFn만 실행
-  return generateFn();
+  // 캐시에서 조회
+  const cached = contentCache.get(cacheKey);
+  if (cached) {
+    console.log(`✅ Cache hit for: ${cacheKey}`);
+    return cached as T;
+  }
+  
+  // 캐시 미스 - 새로 생성
+  console.log(`🔄 Cache miss for: ${cacheKey}, generating...`);
+  const result = await generateFn();
+  
+  // 결과 캐싱 (TTL 적용)
+  contentCache.set(cacheKey, result, { ttl: ttlHours * 60 * 60 * 1000 });
+  
+  return result;
 }
