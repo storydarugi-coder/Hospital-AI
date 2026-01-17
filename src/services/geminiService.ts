@@ -4503,11 +4503,6 @@ ${learnedStyleInstruction}
 
 [HTML 출력 형식]
 <div class="press-release-container">
-  <div class="press-header">
-    <p class="press-date">${formattedDate}</p>
-    <p class="press-embargo">즉시 보도 가능</p>
-  </div>
-  
   <h1 class="press-title">[신뢰감 있는 제목 - 증상/대상/문제의식 포함, 과격한 은유 금지]</h1>
   <h2 class="press-subtitle">[증가 추세와 관리 중요성 요약 - 70자 이내]</h2>
   
@@ -4531,14 +4526,7 @@ ${learnedStyleInstruction}
   </div>
   
   <div class="press-footer">
-    <div class="press-contact">
-    <h4>▣ 문의처</h4>
-    <p>${hospitalName} 홍보팀</p>
-    <p>전화: 02-0000-0000 / 이메일: pr@hospital.com</p>
-    </div>
-    
     <div class="press-disclaimer">
-    <p>※ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.</p>
     <p>※ 의학적 정보는 참고용이며, 정확한 진단은 전문의와 상담이 필요합니다.</p>
     </div>
   </div>
