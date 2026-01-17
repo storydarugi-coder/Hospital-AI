@@ -258,6 +258,46 @@ export const STYLE_KEYWORDS: Record<ImageStyle, string> = {
   custom: '사용자 지정 스타일'
 };
 
+// 🌐 영어 스타일 프롬프트를 한국어로 번역하는 함수
+const translateStylePromptToKorean = async (englishPrompt: string): Promise<string> => {
+  // 이미 한국어인지 확인 (한글이 30% 이상이면 번역 생략)
+  const koreanRatio = (englishPrompt.match(/[\uAC00-\uD7A3]/g) || []).length / englishPrompt.length;
+  if (koreanRatio > 0.3) {
+    console.log('🌐 이미 한국어 프롬프트, 번역 생략');
+    return englishPrompt;
+  }
+  
+  try {
+    const ai = getAiClient();
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: `다음 이미지 스타일 프롬프트를 자연스러운 한국어로 번역해주세요.
+전문 용어는 유지하고, 의미를 정확히 전달해주세요.
+
+영어 프롬프트:
+"${englishPrompt}"
+
+[규칙]
+- 번역된 한국어만 출력 (설명이나 따옴표 없이)
+- DSLR, 3D 같은 용어는 그대로 유지
+- "NOT"은 "~는 제외" 또는 "~금지"로 번역
+- 간결하게 번역 (원문 길이와 비슷하게)
+
+번역:`,
+      config: {
+        temperature: 0.2,
+      }
+    });
+    
+    const translated = response.text?.trim() || englishPrompt;
+    console.log('🌐 스타일 프롬프트 번역 완료:', englishPrompt.substring(0, 30), '→', translated.substring(0, 30));
+    return translated;
+  } catch (error) {
+    console.warn('⚠️ 스타일 프롬프트 번역 실패, 원본 사용:', error);
+    return englishPrompt;
+  }
+};
+
 // =============================================
 // 📝 공통 텍스트 상수 (중복 제거)
 // =============================================
@@ -2274,9 +2314,17 @@ const fullImageCardPromptAgent = async (
   // 🚨 photo/medical 스타일 선택 시 커스텀 프롬프트 무시! (스타일 버튼 우선)
   const isFixedStyle = imageStyle === 'photo' || imageStyle === 'medical';
   const hasCustomStyle = !isFixedStyle && customImagePrompt?.trim();
+  
+  // 🌐 커스텀 스타일이 있으면 한국어로 번역 (프롬프트 미리보기용)
+  let translatedCustomStyle = '';
+  if (hasCustomStyle) {
+    translatedCustomStyle = await translateStylePromptToKorean(customImagePrompt!.trim());
+    console.log('🌐 커스텀 스타일 번역:', customImagePrompt!.substring(0, 30), '→', translatedCustomStyle.substring(0, 30));
+  }
+  
   const styleGuide = isFixedStyle
     ? STYLE_KEYWORDS[imageStyle]  // photo/medical은 고정 스타일 사용
-    : (hasCustomStyle ? customImagePrompt!.trim() : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration);
+    : (hasCustomStyle ? translatedCustomStyle : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration);
   
   console.log('🎨 fullImageCardPromptAgent 스타일:', imageStyle, '/ 커스텀 적용:', hasCustomStyle ? 'YES' : 'NO (고정 스타일)');
   
@@ -2424,11 +2472,13 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
       // 🔧 imagePrompt: 사용자에게 보여줄 핵심 정보만! (영어 지시문은 생성 시 자동 추가)
-      // 스타일은 generateSingleImage에서 결정 (중복 방지)
+      // 🌐 스타일 정보도 한국어로 포함 (번역된 커스텀 스타일 또는 기본 스타일)
       const descText = (isFirst || isLast) ? '' : (s.description ? `\ndescription: "${s.description}"` : '');
+      const styleText = hasCustomStyle ? translatedCustomStyle : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration;
       const imagePrompt = `subtitle: "${s.subtitle}"
 mainTitle: "${mainTitleClean}"${descText}
 비주얼: ${s.imageKeyword}
+스타일: ${styleText}
 배경색: ${bgColor}`;
       
       // textPrompt는 AI 결과 사용 (있으면) 또는 슬라이드 정보 사용
@@ -2452,7 +2502,8 @@ mainTitle: "${mainTitleClean}"${descText}
     return cards;
   } catch (error) {
     console.error('전체 이미지 카드 프롬프트 실패:', error);
-    // 🔧 fallback도 동일하게: 스타일은 generateSingleImage에서 결정!
+    // 🔧 fallback도 동일하게: 스타일 정보 포함 (한국어)
+    const styleText = hasCustomStyle ? translatedCustomStyle : STYLE_KEYWORDS[imageStyle] || STYLE_KEYWORDS.illustration;
     const fallbackCards = slides.map((s, idx) => {
       const isFirst = idx === 0;
       const isLast = idx === slides.length - 1;
@@ -2462,6 +2513,7 @@ mainTitle: "${mainTitleClean}"${descText}
         imagePrompt: `subtitle: "${s.subtitle}"
 mainTitle: "${mainTitleClean}"${descText}
 비주얼: ${s.imageKeyword}
+스타일: ${styleText}
 배경색: ${bgColor}`,
         textPrompt: { 
           subtitle: s.subtitle, 
