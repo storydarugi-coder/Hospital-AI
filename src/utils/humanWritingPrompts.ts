@@ -263,7 +263,7 @@ export function detectAiSmell(text: string): {
     { pattern: /것으로\s*나타났습니다/g, name: '~것으로 나타났습니다' },
     { pattern: /으로\s*볼\s*수\s*있습니다/g, name: '~으로 볼 수 있습니다 (AI·교재 말투)' },
     { pattern: /이해할\s*수\s*있습니다/g, name: '~이해할 수 있습니다 (AI·교재 말투)' },
-    { pattern: /도움이\s*됩니다/g, name: '~도움이 됩니다 (AI·교재 말투)', maxAllowed: 1 },
+    { pattern: /도움이\s*될\s*수\s*있습니다/g, name: '~도움이 될 수 있습니다 (AI·교재 말투)', maxAllowed: 1 },
     { pattern: /불편감/g, name: '불편감 (추상어 - 체감어로 변경!)' },
     { pattern: /영향을\s*미치/g, name: '영향을 미치다 (추상어 - 체감어로 변경!)' },
     { pattern: /다양한/g, name: '다양한 (과다 사용)', maxAllowed: 2 },
