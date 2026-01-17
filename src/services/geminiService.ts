@@ -3218,40 +3218,53 @@ ${FEW_SHOT_EXAMPLES}
 - 제목: 실제 검색할 법한 제목 (예: "무릎 통증 오래갈 때 나타나는 양상")
 - 키워드: "${request.topic}" 3~5회 자연스럽게
 
-[HTML 구조] - 소제목당 문단 2~3개 필수!
+[HTML 구조] - 이미지 ${targetImageCount}장 기준!
 <div class="naver-post-container">
   <p>도입 1 - 구체적 상황 + 감각</p>
   <p>도입 2 - 공감</p>
+  ${targetImageCount >= 1 ? '[IMG_1]' : ''}
   
-  <h3>소제목 1 (상황형)</h3>
-  <p>문단 1 - 경험담 공유</p>
-  <p>문단 2 - 왜 그럴까 (이유)</p>
-  <p>문단 3 - 실제 사례 느낌 (선택)</p>${targetImageCount >= 1 ? '[IMG_1]' : ''}
+  <h3>소제목 1</h3>
+  <p>문단 1</p>
+  <p>문단 2</p>
+  ${targetImageCount >= 2 ? '[IMG_2]' : ''}
   
-  <h3>소제목 2 (질문형)</h3>
-  <p>문단 1 - 경험담 + 감정</p>
-  <p>문단 2 - 이유 (일상 관점)</p>${targetImageCount >= 2 ? '[IMG_2]' : ''}
+  <h3>소제목 2</h3>
+  <p>문단 1</p>
+  <p>문단 2</p>
+  ${targetImageCount >= 3 ? '[IMG_3]' : ''}
   
-  <h3>소제목 3 (실천형)</h3>
-  <p>문단 1 - 생활 속 시도</p>
-  <p>문단 2 - 가능성 열어두기</p>
-  <p>문단 3 - 추가 팁 (선택)</p>${targetImageCount >= 3 ? '[IMG_3]' : ''}
+  <h3>소제목 3</h3>
+  <p>문단 1</p>
+  <p>문단 2</p>
+  ${targetImageCount >= 4 ? '[IMG_4]' : ''}
   
+  ${targetImageCount >= 5 ? `<h3>소제목 4</h3>
+  <p>문단 1</p>
+  <p>문단 2</p>
+  [IMG_5]
+  ` : ''}
+  ${targetImageCount >= 6 ? `<h3>소제목 5</h3>
+  <p>문단 1</p>
+  <p>문단 2</p>
+  [IMG_6]
+  ` : ''}
   <p>마무리</p>
   <p>#해시태그 10개</p>
 </div>
 
+⚠️ **이미지 ${targetImageCount}장 필수!** imagePrompts 배열에 정확히 ${targetImageCount}개 프롬프트 작성!
 ⚠️ 각 소제목(<h3>) 다음에 반드시 <p> 태그 2~3개!
 
-[이미지 프롬프트 규칙]
-🚨 imagePrompts 배열의 프롬프트는 반드시 **한국어**로 작성!
+[이미지 프롬프트 규칙] 🚨 정확히 ${targetImageCount}개 필수!
+🚨 imagePrompts 배열에 반드시 **${targetImageCount}개** 프롬프트 작성! (한국어)
 - 스타일: ${imageStyleGuide}
 - 텍스트/로고/워터마크 금지
 - 🇰🇷 사람이 등장할 경우 반드시 "한국인" 명시! (예: "한국인 여성", "한국인 의사", "한국인 환자")
 - 예시: "한국인 중년 여성이 따뜻한 차를 마시는 모습, 부드러운 조명, 아늑한 분위기, 실사 사진, DSLR 촬영"
 
-[JSON]
-{"title":"제목","content":"HTML",${targetImageCount > 0 ? '"imagePrompts":["한국어 프롬프트"],' : ''}"fact_check":{"fact_score":85,"safety_score":95,"conversion_score":80,"ai_smell_score":10,"verified_facts_count":5,"issues":[],"recommendations":[]}}
+[JSON 응답 형식] - imagePrompts 배열: 정확히 ${targetImageCount}개!
+{"title":"제목","content":"HTML 본문 ([IMG_1]~[IMG_${targetImageCount}] 마커 포함)",${targetImageCount > 0 ? `"imagePrompts":["프롬프트1", "프롬프트2", ... 총 ${targetImageCount}개],` : ''}"fact_check":{...}}
   `;
 
   const cardNewsPrompt = `
@@ -4781,9 +4794,19 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     console.log('✅ AI가 imagePrompts 생성함:', textData.imagePrompts.length, '개');
   }
 
+  // 🔧 이미지 프롬프트 부족 시 자동 패딩 (요청 개수만큼 채우기)
+  if (maxImages > 0 && textData.imagePrompts.length < maxImages) {
+    console.warn(`⚠️ 이미지 프롬프트 부족! 요청: ${maxImages}개, 생성: ${textData.imagePrompts.length}개 → 자동 패딩`);
+    const defaultPrompt = `${request.topic} 관련 의료 이미지, ${request.imageStyle === 'illustration' ? '3D 일러스트, 파스텔톤' : request.imageStyle === 'medical' ? '의학 해부도, 전문 의료 이미지' : '실사 사진, DSLR 촬영'}, 한국인`;
+    while (textData.imagePrompts.length < maxImages) {
+      textData.imagePrompts.push(defaultPrompt);
+      console.log(`   + 패딩 프롬프트 추가: ${textData.imagePrompts.length}/${maxImages}`);
+    }
+  }
+
   if (maxImages > 0 && textData.imagePrompts.length > 0) {
-    // 순차 생성으로 진행률 표시
-    for (let i = 0; i < Math.min(maxImages, textData.imagePrompts.length); i++) {
+    // 순차 생성으로 진행률 표시 (maxImages만큼 생성)
+    for (let i = 0; i < maxImages; i++) {
       safeProgress(`🎨 이미지 ${i + 1}/${maxImages}장 생성 중...`);
       const p = textData.imagePrompts[i];
       let img: string;
