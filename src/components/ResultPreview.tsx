@@ -10,41 +10,61 @@ import { saveAs } from 'file-saver';
 let docxModule: any = null;
 let html2canvasModule: any = null;
 
-// oklch/oklab 색상을 RGB로 변환하는 함수 (html2canvas 호환성 문제 해결)
-const convertOklchToRgb = (element: HTMLElement) => {
-  const computedStyle = window.getComputedStyle(element);
-  const stylesToCheck = ['color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor', 'outlineColor', 'boxShadow'];
-  
-  stylesToCheck.forEach(prop => {
-    const value = computedStyle.getPropertyValue(prop.replace(/([A-Z])/g, '-$1').toLowerCase());
-    if (value && (value.includes('oklch') || value.includes('oklab') || value.includes('color('))) {
-      // 계산된 스타일에서 RGB 값을 추출하여 적용
-      // 브라우저가 자동으로 RGB로 변환해줌 (getComputedStyle에서)
-      try {
-        // 폴백: 투명 또는 기본값으로 대체
-        if (prop === 'backgroundColor') {
-          element.style.backgroundColor = 'transparent';
-        } else if (prop === 'color') {
-          element.style.color = 'inherit';
-        } else if (prop === 'borderColor') {
-          element.style.borderColor = 'transparent';
+// html2canvas용 oklch 색상 제거 함수
+// 클론된 Document에서 모든 스타일시트의 oklch를 제거하고 인라인 스타일에 안전한 색상 적용
+const removeOklchFromClonedDoc = (clonedDoc: Document, clonedElement: HTMLElement) => {
+  try {
+    // 1. 모든 <style> 태그에서 oklch 제거
+    const styleTags = clonedDoc.querySelectorAll('style');
+    styleTags.forEach(styleTag => {
+      if (styleTag.textContent) {
+        // oklch(...), oklab(...), color(...) 함수를 안전한 색상으로 대체
+        styleTag.textContent = styleTag.textContent
+          .replace(/oklch\([^)]+\)/gi, 'transparent')
+          .replace(/oklab\([^)]+\)/gi, 'transparent')
+          .replace(/color\([^)]+\)/gi, 'transparent');
+      }
+    });
+    
+    // 2. 모든 요소의 인라인 스타일에서 oklch 제거
+    const allElements = clonedElement.querySelectorAll('*');
+    const processElement = (el: Element) => {
+      if (el instanceof HTMLElement && el.style) {
+        const styleAttr = el.getAttribute('style');
+        if (styleAttr && (styleAttr.includes('oklch') || styleAttr.includes('oklab') || styleAttr.includes('color('))) {
+          el.setAttribute('style', styleAttr
+            .replace(/oklch\([^)]+\)/gi, 'transparent')
+            .replace(/oklab\([^)]+\)/gi, 'transparent')
+            .replace(/color\([^)]+\)/gi, 'transparent')
+          );
         }
-      } catch (e) {
-        // 스타일 적용 실패 시 무시
+      }
+    };
+    
+    processElement(clonedElement);
+    allElements.forEach(processElement);
+    
+    // 3. <link> 스타일시트 제거 (외부 CSS에 oklch가 있을 수 있음)
+    const linkTags = clonedDoc.querySelectorAll('link[rel="stylesheet"]');
+    linkTags.forEach(link => link.remove());
+    
+    // 4. CSS 변수(--*)도 제거 - Tailwind가 여기에 oklch를 넣음
+    const rootStyle = clonedDoc.documentElement.style;
+    if (rootStyle) {
+      // CSS 변수를 모두 제거
+      const cssText = rootStyle.cssText;
+      if (cssText.includes('oklch') || cssText.includes('oklab')) {
+        clonedDoc.documentElement.setAttribute('style', cssText
+          .replace(/oklch\([^)]+\)/gi, 'transparent')
+          .replace(/oklab\([^)]+\)/gi, 'transparent')
+        );
       }
     }
-  });
-};
-
-// DOM 트리 전체에서 oklch 색상 변환
-const convertAllOklchColors = (root: HTMLElement) => {
-  convertOklchToRgb(root);
-  const allElements = root.querySelectorAll('*');
-  allElements.forEach((el) => {
-    if (el instanceof HTMLElement) {
-      convertOklchToRgb(el);
-    }
-  });
+    
+    console.log('✅ oklch 색상 제거 완료');
+  } catch (e) {
+    console.warn('oklch 제거 중 오류:', e);
+  }
 };
 
 interface ResultPreviewProps {
@@ -428,11 +448,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           if (clonedBadge) clonedBadge.remove();
           
           // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
-          try {
-            convertAllOklchColors(clonedElement);
-          } catch (e) {
-            console.warn('oklch 색상 변환 실패:', e);
-          }
+          removeOklchFromClonedDoc(clonedDoc, clonedElement);
         }
       });
       
@@ -953,11 +969,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               if (clonedBadge) clonedBadge.remove();
               
               // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
-              try {
-                convertAllOklchColors(clonedElement);
-              } catch (e) {
-                console.warn('oklch 색상 변환 실패:', e);
-              }
+              removeOklchFromClonedDoc(clonedDoc, clonedElement);
             }
           });
           
