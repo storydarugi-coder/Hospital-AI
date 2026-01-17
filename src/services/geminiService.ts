@@ -3220,8 +3220,10 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
   const blogPrompt = `
 한국 병·의원 네이버 블로그용 의료 콘텐츠를 작성하세요.
 
-[글자 수] ${targetLength + 100}자 필수 목표 (최소 ${targetLength + 100}자 - 무조건 이 글자 수 이상 작성!)
-⚠️ 중요: 목표 글자 수인 ${targetLength + 100}자를 반드시 채워야 합니다. 부족하면 안 됩니다!
+[글자 수 엄수] 목표: ${targetLength}자 (공백 제외)
+🚨 절대 준수: ${targetLength}자 ±50자 범위 내 (${targetLength - 50}~${targetLength + 50}자)
+⚠️ 초과 금지: ${targetLength + 100}자를 넘으면 안 됩니다!
+⚠️ 부족 금지: ${targetLength - 100}자 미만이면 안 됩니다!
 [작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
