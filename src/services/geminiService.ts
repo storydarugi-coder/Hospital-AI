@@ -50,6 +50,25 @@ const getCurrentYear = () => new Date().getFullYear();
 // 🎨 공통 이미지 프롬프트 상수 (중복 제거) - export 포함
 // =============================================
 
+// 🚨 이미지/카드뉴스 텍스트용 의료광고법 규칙 (humanWritingPrompts 연동)
+// 이미지 안에 렌더링되는 텍스트에도 적용!
+const IMAGE_TEXT_MEDICAL_LAW = `[이미지 텍스트 의료광고법 규칙]
+🚨 절대 금지 (이미지 텍스트에서도 위반!)
+━━━━━━━━━━━━━━━━━━
+- "완치", "치료 효과", "100% 안전"
+- "조기 발견", "조기 치료" (불안 조장)
+- "~하세요", "~해야 한다", "상담하세요", "방문하세요" (행동 유도)
+- "2주 이상", "48시간 내" 등 구체적 시간
+- 출처, 기관명, 수치 (%, 명, 건)
+- "전문가/전문의/명의" 등
+
+✅ 허용되는 표현:
+- 증상명, 질환명 (사실 정보)
+- 질문형 제목 ("무릎이 시린 이유는?")
+- 정보 전달 ("관절염의 특징")
+- "~일 수 있어요", "~인 경우가 있습니다" (가능성 표현)
+`;
+
 // 카드뉴스 레이아웃 규칙 - 텍스트가 이미지 안에 포함된 완성형 카드!
 // ⚠️ 중요: 이 프롬프트는 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지!
 export const CARD_LAYOUT_RULE = `[CARD IMAGE GENERATION RULE]
@@ -249,6 +268,122 @@ const CONTENT_DESCRIPTION = `이 콘텐츠는 의료정보 안내용 카드뉴�
 
 // 의료 면책 조항 (HTML)
 const MEDICAL_DISCLAIMER = `본 콘텐츠는 의료 정보 제공 및 병원 광고를 목적으로 합니다.<br/>개인의 체질과 건강 상태에 따라 치료 결과는 차이가 있을 수 있으며, 부작용이 발생할 수 있습니다.`;
+
+// =============================================
+// 🔍 AI 냄새 검사 헬퍼 함수 (detectAiSmell 연결)
+// =============================================
+
+/**
+ * HTML에서 텍스트만 추출하여 AI 냄새 검사
+ * - 블로그/카드뉴스 생성 후 자동 검사
+ * - modifyPostWithAI() 수정 후 검증
+ * - recheckAiSmell()에서 활용
+ */
+const runAiSmellCheck = (htmlContent: string): {
+  detected: boolean;
+  patterns: string[];
+  score: number;
+  criticalIssues: string[];  // maxAllowed: 0인 패턴 (의료광고법 위반 등)
+  warningIssues: string[];   // maxAllowed > 0인 패턴 (번역투 등)
+} => {
+  // HTML에서 텍스트만 추출
+  const textContent = htmlContent
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // detectAiSmell() 호출
+  const result = detectAiSmell(textContent);
+  
+  // 패턴을 심각도별로 분류
+  const criticalIssues: string[] = [];
+  const warningIssues: string[] = [];
+  
+  for (const pattern of result.patterns) {
+    // (허용: 0회)인 패턴은 치명적 문제
+    if (pattern.includes('허용: 0회') || 
+        pattern.includes('절대 금지') || 
+        pattern.includes('의료광고법') ||
+        pattern.includes('금지!')) {
+      criticalIssues.push(pattern);
+    } else {
+      warningIssues.push(pattern);
+    }
+  }
+  
+  console.log('🔍 AI 냄새 검사 결과:', {
+    detected: result.detected,
+    score: result.score,
+    criticalCount: criticalIssues.length,
+    warningCount: warningIssues.length
+  });
+  
+  if (criticalIssues.length > 0) {
+    console.warn('🚨 치명적 AI 냄새 패턴 발견:', criticalIssues);
+  }
+  
+  return {
+    ...result,
+    criticalIssues,
+    warningIssues
+  };
+};
+
+/**
+ * AI 냄새 검사 결과를 FactCheckReport에 통합
+ */
+const integrateAiSmellToFactCheck = (
+  factCheck: FactCheckReport,
+  aiSmellResult: ReturnType<typeof runAiSmellCheck>
+): FactCheckReport => {
+  // 기존 ai_smell_score와 detectAiSmell 결과 병합
+  const existingScore = factCheck.ai_smell_score || 0;
+  const detectedScore = aiSmellResult.score;
+  
+  // 더 높은 점수(더 심각한 문제) 사용
+  const finalScore = Math.max(existingScore, detectedScore);
+  
+  // 치명적 문제가 있으면 추가 페널티
+  const criticalPenalty = aiSmellResult.criticalIssues.length * 5;
+  const adjustedScore = Math.min(100, finalScore + criticalPenalty);
+  
+  // issues와 recommendations 업데이트
+  const newIssues = [...(factCheck.issues || [])];
+  const newRecommendations = [...(factCheck.recommendations || [])];
+  
+  // 치명적 문제 추가
+  for (const issue of aiSmellResult.criticalIssues) {
+    if (!newIssues.includes(issue)) {
+      newIssues.push(`🚨 ${issue}`);
+    }
+  }
+  
+  // 경고 문제 추가 (상위 3개만)
+  for (const warning of aiSmellResult.warningIssues.slice(0, 3)) {
+    if (!newIssues.includes(warning)) {
+      newIssues.push(`⚠️ ${warning}`);
+    }
+  }
+  
+  // 권장 사항 추가
+  if (aiSmellResult.criticalIssues.length > 0) {
+    newRecommendations.push('🚨 의료광고법 위반 표현 즉시 수정 필요');
+  }
+  if (adjustedScore > 15) {
+    newRecommendations.push('AI 냄새 점수 15점 초과 - 문장 패턴 다양화 권장');
+  }
+  
+  return {
+    ...factCheck,
+    ai_smell_score: adjustedScore,
+    issues: newIssues,
+    recommendations: newRecommendations
+  };
+};
 
 // 글 스타일별 프롬프트 (의료법 100% 준수) - 함수로 변경하여 현재 연도 동적 반영
 const getWritingStylePrompts = (): Record<WritingStyle, string> => {
@@ -564,6 +699,10 @@ ${description ? `description: "${description}"` : ''}
 3. ${isCustomStyle ? `⚠️ 중요: 그림체/스타일은 "${customStylePrompt}"로 이미 지정되어 있으므로, 비주얼에는 "무엇을 그릴지"만 작성 (수채화, 연필, 볼펜 등 스타일 언급 금지!)` : '비주얼에 스타일과 내용을 함께 작성'}
 4. 예: "심장 아이콘과 파란 그라데이션 배경", "병원에서 상담받는 환자"
 
+[의료광고법 준수 - 이미지 텍스트에도 적용!]
+🚨 금지: "완치", "상담하세요", "방문하세요", "조기 발견", "전문의"
+✅ 허용: 증상명, 질환명, 질문형 제목, 정보 전달
+
 위 형식대로만 출력하세요. 다른 설명 없이!`,
       config: {
         responseMimeType: "text/plain"
@@ -638,6 +777,10 @@ ${promptText}
 ✅ 병원 블로그에 적합한 전문적인 의료/건강 이미지
 ✅ 스타일에 따라 고품질, 상세한 일러스트 또는 사진
 ✅ 블로그 게시물에 최적화된 가로형 16:9 형식
+
+[의료광고법 준수 - 이미지에 텍스트가 포함될 경우]
+🚨 절대 금지: "완치", "상담하세요", "방문하세요", "조기 발견", "전문의", 구체적 수치/시간
+✅ 허용: 증상명, 질환명, 정보성 키워드, 질문형 표현
 
 ⛔ 금지사항 (Negative Prompt):
 - 한국어 텍스트, 영어 텍스트, any text overlay
@@ -825,6 +968,10 @@ ${extractedVisual ? `- ILLUSTRATION MUST MATCH: "${extractedVisual}"` : ''}
 ${extractedVisual ? `✅ ILLUSTRATION must follow the visual description EXACTLY` : ''}
 ⛔ No hashtags, watermarks, logos
 ⛔ Do NOT ignore visual instructions
+
+[의료광고법 - 이미지 텍스트 규칙]
+🚨 금지: "완치", "상담하세요", "방문하세요", "조기 발견", "전문의", 수치(%)
+✅ 허용: 증상명, 질환명, 정보성 표현, 질문형 제목
 `.trim() : `
 Generate a 1:1 square social media card image.
 
@@ -2207,7 +2354,20 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
 - 해시태그 금지
 - "⚠️description 없음"이면 설명 텍스트 넣지 마세요!
 
-[의료법] 금지: 상담하세요, 방문하세요, 완치, 보장 / 허용: 증상명, 질환명, 질문형`;
+[의료법 필수 준수 - humanWritingPrompts 규칙 적용]
+━━━━━━━━━━━━━━━━━━
+🚨 절대 금지 (이미지 텍스트에서도 위반!):
+- "완치", "치료 효과", "100% 안전", "보장"
+- "조기 발견", "조기 치료" (불안 조장)
+- "~하세요", "상담하세요", "방문하세요" (행동 유도 CTA)
+- "2주 이상", "48시간 내" 등 구체적 시간
+- "전문가/전문의/명의"
+
+✅ 허용되는 표현:
+- 증상명, 질환명 (사실 정보)
+- 질문형 제목 ("무릎이 시린 이유는?")
+- 정보 전달 ("관절염의 특징")
+- "~일 수 있어요" (가능성)`;
 
   try {
     const response = await ai.models.generateContent({
@@ -2333,8 +2493,16 @@ const imagePromptAgent = async (
 - 4:3 비율 적합
 - 로고/워터마크 금지
 - 🇰🇷 사람이 등장할 경우 반드시 "한국인" 명시!
-- 의료법 위반 문구 금지 (상담/방문/예약/완치/보장)
-- 허용: 증상명, 질환명, 정보성 키워드, 질문형, 숫자
+
+[의료광고법 필수 준수 - humanWritingPrompts 규칙]
+🚨 절대 금지:
+- "완치", "치료 효과", "100% 안전", "보장"
+- "조기 발견", "조기 치료" (불안 조장)
+- "상담하세요", "방문하세요", "예약하세요" (행동 유도)
+- "2주 이상", "48시간 내" 등 구체적 시간
+- "전문가/전문의/명의"
+
+✅ 허용: 증상명, 질환명, 정보성 키워드, 질문형
 
 예시: "가슴 통증을 느끼는 한국인 중년 남성, 3D 일러스트, 파란색 배경, 밝은 톤"`;
 
@@ -4512,7 +4680,33 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       </div>
     `.trim();
     
-    safeProgress('✅ 카드뉴스 생성 완료!');
+    // 🔍 카드뉴스 텍스트 AI 냄새 검사
+    // cardPrompts의 텍스트를 합쳐서 검사
+    const cardTexts = agentResult.cardPrompts?.map(card => {
+      const tp = card.textPrompt;
+      return `${tp.subtitle || ''} ${tp.mainTitle || ''} ${tp.description || ''}`;
+    }).join(' ') || '';
+    
+    safeProgress('🔍 카드뉴스 텍스트 AI 냄새 검사 중...');
+    const cardAiSmellCheck = runAiSmellCheck(cardTexts);
+    
+    let cardFactCheck: FactCheckReport = {
+      fact_score: 85,
+      safety_score: 90,
+      conversion_score: 80,
+      ai_smell_score: cardAiSmellCheck.score,
+      verified_facts_count: 5,
+      issues: [],
+      recommendations: []
+    };
+    
+    cardFactCheck = integrateAiSmellToFactCheck(cardFactCheck, cardAiSmellCheck);
+    
+    if (cardAiSmellCheck.criticalIssues.length > 0) {
+      safeProgress(`🚨 카드뉴스 텍스트에 금지 패턴 ${cardAiSmellCheck.criticalIssues.length}개 발견!`);
+    } else {
+      safeProgress('✅ 카드뉴스 생성 완료!');
+    }
     
     return {
       title: agentResult.title,
@@ -4520,14 +4714,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       imageUrl: images[0]?.data || "",
       fullHtml: finalHtml,
       tags: [],
-      factCheck: {
-        fact_score: 85,
-        safety_score: 90,
-        conversion_score: 80,
-        verified_facts_count: 5,
-        issues: [],
-        recommendations: []
-      },
+      factCheck: cardFactCheck,
       postType: 'card_news',
       imageStyle: request.imageStyle,
       customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
@@ -4990,9 +5177,43 @@ ${finalHtml.substring(0, 6000)}
     }
   }
 
+  // ============================================
+  // 🔍 최종 AI 냄새 검사 (detectAiSmell 기반)
+  // ============================================
+  safeProgress('🔍 최종 AI 냄새 검사 중...');
+  const aiSmellCheckResult = runAiSmellCheck(finalHtml);
+  
+  // factCheck에 detectAiSmell 결과 통합
+  let finalFactCheck = textData.fact_check || {
+    fact_score: 85,
+    safety_score: 90,
+    conversion_score: 80,
+    ai_smell_score: 0,
+    verified_facts_count: 5,
+    issues: [],
+    recommendations: []
+  };
+  
+  finalFactCheck = integrateAiSmellToFactCheck(finalFactCheck, aiSmellCheckResult);
+  
+  // 치명적 문제 발견 시 경고
+  if (aiSmellCheckResult.criticalIssues.length > 0) {
+    safeProgress(`🚨 의료광고법 위반 패턴 ${aiSmellCheckResult.criticalIssues.length}개 발견! 수정 필요`);
+    console.warn('🚨 치명적 AI 냄새 패턴:', aiSmellCheckResult.criticalIssues);
+  } else if (aiSmellCheckResult.warningIssues.length > 0) {
+    safeProgress(`⚠️ AI 냄새 패턴 ${aiSmellCheckResult.warningIssues.length}개 발견 (경고)`);
+  } else {
+    safeProgress(`✅ AI 냄새 검사 통과!`);
+  }
+
   // 디버깅: 반환 데이터 확인
   console.log('• generateFullPost 반환 데이터:');
-  console.log('  - textData.fact_check:', textData.fact_check);
+  console.log('  - finalFactCheck:', finalFactCheck);
+  console.log('  - aiSmellCheckResult:', { 
+    score: aiSmellCheckResult.score, 
+    critical: aiSmellCheckResult.criticalIssues.length,
+    warning: aiSmellCheckResult.warningIssues.length 
+  });
   console.log('  - seoScore:', seoScore);
   
   // 최종 완료 메시지
@@ -5004,7 +5225,7 @@ ${finalHtml.substring(0, 6000)}
     imageUrl: images[0]?.data || "",
     fullHtml: finalHtml,
     tags: [],
-    factCheck: textData.fact_check,
+    factCheck: finalFactCheck,
     postType: request.postType,
     imageStyle: request.imageStyle,
     customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
@@ -5356,9 +5577,29 @@ ${userInstruction}
         restoredHtml = restoredHtml.replace(new RegExp(placeholder, 'g'), originalSrc);
       });
       
+      // 🔍 수정된 글 AI 냄새 검사
+      const aiSmellCheck = runAiSmellCheck(restoredHtml);
+      
+      // 치명적 문제가 있으면 메시지에 경고 추가
+      let finalMessage = result.message || '수정 완료';
+      if (aiSmellCheck.criticalIssues.length > 0) {
+        finalMessage += `\n\n🚨 경고: 금지 패턴 ${aiSmellCheck.criticalIssues.length}개 발견!\n- ${aiSmellCheck.criticalIssues.slice(0, 3).join('\n- ')}`;
+        console.warn('🚨 modifyPostWithAI 후 치명적 AI 냄새:', aiSmellCheck.criticalIssues);
+      } else if (aiSmellCheck.warningIssues.length > 0) {
+        finalMessage += `\n\n⚠️ AI 냄새 패턴 ${aiSmellCheck.warningIssues.length}개 발견 (권장 수정)`;
+      }
+      
+      console.log('🔍 modifyPostWithAI AI 냄새 검사:', {
+        score: aiSmellCheck.score,
+        critical: aiSmellCheck.criticalIssues.length,
+        warning: aiSmellCheck.warningIssues.length
+      });
+      
       return {
         ...result,
-        newHtml: restoredHtml
+        newHtml: restoredHtml,
+        message: finalMessage,
+        aiSmellCheck // AI 냄새 검사 결과도 반환
       };
     } catch (error) { throw error; }
 };
@@ -5935,6 +6176,19 @@ export const recheckAiSmell = async (htmlContent: string): Promise<FactCheckRepo
   console.log('🔄 AI 냄새 재검사 시작...');
   const ai = getAiClient();
   
+  // 🔍 먼저 detectAiSmell() 기반 즉시 검사 실행 (빠른 패턴 매칭)
+  const quickCheck = runAiSmellCheck(htmlContent);
+  console.log('🔍 빠른 패턴 검사 결과:', {
+    score: quickCheck.score,
+    critical: quickCheck.criticalIssues.length,
+    warning: quickCheck.warningIssues.length
+  });
+  
+  // 치명적 문제가 있으면 바로 경고
+  if (quickCheck.criticalIssues.length > 0) {
+    console.warn('🚨 치명적 AI 냄새 패턴 발견 (즉시 수정 필요):', quickCheck.criticalIssues);
+  }
+  
   // HTML에서 텍스트만 추출
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = htmlContent;
@@ -6027,19 +6281,29 @@ JSON 형식으로 응답해주세요.`;
     const result = JSON.parse(response.text || "{}");
     console.log('✅ AI 냄새 재검사 완료:', result.fact_check);
     
+    // 🔍 detectAiSmell() 결과와 AI 분석 결과 통합
+    let factCheck: FactCheckReport = result.fact_check;
+    factCheck = integrateAiSmellToFactCheck(factCheck, quickCheck);
+    
     // AI 냄새 상세 분석 추가 (모든 점수에서 상세 분석 제공)
-    const aiSmellScore = result.fact_check.ai_smell_score || 0;
-    console.log(`• AI 냄새 점수: ${aiSmellScore}점 - 상세 분석 시작...`);
+    const aiSmellScore = factCheck.ai_smell_score || 0;
+    console.log(`• 통합 AI 냄새 점수: ${aiSmellScore}점 (패턴 검사 + AI 분석)`);
+    
     try {
       const detailedAnalysis = await analyzeAiSmell(textContent, '');
-      result.fact_check.ai_smell_analysis = detailedAnalysis;
+      factCheck.ai_smell_analysis = detailedAnalysis;
       console.log('✅ AI 냄새 상세 분석 완료:', detailedAnalysis.total_score, '점');
     } catch (analysisError) {
       console.error('⚠️ AI 냄새 상세 분석 실패:', analysisError);
       // 상세 분석 실패해도 기본 결과는 반환
     }
     
-    return result.fact_check;
+    // 빠른 패턴 검사에서 발견한 치명적 문제 추가
+    if (quickCheck.criticalIssues.length > 0) {
+      factCheck.patternCheckIssues = quickCheck.criticalIssues;
+    }
+    
+    return factCheck;
   } catch (error) {
     console.error('❌ AI 냄새 재검사 실패:', error);
     throw new Error('AI 냄새 재검사 중 오류가 발생했습니다.');
