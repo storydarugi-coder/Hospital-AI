@@ -58,10 +58,11 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '위험합니다', severity: 'medium', replacement: ['주의가 필요합니다', '살펴볼 필요가 있습니다'], reason: '공포 조장 금지', category: 'urgency' },
   { word: '서둘러', severity: 'medium', replacement: ['여유를 갖고', '시간이 되실 때'], reason: '긴급성 과장 금지', category: 'urgency' },
   { word: '방치하면', severity: 'medium', replacement: ['경과를 살펴보는 것도', '확인해보시는 것도'], reason: '공포 조장 금지', category: 'urgency' },
-  { word: '48시간', severity: 'medium', replacement: ['개인에 따라 차이', '상황에 따라 다름'], reason: '숫자 단정 금지', category: 'medical_law' },
-  { word: '24시간', severity: 'medium', replacement: ['개인에 따라 차이', '상황에 따라 다름'], reason: '숫자 단정 금지', category: 'medical_law' },
-  { word: '2~3일', severity: 'medium', replacement: ['개인에 따라 차이가 있습니다', '사람마다 다를 수 있습니다'], reason: '기간 단정 금지', category: 'medical_law' },
-  { word: '1주일', severity: 'medium', replacement: ['개인차가 있습니다', '상황에 따라 다릅니다'], reason: '기간 단정 금지', category: 'medical_law' },
+  // 🚨 숫자 관련: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '48시간', severity: 'critical', replacement: ['일정 시간', '상황에 따라'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '24시간', severity: 'critical', replacement: ['일정 시간', '상황에 따라'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '2~3일', severity: 'critical', replacement: ['며칠', '일정 기간'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '1주일', severity: 'critical', replacement: ['일정 기간', '며칠'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
   
   // ===== Low: 권장 수정 =====
   { word: '환자', severity: 'low', replacement: ['내원하시는 분', '찾아주시는 분'], reason: '환자 표현 지양', category: 'medical_law' },
@@ -73,11 +74,13 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '진료 현장', severity: 'low', replacement: ['일반적으로', '임상에서'], reason: '의사 사칭 주의', category: 'first_person' },
   { word: '~란 무엇', severity: 'low', replacement: ['자주 언급되는 것 중 하나가', '이 시기에 거론되는'], reason: '정의형 금지', category: 'definition' },
   { word: '~이란', severity: 'low', replacement: ['자주 언급되는', '거론되는'], reason: '정의형 금지', category: 'definition' },
-  { word: '~해야 합니다', severity: 'low', replacement: ['~도움이 될 수 있습니다', '~방법이 있습니다'], reason: '강제성 표현 금지', category: 'urgency' },
+  // 🚨 행동 유도: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '~해야 합니다', severity: 'critical', replacement: ['~경향을 보입니다', '~경우가 있습니다'], reason: '행동 유도 완전 금지 (P1)', category: 'urgency' },
   { word: '가능성이 높', severity: 'low', replacement: ['언급되는 경우가 있습니다', '나타나는 경우도 있습니다'], reason: '판단 유도 금지', category: 'medical_law' },
-  { word: '의심', severity: 'low', replacement: ['살펴볼 필요가 있는', '확인해볼 만한'], reason: '진단 유도 금지', category: 'medical_law' },
-  { word: '진단', severity: 'low', replacement: ['확인', '상담'], reason: '진단 표현 주의', category: 'medical_law' },
-  { word: '판단', severity: 'low', replacement: ['확인', '살펴보는'], reason: '판단 유도 금지', category: 'medical_law' },
+  // 🚨 의료법 위반: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '의심', severity: 'critical', replacement: ['(사용 금지)'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
+  { word: '진단', severity: 'critical', replacement: ['(사용 금지)'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
+  { word: '판단', severity: 'critical', replacement: ['파악', '살펴보기'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
   { word: '체크', severity: 'low', replacement: ['확인', '살펴보기'], reason: '자가진단 유도 금지', category: 'medical_law' },
 ];
 

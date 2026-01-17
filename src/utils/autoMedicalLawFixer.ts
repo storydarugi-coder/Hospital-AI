@@ -104,7 +104,8 @@ export function fixExaggeration(text: string): {
 }
 
 /**
- * 출처 없는 통계 자동 처리
+ * 숫자/통계 완전 제거 (gpt52-prompts-staged.ts P1 규칙과 일관성 유지)
+ * ⚠️ 숫자는 출처 추가가 아닌 완전 대체 필요!
  */
 export function fixMissingSource(text: string): {
   fixed: string;
@@ -113,43 +114,29 @@ export function fixMissingSource(text: string): {
   let fixed = text;
   const changes: FixResult['changes'] = [];
 
-  // 통계 패턴 감지
-  const statPatterns = [
-    /(\d+(?:\.\d+)?%)/g,
-    /(\d+(?:,\d+)*명)/g,
-    /(\d+(?:,\d+)*건)/g,
-    /(\d+배)/g
+  // 🚨 숫자 완전 제거/대체 (P1 규칙)
+  const numberReplacements: [RegExp, string, string][] = [
+    [/(\d+(?:\.\d+)?%)/g, '상당수', '퍼센트 수치 금지'],
+    [/(\d+(?:,\d+)*명)/g, '많은 분들이', '인원 수치 금지'],
+    [/(\d+(?:,\d+)*건)/g, '여러 사례에서', '건수 수치 금지'],
+    [/(\d+배)/g, '상당히 높은', '배수 표현 금지'],
+    [/(\d+여\s*종)/g, '다양한', '수량 표현 금지'],
+    [/(\d+~\d+일)/g, '며칠', '기간 수치 금지'],
+    [/(\d+주)/g, '일정 기간', '기간 수치 금지'],
+    [/(\d+시간)/g, '일정 시간', '시간 수치 금지'],
+    [/(\d+대)/g, '중년층/젊은 분들', '연령대 수치 금지'],
   ];
 
-  for (const pattern of statPatterns) {
+  for (const [pattern, replacement, reason] of numberReplacements) {
     const matches = Array.from(fixed.matchAll(pattern));
-
     for (const match of matches) {
-      const stat = match[0];
-      const index = match.index!;
-
-      // 주변 100자 확인
-      const before = fixed.substring(Math.max(0, index - 100), index);
-      const after = fixed.substring(index, Math.min(fixed.length, index + stat.length + 100));
-      const context = before + after;
-
-      // 출처가 있는지 확인
-      const hasSource = TRUSTED_SOURCES.some(source =>
-        context.includes(source) || context.includes('출처:')
-      );
-
-      if (!hasSource) {
-        // 통계 뒤에 출처 표시 권장 추가
-        const replacement = `${stat} (출처 필요)`;
-        fixed = fixed.replace(stat, replacement);
-
-        changes.push({
-          type: 'add_source',
-          original: stat,
-          fixed: replacement,
-          reason: '통계 데이터에 출처 표기 필요'
-        });
-      }
+      fixed = fixed.replace(match[0], replacement);
+      changes.push({
+        type: 'replace',
+        original: match[0],
+        fixed: replacement,
+        reason: `의료광고법: ${reason}`
+      });
     }
   }
 
@@ -225,13 +212,16 @@ export function removeAiSmell(text: string): {
   let fixed = text;
   const changes: FixResult['changes'] = [];
 
+  // 🚨 gpt52-prompts-staged.ts와 일관성 유지
   const aiPatterns: Record<string, string> = {
     '에 대해 알아보겠습니다': '',
     '에 대해 살펴보겠습니다': '',
-    '라고 할 수 있습니다': '입니다',
-    '것으로 나타났습니다': '나타났습니다',
-    '것으로 알려져 있습니다': '알려져 있습니다',
-    '여러분': '환자분들',
+    '라고 할 수 있습니다': '경우가 있습니다',
+    '것으로 나타났습니다': '경향을 보입니다',
+    '것으로 알려져 있습니다': '언급되기도 합니다',
+    '여러분': '', // 🚨 '환자분들' 대신 삭제 (환자 표현 금지!)
+    '환자분들': '~을 겪는 분들', // 환자 표현 대체
+    '환자': '~을 겪는 분',
   };
 
   for (const [original, replacement] of Object.entries(aiPatterns)) {
