@@ -352,11 +352,19 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const handleSingleCardDownload = async (cardIndex: number) => {
     const cards = document.querySelectorAll('.naver-preview .card-slide');
     const card = cards[cardIndex] as HTMLElement;
-    if (!card) return;
+    if (!card) {
+      alert('카드를 찾을 수 없습니다.');
+      return;
+    }
+    
+    // 다운로드 진행 표시
+    setDownloadingCard(true);
+    setCardDownloadProgress(`${cardIndex + 1}번 카드 다운로드 준비 중...`);
     
     try {
       // html2canvas 동적 로드
       if (!html2canvasModule) {
+        setCardDownloadProgress('모듈 로드 중...');
         html2canvasModule = (await import('html2canvas')).default;
       }
       
@@ -366,25 +374,60 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       if (overlay) overlay.style.display = 'none';
       if (badge) badge.style.display = 'none';
       
+      setCardDownloadProgress(`${cardIndex + 1}번 카드 이미지 생성 중...`);
+      
       const canvas = await html2canvasModule(card, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 15000, // 이미지 로드 타임아웃 15초
+        onclone: (clonedDoc: Document) => {
+          // 클론된 문서에서 오버레이 제거
+          const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
+          const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
+          if (clonedOverlay) clonedOverlay.remove();
+          if (clonedBadge) clonedBadge.remove();
+        }
       });
       
       // 오버레이 복구
       if (overlay) overlay.style.display = '';
       if (badge) badge.style.display = '';
       
-      canvas.toBlob((blob) => {
-        if (blob) {
-          saveAs(blob, `card_${cardIndex + 1}.png`);
-        }
-      }, 'image/png');
+      // Promise로 toBlob 처리
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+      });
+      
+      if (blob) {
+        saveAs(blob, `card_${cardIndex + 1}.png`);
+        setCardDownloadProgress(`✅ ${cardIndex + 1}번 카드 다운로드 완료!`);
+        setTimeout(() => setCardDownloadProgress(''), 1500);
+      } else {
+        // blob 생성 실패 시 toDataURL 방식으로 폴백
+        console.warn('toBlob 실패, toDataURL로 폴백');
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `card_${cardIndex + 1}.png`;
+        link.href = dataUrl;
+        link.click();
+        setCardDownloadProgress(`✅ ${cardIndex + 1}번 카드 다운로드 완료!`);
+        setTimeout(() => setCardDownloadProgress(''), 1500);
+      }
     } catch (error) {
       console.error('카드 다운로드 실패:', error);
-      alert('카드 다운로드에 실패했습니다.');
+      // 오버레이 복구 (에러 발생 시에도)
+      const overlay = card.querySelector('.card-overlay') as HTMLElement;
+      const badge = card.querySelector('.card-number-badge') as HTMLElement;
+      if (overlay) overlay.style.display = '';
+      if (badge) badge.style.display = '';
+      
+      setCardDownloadProgress('');
+      alert(`❌ 카드 다운로드에 실패했습니다.\n\n원인: ${error instanceof Error ? error.message : '알 수 없는 오류'}\n\n💡 팁: 카드에 외부 이미지가 포함된 경우 다운로드가 실패할 수 있습니다.\n카드를 재생성하면 해결될 수 있습니다.`);
+    } finally {
+      setDownloadingCard(false);
     }
   };
 
@@ -830,39 +873,99 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
     
     setDownloadingCard(true);
+    let successCount = 0;
+    let failedCards: number[] = [];
     
     try {
       // html2canvas 동적 로드
       if (!html2canvasModule) {
+        setCardDownloadProgress('모듈 로드 중...');
         html2canvasModule = (await import('html2canvas')).default;
       }
       
       for (let i = 0; i < cardSlides.length; i++) {
         setCardDownloadProgress(`${i + 1}/${cardSlides.length}장 다운로드 중...`);
         
-        const card = cardSlides[i] as HTMLElement;
-        const canvas = await html2canvasModule(card, {
-          scale: 2,
-          backgroundColor: null,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-        });
-        
-        const link = document.createElement('a');
-        link.download = `card-news-${i + 1}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        // 각 다운로드 사이 짧은 딜레이
-        await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+          const card = cardSlides[i] as HTMLElement;
+          
+          // 오버레이 임시 숨김
+          const overlay = card.querySelector('.card-overlay') as HTMLElement;
+          const badge = card.querySelector('.card-number-badge') as HTMLElement;
+          if (overlay) overlay.style.display = 'none';
+          if (badge) badge.style.display = 'none';
+          
+          const canvas = await html2canvasModule(card, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            imageTimeout: 15000,
+            onclone: (clonedDoc: Document) => {
+              const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
+              const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
+              if (clonedOverlay) clonedOverlay.remove();
+              if (clonedBadge) clonedBadge.remove();
+            }
+          });
+          
+          // 오버레이 복구
+          if (overlay) overlay.style.display = '';
+          if (badge) badge.style.display = '';
+          
+          // Promise로 toBlob 처리 (타임아웃 포함)
+          const blob = await Promise.race([
+            new Promise<Blob | null>((resolve) => {
+              canvas.toBlob((b) => resolve(b), 'image/png', 1.0);
+            }),
+            new Promise<null>((_, reject) => 
+              setTimeout(() => reject(new Error('Blob 생성 타임아웃')), 10000)
+            )
+          ]);
+          
+          if (blob) {
+            saveAs(blob, `card-news-${i + 1}.png`);
+            successCount++;
+          } else {
+            // toDataURL 폴백
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `card-news-${i + 1}.png`;
+            link.href = dataUrl;
+            link.click();
+            successCount++;
+          }
+          
+          // 각 다운로드 사이 짧은 딜레이 (브라우저 부하 방지)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (cardError) {
+          console.error(`${i + 1}번 카드 다운로드 실패:`, cardError);
+          failedCards.push(i + 1);
+          // 실패해도 다음 카드 계속 진행
+        }
       }
       
-      setCardDownloadProgress('✅ 모든 카드 다운로드 완료!');
-      setTimeout(() => setCardDownloadProgress(''), 2000);
+      // 결과 메시지
+      if (failedCards.length === 0) {
+        setCardDownloadProgress(`✅ ${successCount}장 모두 다운로드 완료!`);
+      } else {
+        setCardDownloadProgress(`⚠️ ${successCount}장 완료, ${failedCards.length}장 실패 (${failedCards.join(', ')}번)`);
+      }
+      setTimeout(() => setCardDownloadProgress(''), 3000);
+      
+      // 실패한 카드가 있으면 안내
+      if (failedCards.length > 0) {
+        setTimeout(() => {
+          alert(`⚠️ ${failedCards.length}장의 카드 다운로드에 실패했습니다.\n(${failedCards.join(', ')}번 카드)\n\n💡 해당 카드를 재생성한 후 다시 시도해주세요.`);
+        }, 500);
+      }
+      
     } catch (error) {
       console.error('카드 다운로드 실패:', error);
-      alert('카드 다운로드 중 오류가 발생했습니다.');
+      setCardDownloadProgress('');
+      alert(`❌ 카드 다운로드 중 오류가 발생했습니다.\n\n원인: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     } finally {
       setDownloadingCard(false);
     }
