@@ -4569,11 +4569,15 @@ ${learnedStyleInstruction}
 `;
 
   const ai = getAiClient();
+  
+  // 🔍 Google Search 연결 - 언론 보도용 최신 정보 수집
+  onProgress('🔍 Google Search로 최신 의료 정보를 검색하고 있습니다...');
   const result = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: pressPrompt,
     config: {
-    responseMimeType: "text/plain"
+      tools: [{ googleSearch: {} }], // Google Search 활성화
+      responseMimeType: "text/plain"
     }
   });
   let pressContent = result.text || '';
