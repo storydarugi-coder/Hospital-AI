@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
 import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { optimizeAllImagesInHtml, formatFileSize } from '../utils/imageOptimizer';
 import { saveAs } from 'file-saver';
@@ -287,7 +287,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else if (style === 'photo') {
         styleText = 'photorealistic real medical clinic photo, natural lighting, DSLR, shallow depth of field, NOT illustration, NOT 3D render';
       } else {
-        styleText = DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration;
+        styleText = STYLE_KEYWORDS[style as keyof typeof STYLE_KEYWORDS] || STYLE_KEYWORDS.illustration;
       }
       
       const newImagePrompt = `1:1 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();

@@ -8,6 +8,7 @@ import {
   detectAiSmell, 
   HUMAN_WRITING_RULES, 
   MEDICAL_LAW_HUMAN_PROMPT, 
+  IMAGE_TEXT_MEDICAL_LAW,  // 🖼️ 이미지 텍스트용 의료광고법 (통합)
   FEW_SHOT_EXAMPLES,
   CATEGORY_SPECIFIC_PROMPTS 
 } from "../utils/humanWritingPrompts";
@@ -44,30 +45,10 @@ const getAiProviderSettings = (): { textGeneration: 'gemini', imageGeneration: '
 // 현재 연도를 동적으로 가져오는 함수
 const getCurrentYear = () => new Date().getFullYear();
 
-// 의료광고법 프롬프트를 동적으로 생성하는 함수
-
 // =============================================
 // 🎨 공통 이미지 프롬프트 상수 (중복 제거) - export 포함
+// ⚠️ IMAGE_TEXT_MEDICAL_LAW는 humanWritingPrompts.ts에서 import
 // =============================================
-
-// 🚨 이미지/카드뉴스 텍스트용 의료광고법 규칙 (humanWritingPrompts 연동)
-// 이미지 안에 렌더링되는 텍스트에도 적용!
-const IMAGE_TEXT_MEDICAL_LAW = `[이미지 텍스트 의료광고법 규칙]
-🚨 절대 금지 (이미지 텍스트에서도 위반!)
-━━━━━━━━━━━━━━━━━━
-- "완치", "치료 효과", "100% 안전"
-- "조기 발견", "조기 치료" (불안 조장)
-- "~하세요", "~해야 한다", "상담하세요", "방문하세요" (행동 유도)
-- "2주 이상", "48시간 내" 등 구체적 시간
-- 출처, 기관명, 수치 (%, 명, 건)
-- "전문가/전문의/명의" 등
-
-✅ 허용되는 표현:
-- 증상명, 질환명 (사실 정보)
-- 질문형 제목 ("무릎이 시린 이유는?")
-- 정보 전달 ("관절염의 특징")
-- "~일 수 있어요", "~인 경우가 있습니다" (가능성 표현)
-`;
 
 // 카드뉴스 레이아웃 규칙 - 텍스트가 이미지 안에 포함된 완성형 카드!
 // ⚠️ 중요: 이 프롬프트는 영어로 작성 - 한국어 지시문이 이미지에 렌더링되는 버그 방지!
@@ -233,14 +214,6 @@ const buildFrameBlock = (referenceImage?: string, copyMode?: boolean): string =>
 
 // 공통 규칙 (간결화)
 const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
-
-// 기본 스타일 프롬프트 - 한국어로 통일!
-export const DEFAULT_STYLE_PROMPTS: Record<string, string> = {
-  illustration: '3D 렌더 일러스트, Blender 스타일, 부드러운 스튜디오 조명, 파스텔 색상, 둥근 형태, 친근한 캐릭터 디자인, 깔끔한 그라데이션 배경',
-  medical: '의학 3D 일러스트, 해부학적 렌더링, 과학적 시각화, 임상 조명, 상세한 장기 구조, 교육용 다이어그램, 전문 의료 스타일',
-  photo: '실사 DSLR 사진, 자연스러운 부드러운 조명, 얕은 피사계심도, 사실적인 질감, 전문 병원 환경, 신뢰감 있는 분위기',
-  custom: '사용자 지정 스타일'
-};
 
 // 스타일 이름 (UI 표시용)
 export const STYLE_NAMES: Record<ImageStyle, string> = {
