@@ -126,7 +126,7 @@ export const signInWithEmail = async (email: string, password: string) => {
   return { data, error };
 };
 
-export const signInWithOAuth = async (provider: 'google') => {
+export const signInWithOAuth = async (_provider: 'google') => {
   // OAuth 리다이렉트 URL - Supabase가 콜백 시 #access_token을 추가함
   // 따라서 baseURL만 지정하고, 인증 후 App.tsx에서 hash를 파싱
   const redirectUrl = window.location.origin;

@@ -355,8 +355,8 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
   );
 };
 
-// 금지어 카드 컴포넌트
-const ViolationCard: React.FC<{ violation: ScanResult; darkMode: boolean }> = ({ violation, darkMode }) => {
+// 금지어 카드 컴포넌트 (향후 금지어 상세 표시 UI에 활용)
+const _ViolationCard: React.FC<{ violation: ScanResult; darkMode: boolean }> = ({ violation, darkMode }) => {
   const severityLabels = {
     critical: '🚨 중대',
     high: '⚠️ 높음',

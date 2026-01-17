@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session as _Session } from '@supabase/supabase-js';
 import { supabase, reinitializeSupabase, isSupabaseConfigured, getUserIP, hashIP } from '../lib/supabase';
-import { PLANS, PlanType } from '../lib/database.types';
+import { PLANS as _PLANS, PlanType } from '../lib/database.types';
 import type { Database } from '../lib/database.types';
 
 // Supabase 테이블 타입
@@ -278,11 +278,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: error || null };
   };
 
-  const signInWithProvider = async (provider: 'google' | 'kakao' | 'naver') => {
+  const signInWithProvider = async (_provider: 'google' | 'kakao' | 'naver') => {
     if (!configured) return { error: new Error('Supabase not configured') };
 
     const { error } = await client.auth.signInWithOAuth({
-      provider: provider as any,
+      provider: _provider as any,
       options: {
         redirectTo: window.location.origin + '/#app'
       }

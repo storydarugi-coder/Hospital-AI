@@ -22,7 +22,7 @@ const WritingStyleLearner: React.FC<WritingStyleLearnerProps> = ({
 }) => {
   // 콘텐츠 타입별 텍스트
   const isPress = contentType === 'press_release';
-  const contentLabel = isPress ? '보도자료' : '블로그 글';
+  const _contentLabel = isPress ? '보도자료' : '블로그 글'; // 향후 UI 라벨에 활용
   const contentExample = isPress 
     ? '기존 보도자료를 붙여넣기 해주세요...\n\n예시:\n[보도자료] OO병원, 첨단 의료장비 도입으로 진료 서비스 강화\n\nOO병원(원장 홍길동)은 최신 의료장비를 도입하여 환자 진료 서비스를 한층 강화했다고 밝혔다.'
     : '학습시킬 블로그 글을 붙여넣기 해주세요...\n\n예시:\n안녕하세요~ 오늘은 겨울철 피부 관리에 대해 이야기해볼게요!\n요즘 날씨가 정말 건조하죠? 저도 매일 아침 일어나면 얼굴이 당기더라고요 ㅠㅠ';

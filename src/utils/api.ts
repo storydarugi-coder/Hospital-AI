@@ -107,7 +107,7 @@ export const fetchJSON = async <T = any>(
   
   try {
     return JSON.parse(text) as T;
-  } catch (error) {
+  } catch {
     console.error('❌ JSON 파싱 실패:', text.substring(0, 200));
     throw new Error(`Invalid JSON response: ${text.substring(0, 100)}`);
   }

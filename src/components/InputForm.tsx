@@ -19,10 +19,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [persona, setPersona] = useState(PERSONAS[0].value);
   const [tone, setTone] = useState(TONES[0].value);
   const [imageStyle, setImageStyle] = useState<ImageStyle>('photo');
-  const [cssTheme, setCssTheme] = useState<CssTheme>('modern');
+  const [cssTheme, _setCssTheme] = useState<CssTheme>('modern'); // 향후 테마 변경 UI에 활용
   const [topic, setTopic] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [referenceUrl, setReferenceUrl] = useState('');
+  const [referenceUrl, _setReferenceUrl] = useState(''); // 향후 참조 URL 기능에 활용
   
   // 커스텀 이미지 프롬프트
   const [customPrompt, setCustomPrompt] = useState<string>('');
@@ -40,7 +40,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
   const [imageCount, setImageCount] = useState<number>(0); // 기본값 0장
-  const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
+  const [writingStyle, _setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형, 향후 스타일 선택 UI에 활용
   
   // 말투 학습 스타일
   const [learnedStyleId, setLearnedStyleId] = useState<string | undefined>(undefined);
@@ -114,7 +114,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     try {
       const items = await getTrendingTopics(category);
       setTrendingItems(items);
-    } catch (e) {
+    } catch {
       alert("트렌드 로딩 실패");
     } finally {
       setIsLoadingTrends(false);
@@ -131,7 +131,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         const titles = await recommendSeoTitles(topic, keywords, postType === 'press_release' ? 'blog' : postType);
         const sortedTitles = titles.sort((a, b) => b.score - a.score);
         setSeoTitles(sortedTitles);
-    } catch (e) {
+    } catch {
         alert("제목 추천 실패");
     } finally {
         setIsLoadingTitles(false);

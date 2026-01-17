@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
-import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
+import { GeneratedContent, ImageStyle as _ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide as _regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE as _CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
+import { CSS_THEMES as _CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { optimizeAllImagesInHtml, formatFileSize } from '../utils/imageOptimizer';
 import { saveAs } from 'file-saver';
 
@@ -140,7 +140,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   // 카드 재생성 모달
   const [cardRegenModalOpen, setCardRegenModalOpen] = useState(false);
   const [cardRegenIndex, setCardRegenIndex] = useState(0);
-  const [cardRegenInstruction, setCardRegenInstruction] = useState('');
+  const [_cardRegenInstruction, _setCardRegenInstruction] = useState(''); // 향후 재생성 지시사항 기능에 활용
   const [isRegeneratingCard, setIsRegeneratingCard] = useState(false);
   const [cardRegenProgress, setCardRegenProgress] = useState('');
   
@@ -148,7 +148,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [editSubtitle, setEditSubtitle] = useState('');
   const [editMainTitle, setEditMainTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editTags, setEditTags] = useState('');
+  const [_editTags, _setEditTags] = useState(''); // 향후 태그 편집 기능에 활용
   const [editImagePrompt, setEditImagePrompt] = useState('');
   const [cardRegenRefImage, setCardRegenRefImage] = useState(''); // 참고 이미지
   const [refImageMode, setRefImageMode] = useState<'recolor' | 'copy'>('copy'); // 참고 이미지 적용 방식: recolor=복제+색상변경, copy=완전복제
@@ -176,7 +176,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   // 🖼️ 이미지 최적화 상태
   const [isOptimizingImages, setIsOptimizingImages] = useState(false);
-  const [optimizationProgress, setOptimizationProgress] = useState('');
+  const [_optimizationProgress, _setOptimizationProgress] = useState(''); // 향후 진행률 표시에 활용
   const [optimizationStats, setOptimizationStats] = useState<{ totalSaved: number; imageCount: number } | null>(null);
   
   // content.seoScore가 있으면 자동으로 설정
@@ -524,7 +524,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       localStorage.setItem(key, value);
       return true;
-    } catch (e) {
+    } catch {
       // QuotaExceededError 처리
       console.warn('localStorage 용량 초과, 오래된 데이터 정리 중...');
       return false;
@@ -557,7 +557,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       localStorage.setItem(AUTOSAVE_HISTORY_KEY, JSON.stringify(history));
       console.log('🗑️ 오래된 저장본 1개 삭제, 남은 개수:', history.length);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -654,8 +654,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     alert(`"${item.title}" 불러왔습니다!`);
   };
 
-  // 임시저장 삭제
-  const clearAutoSave = () => {
+  // 임시저장 삭제 (향후 UI에서 활용 가능)
+  const _clearAutoSave = () => {
     localStorage.removeItem(AUTOSAVE_KEY);
     localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
     setAutoSaveHistory([]);
@@ -764,12 +764,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       console.log('🎨 재생성 시 커스텀 스타일:', customStylePrompt);
       
       // 🎨 스타일 결정: 커스텀 > 기본 스타일 (참고 이미지는 레이아웃만!)
-      let styleText: string;
+      let _styleText: string; // 향후 스타일 텍스트 표시에 활용 가능
       if (customStylePrompt) {
-        styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
+        _styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
       } else {
         // 기본 스타일 (3D 일러스트)
-        styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
+        _styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
       // 🔧 재생성 프롬프트: 사용자가 직접 수정한 editImagePrompt 사용!
@@ -919,8 +919,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     return null;
   };
   
-  // 카드 수 가져오기
-  const getCardCount = () => {
+  // 카드 수 가져오기 (향후 UI에 카드 개수 표시 시 활용)
+  const _getCardCount = () => {
     return getCardElements()?.length || 0;
   };
   
@@ -1061,7 +1061,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  const openRegenModal = (imgIndex: number, currentPrompt: string) => {
+  const _openRegenModal = (imgIndex: number, currentPrompt: string) => { // 향후 이미지 재생성 모달에 활용
     setRegenIndex(imgIndex);
     setRegenPrompt(currentPrompt || '전문적인 의료 일러스트');
     setRegenRefDataUrl(undefined);
@@ -1096,7 +1096,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const currentStyle = content.imageStyle || 'illustration';
       const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt, currentStyle, savedCustomStylePrompt);
       setRegenPrompt(recommendedPrompt);
-    } catch (err) {
+    } catch {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
     } finally {
       setIsRecommendingPrompt(false);
@@ -1121,7 +1121,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 🔒 AI 추천 프롬프트 적용 - 자동 연동 스킵 플래그 ON
       setIsAIPromptApplied(true);
       setEditImagePrompt(recommendedPrompt);
-    } catch (err) {
+    } catch {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
     } finally {
       setIsRecommendingCardPrompt(false);
@@ -1165,7 +1165,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else {
         alert('이미지를 생성하지 못했습니다. 다시 시도해주세요.');
       }
-    } catch (err) {
+    } catch {
       alert('이미지 생성 중 오류가 발생했습니다.');
     } finally {
       setIsEditingAi(false);
@@ -1745,7 +1745,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         </html>
       `);
       printWindow.document.close();
-    } catch (e) {
+    } catch {
       alert('PDF 생성 중 오류가 발생했습니다.');
     } finally {
       setEditProgress('');
@@ -1797,12 +1797,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       await navigator.clipboard.write([item]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) { 
+    } catch { 
         try {
             await navigator.clipboard.writeText(applyInlineStylesForNaver(localHtml));
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        } catch (e) { console.error(e); }
+        } catch { console.error(_e); }
     }
   };
 
@@ -1875,7 +1875,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       if (newSrc) img.setAttribute('src', newSrc);
                     });
                     workingHtml = doc.body.innerHTML;
-                  } catch (e) {
+                  } catch {
                     workingHtml = workingHtml.replace(/\[IMG_\d+\]/g, '');
                   }
               }

@@ -1,22 +1,23 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
+import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript } from "../types";
 import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
 // 🚀 콘텐츠 최적화 시스템
-import { optimizePrompt, estimateTokens } from "../utils/promptOptimizer";
+// 프롬프트 최적화 (향후 활용 가능성 있음)
+import { optimizePrompt as _optimizePrompt, estimateTokens as _estimateTokens } from "../utils/promptOptimizer";
 import { 
-  generateHumanWritingPrompt, 
+  generateHumanWritingPrompt as _generateHumanWritingPrompt, 
   detectAiSmell, 
   HUMAN_WRITING_RULES, 
   MEDICAL_LAW_HUMAN_PROMPT, 
-  IMAGE_TEXT_MEDICAL_LAW,  // 🖼️ 이미지 텍스트용 의료광고법 (통합)
+  IMAGE_TEXT_MEDICAL_LAW as _IMAGE_TEXT_MEDICAL_LAW,  // 향후 활용 가능
   FEW_SHOT_EXAMPLES,
   CATEGORY_SPECIFIC_PROMPTS 
 } from "../utils/humanWritingPrompts";
-import { autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
-import { contentCache } from "../utils/contentCache";
+import { autoFixMedicalLaw as _autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
+import { contentCache as _contentCache } from "../utils/contentCache";
 
-// 현재 년도를 동적으로 가져오기
-const CURRENT_YEAR = new Date().getFullYear();
+// 현재 년도 - getWritingStylePrompts()에서 동적으로 사용
+const _CURRENT_YEAR = new Date().getFullYear();
 
 const getAiClient = () => {
   // 1순위: Cloudflare Pages 환경변수 (빌드 시 주입됨)
@@ -212,8 +213,8 @@ const buildFrameBlock = (referenceImage?: string, copyMode?: boolean): string =>
   return copyMode ? FRAME_FROM_REFERENCE_COPY : FRAME_FROM_REFERENCE_RECOLOR;
 };
 
-// 공통 규칙 (간결화)
-const IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
+// 공통 규칙 (간결화) - 향후 활용 가능
+const _IMAGE_TEXT_RULES = `[규칙] 한국어만, 광고/로고/해시태그 금지`;
 
 // 스타일 이름 (UI 표시용)
 export const STYLE_NAMES: Record<ImageStyle, string> = {
@@ -401,7 +402,7 @@ const integrateAiSmellToFactCheck = (
 
 // 글 스타일별 프롬프트 (의료법 100% 준수) - 함수로 변경하여 현재 연도 동적 반영
 const getWritingStylePrompts = (): Record<WritingStyle, string> => {
-  const year = new Date().getFullYear();
+  const _year = new Date().getFullYear(); // 향후 연도별 메시지에 활용 가능
   return {
   // [가이드] 전문가형: 의학 지식 깊이 강조하되 권위적이지 않은 전문성
   expert: `
@@ -1150,7 +1151,7 @@ const searchNaverNews = async (query: string, display: number = 10): Promise<{ t
 
 // 뉴스 검색 전용 함수 - 네이버 우선, Gemini 폴백
 // 허용 도메인: 연합뉴스, 중앙일보, 조선일보, 동아일보, 한겨레, 경향신문, KBS, MBC, SBS 등 신뢰할 수 있는 언론사
-const searchNewsForTrends = async (category: string, month: number): Promise<string> => {
+const searchNewsForTrends = async (category: string, _month: number): Promise<string> => {
   // 진료과별 뉴스 검색 키워드
   const categoryNewsKeywords: Record<string, string> = {
     '정형외과': '관절 통증 OR 허리디스크 OR 어깨 통증',
@@ -1344,9 +1345,9 @@ export const recommendSeoTitles = async (topic: string, keywords: string, postTy
   const seasons = ['겨울', '겨울', '봄', '봄', '봄', '여름', '여름', '여름', '가을', '가을', '가을', '겨울'];
   const currentSeason = seasons[currentMonth - 1];
   
-  const contentTypeDesc = postType === 'card_news' 
+  const _contentTypeDesc = postType === 'card_news' 
     ? '인스타그램/네이버 카드뉴스' 
-    : '네이버 블로그';
+    : '네이버 블로그'; // 향후 프롬프트에 활용 가능
   
   const lengthGuide = postType === 'card_news'
     ? '15~25자 이내 (카드뉴스 표지 최적화)'
@@ -2209,15 +2210,15 @@ const assembleCardNewsHtml = (
   const borderRadius = styleConfig?.borderRadius || '24px';
   const boxShadow = styleConfig?.boxShadow || '0 4px 16px rgba(0,0,0,0.08)';
   const borderWidth = styleConfig?.borderWidth || '0';
-  const padding = styleConfig?.padding || '32px 28px';
+  const _padding = styleConfig?.padding || '32px 28px';
   
-  const subtitle = {
+  const _subtitle = {
     color: styleConfig?.subtitleStyle?.color || accentColor,
     fontSize: styleConfig?.subtitleStyle?.fontSize || '14px',
     fontWeight: styleConfig?.subtitleStyle?.fontWeight || '700'
   };
   
-  const mainTitle = {
+  const _mainTitle = {
     color: styleConfig?.mainTitleStyle?.color || '#1E293B',
     fontSize: styleConfig?.mainTitleStyle?.fontSize || '26px',
     fontWeight: styleConfig?.mainTitleStyle?.fontWeight || '900'
@@ -2228,19 +2229,19 @@ const assembleCardNewsHtml = (
     backgroundColor: styleConfig?.highlightStyle?.backgroundColor || 'transparent'
   };
   
-  const desc = {
+  const _desc = {
     color: styleConfig?.descStyle?.color || '#475569',
     fontSize: styleConfig?.descStyle?.fontSize || '15px'
   };
   
-  const tag = {
+  const _tag = {
     backgroundColor: styleConfig?.tagStyle?.backgroundColor || `${accentColor}15`,
     color: styleConfig?.tagStyle?.color || accentColor,
     borderRadius: styleConfig?.tagStyle?.borderRadius || '20px'
   };
   
-  // 브라우저 윈도우 버튼 HTML (분석된 스타일에 있으면 적용)
-  const windowButtonsHtml = styleConfig?.hasWindowButtons ? `
+  // 브라우저 윈도우 버튼 HTML (분석된 스타일에 있으면 적용) - 향후 사용 가능
+  const _windowButtonsHtml = styleConfig?.hasWindowButtons ? `
     <div class="window-buttons" style="display: flex; gap: 8px; padding: 12px 16px;">
       <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[0] || '#FF5F57'};"></span>
       <span style="width: 12px; height: 12px; border-radius: 50%; background: ${styleConfig?.windowButtonColors?.[1] || '#FFBD2E'};"></span>
@@ -2252,7 +2253,7 @@ const assembleCardNewsHtml = (
     const highlightBg = highlight.backgroundColor !== 'transparent' 
       ? `background: ${highlight.backgroundColor}; padding: 2px 6px; border-radius: 4px;` 
       : '';
-    const formattedTitle = slide.mainTitle
+    const _formattedTitle = slide.mainTitle
       .replace(/<highlight>/g, `<span class="card-highlight" style="color: ${highlight.color}; ${highlightBg}">`)
       .replace(/<\/highlight>/g, '</span>')
       .replace(/\n/g, '<br/>');
@@ -2441,8 +2442,8 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
       const isLast = idx === slides.length - 1;
       const mainTitleClean = s.mainTitle.replace(/<\/?highlight>/g, '');
       
-      // 표지/마지막은 description 없음
-      const descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
+      // 표지/마지막은 description 없음 (향후 활용 가능)
+      const _descPart = (isFirst || isLast) ? '' : (s.description ? `, "${s.description}"` : '');
       
       // 🔧 imagePrompt: 사용자에게 보여줄 핵심 정보만! (영어 지시문은 생성 시 자동 추가)
       // 🌐 스타일 정보도 한국어로 포함 (번역된 커스텀 스타일 또는 기본 스타일)
@@ -2501,8 +2502,8 @@ mainTitle: "${mainTitleClean}"${descText}
   }
 };
 
-// [기존 호환] 이미지만 생성하는 프롬프트 에이전트
-const imagePromptAgent = async (
+// [기존 호환] 이미지만 생성하는 프롬프트 에이전트 (향후 활용 가능)
+const _imagePromptAgent = async (
   slides: SlideStory[],
   imageStyle: ImageStyle,
   category: string
@@ -3066,16 +3067,16 @@ export const generateBlogPostText = async (request: GenerationRequest, onProgres
       return parts.join('; ');
     };
     
-    const coverInlineStyle = generateInlineStyle(coverStyle);
-    const contentInlineStyle = generateInlineStyle(contentStyle);
+    const _coverInlineStyle = generateInlineStyle(coverStyle);
+    const _contentInlineStyle = generateInlineStyle(contentStyle);
     const coverTitleStyle = generateTitleStyle(coverStyle);
-    const coverHighlightStyle = generateHighlightStyle(coverStyle);
+    const _coverHighlightStyle = generateHighlightStyle(coverStyle);
     const coverSubtitleStyle = generateSubtitleStyle(coverStyle);
-    const coverTagStyle = generateTagStyle(coverStyle);
+    const _coverTagStyle = generateTagStyle(coverStyle);
     const contentTitleStyle = generateTitleStyle(contentStyle);
-    const contentHighlightStyle = generateHighlightStyle(contentStyle);
+    const _contentHighlightStyle = generateHighlightStyle(contentStyle);
     const contentSubtitleStyle = generateSubtitleStyle(contentStyle);
-    const contentTagStyle = generateTagStyle(contentStyle);
+    const _contentTagStyle = generateTagStyle(contentStyle);
     
     // 분석된 배경색을 CSS로 변환
     const bgColor = coverStyle.backgroundColor || contentStyle.backgroundColor || '#E8F4FD';
@@ -3141,11 +3142,11 @@ style 속성에 background: ${bgGradient}; 반드시 포함!
   }
 
   const targetImageCount = request.imageCount ?? 1;
-  const imageMarkers = targetImageCount > 0 
+  const _imageMarkers = targetImageCount > 0 
     ? Array.from({length: targetImageCount}, (_, i) => `[IMG_${i+1}]`).join(', ')
-    : '';
+    : ''; // 향후 이미지 위치 지정에 활용 가능
   const writingStyle = request.writingStyle || 'empathy'; // 기본값: 공감형
-  const writingStylePrompt = getWritingStylePrompts()[writingStyle];
+  const _writingStylePrompt = getWritingStylePrompts()[writingStyle]; // 향후 스타일 프롬프트에 활용 가능
   const imageStyle = request.imageStyle || 'illustration'; // 기본값: 3D 일러스트
   
   // 학습된 말투 스타일 적용
@@ -3552,7 +3553,7 @@ ${FEW_SHOT_EXAMPLES}
 
   try {
     // GPT 제거 - Gemini만 사용
-    const providerSettings = getAiProviderSettings();
+    const _providerSettings = getAiProviderSettings(); // 향후 다중 프로바이더 지원 시 활용
     let result: any;
 
     // Gemini 사용
@@ -3688,7 +3689,7 @@ ${FEW_SHOT_EXAMPLES}
           
           const cleanedText = jsonMatch[1].trim();
           result = JSON.parse(cleanedText);
-        } catch (parseError) {
+        } catch {
           console.warn('⚠️ JSON 파싱 실패, 원본 텍스트 일부:', rawText.substring(0, 200));
           // 빈 객체로 폴백
           result = {
@@ -4000,8 +4001,8 @@ ${JSON.stringify(searchResults, null, 2)}
     console.log('📍 프롬프트 길이:', (isCardNews ? cardNewsPrompt : blogPrompt).length);
     console.log('📍 시스템 프롬프트(검색 결과) 길이:', JSON.stringify(searchResults, null, 2).length);
     
-    // 🚀 새로운 단계별 처리 시스템 사용
-    const contextData = `[📚 검색 결과 - 최신 정보]
+    // 🚀 새로운 단계별 처리 시스템 사용 (향후 컨텍스트 확장 시 활용)
+    const _contextData = `[📚 검색 결과 - 최신 정보]
 
 아래는 Google Search로 수집한 최신 정보입니다.
 신뢰할 수 있는 출처의 정보를 우선적으로 활용하세요.
@@ -4772,7 +4773,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       .trim()
       .substring(0, 100); // alt 텍스트 길이 제한
     
-    const cardSlides = images.map((img, idx) => {
+    const cardSlides = images.map((img, _idx) => {
       if (img.data) {
         return `
           <div class="card-slide" style="border-radius: 24px; overflow: hidden; aspect-ratio: 1/1; box-shadow: 0 4px 16px rgba(0,0,0,0.08);">
@@ -5004,11 +5005,11 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     
     if (h3Tags.length > 0) {
       // 각 h3 뒤의 첫 번째 </p> 다음에 이미지 마커 삽입
-      let h3Count = 0;
+      let _h3Count = 0; // 디버깅용 카운터
       body = body.replace(
         /(<h3[^>]*>.*?<\/h3>[\s\S]*?<\/p>)/gi,
         (match: string) => {
-          h3Count++;
+          _h3Count++;
           if (imgIndex <= images.length) {
             const marker = `\n<div class="content-image-wrapper">[IMG_${imgIndex}]</div>\n`;
             imgIndex++;

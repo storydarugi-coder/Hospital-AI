@@ -83,7 +83,7 @@ app.post('/api/openai-chat', async (c) => {
 })
 
 // OpenAI 프록시 OPTIONS (CORS preflight)
-app.options('/api/openai-chat', (c) => {
+app.options('/api/openai-chat', (_c) => {
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': '*',

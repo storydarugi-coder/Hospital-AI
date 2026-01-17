@@ -73,7 +73,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
         // 로그인 성공
         onNavigate('app');
       }
-    } catch (err: any) {
+    } catch {
       setError('로그인에 실패했습니다. 다시 시도해주세요.');
     }
     setIsLoading(false);
@@ -132,7 +132,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
           setName('');
         }
       }
-    } catch (err: any) {
+    } catch {
       setError('회원가입에 실패했습니다. 다시 시도해주세요.');
     }
     setIsLoading(false);
@@ -154,7 +154,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
       }
       
       setMessage('비밀번호 재설정 링크가 이메일로 전송되었습니다.');
-    } catch (err: any) {
+    } catch {
       setError('이메일 전송에 실패했습니다.');
     }
     setIsLoading(false);
@@ -179,7 +179,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
         setError('Google 로그인 설정이 필요합니다. Supabase 대시보드에서 Google OAuth를 활성화해주세요.');
       }
       // OAuth는 리다이렉트되므로 여기서 로딩 해제 안함
-    } catch (err: any) {
+    } catch {
       setError('소셜 로그인에 실패했습니다.');
       setIsLoading(false);
     }

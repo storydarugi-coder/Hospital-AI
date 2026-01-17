@@ -123,7 +123,7 @@ export const saveApiKeys = async (geminiKey?: string, openaiKey?: string): Promi
       throw new Error(`서버 응답 오류: ${response.status}`);
     }
 
-    const result = await response.json();
+    await response.json(); // 응답 확인용
     return {
       success: true,
     };

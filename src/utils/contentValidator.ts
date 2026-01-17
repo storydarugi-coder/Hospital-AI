@@ -8,7 +8,7 @@
  */
 
 import { GeneratedContent } from '../types';
-import { MedicalFactCheckReport, checkContentFacts, normalizeSearchResults } from './factChecker';
+import { MedicalFactCheckReport, checkContentFacts, normalizeSearchResults as _normalizeSearchResults } from './factChecker';
 
 export interface ValidationResult {
   isValid: boolean;

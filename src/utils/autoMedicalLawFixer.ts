@@ -15,8 +15,8 @@ const PROHIBITED_PATTERNS = {
   testimonial: ['치료 후기', '환자 후기', '치료 사례', '완치 사례', '성공 사례', '치료 경험담'],
 };
 
-// 신뢰할 수 있는 출처 (사용하지 않으면 빈 배열)
-const TRUSTED_SOURCES: string[] = [];
+// 신뢰할 수 있는 출처 (향후 출처 검증 기능에 활용)
+const _TRUSTED_SOURCES: string[] = [];
 
 export interface FixResult {
   originalText: string;
