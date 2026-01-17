@@ -677,7 +677,7 @@ export const recommendCardNewsPrompt = async (
       model: 'gemini-3-pro-preview',
       contents: `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
 
-다음 카드뉴스 텍스트에 어울리는 **배경 이미지 내용**만 추천해주세요.
+다음 카드뉴스 텍스트에 어울리는 **배경 이미지 내용**을 **한국어로** 추천해주세요.
 
 [카드뉴스 텍스트]
 - 부제: "${subtitle || '없음'}"
@@ -691,19 +691,24 @@ ${styleKeywords}
 subtitle: "${subtitle || ''}"
 mainTitle: "${mainTitle || ''}"
 ${description ? `description: "${description}"` : ''}
-비주얼: (여기에 배경 이미지 내용만 작성)
+비주얼: (여기에 배경 이미지 내용만 한국어로 작성)
+
+[🚨 프롬프트 언어 규칙 - 반드시 준수!]
+- 모든 프롬프트는 **한국어**로만 작성하세요!
+- 영어 프롬프트 금지! (DSLR, 3D render, illustration 등 영어 금지)
+- 예: "3D 일러스트, 파스텔톤 배경" (✅) vs "3D illustration, pastel background" (❌)
 
 [규칙]
 1. subtitle, mainTitle, description은 위 텍스트 그대로 유지
-2. "비주얼:" 부분에는 **이미지에 그릴 대상/내용만** 작성 (30자 이내)
-3. ${isCustomStyle ? `⚠️ 중요: 그림체/스타일은 "${customStylePrompt}"로 이미 지정되어 있으므로, 비주얼에는 "무엇을 그릴지"만 작성 (수채화, 연필, 볼펜 등 스타일 언급 금지!)` : '비주얼에 스타일과 내용을 함께 작성'}
+2. "비주얼:" 부분에는 **이미지에 그릴 대상/내용만** 한국어로 작성 (30자 이내)
+3. ${isCustomStyle ? `⚠️ 중요: 그림체/스타일은 "${customStylePrompt}"로 이미 지정되어 있으므로, 비주얼에는 "무엇을 그릴지"만 작성 (수채화, 연필, 볼펜 등 스타일 언급 금지!)` : '비주얼에 스타일과 내용을 함께 한국어로 작성'}
 4. 예: "심장 아이콘과 파란 그라데이션 배경", "병원에서 상담받는 환자"
 
 [의료광고법 준수 - 이미지 텍스트에도 적용!]
 🚨 금지: "완치", "상담하세요", "방문하세요", "조기 발견", "전문의"
 ✅ 허용: 증상명, 질환명, 질문형 제목, 정보 전달
 
-위 형식대로만 출력하세요. 다른 설명 없이!`,
+위 형식대로만 한국어로 출력하세요. 다른 설명 없이!`,
       config: {
         responseMimeType: "text/plain"
       }
@@ -3438,7 +3443,13 @@ ${FEW_SHOT_EXAMPLES}
     <p class="card-main-title">스타틴<br/><span class="card-highlight">중단 금지!</span></p>
     
     [🎨 이미지 프롬프트 작성 규칙 - 매우 중요!]
-    **imagePrompts 배열에 들어갈 프롬프트는 반드시 한국어로 작성하세요!**
+    
+    🚨🚨🚨 **프롬프트 언어: 반드시 한국어로!** 🚨🚨🚨
+    - imagePrompts 배열의 모든 프롬프트는 **100% 한국어**로 작성!
+    - 영어 단어 사용 금지! (3D render → "3D 렌더", illustration → "일러스트", DSLR → "DSLR" 예외)
+    - 예: "밝은 병원 배경의 3D 일러스트, 파스텔톤, 부드러운 조명" (✅)
+    - 예: "Bright hospital background, 3D illustration, pastel tones" (❌ 금지!)
+    
     이미지 스타일: ${customImagePrompt ? `커스텀: ${customImagePrompt}` : imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D 해부학' : '실사 사진'}
     
     **📝 카드뉴스 이미지 텍스트 규칙:**
@@ -3446,13 +3457,13 @@ ${FEW_SHOT_EXAMPLES}
     - 한글, 숫자 위주로
     - 로고, 워터마크 금지
     
-    각 이미지 프롬프트에 반드시 포함할 스타일 키워드:
+    각 이미지 프롬프트에 반드시 포함할 스타일 키워드 (한국어로!):
     ${imageStyleGuide}
     
     ${customImagePrompt ? `**⚠️ 커스텀 스타일 필수 적용!**
     사용자가 "${customImagePrompt}" 스타일을 요청했습니다.
-    모든 이미지 프롬프트에 이 스타일 키워드를 반드시 포함하세요!
-    예시: "[장면 묘사], ${customImagePrompt}"` : `예시 (${imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D' : '실사 사진'} 스타일):
+    모든 이미지 프롬프트에 이 스타일 키워드를 반드시 포함하세요! (한국어로!)
+    예시: "[장면 묘사], ${customImagePrompt}"` : `예시 (${imageStyle === 'illustration' ? '3D 일러스트' : imageStyle === 'medical' ? '의학 3D' : '실사 사진'} 스타일) - 한국어로 작성!
     ${imageStyle === 'illustration' 
       ? '- "밝은 병원 배경의 건강 인포그래픽, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
       : imageStyle === 'medical'
