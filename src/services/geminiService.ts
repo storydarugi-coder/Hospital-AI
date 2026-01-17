@@ -4767,7 +4767,7 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     const cleanAltText = (text: string) => text
       .replace(/[A-Za-z0-9+/=_-]{10,}/g, '')
       .replace(/[a-zA-Z0-9]{5,}\/[a-zA-Z0-9/]+/g, '')
-      .replace(/[^\uAC00-\uD7AF가-힣a-zA-Z0-9\s.,!?~():\-]+/g, '')
+      .replace(/[^\uAC00-\uD7AF가-힣a-zA-Z0-9\s.,!?~():-]+/g, '')
       .replace(/\s+/g, ' ')
       .trim()
       .substring(0, 100); // alt 텍스트 길이 제한
@@ -5428,7 +5428,7 @@ ${userInstruction}
 
 JSON 형식으로 답변:
 {
-  "newCardHtml": "<div class=\"card-slide\">...[IMG_${cardIndex + 1}]...</div>",
+  "newCardHtml": "<div class='card-slide'>...[IMG_${cardIndex + 1}]...</div>",
   "newImagePrompt": "1:1 정사각형 카드뉴스, 한국어 이미지 프롬프트...",
   "message": "수정 완료 메시지"
 }
@@ -5732,7 +5732,10 @@ ${userInstruction}
         message: finalMessage,
         aiSmellCheck // AI 냄새 검사 결과도 반환
       };
-    } catch (error) { throw error; }
+    } catch (error) { 
+      console.error('❌ modifyPostWithAI 에러:', error);
+      throw error; 
+    }
 };
 
 // ============================================

@@ -414,7 +414,7 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   });
   
   // 2. AI 특유의 구조적 패턴 체크
-  if (plainText.match(/이처럼|따라서|결론적으로|요약하면/g)?.length! >= 3) {
+  if ((plainText.match(/이처럼|따라서|결론적으로|요약하면/g)?.length ?? 0) >= 3) {
     deductions += 15;
     issues.push({
       type: 'structure',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 
@@ -62,36 +62,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     title: ''
   });
 
-  // 관리자 인증 확인
-  useEffect(() => {
-    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true);
-      // 이미 인증된 경우도 콜백 호출
-      onAdminVerified?.();
-    }
-  }, [onAdminVerified]);
-
-  // API 키 로드
-  useEffect(() => {
-    if (isAuthenticated) {
-      // GLOBAL_ 접두사로 전역 API 키 관리
-      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
-      const globalPerplexity = localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY');
-
-      setConfigValues({
-        geminiKey: globalGemini || '',
-        perplexityKey: globalPerplexity || ''
-      });
-      
-      // 데이터 로드
-      loadUsersAndPayments();
-    }
-  }, [isAuthenticated]);
-
   const [dataError, setDataError] = useState<string>('');
   
-  const loadUsersAndPayments = async () => {
+  // 데이터 로드 함수 (useEffect보다 먼저 선언)
+  const loadUsersAndPayments = useCallback(async () => {
     setLoadingData(true);
     setDataError('');
     
@@ -190,7 +164,34 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       setDataError(`데이터 로드 오류: ${String(err)}`);
     }
     setLoadingData(false);
-  };
+  }, []);
+
+  // 관리자 인증 확인
+  useEffect(() => {
+    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
+    if (adminAuth === 'true') {
+      setIsAuthenticated(true);
+      // 이미 인증된 경우도 콜백 호출
+      onAdminVerified?.();
+    }
+  }, [onAdminVerified]);
+
+  // API 키 로드
+  useEffect(() => {
+    if (isAuthenticated) {
+      // GLOBAL_ 접두사로 전역 API 키 관리
+      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
+      const globalPerplexity = localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY');
+
+      setConfigValues({
+        geminiKey: globalGemini || '',
+        perplexityKey: globalPerplexity || ''
+      });
+      
+      // 데이터 로드
+      loadUsersAndPayments();
+    }
+  }, [isAuthenticated, loadUsersAndPayments]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();

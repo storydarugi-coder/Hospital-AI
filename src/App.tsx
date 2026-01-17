@@ -3,7 +3,7 @@ import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } fr
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import { saveContentToServer, deleteAllContent } from './services/apiService';
 import InputForm from './components/InputForm';
-import { supabase, signOut, deleteAccount } from './lib/supabase';
+import { supabase, signOut } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -287,8 +287,8 @@ const App: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // 로그아웃 핸들러
-  const handleLogout = async () => {
+  // 로그아웃 핸들러 (TODO: UI에 연결 필요)
+  const _handleLogout = async () => {
     try {
       await signOut();
     } catch (error) {
