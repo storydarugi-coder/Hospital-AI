@@ -36,11 +36,11 @@ const App: React.FC = () => {
   });
   
   // Supabase 인증 상태
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [_supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [_userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
+  const [_isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
@@ -51,7 +51,7 @@ const App: React.FC = () => {
   const [pendingRequest, setPendingRequest] = useState<GenerationRequest | null>(null);
   const [scriptProgress, setScriptProgress] = useState<string>('');
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
+  const [_currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
   
 
   

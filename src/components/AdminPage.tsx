@@ -33,14 +33,26 @@ interface AdminPageProps {
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ADMIN_AUTHENTICATED') === 'true';
+    }
+    return false;
+  });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments'>('api');
   
-  const [configValues, setConfigValues] = useState({
-    geminiKey: '',
-    perplexityKey: ''
+  // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
+  const [configValues, setConfigValues] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return {
+        geminiKey: localStorage.getItem('GLOBAL_GEMINI_API_KEY') || '',
+        perplexityKey: localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY') || ''
+      };
+    }
+    return { geminiKey: '', perplexityKey: '' };
   });
   const [saved, setSaved] = useState(false);
   
@@ -166,31 +178,18 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setLoadingData(false);
   }, []);
 
-  // 관리자 인증 확인
-  useEffect(() => {
-    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true);
-      // 이미 인증된 경우도 콜백 호출
-      onAdminVerified?.();
-    }
-  }, [onAdminVerified]);
-
-  // API 키 로드
+  // 관리자 인증 확인 - 이미 인증된 경우 콜백만 호출
   useEffect(() => {
     if (isAuthenticated) {
-      // GLOBAL_ 접두사로 전역 API 키 관리
-      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
-      const globalPerplexity = localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY');
-
-      setConfigValues({
-        geminiKey: globalGemini || '',
-        perplexityKey: globalPerplexity || ''
-      });
-      
-      // 데이터 로드
-      loadUsersAndPayments();
+      onAdminVerified?.();
     }
+  }, [isAuthenticated, onAdminVerified]);
+
+  // 데이터 로드 (인증 상태 변경 시) - 비동기 콜백 내 setState는 안전함
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadUsersAndPayments();
   }, [isAuthenticated, loadUsersAndPayments]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
