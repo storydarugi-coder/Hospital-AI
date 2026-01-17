@@ -562,4 +562,5 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   );
 };
 
-export default InputForm;
+// 🚀 성능 개선: React.memo로 불필요한 리렌더 방지
+export default React.memo(InputForm);

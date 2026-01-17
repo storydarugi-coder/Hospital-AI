@@ -1,6 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 import { getStagePrompt, SYSTEM_PROMPT as GPT52_SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
+// 🚀 콘텐츠 최적화 시스템
+import { optimizePrompt, estimateTokens } from "../utils/promptOptimizer";
+import { generateHumanWritingPrompt, detectAiSmell } from "../utils/humanWritingPrompts";
+import { autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
+import { contentCache } from "../utils/contentCache";
 
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
@@ -5923,7 +5928,7 @@ ${JSON.stringify(searchResults, null, 2)}
 {
   "title": "제목 (상태 점검형 질문)",
   "content": "HTML 형식의 본문 내용 (크로스체크된 정보 우선 사용)",
-  "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
+  ${targetImageCount > 0 ? '"imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],' : '⚠️ imagePrompts 필드 생략 - 이미지 0장 설정됨'}
   "fact_check": {
     "fact_score": 0-100 (높을수록 좋음),
     "safety_score": 0-100 (높을수록 좋음),
@@ -6570,10 +6575,17 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
     const referenceImage = request.coverStyleImage || request.contentStyleImage;
     const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
-    
+
+    // imagePrompts가 없으면 빈 배열로 초기화
+    if (!agentResult.imagePrompts || !Array.isArray(agentResult.imagePrompts)) {
+      agentResult.imagePrompts = [];
+    }
+
     // • 디버그: imagePrompts 내용 확인
-    console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
-    
+    if (agentResult.imagePrompts.length > 0) {
+      console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
+    }
+
     // 순차 생성으로 진행률 표시
     const images: { index: number; data: string; prompt: string }[] = [];
     for (let i = 0; i < Math.min(maxImages, agentResult.imagePrompts.length); i++) {
@@ -6685,8 +6697,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   // 카드뉴스: generateSingleImage (텍스트 포함, 브라우저 프레임, 1:1)
   // ⚠️ 이미지 0장이면 생성 스킵
   let images: { index: number; data: string; prompt: string }[] = [];
-  
-  if (maxImages > 0) {
+
+  // imagePrompts가 없으면 빈 배열로 초기화 (imageCount가 0일 때 AI가 생략할 수 있음)
+  if (!textData.imagePrompts || !Array.isArray(textData.imagePrompts)) {
+    textData.imagePrompts = [];
+  }
+
+  if (maxImages > 0 && textData.imagePrompts.length > 0) {
     // 순차 생성으로 진행률 표시
     for (let i = 0; i < Math.min(maxImages, textData.imagePrompts.length); i++) {
       safeProgress(`🎨 이미지 ${i + 1}/${maxImages}장 생성 중...`);
