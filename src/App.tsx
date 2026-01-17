@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
-import { saveContentToServer } from './services/apiService';
+import { saveContentToServer, deleteAllContent } from './services/apiService';
 import InputForm from './components/InputForm';
 import { supabase, signOut, deleteAccount } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -362,7 +362,15 @@ const App: React.FC = () => {
       localStorage.removeItem('hospitalai_autosave_history');
       localStorage.removeItem('hospitalai_card_prompt_history');
       localStorage.removeItem('hospitalai_card_ref_image');
-      console.log('🗑️ 이전 저장본 삭제 완료');
+      console.log('🗑️ 로컬 저장본 삭제 완료');
+      
+      // 🆕 서버 저장본도 삭제
+      const deleteResult = await deleteAllContent();
+      if (deleteResult.success) {
+        console.log('🗑️ 서버 저장본 삭제 완료!');
+      } else {
+        console.warn('⚠️ 서버 저장본 삭제 실패:', deleteResult.error);
+      }
     } catch (e) {
       console.warn('저장본 삭제 실패:', e);
     }

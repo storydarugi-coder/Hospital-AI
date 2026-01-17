@@ -55,6 +55,36 @@ export const saveContentToServer = async (data: SaveContentRequest): Promise<Sav
 };
 
 /**
+ * 저장된 모든 콘텐츠 삭제 (새 글 생성 전 호출)
+ */
+export const deleteAllContent = async (): Promise<SaveContentResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/content/delete-all`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`서버 응답 오류: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return {
+      success: true,
+      id: result.deletedCount?.toString(),
+    };
+  } catch (error: any) {
+    console.error('콘텐츠 삭제 실패:', error);
+    return {
+      success: false,
+      error: error.message || '삭제 중 오류가 발생했습니다.',
+    };
+  }
+};
+
+/**
  * 저장된 콘텐츠 목록 가져오기
  */
 export const getContentList = async (): Promise<any[]> => {
