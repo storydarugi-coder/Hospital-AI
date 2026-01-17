@@ -116,10 +116,11 @@ describe('cached decorator - Integration Tests', () => {
   });
 
   it('should cache async function results', async () => {
-    const expensiveFunction = cached('test-func', async (input: string) => {
+    const originalFunc = async (input: string) => {
       callCount++;
       return `result-${input}`;
-    });
+    };
+    const expensiveFunction = cached(originalFunc);
     
     // First call
     const result1 = await expensiveFunction('abc');
@@ -133,10 +134,11 @@ describe('cached decorator - Integration Tests', () => {
   });
 
   it('should handle different inputs separately', async () => {
-    const func = cached('test-func', async (input: string) => {
+    const originalFunc = async (input: string) => {
       callCount++;
       return `result-${input}`;
-    });
+    };
+    const func = cached(originalFunc);
     
     await func('input1');
     await func('input2');
@@ -145,10 +147,11 @@ describe('cached decorator - Integration Tests', () => {
   });
 
   it('should respect custom TTL', async () => {
-    const func = cached('short-cache', async (input: string) => {
+    const originalFunc = async (input: string) => {
       callCount++;
       return `result-${input}`;
-    }, { ttl: 50 });
+    };
+    const func = cached(originalFunc, { ttl: 50 });
     
     await func('test');
     expect(callCount).toBe(1);
@@ -166,9 +169,10 @@ describe('cached decorator - Integration Tests', () => {
   });
 
   it('should handle errors correctly', async () => {
-    const errorFunc = cached('error-func', async () => {
+    const originalErrorFunc = async () => {
       throw new Error('Test error');
-    });
+    };
+    const errorFunc = cached(originalErrorFunc);
     
     await expect(errorFunc()).rejects.toThrow('Test error');
   });

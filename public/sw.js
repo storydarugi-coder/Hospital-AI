@@ -5,14 +5,23 @@
  * - PWA 지원
  */
 
-const CACHE_NAME = 'hospitalai-v1';
-const RUNTIME_CACHE = 'hospitalai-runtime-v1';
+// 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
+const CACHE_VERSION = 'v6-' + '20260116d';
+const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
+const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
-// 캐시할 정적 자원
+// 캐시할 정적 자원 (해시가 바뀌는 JS/CSS와 index.html 제외!)
 const STATIC_ASSETS = [
-  '/',
-  '/static/client.js',
   '/manifest.json',
+];
+
+// 캐시하지 않을 패턴 (해시가 포함된 빌드 파일 + index.html)
+const NO_CACHE_PATTERNS = [
+  /\/assets\/.*\.js$/,
+  /\/assets\/.*\.css$/,
+  /^\/$/, // index.html (루트)
+  /\/index\.html$/,
+  /\/#/, // hash routes
 ];
 
 // Service Worker 설치
@@ -37,8 +46,10 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Activating...');
   
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    (async () => {
+      // 모든 이전 캐시 삭제
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
             console.log('[SW] Deleting old cache:', cacheName);
@@ -46,11 +57,19 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+      
+      // 즉시 제어권 획득
+      await self.clients.claim();
+      
+      // 모든 클라이언트(탭)에 새로고침 메시지 전송
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach(client => {
+        client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+      });
+      
+      console.log('[SW] Activated and notified clients');
+    })()
   );
-  
-  // 즉시 제어권 획득
-  return self.clients.claim();
 });
 
 // Fetch 이벤트 처리 (캐시 전략)
@@ -58,8 +77,18 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
+  // GET 요청만 처리 (POST, PUT 등은 캐시 불가)
+  if (request.method !== 'GET') {
+    return;
+  }
+  
   // 같은 origin만 처리
   if (url.origin !== location.origin) {
+    return;
+  }
+  
+  // Cloudflare 내부 경로 무시
+  if (url.pathname.startsWith('/cdn-cgi/')) {
     return;
   }
   
@@ -76,8 +105,28 @@ self.addEventListener('fetch', (event) => {
 /**
  * 캐시 우선 전략 (Cache First)
  * - 정적 자원에 적합
+ * - 해시가 포함된 빌드 파일은 캐시하지 않음
  */
 async function cacheFirst(request) {
+  // 안전장치: GET 요청만 캐시 가능
+  if (request.method !== 'GET') {
+    return fetch(request);
+  }
+  
+  const url = new URL(request.url);
+  
+  // 해시가 포함된 빌드 파일은 항상 네트워크에서 가져옴 (캐시 X)
+  const shouldSkipCache = NO_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+  if (shouldSkipCache) {
+    console.log('[SW] Skip cache for hashed asset:', url.pathname);
+    try {
+      return await fetch(request);
+    } catch (error) {
+      console.error('[SW] Network fetch failed for asset:', error);
+      throw error;
+    }
+  }
+  
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
   

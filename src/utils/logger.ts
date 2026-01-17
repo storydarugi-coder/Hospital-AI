@@ -193,7 +193,7 @@ class Logger {
     try {
       const recentLogs = this.logs.slice(-20); // 최근 20개만
       localStorage.setItem('hospitalai_logs', JSON.stringify(recentLogs));
-    } catch (error) {
+    } catch {
       // LocalStorage 용량 초과 등
       console.warn('Failed to save logs to localStorage');
     }

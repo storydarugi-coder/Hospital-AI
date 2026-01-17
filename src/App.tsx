@@ -1,9 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
-import { saveContentToServer } from './services/apiService';
+import { saveContentToServer, deleteAllContent } from './services/apiService';
 import InputForm from './components/InputForm';
-import { supabase, signOut, deleteAccount } from './lib/supabase';
+import { supabase, signOut } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -36,11 +36,11 @@ const App: React.FC = () => {
   });
   
   // Supabase 인증 상태
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [_supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [_userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
+  const [_isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
@@ -51,7 +51,7 @@ const App: React.FC = () => {
   const [pendingRequest, setPendingRequest] = useState<GenerationRequest | null>(null);
   const [scriptProgress, setScriptProgress] = useState<string>('');
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
+  const [_currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
   
 
   
@@ -202,7 +202,7 @@ const App: React.FC = () => {
                 full_name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
                 avatar_url: session.user.user_metadata?.avatar_url || null,
                 created_at: new Date().toISOString()
-              }, { onConflict: 'id' });
+              } as any, { onConflict: 'id' });
               
               await supabase.from('subscriptions').upsert({
                 user_id: session.user.id,
@@ -210,7 +210,7 @@ const App: React.FC = () => {
                 credits_total: 3,
                 credits_used: 0,
                 expires_at: null
-              }, { onConflict: 'user_id' });
+              } as any, { onConflict: 'user_id' });
               
               console.log('✅ 프로필 자동 생성 완료:', session.user.email);
             }
@@ -287,8 +287,8 @@ const App: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // 로그아웃 핸들러
-  const handleLogout = async () => {
+  // 로그아웃 핸들러 (TODO: UI에 연결 필요)
+  const _handleLogout = async () => {
     try {
       await signOut();
     } catch (error) {
@@ -362,7 +362,15 @@ const App: React.FC = () => {
       localStorage.removeItem('hospitalai_autosave_history');
       localStorage.removeItem('hospitalai_card_prompt_history');
       localStorage.removeItem('hospitalai_card_ref_image');
-      console.log('🗑️ 이전 저장본 삭제 완료');
+      console.log('🗑️ 로컬 저장본 삭제 완료');
+      
+      // 🆕 서버 저장본도 삭제
+      const deleteResult = await deleteAllContent();
+      if (deleteResult.success) {
+        console.log('🗑️ 서버 저장본 삭제 완료!');
+      } else {
+        console.warn('⚠️ 서버 저장본 삭제 실패:', deleteResult.error);
+      }
     } catch (e) {
       console.warn('저장본 삭제 실패:', e);
     }
@@ -607,7 +615,7 @@ const App: React.FC = () => {
 
   // 로딩 중 (admin/pricing 페이지는 로딩 화면 없이 바로 표시)
   // app 페이지는 로딩 중에도 UI 표시 (apiKeyReady 체크에서 처리)
-  if (authLoading && currentPage !== 'admin' && currentPage !== 'pricing' && currentPage !== 'app') {
+  if (authLoading && currentPage !== 'admin' && (currentPage as string) !== 'pricing' && currentPage !== 'app') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">

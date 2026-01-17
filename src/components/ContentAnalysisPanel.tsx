@@ -22,6 +22,34 @@ interface ContentAnalysisPanelProps {
   getHighlightedHtml?: (html: string) => void;
 }
 
+// 점수 게이지 컴포넌트 (외부로 분리하여 매 렌더시 재생성 방지)
+const ScoreGauge = ({ score, label, color, darkMode }: { score: number; label: string; color: string; darkMode: boolean }) => (
+  <div className="flex flex-col items-center gap-1">
+    <div className="relative w-12 h-12">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          cx="24" cy="24" r="20"
+          fill="none"
+          stroke={darkMode ? '#374151' : '#E5E7EB'}
+          strokeWidth="4"
+        />
+        <circle
+          cx="24" cy="24" r="20"
+          fill="none"
+          stroke={color}
+          strokeWidth="4"
+          strokeDasharray={`${score * 1.256} 125.6`}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className={`absolute inset-0 flex items-center justify-center text-xs font-black ${darkMode ? 'text-white' : 'text-slate-700'}`}>
+        {score}
+      </span>
+    </div>
+    <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
+  </div>
+);
+
 const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
   html,
   title,
@@ -64,41 +92,13 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
     F: 'bg-red-500'
   };
   
-  // 심각도별 색상
-  const severityColors = {
+  // 심각도별 색상 (현재 미사용이지만 향후 확장용으로 유지)
+  const _severityColors = {
     critical: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
     high: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
     medium: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
     low: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' }
   };
-  
-  // 점수 게이지 컴포넌트
-  const ScoreGauge = ({ score, label, color }: { score: number; label: string; color: string }) => (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative w-12 h-12">
-        <svg className="w-full h-full transform -rotate-90">
-          <circle
-            cx="24" cy="24" r="20"
-            fill="none"
-            stroke={darkMode ? '#374151' : '#E5E7EB'}
-            strokeWidth="4"
-          />
-          <circle
-            cx="24" cy="24" r="20"
-            fill="none"
-            stroke={color}
-            strokeWidth="4"
-            strokeDasharray={`${score * 1.256} 125.6`}
-            strokeLinecap="round"
-          />
-        </svg>
-        <span className={`absolute inset-0 flex items-center justify-center text-xs font-black ${darkMode ? 'text-white' : 'text-slate-700'}`}>
-          {score}
-        </span>
-      </div>
-      <span className={`text-[10px] font-bold ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>{label}</span>
-    </div>
-  );
   
   // 최소화된 뷰
   if (!isExpanded) {
@@ -207,11 +207,13 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
           score={analysis.seo.totalScore} 
           label="SEO" 
           color={analysis.seo.totalScore >= 80 ? '#10B981' : analysis.seo.totalScore >= 60 ? '#F59E0B' : '#EF4444'}
+          darkMode={darkMode}
         />
         <ScoreGauge 
           score={analysis.aiSmell.totalScore} 
           label="자연스러움" 
           color={analysis.aiSmell.totalScore >= 80 ? '#10B981' : analysis.aiSmell.totalScore >= 60 ? '#F59E0B' : '#EF4444'}
+          darkMode={darkMode}
         />
       </div>
       
@@ -353,8 +355,8 @@ const ContentAnalysisPanel: React.FC<ContentAnalysisPanelProps> = ({
   );
 };
 
-// 금지어 카드 컴포넌트
-const ViolationCard: React.FC<{ violation: ScanResult; darkMode: boolean }> = ({ violation, darkMode }) => {
+// 금지어 카드 컴포넌트 (향후 금지어 상세 표시 UI에 활용)
+const _ViolationCard: React.FC<{ violation: ScanResult; darkMode: boolean }> = ({ violation, darkMode }) => {
   const severityLabels = {
     critical: '🚨 중대',
     high: '⚠️ 높음',

@@ -41,8 +41,15 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '혁신적', severity: 'high', replacement: ['새로운', '발전된'], reason: '과장 광고 금지', category: 'exaggeration' },
   { word: '타 병원', severity: 'high', replacement: ['(삭제)', '(삭제)'], reason: '비교 광고 금지', category: 'comparison' },
   { word: '다른 병원', severity: 'high', replacement: ['(삭제)', '(삭제)'], reason: '비교 광고 금지', category: 'comparison' },
-  { word: '어디보다', severity: 'high', replacement: ['(삭제)', '전문적으로'], reason: '비교 광고 금지', category: 'comparison' },
-  
+  { word: '어디보다', severity: 'high', replacement: ['(삭제)', '의료적으로'], reason: '비교 광고 금지', category: 'comparison' },
+  { word: '전문가', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '전문의', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '명의', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '베테랑', severity: 'high', replacement: ['경험 있는', '의료진'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '숙련된', severity: 'high', replacement: ['경험 있는', '의료진'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '전문적', severity: 'high', replacement: ['의료적인', '의학적인'], reason: '자격 강조 금지', category: 'exaggeration' },
+  { word: '전문', severity: 'high', replacement: ['의료진', '의사'], reason: '자격 강조 금지', category: 'exaggeration' },
+
   // ===== Medium: 주의 필요 =====
   { word: '골든타임', severity: 'medium', replacement: ['적절한 시기', '시기를 놓치지 않고'], reason: '공포 조장 금지', category: 'urgency' },
   { word: '즉시', severity: 'medium', replacement: ['가급적 빨리', '시간이 되실 때'], reason: '긴급성 과장 금지', category: 'urgency' },
@@ -51,10 +58,11 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '위험합니다', severity: 'medium', replacement: ['주의가 필요합니다', '살펴볼 필요가 있습니다'], reason: '공포 조장 금지', category: 'urgency' },
   { word: '서둘러', severity: 'medium', replacement: ['여유를 갖고', '시간이 되실 때'], reason: '긴급성 과장 금지', category: 'urgency' },
   { word: '방치하면', severity: 'medium', replacement: ['경과를 살펴보는 것도', '확인해보시는 것도'], reason: '공포 조장 금지', category: 'urgency' },
-  { word: '48시간', severity: 'medium', replacement: ['개인에 따라 차이', '상황에 따라 다름'], reason: '숫자 단정 금지', category: 'medical_law' },
-  { word: '24시간', severity: 'medium', replacement: ['개인에 따라 차이', '상황에 따라 다름'], reason: '숫자 단정 금지', category: 'medical_law' },
-  { word: '2~3일', severity: 'medium', replacement: ['개인에 따라 차이가 있습니다', '사람마다 다를 수 있습니다'], reason: '기간 단정 금지', category: 'medical_law' },
-  { word: '1주일', severity: 'medium', replacement: ['개인차가 있습니다', '상황에 따라 다릅니다'], reason: '기간 단정 금지', category: 'medical_law' },
+  // 🚨 숫자 관련: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '48시간', severity: 'critical', replacement: ['일정 시간', '상황에 따라'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '24시간', severity: 'critical', replacement: ['일정 시간', '상황에 따라'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '2~3일', severity: 'critical', replacement: ['며칠', '일정 기간'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
+  { word: '1주일', severity: 'critical', replacement: ['일정 기간', '며칠'], reason: '숫자 완전 금지 (P1)', category: 'medical_law' },
   
   // ===== Low: 권장 수정 =====
   { word: '환자', severity: 'low', replacement: ['내원하시는 분', '찾아주시는 분'], reason: '환자 표현 지양', category: 'medical_law' },
@@ -66,11 +74,13 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '진료 현장', severity: 'low', replacement: ['일반적으로', '임상에서'], reason: '의사 사칭 주의', category: 'first_person' },
   { word: '~란 무엇', severity: 'low', replacement: ['자주 언급되는 것 중 하나가', '이 시기에 거론되는'], reason: '정의형 금지', category: 'definition' },
   { word: '~이란', severity: 'low', replacement: ['자주 언급되는', '거론되는'], reason: '정의형 금지', category: 'definition' },
-  { word: '~해야 합니다', severity: 'low', replacement: ['~도움이 될 수 있습니다', '~방법이 있습니다'], reason: '강제성 표현 금지', category: 'urgency' },
+  // 🚨 행동 유도: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '~해야 합니다', severity: 'critical', replacement: ['~경향을 보입니다', '~경우가 있습니다'], reason: '행동 유도 완전 금지 (P1)', category: 'urgency' },
   { word: '가능성이 높', severity: 'low', replacement: ['언급되는 경우가 있습니다', '나타나는 경우도 있습니다'], reason: '판단 유도 금지', category: 'medical_law' },
-  { word: '의심', severity: 'low', replacement: ['살펴볼 필요가 있는', '확인해볼 만한'], reason: '진단 유도 금지', category: 'medical_law' },
-  { word: '진단', severity: 'low', replacement: ['확인', '상담'], reason: '진단 표현 주의', category: 'medical_law' },
-  { word: '판단', severity: 'low', replacement: ['확인', '살펴보는'], reason: '판단 유도 금지', category: 'medical_law' },
+  // 🚨 의료법 위반: P1 (critical)로 상향 - gpt52-prompts-staged.ts와 일관성 유지
+  { word: '의심', severity: 'critical', replacement: ['(사용 금지)'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
+  { word: '진단', severity: 'critical', replacement: ['(사용 금지)'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
+  { word: '판단', severity: 'critical', replacement: ['파악', '살펴보기'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
   { word: '체크', severity: 'low', replacement: ['확인', '살펴보기'], reason: '자가진단 유도 금지', category: 'medical_law' },
 ];
 
@@ -404,7 +414,7 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   });
   
   // 2. AI 특유의 구조적 패턴 체크
-  if (plainText.match(/이처럼|따라서|결론적으로|요약하면/g)?.length! >= 3) {
+  if ((plainText.match(/이처럼|따라서|결론적으로|요약하면/g)?.length ?? 0) >= 3) {
     deductions += 15;
     issues.push({
       type: 'structure',
@@ -463,7 +473,177 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
       fixSuggestion: '다른 구조로 풀어서 작성'
     });
   }
-  
+
+  // 7. 원 숫자 사용 체크 (AI 특유 패턴)
+  const circleNumbers = plainText.match(/[①②③④⑤⑥⑦⑧⑨⑩]/g) || [];
+  if (circleNumbers.length > 0) {
+    deductions += circleNumbers.length * 10;
+    issues.push({
+      type: 'structure',
+      description: `원 숫자 사용 (${circleNumbers.length}개) - AI 특유 표현`,
+      examples: circleNumbers.slice(0, 3),
+      severity: 'high',
+      fixSuggestion: '일반 숫자(1, 2, 3) 또는 한글(첫째, 둘째)로 변경'
+    });
+  }
+
+  // 8. 연결어 과다 체크 (문장 흐름 부자연스러움)
+  const conjunctionMatches = plainText.match(/그러나|하지만|그런데|그렇지만|그럼에도|한편|반면에/g) || [];
+  if (conjunctionMatches.length >= 5) {
+    deductions += (conjunctionMatches.length - 4) * 5;
+    issues.push({
+      type: 'structure',
+      description: `연결어 과다 (${conjunctionMatches.length}회) - 딱딱한 문체`,
+      examples: conjunctionMatches.slice(0, 3),
+      severity: 'medium',
+      fixSuggestion: '연결어 없이 자연스러운 흐름으로 작성 (일부 문장 통합)'
+    });
+  }
+
+  // 9. 강조 부사 과다 체크 (과장된 표현)
+  const emphasisMatches = plainText.match(/매우|굉장히|상당히|아주|너무|정말|극도로|심각하게/g) || [];
+  if (emphasisMatches.length >= 6) {
+    deductions += (emphasisMatches.length - 5) * 4;
+    issues.push({
+      type: 'expression',
+      description: `강조 부사 과다 (${emphasisMatches.length}회) - 과장된 느낌`,
+      examples: emphasisMatches.slice(0, 3),
+      severity: 'medium',
+      fixSuggestion: '강조 부사 줄이고 구체적 상황으로 표현 (예: "매우 많다" → "적지 않은 분들이", "상당히 높다" → "드물지 않게")'
+    });
+  }
+
+  // 10. 번역투 표현 체크 (영어 → 한국어 직역)
+  const translationPatterns = [
+    { pattern: /하는 것이[다|ㅂ니다|중요|필수|좋]/g, name: '~하는 것이다 (명사형 종결)' },
+    { pattern: /에 있어서/g, name: '~에 있어서' },
+    { pattern: /함으로써|하기 위해서는/g, name: '~함으로써/하기 위해서는' },
+    { pattern: /되어지|이루어지|여겨지/g, name: '피동태 과다 (되어지다)' },
+    { pattern: /을 통해|로 인해|에 의해/g, name: '~을 통해/로 인해/에 의해' }
+  ];
+
+  translationPatterns.forEach(({ pattern, name }) => {
+    const matches = plainText.match(pattern) || [];
+    if (matches.length >= 3) {
+      deductions += matches.length * 6;
+      issues.push({
+        type: 'structure',
+        description: `번역투 표현 "${name}" 과다 (${matches.length}회)`,
+        examples: matches.slice(0, 3),
+        severity: 'high',
+        fixSuggestion: '자연스러운 한국어로 변경 (예: "~하는 것이다" → "~습니다", "~에 있어서" → "~에서/때")'
+      });
+    }
+  });
+
+  // 11. 문장 길이 패턴 체크 (균등하면 AI 냄새)
+  const sentences = plainText.split(/[.!?]\s+/).filter(s => s.length > 10);
+  if (sentences.length >= 5) {
+    const lengths = sentences.map(s => s.length);
+    const avgLength = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+    const variance = lengths.reduce((sum, len) => sum + Math.pow(len - avgLength, 2), 0) / lengths.length;
+    const stdDev = Math.sqrt(variance);
+
+    // 표준편차가 15 이하면 너무 균등 (AI 패턴)
+    if (stdDev < 15 && sentences.length >= 8) {
+      deductions += 12;
+      issues.push({
+        type: 'structure',
+        description: `문장 길이가 너무 균등함 (표준편차: ${stdDev.toFixed(1)}) - AI 패턴 의심`,
+        examples: [`평균 ${avgLength.toFixed(0)}자 내외로 반복`],
+        severity: 'medium',
+        fixSuggestion: '짧은 문장(10~15자), 중간 문장(20~30자), 긴 문장(35~45자)을 섞어서 리듬감 있게 작성'
+      });
+    }
+  }
+
+  // 12. 문단 시작 패턴 반복 감지
+  const paragraphs = html.split(/<\/p>|<br\s*\/?>/i).filter(p => p.trim().length > 20);
+  const startPatterns: string[] = [];
+  paragraphs.forEach(p => {
+    const text = p.replace(/<[^>]*>/g, '').trim();
+    const firstChars = text.substring(0, 2);
+    if (firstChars) startPatterns.push(firstChars);
+  });
+
+  // 같은 시작 패턴 3회 연속 체크
+  let consecutiveCount = 1;
+  let maxConsecutive = 1;
+  for (let i = 1; i < startPatterns.length; i++) {
+    if (startPatterns[i] === startPatterns[i-1]) {
+      consecutiveCount++;
+      maxConsecutive = Math.max(maxConsecutive, consecutiveCount);
+    } else {
+      consecutiveCount = 1;
+    }
+  }
+
+  if (maxConsecutive >= 3) {
+    deductions += maxConsecutive * 5;
+    issues.push({
+      type: 'structure',
+      description: `같은 문단 시작 패턴 ${maxConsecutive}회 연속 - 단조로운 구조`,
+      examples: ['문단 시작을 다양하게 (설명형/상황형/조건형/시간형/비교형)'],
+      severity: 'medium',
+      fixSuggestion: '각 문단을 다른 방식으로 시작 (예: "무릎 통증은~" → "아침에 일어날 때~" → "만약 통증이~")'
+    });
+  }
+
+  // 13. 1인칭/2인칭 직접 지칭 체크 (체험담 느낌)
+  const firstPersonMatches = plainText.match(/저는|제가|우리|저희 병원|저희는/g) || [];
+  const secondPersonMatches = plainText.match(/당신은|당신의|여러분은|여러분의/g) || [];
+  const totalPersonal = firstPersonMatches.length + secondPersonMatches.length;
+
+  if (totalPersonal >= 2) {
+    deductions += totalPersonal * 8;
+    issues.push({
+      type: 'expression',
+      description: `인칭 대명사 과다 (${totalPersonal}회) - 체험담/광고 느낌`,
+      examples: [...firstPersonMatches.slice(0, 2), ...secondPersonMatches.slice(0, 2)],
+      severity: 'high',
+      fixSuggestion: '3인칭 관찰자 시점으로 변경 (예: "저는" → 삭제, "여러분은" → "~하는 분들은")'
+    });
+  }
+
+  // 14. 본문 내 이모지 과다 사용 감지
+  const emojiInContent = plainText.match(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu) || [];
+  if (emojiInContent.length > 5) {
+    deductions += emojiInContent.length * 3;
+    issues.push({
+      type: 'expression',
+      description: `본문 내 이모지 과다 (${emojiInContent.length}개) - 부적절`,
+      examples: emojiInContent.slice(0, 5),
+      severity: 'medium',
+      fixSuggestion: '이모지는 소제목(H3)에만 사용하고 본문에서는 제거'
+    });
+  }
+
+  // 15. 감정 과도 표현 체크
+  const emotionalMatches = plainText.match(/끔찍한|엄청난|심각한|굉장한|놀라운|대단한/g) || [];
+  if (emotionalMatches.length >= 3) {
+    deductions += emotionalMatches.length * 7;
+    issues.push({
+      type: 'expression',
+      description: `감정 과도 표현 (${emotionalMatches.length}회) - 과장된 느낌`,
+      examples: emotionalMatches.slice(0, 3),
+      severity: 'high',
+      fixSuggestion: '객관적 표현으로 변경 (예: "끔찍한 통증" → "밤잠을 설칠 정도의 통증")'
+    });
+  }
+
+  // 16. 구어체 표현 과다 체크 (자연스러움 목적이지만 과하면 부적절)
+  const colloquialMatches = plainText.match(/거든요|잖아요|더라고요|~ㅋㅋ|~ㅎㅎ|~요~/g) || [];
+  if (colloquialMatches.length > 10) {
+    deductions += (colloquialMatches.length - 10) * 4;
+    issues.push({
+      type: 'expression',
+      description: `구어체 과다 (${colloquialMatches.length}회) - 지나치게 캐주얼`,
+      examples: colloquialMatches.slice(0, 3),
+      severity: 'low',
+      fixSuggestion: '적당한 구어체만 유지 (글 전체 8~10회 이하 권장)'
+    });
+  }
+
   // 제안 생성
   if (deductions > 30) {
     suggestions.push('종결어미를 더 다양하게 사용해보세요.');
@@ -473,6 +653,18 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
   }
   if (issues.some(i => i.type === 'expression' && i.severity === 'high')) {
     suggestions.push('도입부를 상황 묘사 형식으로 변경해보세요.');
+  }
+  if (issues.some(i => i.description.includes('번역투'))) {
+    suggestions.push('번역투 표현을 자연스러운 한국어로 변경해보세요.');
+  }
+  if (issues.some(i => i.description.includes('문장 길이'))) {
+    suggestions.push('문장 길이를 다양하게 (짧음/중간/긴 문장 섞기)');
+  }
+  if (issues.some(i => i.description.includes('인칭 대명사'))) {
+    suggestions.push('1인칭/2인칭 제거하고 3인칭 관찰자 시점으로 작성');
+  }
+  if (issues.some(i => i.description.includes('감정 과도'))) {
+    suggestions.push('과장된 감정 표현 대신 구체적 상황으로 표현');
   }
   
   const totalScore = Math.max(0, Math.min(100, 100 - deductions));
