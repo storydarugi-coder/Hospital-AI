@@ -2344,8 +2344,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               </div>
             </div>
             
-            {/* 🤖 AI 냄새 점수 - 블로그/보도자료에만 표시 */}
-            {content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
+            {/* 🤖 AI 냄새 점수 - UI에서 숨김 처리 */}
+            {false && content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
               <>
                 {/* 구분선 */}
                 <div className="w-px h-12 bg-slate-700"></div>
