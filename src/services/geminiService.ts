@@ -6222,10 +6222,10 @@ ${htmlContent.substring(0, 8000)}
 JSON 형식으로 응답해주세요.`;
 
   try {
-    // 🚀 타임아웃 추가 (30초) - AI 냄새 분석이 무한 대기하는 것 방지
-    const ANALYSIS_TIMEOUT = 30000;
+    // 🚀 타임아웃 늘림 (60초) - AI 냄새 분석에 충분한 시간 확보
+    const ANALYSIS_TIMEOUT = 60000;
     
-    // 📊 스키마 단순화 - 중첩 객체 제거하여 타임아웃 방지
+    // 📊 스키마 단순화
     const analysisPromise = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
@@ -6244,7 +6244,7 @@ JSON 형식으로 응답해주세요.`;
     });
     
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('AI 냄새 분석 타임아웃 (30초)')), ANALYSIS_TIMEOUT);
+      setTimeout(() => reject(new Error('AI 냄새 분석 타임아웃 (60초)')), ANALYSIS_TIMEOUT);  // 60초
     });
     
     const response = await Promise.race([analysisPromise, timeoutPromise]);
@@ -6354,7 +6354,10 @@ ${textContent}
 JSON 형식으로 응답해주세요.`;
 
   try {
-    const response = await ai.models.generateContent({
+    // 🚀 타임아웃 설정 (60초)
+    const RECHECK_TIMEOUT = 60000;
+    
+    const analysisPromise = ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
@@ -6386,6 +6389,12 @@ JSON 형식으로 응답해주세요.`;
         }
       }
     });
+    
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI 재검사 타임아웃 (60초)')), RECHECK_TIMEOUT);  // 60초
+    });
+    
+    const response = await Promise.race([analysisPromise, timeoutPromise]);
     
     const result = JSON.parse(response.text || "{}");
     console.log('✅ AI 냄새 재검사 완료:', result.fact_check);
