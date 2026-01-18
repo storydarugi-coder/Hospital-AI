@@ -11,13 +11,86 @@ import {
   MEDICAL_LAW_HUMAN_PROMPT, 
   IMAGE_TEXT_MEDICAL_LAW as _IMAGE_TEXT_MEDICAL_LAW,  // 향후 활용 가능
   FEW_SHOT_EXAMPLES,
-  CATEGORY_SPECIFIC_PROMPTS 
+  CATEGORY_SPECIFIC_PROMPTS,
+  PARAGRAPH_STRUCTURE_GUIDE
 } from "../utils/humanWritingPrompts";
 import { autoFixMedicalLaw as _autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
 import { contentCache as _contentCache } from "../utils/contentCache";
 
 // 현재 년도 - getWritingStylePrompts()에서 동적으로 사용
 const _CURRENT_YEAR = new Date().getFullYear();
+
+// 🎯 Gemini API 상수
+const GEMINI_MODEL = {
+  PRO: 'gemini-3-pro-preview',
+  FLASH: 'gemini-2.0-flash-exp',
+} as const;
+
+const TIMEOUTS = {
+  GENERATION: 300000,      // 5분
+  IMAGE_GENERATION: 180000, // 3분
+  QUICK_OPERATION: 30000,   // 30초
+} as const;
+
+// 🚀 Gemini API 호출 래퍼 함수
+interface GeminiCallConfig {
+  prompt: string;
+  model?: string;
+  googleSearch?: boolean;
+  responseType?: 'json' | 'text';
+  schema?: any;
+  timeout?: number;
+  systemPrompt?: string;
+}
+
+async function callGemini(config: GeminiCallConfig): Promise<any> {
+  const ai = getAiClient();
+  
+  const apiConfig: any = {
+    model: config.model || GEMINI_MODEL.PRO,
+    contents: config.systemPrompt 
+      ? `${config.systemPrompt}\n\n${config.prompt}`
+      : config.prompt,
+    config: {}
+  };
+  
+  // Google Search 설정
+  if (config.googleSearch) {
+    apiConfig.config.tools = [{ googleSearch: {} }];
+  }
+  
+  // 응답 타입 설정
+  if (config.responseType === 'json') {
+    apiConfig.config.responseMimeType = "application/json";
+    if (config.schema) {
+      apiConfig.config.responseSchema = config.schema;
+    }
+  } else {
+    apiConfig.config.responseMimeType = "text/plain";
+  }
+  
+  // 타임아웃 처리
+  const timeout = config.timeout || TIMEOUTS.GENERATION;
+  
+  try {
+    const result = await Promise.race([
+      ai.models.generateContent(apiConfig),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Gemini API timeout')), timeout)
+      )
+    ]);
+    return result;
+  } catch (error) {
+    console.error('❌ Gemini API 호출 실패:', error);
+    throw error;
+  }
+}
+
+// 🔍 Google Search 필요 여부 판단
+function needsGoogleSearch(request: GenerationRequest): boolean {
+  // 모든 콘텐츠 타입에서 항상 Google Search 사용 (최신 정보 반영)
+  return true;
+}
 
 const getAiClient = () => {
   // 1순위: Cloudflare Pages 환경변수 (빌드 시 주입됨)
@@ -620,9 +693,7 @@ export const recommendImagePrompt = async (blogContent: string, currentImageAlt:
   }
   
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `다음은 병원 블로그 글 내용입니다:
+    const prompt = `다음은 병원 블로그 글 내용입니다:
 
 ${blogContent}
 
@@ -650,10 +721,14 @@ ${imageStyle === 'illustration'
   ? '"밝은 병원 상담실에서 의사가 환자에게 설명하는 모습, 3D 일러스트, 아이소메트릭 뷰, 클레이 렌더, 파란색 흰색 팔레트"'
   : imageStyle === 'medical'
   ? '"인체 심장의 3D 단면도, 좌심실과 우심실이 보이는 해부학적 구조, 혈관과 판막이 표시된 의학 일러스트, 파란색 배경, 교육용 전문 이미지"'
-  : '"깔끔한 병원 상담실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명, 전문적인 분위기"'}:`,
-      config: {
-        responseMimeType: "text/plain"
-      }
+  : '"깔끔한 병원 상담실에서 의사가 환자와 상담하는 모습, 실사 사진, DSLR 촬영, 자연스러운 조명, 전문적인 분위기"'}:`;
+
+    const response = await callGemini({
+      prompt,
+      model: GEMINI_MODEL.PRO,
+      googleSearch: false,  // 프롬프트 추천은 Google Search 불필요
+      responseType: 'text',
+      timeout: TIMEOUTS.QUICK_OPERATION
     });
     
     return response.text?.trim() || currentImageAlt;
@@ -689,9 +764,7 @@ export const recommendCardNewsPrompt = async (
   const isCustomStyle = imageStyle === 'custom' && customStylePrompt;
   
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
+    const prompt = `당신은 카드뉴스 이미지 프롬프트 전문가입니다.
 
 다음 카드뉴스 텍스트에 어울리는 **배경 이미지 내용**을 **한국어로** 추천해주세요.
 
@@ -724,10 +797,14 @@ ${description ? `description: "${description}"` : ''}
 🚨 금지: "완치", "상담하세요", "방문하세요", "조기 발견", "전문의"
 ✅ 허용: 증상명, 질환명, 질문형 제목, 정보 전달
 
-위 형식대로만 한국어로 출력하세요. 다른 설명 없이!`,
-      config: {
-        responseMimeType: "text/plain"
-      }
+위 형식대로만 한국어로 출력하세요. 다른 설명 없이!`;
+
+    const response = await callGemini({
+      prompt,
+      model: GEMINI_MODEL.PRO,
+      googleSearch: false,  // 프롬프트 추천은 Google Search 불필요
+      responseType: 'text',
+      timeout: TIMEOUTS.QUICK_OPERATION
     });
     
     return response.text?.trim() || `subtitle: "${subtitle}"\nmainTitle: "${mainTitle}"\n${description ? `description: "${description}"\n` : ''}비주얼: 밝은 파란색 배경, ${styleKeywords}`;
@@ -3240,6 +3317,8 @@ ${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as k
 [참고 예시 - 좋은 글 vs 나쁜 글]
 ${FEW_SHOT_EXAMPLES}
 
+${PARAGRAPH_STRUCTURE_GUIDE}
+
 [글쓰기 원칙]
 1. 톤: 구어체 친근 (병원 홍보 ❌, 교과서처럼 딱딱 ❌)
 2. 감각 묘사: "찌릿", "뻐근", "욱신", "뻣뻣", "무겁다", "당긴다" 등
@@ -3356,10 +3435,6 @@ ${FEW_SHOT_EXAMPLES}
   
 ⚠️ 소제목 개수는 글자 수 맞추기 위해 자유롭게 조절 가능!
 ⚠️ 단, 마지막 소제목 문단은 무조건 2개만!
-
-[SEO]
-- 제목: 실제 검색할 법한 제목 (예: "무릎 통증 오래갈 때 나타나는 양상")
-- 키워드: "${request.topic}" 3~5회 자연스럽게
 
 [HTML 구조] - 이미지 ${targetImageCount}장 기준!
 <div class="naver-post-container">
@@ -4089,39 +4164,32 @@ ${JSON.stringify(searchResults, null, 2)}
       safeProgress('AI가 콘텐츠를 작성하고 있습니다...');
 
       try {
-        // 🚀 타임아웃 추가 (300초 = 5분) - Gemini API 응답 대기
-        const GENERATION_TIMEOUT = 300000;
+        // 🔍 Google Search 최적화: 필요한 경우에만 활성화
+        const useGoogleSearch = needsGoogleSearch(request);
         
         console.log('🚀 Gemini generateContent 호출 직전...');
-        console.log('🚀 모델: gemini-3-pro-preview');
-        console.log('🚀 tools: googleSearch 사용');
+        console.log('🚀 모델:', GEMINI_MODEL.PRO);
+        console.log('🔍 Google Search:', useGoogleSearch ? '활성화' : '비활성화 (속도 최적화)');
         
-        const generationPromise = ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
-          config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            // 📊 최소화된 응답 스키마 (복잡도 대폭 감소 → 생성 속도 향상)
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                content: { type: Type.STRING },
-                imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } }
-              },
-              required: ["title", "content"]
-            }
-          }
+        const responseSchema = {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            content: { type: Type.STRING },
+            imagePrompts: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["title", "content"]
+        };
+        
+        const geminiResponse = await callGemini({
+          prompt: isCardNews ? cardNewsPrompt : blogPrompt,
+          systemPrompt,
+          model: GEMINI_MODEL.PRO,
+          googleSearch: useGoogleSearch,
+          responseType: 'json',
+          schema: responseSchema,
+          timeout: TIMEOUTS.GENERATION
         });
-        
-        console.log('🚀 generateContent Promise 생성 완료, 응답 대기 중...');
-        
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('⏰ 글쓰기 타임아웃 (5분) - API 응답 없음')), GENERATION_TIMEOUT);
-        });
-        
-        const geminiResponse = await Promise.race([generationPromise, timeoutPromise]);
         
         const responseText = geminiResponse.text || '';
 
@@ -4129,15 +4197,13 @@ ${JSON.stringify(searchResults, null, 2)}
         console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
         safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
 
-        const response = { text: responseText };
+        console.log('✅ Gemini 응답 수신:', responseText.length || 0, 'chars');
 
-        console.log('✅ Gemini 응답 수신:', response.text?.length || 0, 'chars');
-
-        if (!response.text) {
+        if (!responseText) {
           throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
         }
 
-        result = JSON.parse(response.text);
+        result = JSON.parse(responseText);
         console.log('✅ Gemini JSON 파싱 성공');
 
       } catch (geminiError: any) {
@@ -4407,15 +4473,11 @@ ${getStylePromptForGeneration(learnedStyle)}
   onProgress('🗞️ 보도자료 작성 중...');
   
   const pressPrompt = `
-너는 의료 분야를 전문으로 다루는 언론사 헬스·의학 담당 기자다.
+너는 의료 분야 헬스·의학 담당 기자다.
 ${learnedStyleInstruction}
 
-아래 주제를 바탕으로 포털 뉴스에 게재될 수 있는
-'의학 정보 기반 PR 기사'를 작성하라.
-
-이 기사는 병원 홍보 목적의 보도자료이지만,
-과도한 공포 조장이나 선정적 표현은 피하고
-팩트·전문성·사회적 맥락을 중심으로 신뢰감 있게 작성한다.
+포털 뉴스에 게재될 의학 정보 기반 PR 기사를 작성하라.
+과도한 공포 조장이나 선정적 표현은 피하고, 팩트와 전문성 중심으로 작성한다.
 
 [기본 정보]
 - 작성일: ${formattedDate}
@@ -4425,205 +4487,68 @@ ${learnedStyleInstruction}
 - 보도 유형: ${pressTypeLabel}
 - 주제: ${request.topic}
 - 키워드: ${request.keywords}
-- ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자 (반드시 이 글자 수를 넘지 마세요!)
+- ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자
 
-[기사의 성격]
-- 언론 기사체 (블로그·칼럼체 아님)
-- 병원 PR 목적은 유지하되 노골적인 광고 문구는 배제
-- '경고'는 하되 '공포'로 몰아붙이지 않는다
-- 독자의 행동을 직접 명령하지 않는다 ("~하세요" 금지)
+[핵심 규칙]
+1. 언론 기사체로 작성 (블로그체 아님)
+2. 독자 행동을 직접 명령하지 않음 ("~하세요" 금지)
+3. 헤드라인: 자극 키워드 1개 이내 (예: "주의보", "신호" 중 1개만)
+4. 공포 은유 금지 ("침묵의 살인자", "시한폭탄", "생명 위협" 등)
 
-[톤 & 스타일 - 신뢰성 중심]
-- 신문 기사체, 객관적이고 전문적인 문장 구조
-- 팩트와 의학적 근거 중심
-- 위기감은 표현하되 과도한 공포 조장은 금지
-- 완곡한 권유 표현 사용: "권장된다", "중요하게 여겨진다"
+[표현 가이드]
+✅ 권장: "~할 수 있다", "권장된다", "중요하게 여겨진다", "의료계에서는", "전문가들은"
+❌ 금지: "완치", "100% 예방", "반드시", "필수", "즉시", "~하세요", "방치하면 위험"
 
-[헤드라인 작성 규칙 - 자극도 상한선 설정]
-🎯 자극 키워드는 제목 내 1개까지만 허용
-  • 자극 키워드 예시: "주의보", "위협", "금물", "놓치기 쉬운", "신호", "위험"
-  • ❌ 중복 금지: "주의보" + "위협" / "신호" + "금물"
-  • ✅ 허용: "2030 여성 주의보" (자극 키워드 1개)
-  
-- 증상/대상/문제의식 중심 제목 권장
-- 자극적인 따옴표형 제목 허용하되, 과격한 은유 절대 금지
+[기사 구성]
+1. 독자가 겪을 법한 증상/상황 제시 (공감 형성)
+2. 의학적 맥락 설명 (완충 표현: "의료계 일각에서는", "개인에 따라 차이가 있을 수 있다")
+3. 최근 증가 추세 언급 (완충 표현: "일부 전문가들은", "관련 학계에서는")
+4. 질환 특성 설명 ("조기 인지가 중요하게 여겨진다")
+5. 검진·관리 중요성 ("권장된다", "도움이 될 수 있다")
+6. 의료진 인터뷰 ("${doctorName} ${doctorTitle}" 직접 인용)
+7. 병원 정보 (2~3문장, 70자 이내, 환자 편의/진료 환경만)
 
-- ❌ 절대 금지 표현:
-  • 공포 조장 은유: "침묵의 살인자", "시한폭탄", "생명 위협"
-  • 위협형 구문: "~만 믿다가는 위험", "방치하면 위험"
-  • 선정적 수사: "~의 공포", "~의 악몽"
-  
-- ✅ 허용 표현 (자극 키워드 1개 이내):
-  • "증상 없어 더 놓치기 쉬운 ○○"
-  • "○○인데 괜찮을까?"… 젊은 여성에게 늘어나는 △△ 신호
-  • "2030 여성 주의보"
-
-[기사 구성 - 신뢰성 강화]
-1. 실제 독자가 겪을 법한 증상 또는 상황 제시
-   - 공포 조장 ❌, 공감 형성 ⭕
-   
-2. 해당 증상이 왜 가볍게 넘기기 어려운지 의학적 맥락 설명
-   - 단정적 표현 금지
-   - "~할 수 있다", "~로 알려져 있다" 형태 사용
-   - 🔧 완충 표현 자동 삽입 (브레이크 역할):
-     • "의료계 일각에서는"
-     • "전문가들은 ~가능성을 언급한다"
-     • "모든 경우에 해당한다고 보기는 어렵지만"
-     • "개인에 따라 차이가 있을 수 있다"
-   
-3. 최근 증가 추세 또는 사회적 변화 언급
-   - "최근 통계에 따르면", "의료계에서는" 등 완곡 표현
-   - 🔧 완충 표현: "일부 전문가들은", "관련 학계에서는"
-   - 수치는 정확하지 않다면 범위·경향 위주로 서술
-   - 출처: 보건복지부, 질병관리청, 심평원, 의학계 등
-   
-4. 질환의 특성 설명
-   - '초기 증상이 뚜렷하지 않다' 정도까지만 언급
-   - ❌ 예후·완치·생존율 단정 표현 금지
-   - ✅ "조기 인지가 중요하게 여겨진다"
-   
-5. 검진·관리의 중요성 설명 - 표현 제한
-   - ✅ 허용: "권장된다", "중요하게 여겨진다", "도움이 될 수 있다"
-   - ❌ 금지: "반드시", "필수", "즉시"
-   
-6. 의료진 실명 인터뷰 삽입 - 중요!
-   - ❌ 공포 조장 발언 금지
-   - ⭕ 조기 인지·관리의 의미를 설명하는 전문가 코멘트
-   - "조기에 인지하면 관리가 용이하다", "정기 점검이 도움이 될 수 있다"
-   
-7. 병원 소개는 정보 박스화 - 2~3문장 엄격 제한
-   - 📦 정보 수준으로만 작성 (홍보 문단 X)
-   - ❌ 장비·시스템·수상 이력 나열 금지
-   - ⭕ '환자 편의', '진료 환경', '운영 정보' 수준만
-   - ⭕ 예시: "${hospitalName}은(는) ${request.category} 진료를 제공하며, 환자 편의를 위한 진료 시스템을 운영하고 있다."
-   - 최대 3문장, 70자 이내 권장
-
-[표현 가이드 - 절대 준수]
-- ❌ 금지 표현:
-  • '완치', '치료 효과', '100% 예방'
-  • '반드시', '필수', '즉시'
-  • '방치하면 위험', '생명 위협'
-  • 직접 명령형: "~하세요", "~받으세요"
-  
-- ✅ 권장 표현:
-  • "~할 수 있다 / ~로 알려져 있다 / ~로 보고된다"
-  • "권장된다", "중요하게 여겨진다", "도움이 될 수 있다"
-  • "의료계에서는", "전문가들은"
-  
-- 사실 논란 소지가 있는 문장은 단정하지 말고
-  '의료계에서는', '전문가들은' 식으로 처리
-
-[반드시 포함할 요소]
+[반드시 포함]
 - 병원명: ${hospitalName}
-- 의료진 실명 및 직함: ${doctorName} ${doctorTitle}
-- 직접 인용 부호(" ") 사용한 인터뷰
-- 검진 또는 상담 관련 정보 (명령형 아닌 정보 제공)
+- 의료진: ${doctorName} ${doctorTitle}
+- 직접 인용 인터뷰 (" " 사용)
+- 검진/상담 정보 (명령형 아님)
 
-[HTML 출력 형식]
+[HTML 출력]
 <div class="press-release-container">
-  <h1 class="press-title">[신뢰감 있는 제목 - 자극 키워드 1개 이내, 과격한 은유 금지]</h1>
-  <h2 class="press-subtitle">[증가 추세와 관리 중요성 요약 - 70자 이내]</h2>
-  
+  <h1 class="press-title">[제목 - 자극 키워드 1개 이내]</h1>
+  <h2 class="press-subtitle">[부제 - 70자 이내]</h2>
   <div class="press-body">
-    <p>[실제 독자가 겪을 법한 증상/상황 제시 - 공감 형성]</p>
-    
-    <p>[의학적 맥락 설명 - 완충 표현 필수 삽입: "의료계 일각에서는", "전문가들은 ~가능성을 언급한다", "개인에 따라 차이가 있을 수 있다"]</p>
-    
-    <p>[최근 증가 추세 - 완충 표현: "일부 전문가들은", "관련 학계에서는"]</p>
-    
-    <p>[질환 특성 - 완충 표현 사용: "모든 경우에 해당한다고 보기는 어렵지만"]</p>
-    
-    <p>[검진·관리 중요성 - "권장된다", "중요하게 여겨진다" + 완충 표현]</p>
-    
+    <p>[공감 형성 - 독자 상황]</p>
+    <p>[의학적 맥락 - 완충 표현]</p>
+    <p>[증가 추세 - 완충 표현]</p>
+    <p>[질환 특성]</p>
+    <p>[검진·관리 중요성]</p>
     <blockquote class="press-quote">
-    <p>"[${doctorName} ${doctorTitle}의 전문가 코멘트 - 조기 인지·관리의 의미 설명, 공포 조장 금지]"</p>
-    <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
+      <p>"[인터뷰 - 공포 조장 금지]"</p>
+      <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
     </blockquote>
-    
-    <p>[병원 정보 - 정보 박스화: 2~3문장, 70자 이내, 환자 편의/진료 환경만]</p>
+    <p>[병원 정보 - 2~3문장, 70자 이내]</p>
   </div>
-  
   <div class="press-footer">
     <div class="press-disclaimer">
-    <p>※ 의학적 정보는 참고용이며, 정확한 진단은 전문의와 상담이 필요합니다.</p>
+      <p>※ 의학적 정보는 참고용이며, 정확한 진단은 전문의와 상담이 필요합니다.</p>
     </div>
   </div>
 </div>
 
-[중요 작성 원칙]
-1. 신뢰성과 전문성을 최우선으로
-2. 공포 조장 금지, 팩트 중심 작성
-3. 독자 행동을 명령하지 않고 정보 제공
-4. 과도한 광고성 표현 배제
-5. 🛡️ 완충 표현 자동 삽입 (AI 브레이크):
-   • "의료계 일각에서는", "전문가들은 ~가능성을 언급한다"
-   • "모든 경우에 해당한다고 보기는 어렵지만"
-   • "개인에 따라 차이가 있을 수 있다"
-6. 📦 병원 소개는 정보 박스화: 2~3문장, 70자 이내
-7. 🎯 헤드라인 자극 키워드 1개 이내 제한
-
-[🚨 AI 냄새 점수 시스템 v2.0 - 보도자료 필수 적용!]
-**총점: 100점 | 15점 초과 시 재작성 대상**
-**🔄 v2.0: 중복 제거, 배점 재조정, 심사숙고 평가**
-
-**체크 포인트 (점수 높을수록 AI 냄새 심함):**
-
-1. **문장 리듬 단조로움** (0~25점) ★ 가장 중요
-   • 동일 종결어미 3회 이상 반복 → +7점
-   • 문장 시작 패턴 3회 이상 반복 → +6점
-   • 문단 길이 균일 / 설명만 연속 → +6점씩
-
-2. **판단 단정형 글쓰기** (0~20점)
-   • 한 문단에 조건/가능성 종결 3회 이상 → +8점
-   • 기준 없이 "확인 필요"만 반복 → +7점
-   • 저자 의견/판단 0회 → +5점
-
-3. **현장감 부재** (0~20점)
-   • 시간/계절/상황 맥락 전무 → +7점
-   • 실제 질문/고민 시나리오 없음 → +7점
-   • 현장 용어 0회 → +6점
-
-4. **템플릿 구조** (0~15점)
-   • 배경→주요내용→전망의 뻔한 구조 → +6점
-   • 독자 자가 체크 포인트 없음 → +5점
-   • 전환어 없이 나열만 → +4점
-
-5. **가짜 공감** (0~10점)
-   • "관심이 높아지고 있다" 류 범용 공감만 → +4점
-   • 구체적 상황·감정 지목 없음 → +3점
-   • 공감 위치 고정 → +3점
-
-6. **행동 유도 실패** (0~10점)
-   • 매번 동일한 마무리 패턴 → +4점
-   • 시점·조건 없는 권유 → +3점
-   • 상황별 분기 없음 → +3점
-
-**개선 방법:**
-- 관찰형 문장 섞기 (예: "실제로 ~문의가 늘어나고 있다")
-- 구체적 맥락 추가 (시기, 대상, 상황)
-- 문장 엔딩 다양화: "~거든요", "~더라고요", "~인 경우도 있습니다"
-- 전문가 코멘트에 현장감 있는 표현 추가
-
-**판정 (v2.0):** 0~7점=✅사람글 | 8~15점=⚠️부분수정 | 16점↑=🚨재작성
-
 [중요]
-- 반드시 위 HTML 구조를 그대로 사용
-- 마크다운 문법 사용 금지 (### 이나 **굵게** 등)
-- 모든 텍스트는 HTML 태그로 감싸서 출력
+- 위 HTML 구조 준수
+- 마크다운 금지 (###, **굵게** 등)
+- 모든 텍스트는 HTML 태그로 감싸기
+- 문장 리듬 다양화: 종결어미 반복 금지, 구체적 맥락 추가
+- 현장감 살리기: 시간/계절/상황 맥락, 전문가 코멘트에 현장감
+- 템플릿 느낌 제거: 전환어 사용, 독자 체크 포인트 추가
 `;
 
-  const ai = getAiClient();
-  
   // 🔍 Google Search 연결 - 언론 보도용 최신 정보 수집
   onProgress('🔍 Google Search로 최신 의료 정보를 검색하고 있습니다...');
-  const result = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
-    contents: pressPrompt,
-    config: {
-      tools: [{ googleSearch: {} }], // Google Search 활성화
-      responseMimeType: "text/plain"
-    }
-  });
+  const result = await callGeminiWithSearch(pressPrompt, { responseFormat: "text/plain" });
   let pressContent = result.text || '';
   
   // HTML 정리
