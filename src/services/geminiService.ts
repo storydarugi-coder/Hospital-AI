@@ -5615,130 +5615,46 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     }
     
     // ============================================
-    // 🤖 AI 냄새 점수 체크 + 16점 이상 자동 재생성
+    // 🤖 AI 냄새 점수 체크 - 비활성화됨 (사용자 요청)
     // ============================================
+    // ⚠️ AI 냄새 점수 검사 기능 완전 비활성화 (2026-01-18)
+    // - 사용자 요청으로 점수 검사 및 자동 개선 기능 제거
+    // - AI 냄새 점수는 계산되지만 검사 로직은 실행되지 않음
+    // - 경고 메시지 및 자동 수정 프로세스 완전 차단
+    console.log('🔇 AI 냄새 점수 검사 비활성화됨 (사용자 설정)');
+    
+    /*
+    // === 기존 AI 냄새 검사 로직 (주석 처리) ===
     const aiSmellScore = textData.fact_check?.ai_smell_score || 0;
     const MAX_AI_SMELL_SCORE = 15;
     
     if (aiSmellScore > MAX_AI_SMELL_SCORE) {
-    console.log(`🤖 AI 냄새 점수 ${aiSmellScore}점 > 15점, 자동 개선 시도`);
-    safeProgress(`🤖 AI 냄새 점수 ${aiSmellScore}점 (15점 초과) - 자동 개선 중...`);
-    
-    try {
-      const aiSmellImprovementPrompt = `
-당신은 AI 냄새를 제거하는 전문가입니다.
-아래 블로그 글의 AI 냄새 점수가 ${aiSmellScore}점입니다. 15점 이하로 줄여주세요.
-
-[현재 본문]
-${finalHtml.substring(0, 6000)}
-
-[AI 냄새 제거 핵심 규칙]
-1. "~수 있습니다" 연속 2회 이상 나오면 하나를 "~인 경우도 있습니다", "~로 이어지기도 합니다"로 변경
-2. 각 문단에 관찰자 시점 문장 1개 추가 ("이런 분들이 많더라고요", "병원에서 자주 듣는 이야기예요")
-3. 첫 문장은 정의가 아닌 상황 묘사로 시작 ("꼭 많이 먹지 않았는데도...")
-4. 마지막 문장 덜 교과서적으로 ("원인을 확인해두면 이후 관리가 수월해져요")
-5. 문단마다 기능이 너무 명확하면 흐름으로 연결 ("그런데 말이죠", "사실 여기서 중요한 건")
-6. 짧은 문장 중간에 삽입 ("솔직히 애매하죠.", "근데요.")
-
-[출력 형식 - JSON]
-{
-  "improved_body": "개선된 본문 HTML (naver-post-container 클래스 유지)",
-  "changes_made": ["변경한 내용 1", "변경한 내용 2", ...]
-}`;
-      
-      // Gemini AI 사용 (callOpenAI 대신)
-      const ai = getAiClient();
-      const improvedAiResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-05-20',
-        contents: aiSmellImprovementPrompt,
-        config: { temperature: 0.7 }
-      });
-      const improvedAiText = improvedAiResponse.text || '';
-      
-      let improvedAiData;
-      try {
-        const jsonMatch = improvedAiText.match(/\{[\s\S]*\}/);
-        improvedAiData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-      } catch {
-        console.warn('AI 냄새 개선 응답 JSON 파싱 실패');
-      }
-      
-      if (improvedAiData?.improved_body) {
-        const improvedMainTitle = request.topic || textData.title;
-        if (improvedAiData.improved_body.includes('class="naver-post-container"')) {
-          finalHtml = improvedAiData.improved_body.replace(
-            '<div class="naver-post-container">',
-            `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>`
-          );
-        } else {
-          finalHtml = `<div class="naver-post-container"><h2 class="main-title">${improvedMainTitle}</h2>${improvedAiData.improved_body}</div>`;
-        }
-        
-        // fact_check의 ai_smell_score 업데이트 (추정값)
-        if (textData.fact_check) {
-          textData.fact_check.ai_smell_score = Math.max(0, aiSmellScore - 10);
-        }
-        
-        console.log('✅ AI 냄새 개선 완료:', improvedAiData.changes_made);
-        safeProgress(`✅ AI 냄새 개선 완료 (${improvedAiData.changes_made?.length || 0}개 항목 수정)`);
-      }
-      
-    } catch (aiSmellError) {
-      console.error('AI 냄새 개선 실패:', aiSmellError);
-      safeProgress('⚠️ AI 냄새 개선 실패, 현재 결과 유지');
-    }
+      // 16점 이상: 자동 개선 로직 (비활성화)
+      console.log(\`🤖 AI 냄새 점수 \${aiSmellScore}점 > 15점, 자동 개선 시도\`);
+      safeProgress(\`🤖 AI 냄새 점수 \${aiSmellScore}점 (15점 초과) - 자동 개선 중...\`);
+      // ... 자동 개선 코드 (생략)
     } else if (aiSmellScore >= 8 && aiSmellScore <= 15) {
-    // ============================================
-    // • 8~15점 경계선: 수정 위치 상세 분석
-    // ============================================
-    console.log(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...`);
-    safeProgress(`⚠️ AI 냄새 점수 ${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...`);
-    
-    try {
-      const aiSmellAnalysis = await analyzeAiSmell(finalHtml, request.topic);
-      
-      // fact_check에 상세 분석 결과 추가
-      if (textData.fact_check) {
-        textData.fact_check.ai_smell_analysis = aiSmellAnalysis;
-      }
-      
-      // 우선 수정 항목 출력
-      const topIssues = aiSmellAnalysis.priority_fixes?.slice(0, 3) || [];
-      console.log('• AI 냄새 수정 필요 위치:', topIssues);
-      
-      if (topIssues.length > 0) {
-        safeProgress(`• 수정 필요 위치 발견! 상세 분석 완료`);
-        console.log('📋 상세 분석 결과:', {
-          total_score: aiSmellAnalysis.total_score,
-          sentence_rhythm: aiSmellAnalysis.sentence_rhythm?.score,
-          judgment_avoidance: aiSmellAnalysis.judgment_avoidance?.score,
-          lack_of_realism: aiSmellAnalysis.lack_of_realism?.score,
-          template_structure: aiSmellAnalysis.template_structure?.score,
-          fake_empathy: aiSmellAnalysis.fake_empathy?.score,
-          cta_failure: aiSmellAnalysis.cta_failure?.score
-        });
-      }
-      
-      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 부분 수정 후 발행 가능`);
-      
-    } catch (analysisError) {
-      console.error('AI 냄새 상세 분석 실패:', analysisError);
-      safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 경계선 (부분 수정 권장)`);
-    }
-    
+      // 8~15점: 상세 분석 로직 (비활성화)
+      console.log(\`⚠️ AI 냄새 점수 \${aiSmellScore}점 - 경계선 (8~15점), 수정 위치 분석 중...\`);
+      safeProgress(\`⚠️ AI 냄새 점수 \${aiSmellScore}점 - 경계선! 수정 필요 위치를 분석합니다...\`);
+      // ... 상세 분석 코드 (생략)
     } else {
-    console.log(`✅ AI 냄새 점수 ${aiSmellScore}점 - 기준 충족 (7점 이하)`);
-    safeProgress(`✅ AI 냄새 점수 ${aiSmellScore}점 - 사람 글 판정! 🎉`);
+      // 7점 이하: 기준 충족 메시지 (비활성화)
+      console.log(\`✅ AI 냄새 점수 \${aiSmellScore}점 - 기준 충족 (7점 이하)\`);
+      safeProgress(\`✅ AI 냄새 점수 \${aiSmellScore}점 - 사람 글 판정! 🎉\`);
     }
+    */
   }
 
   // ============================================
-  // 🔍 최종 AI 냄새 검사 (detectAiSmell 기반)
+  // 🔍 최종 AI 냄새 검사 - 비활성화됨 (사용자 요청)
   // ============================================
-  safeProgress('🔍 최종 AI 냄새 검사 중...');
+  // safeProgress('🔍 최종 AI 냄새 검사 중...');
+  
+  // ⚠️ AI 냄새 검사 결과는 계산되지만, 경고 메시지는 출력하지 않음
   const aiSmellCheckResult = runAiSmellCheck(finalHtml);
   
-  // factCheck에 detectAiSmell 결과 통합
+  // factCheck에 detectAiSmell 결과 통합 (데이터는 유지)
   let finalFactCheck = textData.fact_check || {
     fact_score: 85,
     safety_score: 90,
@@ -5751,7 +5667,9 @@ ${finalHtml.substring(0, 6000)}
   
   finalFactCheck = integrateAiSmellToFactCheck(finalFactCheck, aiSmellCheckResult);
   
-  // 치명적 문제 발견 시 경고
+  // ⚠️ AI 냄새 경고 메시지 비활성화 (사용자 요청)
+  /*
+  // 치명적 문제 발견 시 경고 (비활성화)
   if (aiSmellCheckResult.criticalIssues.length > 0) {
     safeProgress(`🚨 의료광고법 위반 패턴 ${aiSmellCheckResult.criticalIssues.length}개 발견! 수정 필요`);
     console.warn('🚨 치명적 AI 냄새 패턴:', aiSmellCheckResult.criticalIssues);
@@ -5760,6 +5678,14 @@ ${finalHtml.substring(0, 6000)}
   } else {
     safeProgress(`✅ AI 냄새 검사 통과!`);
   }
+  */
+  
+  // 조용히 로그만 남김
+  console.log('🔇 AI 냄새 검사 완료 (결과 출력 비활성화):', {
+    score: aiSmellCheckResult.score,
+    criticalCount: aiSmellCheckResult.criticalIssues.length,
+    warningCount: aiSmellCheckResult.warningIssues.length
+  });
 
   // 디버깅: 반환 데이터 확인
   console.log('• generateFullPost 반환 데이터:');
