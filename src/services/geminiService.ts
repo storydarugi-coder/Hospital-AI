@@ -3461,7 +3461,7 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
 🚨 절대 준수: ${targetLength}자 ±50자 범위 내 (${targetLength - 50}~${targetLength + 50}자)
 ⚠️ 초과 금지: ${targetLength + 100}자를 넘으면 안 됩니다!
 ⚠️ 부족 금지: ${targetLength - 100}자 미만이면 안 됩니다!
-[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / 이미지: ${targetImageCount}장
+[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 1~3회 자연스럽게 포함) / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
 ${HUMAN_WRITING_RULES}
@@ -4710,7 +4710,7 @@ ${learnedStyleInstruction}
 - 의료진: ${doctorName} ${doctorTitle}
 - 보도 유형: ${pressTypeLabel}
 - 주제: ${request.topic}
-- 키워드: ${request.keywords}
+- SEO 키워드: ${request.keywords} ⚠️ **필수**: 본문에 최소 1회 ~ 최대 3회 자연스럽게 포함
 - ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자
 ${hospitalInfo}
 
