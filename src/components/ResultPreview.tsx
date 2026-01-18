@@ -1247,8 +1247,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  // 🔄 AI 냄새 재검사 함수
+  // 🔄 AI 냄새 재검사 함수 (현재 비활성화)
   const handleRecheckAiSmell = async () => {
+    // AI 냄새 점수 미출력으로 인해 검사 기능 비활성화
+    console.log('🔇 AI 냄새 재검사 기능이 비활성화되었습니다.');
+    return;
+    
+    /* 기존 코드 보존 (필요시 재활성화)
     if (isRecheckingAiSmell || content.postType === 'card_news') return;
     
     setIsRecheckingAiSmell(true);
@@ -1276,6 +1281,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     } finally {
       setIsRecheckingAiSmell(false);
     }
+    */
   };
 
   // 🖼️ 이미지 최적화 함수
