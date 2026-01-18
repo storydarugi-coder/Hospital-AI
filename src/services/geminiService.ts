@@ -4641,7 +4641,7 @@ ${getStylePromptForGeneration(learnedStyle)}
       });
       
       if (crawlResponse.ok) {
-        const crawlData = await crawlResponse.json();
+        const crawlData = await crawlResponse.json() as { content?: string; error?: string };
         if (crawlData.content) {
           console.log('✅ 병원 웹사이트 크롤링 완료:', crawlData.content.substring(0, 200));
           
@@ -6819,10 +6819,8 @@ JSON 형식으로 응답해주세요.`;
       // 상세 분석 실패해도 기본 결과는 반환
     }
     
-    // 빠른 패턴 검사에서 발견한 치명적 문제 추가
-    if (quickCheck.criticalIssues.length > 0) {
-      factCheck.patternCheckIssues = quickCheck.criticalIssues;
-    }
+    // 빠른 패턴 검사에서 발견한 치명적 문제는 이미 factCheck.issues에 포함됨
+    // (patternCheckIssues 필드는 FactCheckReport 타입에 없으므로 제거)
     
     return factCheck;
   } catch (error) {
