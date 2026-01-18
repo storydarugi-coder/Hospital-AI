@@ -75,6 +75,7 @@ export interface GenerationRequest {
   customSubheadings?: string; // 사용자가 직접 입력한 소제목들 (줄바꿈으로 구분)
   // 보도자료용 필드
   hospitalName?: string; // 병원명
+  hospitalWebsite?: string; // 병원 웹사이트 URL (크롤링용)
   doctorName?: string; // 의료진 이름
   doctorTitle?: string; // 직함 (예: 원장, 부원장, 과장)
   pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'; // 보도 유형
@@ -88,7 +89,6 @@ export interface FactCheckReport {
   ai_smell_score?: number;   // AI 냄새 점수 v2.0 (0~100) - 낮을수록 좋음, 15점 초과 시 재작성 대상
   ai_smell_analysis?: AiSmellAnalysis;  // AI 냄새 상세 분석 (8~15점 구간 수정 가이드)
   seo_score?: SeoScoreReport;  // SEO 최적화 점수 (총 100점)
-  patternCheckIssues?: string[];  // 빠른 패턴 검사에서 발견한 치명적 문제
   issues: string[];
   recommendations: string[];
 }
@@ -203,23 +203,13 @@ export interface CardNewsSlideScript {
   imageKeyword: string;
 }
 
-export interface MedicalFactCheckReport {
-  totalClaims: number;
-  verifiedClaims: number;
-  unverifiedClaims: number;
-  accuracyScore: number;
-  overallRecommendation: 'safe' | 'warning' | 'danger';
-  suggestions: string[];
-}
-
 export interface GeneratedContent {
   htmlContent: string;
   title: string;
-  imageUrl: string;
-  fullHtml: string;
+  imageUrl: string; 
+  fullHtml: string; 
   tags: string[];
   factCheck?: FactCheckReport;
-  medicalFactCheck?: MedicalFactCheckReport; // 상세 팩트 체킹 결과
   postType: PostType;
   cssTheme?: CssTheme;
   imageStyle?: ImageStyle;

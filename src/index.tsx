@@ -56,40 +56,100 @@ app.post('/api/openai-chat', async (c) => {
 
     if (!openaiResponse.ok) {
       console.error('❌ OpenAI API Error:', responseData);
-      return new Response(JSON.stringify(responseData), { 
-        status: openaiResponse.status, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return c.json(responseData, { status: openaiResponse.status, headers: corsHeaders });
     }
 
     console.log('✅ OpenAI API Success');
     
-    return new Response(JSON.stringify(responseData), { 
-      status: 200, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return c.json(responseData, { status: 200, headers: corsHeaders });
 
   } catch (error) {
     console.error('❌ Proxy Error:', error);
     
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500, headers: corsHeaders }
+    );
   }
 })
 
 // OpenAI 프록시 OPTIONS (CORS preflight)
-app.options('/api/openai-chat', (_c) => {
+app.options('/api/openai-chat', (c) => {
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-OpenAI-Key',
       'Access-Control-Max-Age': '86400',
+    },
+  });
+})
+
+// 🕷️ 웹 크롤링 API (병원 웹사이트 분석용)
+app.post('/api/crawler', async (c) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  try {
+    const { url } = await c.req.json();
+    
+    if (!url) {
+      return c.json({ error: 'URL is required' }, { status: 400, headers: corsHeaders });
+    }
+
+    console.log('🕷️ Crawling:', url);
+
+    // URL 가져오기
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; HospitalAI/1.0; +https://hospital-ai.com)',
+      },
+    });
+
+    if (!response.ok) {
+      return c.json(
+        { error: 'Failed to fetch URL', status: response.status },
+        { status: response.status, headers: corsHeaders }
+      );
+    }
+
+    const html = await response.text();
+    
+    // HTML에서 텍스트 추출 (간단한 방식)
+    const textContent = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // script 태그 제거
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // style 태그 제거
+      .replace(/<[^>]+>/g, ' ') // HTML 태그 제거
+      .replace(/\s+/g, ' ') // 연속된 공백 제거
+      .trim()
+      .substring(0, 5000); // 첫 5000자만 (너무 길면 API 부담)
+
+    console.log('✅ Crawling success:', textContent.substring(0, 100));
+
+    return c.json({ content: textContent }, { headers: corsHeaders });
+
+  } catch (error) {
+    console.error('❌ Crawling error:', error);
+    return c.json(
+      { error: 'Crawling failed', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500, headers: corsHeaders }
+    );
+  }
+})
+
+// 크롤링 API OPTIONS (CORS preflight)
+app.options('/api/crawler', (c) => {
+  return new Response(null, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     },
   });
 })

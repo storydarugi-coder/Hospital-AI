@@ -19,10 +19,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [persona, setPersona] = useState(PERSONAS[0].value);
   const [tone, setTone] = useState(TONES[0].value);
   const [imageStyle, setImageStyle] = useState<ImageStyle>('photo');
-  const [cssTheme, _setCssTheme] = useState<CssTheme>('modern'); // 향후 테마 변경 UI에 활용
+  const [cssTheme, setCssTheme] = useState<CssTheme>('modern');
   const [topic, setTopic] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [referenceUrl, _setReferenceUrl] = useState(''); // 향후 참조 URL 기능에 활용
+  const [referenceUrl, setReferenceUrl] = useState('');
   
   // 커스텀 이미지 프롬프트
   const [customPrompt, setCustomPrompt] = useState<string>('');
@@ -40,13 +40,14 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [textLength, setTextLength] = useState<number>(2000);
   const [slideCount, setSlideCount] = useState<number>(6);
   const [imageCount, setImageCount] = useState<number>(0); // 기본값 0장
-  const [writingStyle, _setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형, 향후 스타일 선택 UI에 활용
+  const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
   
   // 말투 학습 스타일
   const [learnedStyleId, setLearnedStyleId] = useState<string | undefined>(undefined);
   
   // 🗞️ 보도자료용 state
   const [hospitalName, setHospitalName] = useState<string>('');
+  const [hospitalWebsite, setHospitalWebsite] = useState<string>('');
   const [doctorName, setDoctorName] = useState<string>('');
   const [doctorTitle, setDoctorTitle] = useState<string>('원장');
   const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'>('achievement');
@@ -98,6 +99,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       customSubheadings: customSubheadings.trim() || undefined,
       // 🗞️ 보도자료용 필드
       hospitalName: postType === 'press_release' ? hospitalName : undefined,
+      hospitalWebsite: postType === 'press_release' ? hospitalWebsite : undefined,
       doctorName: postType === 'press_release' ? doctorName : undefined,
       doctorTitle: postType === 'press_release' ? doctorTitle : undefined,
       pressType: postType === 'press_release' ? pressType : undefined,
@@ -114,7 +116,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     try {
       const items = await getTrendingTopics(category);
       setTrendingItems(items);
-    } catch {
+    } catch (e) {
       alert("트렌드 로딩 실패");
     } finally {
       setIsLoadingTrends(false);
@@ -131,7 +133,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         const titles = await recommendSeoTitles(topic, keywords, postType === 'press_release' ? 'blog' : postType);
         const sortedTitles = titles.sort((a, b) => b.score - a.score);
         setSeoTitles(sortedTitles);
-    } catch {
+    } catch (e) {
         alert("제목 추천 실패");
     } finally {
         setIsLoadingTitles(false);
@@ -297,6 +299,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
                       />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">
+                      병원 웹사이트 (선택)
+                      <span className="text-xs font-normal text-slate-500 ml-2">병원 정보를 자동으로 분석합니다</span>
+                    </label>
+                    <input 
+                      type="url"
+                      value={hospitalWebsite}
+                      onChange={(e) => setHospitalWebsite(e.target.value)}
+                      placeholder="예: https://www.hospital.com"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                    />
                   </div>
                   
                   <div>

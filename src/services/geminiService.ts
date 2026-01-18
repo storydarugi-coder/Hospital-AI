@@ -4470,6 +4470,71 @@ ${getStylePromptForGeneration(learnedStyle)}
     }
   }
   
+  // 🏥 병원 웹사이트 크롤링 (강점, 특징 분석)
+  let hospitalInfo = '';
+  if (request.hospitalWebsite && request.hospitalWebsite.trim()) {
+    onProgress('🏥 병원 웹사이트 분석 중...');
+    try {
+      const crawlResponse = await fetch('/api/crawler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: request.hospitalWebsite })
+      });
+      
+      if (crawlResponse.ok) {
+        const crawlData = await crawlResponse.json();
+        if (crawlData.content) {
+          console.log('✅ 병원 웹사이트 크롤링 완료:', crawlData.content.substring(0, 200));
+          
+          // AI로 병원 강점 분석
+          const ai = getAiClient();
+          const analysisResult = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: `다음은 ${hospitalName}의 웹사이트 내용입니다. 
+            
+웹사이트 내용:
+${crawlData.content.substring(0, 3000)}
+
+[분석 요청]
+위 병원 웹사이트에서 다음 정보를 추출해주세요:
+
+1. 병원의 핵심 강점 (3~5개)
+2. 특화 진료과목이나 특별한 의료 서비스
+3. 병원의 차별화된 특징 (장비, 시스템, 의료진 등)
+4. 병원의 비전이나 철학
+5. 수상 경력이나 인증 사항
+
+출력 형식:
+[병원 강점]
+- 강점 1
+- 강점 2
+...
+
+[특화 서비스]
+- 서비스 1
+- 서비스 2
+...
+
+[차별화 요소]
+- 요소 1
+- 요소 2
+...
+
+간결하게 핵심만 추출해주세요. 없는 정보는 생략하세요.`,
+            config: { responseMimeType: "text/plain" }
+          });
+          
+          hospitalInfo = `\n[🏥 ${hospitalName} 병원 정보 - 웹사이트 분석 결과]\n${analysisResult.text}\n\n`;
+          console.log('✅ 병원 강점 분석 완료:', hospitalInfo.substring(0, 200));
+        }
+      } else {
+        console.warn('⚠️ 크롤링 API 실패:', crawlResponse.status);
+      }
+    } catch (error) {
+      console.warn('⚠️ 병원 웹사이트 분석 실패:', error);
+    }
+  }
+  
   onProgress('🗞️ 보도자료 작성 중...');
   
   const pressPrompt = `
@@ -4488,6 +4553,7 @@ ${learnedStyleInstruction}
 - 주제: ${request.topic}
 - 키워드: ${request.keywords}
 - ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자
+${hospitalInfo}
 
 [핵심 규칙]
 1. 언론 기사체로 작성 (블로그체 아님)
