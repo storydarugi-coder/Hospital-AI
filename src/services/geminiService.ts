@@ -11,7 +11,8 @@ import {
   MEDICAL_LAW_HUMAN_PROMPT, 
   IMAGE_TEXT_MEDICAL_LAW as _IMAGE_TEXT_MEDICAL_LAW,  // 향후 활용 가능
   FEW_SHOT_EXAMPLES,
-  CATEGORY_SPECIFIC_PROMPTS 
+  CATEGORY_SPECIFIC_PROMPTS,
+  PARAGRAPH_STRUCTURE_GUIDE
 } from "../utils/humanWritingPrompts";
 import { autoFixMedicalLaw as _autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
 import { contentCache as _contentCache } from "../utils/contentCache";
@@ -3240,6 +3241,8 @@ ${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as k
 [참고 예시 - 좋은 글 vs 나쁜 글]
 ${FEW_SHOT_EXAMPLES}
 
+${PARAGRAPH_STRUCTURE_GUIDE}
+
 [글쓰기 원칙]
 1. 톤: 구어체 친근 (병원 홍보 ❌, 교과서처럼 딱딱 ❌)
 2. 감각 묘사: "찌릿", "뻐근", "욱신", "뻣뻣", "무겁다", "당긴다" 등
@@ -3356,10 +3359,6 @@ ${FEW_SHOT_EXAMPLES}
   
 ⚠️ 소제목 개수는 글자 수 맞추기 위해 자유롭게 조절 가능!
 ⚠️ 단, 마지막 소제목 문단은 무조건 2개만!
-
-[SEO]
-- 제목: 실제 검색할 법한 제목 (예: "무릎 통증 오래갈 때 나타나는 양상")
-- 키워드: "${request.topic}" 3~5회 자연스럽게
 
 [HTML 구조] - 이미지 ${targetImageCount}장 기준!
 <div class="naver-post-container">
