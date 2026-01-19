@@ -90,6 +90,20 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
     console.log('📦 Gemini 응답 타입:', typeof result);
     console.log('📦 Gemini 응답 키:', Object.keys(result || {}));
     console.log('📦 result.text 존재:', !!result.text);
+    console.log('📦 result.text 길이:', result.text?.length || 0);
+    
+    // 🔍 candidates 구조 확인 (Gemini SDK 응답 구조)
+    if (result.candidates && result.candidates.length > 0) {
+      console.log('📦 candidates[0] 구조:', Object.keys(result.candidates[0] || {}));
+      const firstCandidate = result.candidates[0];
+      if (firstCandidate.content) {
+        console.log('📦 content 구조:', Object.keys(firstCandidate.content || {}));
+        if (firstCandidate.content.parts) {
+          console.log('📦 parts 개수:', firstCandidate.content.parts.length);
+          console.log('📦 parts[0] 구조:', Object.keys(firstCandidate.content.parts[0] || {}));
+        }
+      }
+    }
     
     // 🚨 responseType에 따라 적절한 값 반환
     if (config.responseType === 'text') {
@@ -97,7 +111,24 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
       const textContent = result.text || '';
       if (!textContent || textContent.trim().length === 0) {
         console.error('❌ Gemini text 응답이 비어있음');
-        console.error('   - result:', JSON.stringify(result).substring(0, 500));
+        console.error('   - result.text:', result.text);
+        console.error('   - candidates 개수:', result.candidates?.length || 0);
+        
+        // candidates에서 직접 텍스트 추출 시도
+        if (result.candidates && result.candidates.length > 0) {
+          const candidate = result.candidates[0];
+          if (candidate.content?.parts && candidate.content.parts.length > 0) {
+            const extractedText = candidate.content.parts
+              .map((part: any) => part.text || '')
+              .join('');
+            
+            if (extractedText && extractedText.trim().length > 0) {
+              console.log('✅ candidates에서 텍스트 추출 성공:', extractedText.length, '자');
+              return extractedText;
+            }
+          }
+        }
+        
         throw new Error('Gemini가 빈 텍스트 응답을 반환했습니다. 다시 시도해주세요.');
       }
       return textContent;
