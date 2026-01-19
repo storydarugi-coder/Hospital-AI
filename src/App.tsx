@@ -47,6 +47,9 @@ const App: React.FC = () => {
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
+  // 오른쪽 콘텐츠 탭
+  const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'card_news' | 'press'>('blog');
+  
   // 카드뉴스 3단계 워크플로우 상태
   // 1단계: 원고 생성 → 2단계: 프롬프트 확인 → 3단계: 이미지 생성
   const [cardNewsScript, setCardNewsScript] = useState<CardNewsScript | null>(null);
@@ -803,9 +806,74 @@ const App: React.FC = () => {
         </div>
 
         <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
-          {/* 카드뉴스 3단계 워크플로우 */}
-          {/* 2단계: 프롬프트 확인 */}
-          {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
+          {/* 탭 메뉴 */}
+          <div className={`flex gap-2 mb-4 p-2 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-lg`}>
+            <button
+              onClick={() => setContentTab('blog')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                contentTab === 'blog'
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+                  : darkMode
+                  ? 'text-slate-400 hover:bg-slate-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              📝 블로그
+            </button>
+            <button
+              onClick={() => setContentTab('similarity')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                contentTab === 'similarity'
+                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                  : darkMode
+                  ? 'text-slate-400 hover:bg-slate-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              🔍 유사도 검사
+            </button>
+            <button
+              onClick={() => setContentTab('card_news')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                contentTab === 'card_news'
+                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                  : darkMode
+                  ? 'text-slate-400 hover:bg-slate-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              🎨 카드뉴스
+            </button>
+            <button
+              onClick={() => setContentTab('press')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+                contentTab === 'press'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                  : darkMode
+                  ? 'text-slate-400 hover:bg-slate-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              📰 언론보도
+            </button>
+          </div>
+
+          {/* 탭 콘텐츠 */}
+          <div className="flex-1 overflow-hidden">
+            {contentTab === 'similarity' ? (
+              /* 유사도 검사 탭 */
+              <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
+                <SimilarityChecker
+                  onClose={() => setContentTab('blog')}
+                  darkMode={darkMode}
+                />
+              </Suspense>
+            ) : (
+              /* 기존 블로그/카드뉴스/언론보도 콘텐츠 */
+              <>
+                {/* 카드뉴스 3단계 워크플로우 */}
+                {/* 2단계: 프롬프트 확인 */}
+                {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
             <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
               <PromptPreview
                 prompts={cardNewsPrompts}
@@ -858,6 +926,9 @@ const App: React.FC = () => {
                <p className={`mt-4 max-w-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>좌측 메뉴에서 콘텐츠 유형과 주제를 선택하면<br/>최적화된 콘텐츠가 생성됩니다.</p>
             </div>
           )}
+              </>
+            )}
+          </div>
         </div>
 
       </main>
