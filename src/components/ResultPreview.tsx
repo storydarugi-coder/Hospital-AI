@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { GeneratedContent, ImageStyle as _ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide as _regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE as _CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
+import { GeneratedContent, ImageStyle as _ImageStyle, CssTheme, SeoScoreReport, FactCheckReport, SimilarityCheckResult } from '../types';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide as _regenerateCardSlide, evaluateSeoScore, recheckAiSmell, checkContentSimilarity, saveBlogHistory, CARD_LAYOUT_RULE as _CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
 import { CSS_THEMES as _CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { optimizeAllImagesInHtml, formatFileSize } from '../utils/imageOptimizer';
 import { saveAs } from 'file-saver';
@@ -178,6 +178,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [isOptimizingImages, setIsOptimizingImages] = useState(false);
   const [_optimizationProgress, _setOptimizationProgress] = useState(''); // 향후 진행률 표시에 활용
   const [optimizationStats, setOptimizationStats] = useState<{ totalSaved: number; imageCount: number } | null>(null);
+  
+  // 🔍 유사도 검사 상태
+  const [isCheckingSimilarity, setIsCheckingSimilarity] = useState(false);
+  const [similarityResult, setSimilarityResult] = useState<SimilarityCheckResult | null>(null);
+  const [showSimilarityModal, setShowSimilarityModal] = useState(false);
   
   // content.seoScore가 있으면 자동으로 설정
   useEffect(() => {
@@ -1314,6 +1319,39 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       setTimeout(() => setOptimizationProgress(''), 2000);
     } finally {
       setIsOptimizingImages(false);
+    }
+  };
+
+  // 🔍 유사도 검사 함수
+  const handleCheckSimilarity = async () => {
+    if (isCheckingSimilarity) return;
+    
+    setIsCheckingSimilarity(true);
+    setSimilarityResult(null);
+    
+    try {
+      const result = await checkContentSimilarity(
+        content.htmlContent,
+        content.title,
+        (msg) => console.log('📊 유사도 검사:', msg)
+      );
+      
+      setSimilarityResult(result);
+      setShowSimilarityModal(true);
+      
+      // 결과에 따라 알림
+      if (result.status === 'HIGH_RISK') {
+        alert('⚠️ 유사한 콘텐츠가 발견되었습니다!\n재작성을 권장합니다.');
+      } else if (result.status === 'MEDIUM_RISK') {
+        alert('💡 일부 유사한 표현이 있습니다.\n확인해보세요.');
+      } else if (result.status === 'ORIGINAL') {
+        alert('✅ 독창적인 콘텐츠입니다!');
+      }
+    } catch (error) {
+      console.error('유사도 검사 실패:', error);
+      alert('유사도 검사 중 오류가 발생했습니다.\n\n💡 Google Custom Search API 키가 설정되어 있는지 확인해주세요.');
+    } finally {
+      setIsCheckingSimilarity(false);
     }
   };
 
@@ -3463,6 +3501,27 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
           
           <div className="flex items-center gap-2">
+            {/* 유사도 검사 버튼 */}
+            <button 
+              onClick={handleCheckSimilarity}
+              disabled={isCheckingSimilarity}
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                isCheckingSimilarity 
+                  ? (darkMode ? 'bg-purple-900/30 text-purple-500 cursor-wait' : 'bg-purple-100/50 text-purple-400 cursor-wait')
+                  : (darkMode ? 'bg-purple-900/50 text-purple-400 hover:bg-purple-900' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
+              }`}
+              title="블로그 유사도 검사 (중복 체크)"
+            >
+              {isCheckingSimilarity ? (
+                <>
+                  <span className="animate-spin inline-block mr-1">🔄</span>
+                  검사 중...
+                </>
+              ) : (
+                <>🔍 유사도</>
+              )}
+            </button>
+            
             {/* 저장 버튼 */}
             <div className="flex items-center gap-1 relative">
               {/* 수동 저장 버튼 */}
@@ -3700,6 +3759,148 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             </form>
          </div>
       </div>
+      
+      {/* 🔍 유사도 검사 결과 모달 */}
+      {showSimilarityModal && similarityResult && (
+        <div 
+          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowSimilarityModal(false)}
+        >
+          <div 
+            className={`max-w-2xl w-full max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden ${
+              darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${
+              similarityResult.status === 'HIGH_RISK' ? 'bg-red-500 text-white' :
+              similarityResult.status === 'MEDIUM_RISK' ? 'bg-yellow-500 text-white' :
+              similarityResult.status === 'LOW_RISK' ? 'bg-blue-500 text-white' :
+              'bg-green-500 text-white'
+            }`}>
+              <h3 className="font-bold text-xl">🔍 유사도 검사 결과</h3>
+              <button 
+                onClick={() => setShowSimilarityModal(false)}
+                className="text-2xl hover:opacity-70 transition-opacity"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* 본문 */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {/* 점수 */}
+              <div className="text-center mb-6">
+                <div className={`text-6xl font-black mb-2 ${
+                  similarityResult.finalScore >= 80 ? 'text-red-600' :
+                  similarityResult.finalScore >= 60 ? 'text-yellow-600' :
+                  similarityResult.finalScore >= 40 ? 'text-blue-600' :
+                  'text-green-600'
+                }`}>
+                  {similarityResult.finalScore.toFixed(1)}점
+                </div>
+                <p className="text-lg font-bold mb-2">
+                  {similarityResult.message}
+                </p>
+                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  검사 시간: {(similarityResult.checkDuration / 1000).toFixed(1)}초
+                </p>
+              </div>
+              
+              {/* 자체 블로그 매칭 */}
+              {similarityResult.ownBlogMatches.length > 0 && (
+                <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    📚 자체 블로그 유사 글
+                  </h4>
+                  <ul className="space-y-2">
+                    {similarityResult.ownBlogMatches.map((match: any, idx: number) => (
+                      <li key={idx} className={`flex justify-between items-center p-3 rounded-lg ${
+                        darkMode ? 'bg-slate-600' : 'bg-white'
+                      }`}>
+                        <span className="truncate flex-1 text-sm">{match.blog.title}</span>
+                        <span className={`font-bold ml-3 text-lg ${
+                          match.similarity >= 0.8 ? 'text-red-500' :
+                          match.similarity >= 0.6 ? 'text-yellow-500' :
+                          'text-blue-500'
+                        }`}>
+                          {(match.similarity * 100).toFixed(1)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* 웹 검색 매칭 */}
+              {similarityResult.webSearchMatches.length > 0 && (
+                <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    🌐 웹에서 발견된 유사 문장
+                  </h4>
+                  <ul className="space-y-3">
+                    {similarityResult.webSearchMatches.map((match: any, idx: number) => (
+                      <li key={idx} className={`p-3 rounded-lg ${
+                        darkMode ? 'bg-slate-600' : 'bg-white'
+                      }`}>
+                        <p className="font-bold mb-2 text-sm">"{match.phrase}"</p>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
+                            {match.matchCount}건 발견
+                          </span>
+                          {match.matches?.[0]?.link && (
+                            <a 
+                              href={match.matches[0].link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              확인 →
+                            </a>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              {/* 핵심 문장 */}
+              {similarityResult.keyPhrases.length > 0 && (
+                <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                    💡 검사된 핵심 문장들
+                  </h4>
+                  <ul className="space-y-1 text-xs">
+                    {similarityResult.keyPhrases.map((phrase: string, idx: number) => (
+                      <li key={idx} className={darkMode ? 'text-slate-400' : 'text-slate-600'}>
+                        {idx + 1}. "{phrase}"
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            {/* 푸터 */}
+            <div className={`px-6 py-4 border-t flex justify-end gap-3 ${
+              darkMode ? 'border-slate-700' : 'border-slate-200'
+            }`}>
+              <button
+                onClick={() => setShowSimilarityModal(false)}
+                className={`px-6 py-2 rounded-lg font-bold transition-all ${
+                  darkMode 
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' 
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
