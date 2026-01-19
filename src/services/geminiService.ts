@@ -80,16 +80,39 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
       )
     ]);
     
+    // 🚨 응답 검증
+    if (!result) {
+      console.error('❌ Gemini가 null/undefined 응답 반환');
+      throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
+    }
+    
+    // 디버깅: 응답 구조 확인
+    console.log('📦 Gemini 응답 타입:', typeof result);
+    console.log('📦 Gemini 응답 키:', Object.keys(result || {}));
+    console.log('📦 result.text 존재:', !!result.text);
+    
     // 🚨 responseType에 따라 적절한 값 반환
     if (config.responseType === 'text') {
       // text 타입일 때는 문자열 반환
-      return result.text || '';
+      const textContent = result.text || '';
+      if (!textContent || textContent.trim().length === 0) {
+        console.error('❌ Gemini text 응답이 비어있음');
+        console.error('   - result:', JSON.stringify(result).substring(0, 500));
+        throw new Error('Gemini가 빈 텍스트 응답을 반환했습니다. 다시 시도해주세요.');
+      }
+      return textContent;
     } else if (config.responseType === 'json') {
       // json 타입일 때는 파싱된 객체 반환
+      const textContent = result.text || '{}';
+      if (!textContent || textContent.trim().length === 0) {
+        console.error('❌ Gemini JSON 응답이 비어있음');
+        throw new Error('Gemini가 빈 JSON 응답을 반환했습니다. 다시 시도해주세요.');
+      }
       try {
-        return JSON.parse(result.text || '{}');
+        return JSON.parse(textContent);
       } catch (e) {
-        console.warn('⚠️ JSON 파싱 실패, 원본 반환:', result.text?.substring(0, 100));
+        console.warn('⚠️ JSON 파싱 실패, 원본 반환:', textContent.substring(0, 100));
+        console.error('   - 파싱 에러:', e);
         return result;
       }
     } else {
@@ -98,6 +121,9 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
     }
   } catch (error) {
     console.error('❌ Gemini API 호출 실패:', error);
+    console.error('   - 모델:', config.model);
+    console.error('   - responseType:', config.responseType);
+    console.error('   - 프롬프트 길이:', config.prompt?.length);
     throw error;
   }
 }
