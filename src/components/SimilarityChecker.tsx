@@ -109,7 +109,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       </div>
 
       {/* 본문 */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">'
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {/* 모드 선택 */}
         <div className="flex gap-2 mb-4">
           <button
