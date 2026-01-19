@@ -3441,6 +3441,54 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
     : currentMonth >= 6 && currentMonth <= 8 ? '여름'
     : currentMonth >= 9 && currentMonth <= 11 ? '가을' : '겨울';
   const timeContext = `현재 날짜: ${currentYear}년 ${currentMonth}월 ${currentDay}일 (${currentSeason})`;
+  
+  // 병원 웹사이트 크롤링 (hospitalWebsite가 있을 경우)
+  let hospitalInfo = '';
+  if (request.hospitalWebsite && request.hospitalWebsite.trim()) {
+    safeProgress('🏥 병원 정보 크롤링 중...');
+    try {
+      const crawlResponse = await fetch('/api/crawler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: request.hospitalWebsite })
+      });
+      if (crawlResponse.ok) {
+        const crawlData = await crawlResponse.json() as { content?: string; error?: string };
+        if (crawlData.content) {
+          console.log('✅ 병원 웹사이트 크롤링 완료:', crawlData.content.substring(0, 200));
+          hospitalInfo = `
+
+[🏥 병원 정보 활용 가이드]
+아래 병원 정보를 참고하여 글 마지막 소제목 ("병원 소개" 또는 "어디서 확인할 수 있나요" 등)에 자연스럽게 삽입하세요.
+
+⚠️ 의료광고법 준수 필수:
+- ❌ "최고", "최상", "1등", "유일" 등 최상급 표현 금지
+- ❌ "완치", "효과 보장", "100% 안전" 등 효과 보장 표현 금지
+- ❌ 타 병원과 비교 우위 표현 금지
+- ✅ "~진료를 진행하고 있습니다", "~시설을 갖추고 있습니다" (사실만 나열)
+- ✅ "~분야를 중심으로 진료합니다", "~에 집중하고 있습니다" (중립적 톤)
+
+📋 병원 웹사이트 정보:
+${crawlData.content.substring(0, 3000)}
+
+✅ 작성 방법:
+1. 마지막 소제목에 2~3문장으로 간결하게 삽입
+2. 과도한 홍보 느낌 없이 정보 제공 형식으로
+3. "~에서 상담받아보는 것도 방법입니다" 같은 완곡한 표현 사용
+4. 병원명은 1회만 언급 (과도한 반복 금지)
+`;
+          safeProgress('✅ 병원 정보 크롤링 완료');
+        } else {
+          console.warn('⚠️ 크롤링 결과 없음:', crawlData.error);
+        }
+      } else {
+        console.warn('⚠️ 크롤링 API 실패:', crawlResponse.status);
+      }
+    } catch (error) {
+      console.error('❌ 병원 크롤링 에러:', error);
+    }
+  }
+  
   // 커스텀 이미지 프롬프트가 있으면 최우선 사용
   const customImagePrompt = request.customImagePrompt?.trim();
   const imageStyleGuide = customImagePrompt
@@ -3685,6 +3733,7 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
 
 [JSON 응답 형식] - imagePrompts 배열: 정확히 ${targetImageCount}개!
 {"title":"제목","content":"HTML 본문 ([IMG_1]~[IMG_${targetImageCount}] 마커 포함)",${targetImageCount > 0 ? `"imagePrompts":["프롬프트1", "프롬프트2", ... 총 ${targetImageCount}개],` : ''}"fact_check":{...}}
+${hospitalInfo}
   `;
 
   const cardNewsPrompt = `
