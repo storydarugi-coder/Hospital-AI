@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript } from "../types";
+import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
 import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
 // 🚀 콘텐츠 최적화 시스템
 // 프롬프트 최적화 (향후 활용 가능성 있음)
@@ -6919,6 +6919,391 @@ JSON 형식으로 응답해주세요.`;
   } catch (error) {
     console.error('❌ AI 냄새 재검사 실패:', error);
     throw new Error('AI 냄새 재검사 중 오류가 발생했습니다.');
+  }
+};
+
+// ========================================
+// 📊 블로그 유사도 검사 시스템
+// ========================================
+
+/**
+ * Gemini Embedding API로 텍스트 벡터화
+ */
+async function getTextEmbedding(text: string): Promise<number[]> {
+  try {
+    const ai = getAiClient();
+    
+    // 텍스트 정리 (HTML 태그 제거)
+    const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    const result = await ai.models.generateContent({
+      model: 'text-embedding-004', // Gemini Embedding 모델
+      contents: cleanText,
+    });
+    
+    // @ts-ignore - Gemini Embedding API 응답 구조
+    return result.embedding?.values || [];
+  } catch (error) {
+    console.error('❌ 텍스트 임베딩 생성 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * 코사인 유사도 계산
+ */
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (!vecA.length || !vecB.length || vecA.length !== vecB.length) {
+    return 0;
+  }
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  const denominator = Math.sqrt(normA) * Math.sqrt(normB);
+  return denominator === 0 ? 0 : dotProduct / denominator;
+}
+
+/**
+ * 자체 블로그 DB와 유사도 검사
+ * (Supabase에 저장된 이전 글들과 비교)
+ */
+async function checkSimilarityWithOwnBlogs(
+  content: string,
+  title: string
+): Promise<{ maxSimilarity: number; matches: any[] }> {
+  try {
+    console.log('🔍 자체 블로그 DB 유사도 검사 시작...');
+    
+    // TODO: Supabase에서 블로그 이력 가져오기
+    // const { data: blogHistory } = await supabase
+    //   .from('blog_history')
+    //   .select('*')
+    //   .order('publishedAt', { ascending: false })
+    //   .limit(100);
+    
+    // 현재는 임시 구현 (빈 배열)
+    const blogHistory: any[] = [];
+    
+    if (blogHistory.length === 0) {
+      console.log('ℹ️ 저장된 블로그 이력 없음');
+      return { maxSimilarity: 0, matches: [] };
+    }
+    
+    // 새 글 벡터화
+    const newEmbedding = await getTextEmbedding(content);
+    
+    if (newEmbedding.length === 0) {
+      console.log('⚠️ 임베딩 생성 실패');
+      return { maxSimilarity: 0, matches: [] };
+    }
+    
+    // 기존 글들과 유사도 비교
+    const similarities = await Promise.all(
+      blogHistory.map(async (blog) => {
+        const similarity = cosineSimilarity(newEmbedding, blog.embedding || []);
+        return { blog, similarity };
+      })
+    );
+    
+    // 유사도 높은 순으로 정렬
+    const sortedMatches = similarities
+      .filter(s => s.similarity > 0.3) // 30% 이상만
+      .sort((a, b) => b.similarity - a.similarity);
+    
+    const maxSimilarity = sortedMatches.length > 0 ? sortedMatches[0].similarity : 0;
+    
+    console.log(`✅ 자체 DB 검사 완료: 최대 유사도 ${(maxSimilarity * 100).toFixed(1)}%`);
+    
+    return {
+      maxSimilarity,
+      matches: sortedMatches.slice(0, 5) // 상위 5개만
+    };
+  } catch (error) {
+    console.error('❌ 자체 블로그 유사도 검사 실패:', error);
+    return { maxSimilarity: 0, matches: [] };
+  }
+}
+
+/**
+ * Gemini로 핵심 문장 추출
+ */
+async function extractKeyPhrases(content: string): Promise<string[]> {
+  try {
+    console.log('🔍 핵심 문장 추출 중...');
+    
+    // HTML 태그 제거
+    const cleanContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    // 너무 짧으면 그대로 반환
+    if (cleanContent.length < 100) {
+      return [cleanContent.slice(0, 50)];
+    }
+    
+    const prompt = `
+다음 블로그 글에서 표절 검사를 위한 핵심 문장 3개를 추출해주세요.
+
+선택 기준:
+- 가장 독특하고 특징적인 문장
+- 길이는 10~50자 정도
+- 검색하기 좋은 문장 (너무 일반적이지 않은)
+- 의료 정보나 병원 고유 내용이 담긴 문장
+
+블로그 내용:
+${cleanContent.slice(0, 2000)}
+
+출력 형식 (반드시 정확히 따를 것):
+1. "핵심 문장 1"
+2. "핵심 문장 2"
+3. "핵심 문장 3"
+`;
+
+    const result = await callGemini({
+      prompt,
+      model: GEMINI_MODEL.PRO,
+      responseType: 'text'
+    });
+    
+    // 따옴표로 감싸진 문장들 추출
+    const phrases = result.match(/"([^"]{10,100})"/g)?.map((p: string) => p.slice(1, -1)) || [];
+    
+    console.log(`✅ 핵심 문장 ${phrases.length}개 추출:`, phrases);
+    
+    return phrases.slice(0, 3);
+  } catch (error) {
+    console.error('❌ 핵심 문장 추출 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * Google Custom Search API로 정확한 문장 검색
+ */
+async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
+  try {
+    console.log('🔍 웹 검색 시작...');
+    
+    const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
+    const GOOGLE_CX = import.meta.env.VITE_GOOGLE_SEARCH_CX;
+    
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
+      console.log('⚠️ Google Custom Search API 키 없음 (환경변수: VITE_GOOGLE_SEARCH_API_KEY, VITE_GOOGLE_SEARCH_CX)');
+      return [];
+    }
+    
+    const results = [];
+    
+    for (const phrase of keyPhrases) {
+      // 정확한 구문 검색 ("phrase")
+      const query = `"${phrase}" site:blog.naver.com`;
+      
+      try {
+        const response = await fetch(
+          `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}`
+        );
+        
+        const data = await response.json();
+        
+        if (data.items && data.items.length > 0) {
+          results.push({
+            phrase,
+            matches: data.items,
+            matchCount: data.items.length
+          });
+          
+          console.log(`  📊 "${phrase}" - ${data.items.length}건 발견`);
+        } else {
+          console.log(`  ✅ "${phrase}" - 중복 없음`);
+        }
+      } catch (error) {
+        console.error(`  ❌ 검색 실패: "${phrase}"`, error);
+      }
+      
+      // Google API Rate Limit 고려 (100쿼리/일)
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    console.log(`✅ 웹 검색 완료: ${results.length}개 문장에서 중복 발견`);
+    
+    return results;
+  } catch (error) {
+    console.error('❌ 웹 검색 실패:', error);
+    return [];
+  }
+}
+
+/**
+ * 유사도 점수 계산
+ */
+function calculateSimilarityScore(
+  ownBlogSimilarity: number,
+  webSearchMatches: any[]
+): { score: number; status: string; message: string } {
+  // 자체 블로그 유사도 (0~100)
+  const ownBlogScore = ownBlogSimilarity * 100;
+  
+  // 웹 검색 매칭 점수
+  let webSearchScore = 0;
+  const totalMatches = webSearchMatches.reduce((sum, m) => sum + m.matchCount, 0);
+  
+  if (totalMatches >= 3) {
+    webSearchScore = 100;
+  } else if (totalMatches >= 2) {
+    webSearchScore = 70;
+  } else if (totalMatches >= 1) {
+    webSearchScore = 40;
+  }
+  
+  // 최종 점수 (더 높은 점수 선택)
+  const finalScore = Math.max(ownBlogScore, webSearchScore);
+  
+  // 상태 및 메시지
+  let status = 'ORIGINAL';
+  let message = '✅ 독창적인 콘텐츠입니다!';
+  
+  if (finalScore >= 80) {
+    status = 'HIGH_RISK';
+    message = '🚨 매우 유사한 콘텐츠가 발견되었습니다! 재작성을 권장합니다.';
+  } else if (finalScore >= 60) {
+    status = 'MEDIUM_RISK';
+    message = '⚠️ 유사한 콘텐츠가 있습니다. 수정을 권장합니다.';
+  } else if (finalScore >= 40) {
+    status = 'LOW_RISK';
+    message = '💡 일부 유사한 표현이 있습니다. 확인해보세요.';
+  }
+  
+  return { score: finalScore, status, message };
+}
+
+/**
+ * 통합 유사도 검사 (자체 DB + 웹 검색)
+ */
+export const checkContentSimilarity = async (
+  content: string,
+  title: string,
+  onProgress?: (msg: string) => void
+): Promise<any> => {
+  const startTime = Date.now();
+  
+  try {
+    onProgress?.('🔍 유사도 검사 시작...');
+    console.log('==================== 유사도 검사 시작 ====================');
+    console.log('제목:', title);
+    console.log('내용 길이:', content.length, '자');
+    
+    const result: any = {
+      finalScore: 0,
+      status: 'CHECKING',
+      message: '',
+      ownBlogMatches: [],
+      webSearchMatches: [],
+      keyPhrases: [],
+      checkDuration: 0
+    };
+    
+    // 1단계: 자체 블로그 DB 검사 (빠름)
+    onProgress?.('📚 자체 블로그 DB 검사 중...');
+    const ownBlogCheck = await checkSimilarityWithOwnBlogs(content, title);
+    result.ownBlogMatches = ownBlogCheck.matches;
+    
+    // 2단계: 웹 검색 (필요시만)
+    if (ownBlogCheck.maxSimilarity < 0.8) {
+      onProgress?.('🌐 웹 검색으로 유사도 확인 중...');
+      
+      // Gemini로 핵심 문장 추출
+      const keyPhrases = await extractKeyPhrases(content);
+      result.keyPhrases = keyPhrases;
+      
+      if (keyPhrases.length > 0) {
+        // Google로 검색
+        const webSearchResults = await searchExactMatch(keyPhrases);
+        result.webSearchMatches = webSearchResults;
+      } else {
+        console.log('⚠️ 핵심 문장 추출 실패, 웹 검색 생략');
+      }
+    } else {
+      console.log('ℹ️ 자체 DB에서 높은 유사도 발견, 웹 검색 생략');
+    }
+    
+    // 3단계: 최종 점수 계산
+    onProgress?.('📊 유사도 점수 계산 중...');
+    const scoreResult = calculateSimilarityScore(
+      ownBlogCheck.maxSimilarity,
+      result.webSearchMatches
+    );
+    
+    result.finalScore = scoreResult.score;
+    result.status = scoreResult.status;
+    result.message = scoreResult.message;
+    result.checkDuration = Date.now() - startTime;
+    
+    console.log('==================== 유사도 검사 완료 ====================');
+    console.log('최종 점수:', result.finalScore);
+    console.log('상태:', result.status);
+    console.log('메시지:', result.message);
+    console.log('소요 시간:', result.checkDuration, 'ms');
+    console.log('=======================================================');
+    
+    onProgress?.(`✅ 유사도 검사 완료: ${result.finalScore.toFixed(1)}점`);
+    
+    return result;
+  } catch (error) {
+    console.error('❌ 유사도 검사 실패:', error);
+    
+    return {
+      finalScore: 0,
+      status: 'ERROR',
+      message: '⚠️ 유사도 검사 중 오류가 발생했습니다.',
+      ownBlogMatches: [],
+      webSearchMatches: [],
+      keyPhrases: [],
+      checkDuration: Date.now() - startTime
+    };
+  }
+};
+
+/**
+ * 블로그 이력 저장 (Supabase)
+ */
+export const saveBlogHistory = async (
+  title: string,
+  content: string,
+  htmlContent: string,
+  keywords: string[],
+  naverUrl?: string,
+  category?: string
+): Promise<void> => {
+  try {
+    console.log('💾 블로그 이력 저장 중...');
+    
+    // 임베딩 생성
+    const embedding = await getTextEmbedding(content);
+    
+    // TODO: Supabase에 저장
+    // const { error } = await supabase.from('blog_history').insert({
+    //   title,
+    //   content,
+    //   htmlContent,
+    //   keywords,
+    //   embedding,
+    //   naverUrl,
+    //   category,
+    //   publishedAt: new Date().toISOString()
+    // });
+    
+    // if (error) throw error;
+    
+    console.log('✅ 블로그 이력 저장 완료');
+  } catch (error) {
+    console.error('❌ 블로그 이력 저장 실패:', error);
+    // 저장 실패해도 메인 플로우는 계속 진행
   }
 };
 
