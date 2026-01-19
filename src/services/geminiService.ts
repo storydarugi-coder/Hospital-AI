@@ -394,8 +394,8 @@ ${prompt}
 `;
 
 // promptText에서 서로 충돌하는 키워드/섹션을 제거(특히 photo에서 [일러스트] 같은 것)
-const normalizePromptTextForImage = (raw: string): string => {
-  if (!raw) return '';
+const normalizePromptTextForImage = (raw: string | undefined | null): string => {
+  if (!raw || typeof raw !== 'string') return '';
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
   // 🔧 중복 제거: CARD_LAYOUT_RULE 전체 블록 및 관련 지시문 제거
@@ -1101,7 +1101,7 @@ export const generateSingleImage = async (
   const ai = getAiClient();
 
   // 1) 입력 정리: 충돌 문구 제거
-  const cleanPromptText = normalizePromptTextForImage(promptText);
+  const cleanPromptText = normalizePromptTextForImage(promptText) || '';
   
   // 🎨 참고 이미지가 없으면 기본 프레임 이미지 사용
   let effectiveReferenceImage = referenceImage;
@@ -1117,16 +1117,19 @@ export const generateSingleImage = async (
   // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
   // 🔧 핵심 텍스트를 프롬프트 상단에 배치하여 모델이 반드시 인식하도록!
   
+  // 🚨 핵심 문장 추출 전 안전 체크
+  console.log('📝 핵심 문장 추출 시작, cleanPromptText 타입:', typeof cleanPromptText, '길이:', cleanPromptText?.length);
+  
   // cleanPromptText에서 핵심 텍스트 추출 (다양한 패턴 지원)
-  const subtitleMatch = cleanPromptText.match(/subtitle:\s*"([^"]+)"/i) || 
-                        cleanPromptText.match(/subtitle:\s*([^\n,]+)/i);
-  const mainTitleMatch = cleanPromptText.match(/mainTitle:\s*"([^"]+)"/i) || 
-                         cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i);
-  const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/i) ||
-                           cleanPromptText.match(/description:\s*([^\n]+)/i);
+  const subtitleMatch = (cleanPromptText && typeof cleanPromptText === 'string') ? 
+                        (cleanPromptText.match(/subtitle:\s*"([^"]+)"/i) || cleanPromptText.match(/subtitle:\s*([^\n,]+)/i)) : null;
+  const mainTitleMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                         (cleanPromptText.match(/mainTitle:\s*"([^"]+)"/i) || cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i)) : null;
+  const descriptionMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                           (cleanPromptText.match(/description:\s*"([^"]+)"/i) || cleanPromptText.match(/description:\s*([^\n]+)/i)) : null;
   // 🎨 비주얼 지시문 추출
-  const visualMatch = cleanPromptText.match(/비주얼:\s*([^\n]+)/i) ||
-                      cleanPromptText.match(/visual:\s*([^\n]+)/i);
+  const visualMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                      (cleanPromptText.match(/비주얼:\s*([^\n]+)/i) || cleanPromptText.match(/visual:\s*([^\n]+)/i)) : null;
   
   const extractedSubtitle = (subtitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
   const extractedMainTitle = (mainTitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
