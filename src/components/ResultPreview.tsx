@@ -1943,6 +1943,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         .card-slide:hover .card-overlay {
            opacity: 1;
         }
+        /* 모바일에서도 터치 시 오버레이 표시 */
+        .card-slide:active .card-overlay {
+           opacity: 1;
+        }
+        /* 모바일 전용: 미디어 쿼리로 항상 표시 (투명도 낮춤) */
+        @media (hover: none) and (pointer: coarse) {
+           .card-overlay {
+              opacity: 0.95;
+           }
+        }
         .card-overlay {
            position: absolute;
            inset: 0;
@@ -1955,6 +1965,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            opacity: 0;
            transition: opacity 0.2s;
            z-index: 10;
+           /* 모바일에서 터치 가능하도록 */
+           touch-action: manipulation;
         }
         .card-overlay-btn {
            padding: 12px 24px;
@@ -1969,9 +1981,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            gap: 8px;
            user-select: none;
            -webkit-user-select: none;
+           /* 모바일 터치 영역 확대 */
+           min-height: 44px;
+           touch-action: manipulation;
         }
         .card-overlay-btn:hover {
            transform: scale(1.05);
+        }
+        /* 모바일에서 터치 피드백 */
+        .card-overlay-btn:active {
+           transform: scale(0.95);
         }
         .card-overlay-btn.regen {
            background: linear-gradient(135deg, #8B5CF6, #6366F1);
