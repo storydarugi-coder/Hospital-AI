@@ -3442,15 +3442,32 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
     : currentMonth >= 9 && currentMonth <= 11 ? '가을' : '겨울';
   const timeContext = `현재 날짜: ${currentYear}년 ${currentMonth}월 ${currentDay}일 (${currentSeason})`;
   
-  // 병원 웹사이트 크롤링 (hospitalWebsite가 있을 경우)
+  // 🏥 병원 웹사이트 크롤링 로직
+  // 1) 보도자료: hospitalWebsite 사용
+  // 2) 블로그: customSubheadings에 "병원 소개" 포함 시 referenceUrl 크롤링
   let hospitalInfo = '';
+  let shouldCrawl = false;
+  let crawlUrl = '';
+  
+  // 보도자료의 경우 hospitalWebsite 사용
   if (request.hospitalWebsite && request.hospitalWebsite.trim()) {
+    shouldCrawl = true;
+    crawlUrl = request.hospitalWebsite.trim();
+  }
+  // 블로그의 경우: 소제목에 "병원 소개" 포함 시 referenceUrl 크롤링
+  else if (request.customSubheadings && request.customSubheadings.includes('병원 소개') && request.referenceUrl && request.referenceUrl.trim()) {
+    shouldCrawl = true;
+    crawlUrl = request.referenceUrl.trim();
+    console.log('📋 소제목에 "병원 소개" 발견! 병원 정보 크롤링 시작:', crawlUrl);
+  }
+  
+  if (shouldCrawl) {
     safeProgress('🏥 병원 정보 크롤링 중...');
     try {
       const crawlResponse = await fetch('/api/crawler', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: request.hospitalWebsite })
+        body: JSON.stringify({ url: crawlUrl })
       });
       if (crawlResponse.ok) {
         const crawlData = await crawlResponse.json() as { content?: string; error?: string };
