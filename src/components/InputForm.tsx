@@ -204,6 +204,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
            {postType === 'blog' ? (
                <div className="space-y-4">
+                  {/* 병원 홈페이지 URL 입력란 */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">
+                      🏥 병원 홈페이지 (선택)
+                      <span className="text-xs font-normal text-slate-500 ml-2">소제목에 "병원 소개" 입력 시 자동 크롤링</span>
+                    </label>
+                    <input 
+                      type="url"
+                      value={referenceUrl}
+                      onChange={(e) => setReferenceUrl(e.target.value)}
+                      placeholder="예: https://www.hospital.com"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 text-sm"
+                    />
+                  </div>
                   <div>
                     <div className="flex justify-between mb-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">글자 수 목표</label>
