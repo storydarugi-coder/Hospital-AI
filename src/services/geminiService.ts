@@ -23,7 +23,7 @@ const _CURRENT_YEAR = new Date().getFullYear();
 // 🎯 Gemini API 상수
 const GEMINI_MODEL = {
   PRO: 'gemini-3-pro-preview',
-  FLASH: 'gemini-2.0-flash-exp',
+  FLASH: 'gemini-3-pro-preview',
 } as const;
 
 const TIMEOUTS = {
