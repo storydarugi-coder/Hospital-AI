@@ -7114,58 +7114,65 @@ async function checkSimilarityWithOwnBlogs(
 }
 
 /**
- * Gemini로 핵심 문장 추출
+ * 전체 콘텐츠를 청크로 나눠서 검색 문구 추출
  */
-async function extractKeyPhrases(content: string): Promise<string[]> {
+async function extractSearchQueries(content: string): Promise<string[]> {
   try {
-    console.log('🔍 핵심 문장 추출 중...');
+    console.log('🔍 전체 콘텐츠에서 검색 문구 추출 중...');
     
     // HTML 태그 제거
     const cleanContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     
-    // 너무 짧으면 그대로 반환
+    // 너무 짧으면 전체를 하나의 쿼리로
     if (cleanContent.length < 100) {
-      return [cleanContent.slice(0, 50)];
+      return [cleanContent.slice(0, 100)];
     }
     
-    const prompt = `
-다음 블로그 글에서 표절 검사를 위한 핵심 문장 3개를 추출해주세요.
-
-선택 기준:
-- 가장 독특하고 특징적인 문장
-- 길이는 10~50자 정도
-- 검색하기 좋은 문장 (너무 일반적이지 않은)
-- 의료 정보나 병원 고유 내용이 담긴 문장
-
-블로그 내용:
-${cleanContent.slice(0, 2000)}
-
-출력 형식 (반드시 정확히 따를 것):
-1. "핵심 문장 1"
-2. "핵심 문장 2"
-3. "핵심 문장 3"
-`;
-
-    const result = await callGemini({
-      prompt,
-      model: GEMINI_MODEL.PRO,
-      responseType: 'text'
-    });
+    // 콘텐츠를 문장으로 분리 (마침표, 느낌표, 물음표 기준)
+    const sentences = cleanContent
+      .split(/[.!?]\s+/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 20 && s.length <= 200); // 너무 짧거나 긴 문장 제외
     
-    // 🚨 result가 문자열인지 확인
-    if (!result || typeof result !== 'string') {
-      console.warn('⚠️ Gemini 응답이 문자열이 아닙니다:', typeof result);
-      return [];
+    console.log(`📝 총 ${sentences.length}개 문장 추출`);
+    
+    // 문장을 그룹으로 묶어서 검색 쿼리 생성 (2-3문장씩)
+    const queries: string[] = [];
+    
+    // 1. 2문장씩 묶어서 추가
+    for (let i = 0; i < sentences.length - 1; i += 2) {
+      const chunk = sentences.slice(i, i + 2).join('. ');
+      if (chunk.length >= 30 && chunk.length <= 150) {
+        queries.push(chunk);
+      }
     }
     
-    // 따옴표로 감싸진 문장들 추출
-    const phrases = result.match(/"([^"]{10,100})"/g)?.map((p: string) => p.slice(1, -1)) || [];
+    // 2. 3문장씩 묶어서 추가 (더 긴 매칭)
+    for (let i = 0; i < sentences.length - 2; i += 3) {
+      const chunk = sentences.slice(i, i + 3).join('. ');
+      if (chunk.length >= 50 && chunk.length <= 200) {
+        queries.push(chunk);
+      }
+    }
     
-    console.log(`✅ 핵심 문장 ${phrases.length}개 추출:`, phrases);
+    // 3. 개별 문장 중 특징적인 것들 추가 (길이 40자 이상)
+    const distinctiveSentences = sentences
+      .filter(s => s.length >= 40 && s.length <= 150)
+      .slice(0, 10); // 최대 10개
     
-    return phrases.slice(0, 3);
+    queries.push(...distinctiveSentences);
+    
+    // 중복 제거 및 정렬 (긴 것부터)
+    const uniqueQueries = [...new Set(queries)]
+      .sort((a, b) => b.length - a.length)
+      .slice(0, 15); // 최대 15개 쿼리
+    
+    console.log(`✅ 총 ${uniqueQueries.length}개 검색 쿼리 생성`);
+    console.log('📋 검색 쿼리 샘플:', uniqueQueries.slice(0, 3));
+    
+    return uniqueQueries;
   } catch (error) {
-    console.error('❌ 핵심 문장 추출 실패:', error);
+    console.error('❌ 검색 문구 추출 실패:', error);
     return [];
   }
 }
@@ -7302,18 +7309,19 @@ export const checkContentSimilarity = async (
     
     // 2단계: 웹 검색 (필요시만)
     if (ownBlogCheck.maxSimilarity < 0.8) {
-      onProgress?.('🌐 웹 검색으로 유사도 확인 중...');
+      onProgress?.('🌐 전체 콘텐츠 웹 검색 중...');
       
-      // Gemini로 핵심 문장 추출
-      const keyPhrases = await extractKeyPhrases(content);
-      result.keyPhrases = keyPhrases;
+      // 전체 콘텐츠에서 검색 쿼리 추출
+      const searchQueries = await extractSearchQueries(content);
+      result.keyPhrases = searchQueries;
       
-      if (keyPhrases.length > 0) {
+      if (searchQueries.length > 0) {
+        console.log(`🔍 ${searchQueries.length}개 쿼리로 웹 검색 시작...`);
         // Google로 검색
-        const webSearchResults = await searchExactMatch(keyPhrases);
+        const webSearchResults = await searchExactMatch(searchQueries);
         result.webSearchMatches = webSearchResults;
       } else {
-        console.log('⚠️ 핵심 문장 추출 실패, 웹 검색 생략');
+        console.log('⚠️ 검색 쿼리 추출 실패, 웹 검색 생략');
       }
     } else {
       console.log('ℹ️ 자체 DB에서 높은 유사도 발견, 웹 검색 생략');
