@@ -4733,6 +4733,10 @@ ${JSON.stringify(searchResults, null, 2)}
       // 로그 실패해도 메인 기능은 계속
     }
 
+    // 🔧 사용자가 입력한 제목 그대로 사용 (AI가 변경하지 않도록)
+    result.title = request.topic;
+    console.log('✅ 사용자 입력 제목 사용:', request.topic);
+
     return result;
   } catch (error) {
     errorOccurred = true;
