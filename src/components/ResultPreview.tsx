@@ -2383,73 +2383,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               </div>
             </div>
             
-            {/* 🤖 AI 냄새 점수 - UI에서 숨김 처리 */}
-            {false && content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
-              <>
-                {/* 구분선 */}
+            {/* 🤖 AI 냄새 점수 - 비활성화됨
                 <div className="w-px h-12 bg-slate-700"></div>
-                
-                <div 
-                  className={`flex flex-col cursor-pointer transition-all hover:scale-105 ${
-                    (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis)
-                      ? 'hover:bg-amber-500/10 rounded-lg px-2 py-1 -mx-2 -my-1' 
-                      : ''
-                  }`}
-                  onClick={() => {
-                    if (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) {
-                      setShowAiSmellDetail(true);
-                    }
-                  }}
-                  title={(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) ? '클릭하여 상세 분석 확인' : ''}
-                >
-                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
-                  <div className="flex items-center gap-2">
-                    {recheckResult ? (
-                      <>
-                        <span className={`text-2xl font-black ${recheckResult.ai_smell_score! <= 20 ? 'text-green-400' : recheckResult.ai_smell_score! <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {recheckResult.ai_smell_score}점
-                        </span>
-                        <span className="text-[10px] opacity-70">
-                          {recheckResult.ai_smell_score! <= 20 ? '✅ 사람글' : recheckResult.ai_smell_score! <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
-                        </span>
-                        <button
-                          onClick={handleRecheckAiSmell}
-                          disabled={isRecheckingAiSmell}
-                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
-                        >
-                          🔄 재검사
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 20 ? 'text-green-400' : content.factCheck.ai_smell_score <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {content.factCheck.ai_smell_score}점
-                        </span>
-                        <span className="text-[10px] opacity-70">
-                          {content.factCheck.ai_smell_score <= 20 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
-                        </span>
-                        <button
-                          onClick={handleRecheckAiSmell}
-                          disabled={isRecheckingAiSmell}
-                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
-                        >
-                          {isRecheckingAiSmell ? '검사중...' : '🔄 재검사'}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {/* 상세 분석 보기 버튼 (모든 점수에서 표시) */}
-                  {(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) && (
-                    <span className={`text-[9px] mt-0.5 animate-pulse ${
-                      (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 7 ? 'text-green-400' :
-                      (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 15 ? 'text-amber-400' : 'text-red-400'
-                    }`}>
-                      🔍 상세 분석 보기
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
+                <div>AI 냄새 점수 UI</div>
+            */}
             
             {content.postType === 'card_news' && (
               <div className="hidden lg:block ml-4">
