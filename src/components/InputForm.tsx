@@ -531,11 +531,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         )}
 
 
-        {/* 4단계: 블로그/보도자료는 스타일 설정 표시 (카드뉴스는 숨김) */}
-        {(postType === 'blog' || postType === 'press_release') && (
+        {/* 4단계: 블로그만 스타일 설정 표시 (보도자료/카드뉴스는 숨김) */}
+        {postType === 'blog' && (
           <div className="border-t border-slate-100 pt-6 mt-2 space-y-6">
             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex justify-between">
-               {postType === 'press_release' ? '3단계' : '4단계'}. 스타일 설정 (선택사항)
+               4단계. 스타일 설정 (선택사항)
                <span className="text-emerald-600 font-bold">말투 학습으로 나만의 스타일 적용</span>
             </label>
             
@@ -545,7 +545,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 setLearnedStyleId(styleId);
               }}
               selectedStyleId={learnedStyleId}
-              contentType={postType === 'press_release' ? 'press_release' : 'blog'}
+              contentType="blog"
             />
 
             {/* 학습된 말투가 없을 때만 기본 페르소나/말투 선택 표시 */}
