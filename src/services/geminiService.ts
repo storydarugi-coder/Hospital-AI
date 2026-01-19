@@ -73,13 +73,29 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
   const timeout = config.timeout || TIMEOUTS.GENERATION;
   
   try {
-    const result = await Promise.race([
+    const result: any = await Promise.race([
       ai.models.generateContent(apiConfig),
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Gemini API timeout')), timeout)
       )
     ]);
-    return result;
+    
+    // 🚨 responseType에 따라 적절한 값 반환
+    if (config.responseType === 'text') {
+      // text 타입일 때는 문자열 반환
+      return result.text || '';
+    } else if (config.responseType === 'json') {
+      // json 타입일 때는 파싱된 객체 반환
+      try {
+        return JSON.parse(result.text || '{}');
+      } catch (e) {
+        console.warn('⚠️ JSON 파싱 실패, 원본 반환:', result.text?.substring(0, 100));
+        return result;
+      }
+    } else {
+      // responseType이 없으면 전체 객체 반환 (기존 동작 유지)
+      return result;
+    }
   } catch (error) {
     console.error('❌ Gemini API 호출 실패:', error);
     throw error;
