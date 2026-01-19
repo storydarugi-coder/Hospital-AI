@@ -4503,20 +4503,25 @@ ${JSON.stringify(searchResults, null, 2)}
           timeout: TIMEOUTS.GENERATION
         });
         
-        const responseText = geminiResponse.text || '';
-
-        const charCountNoSpaces = responseText.replace(/\s/g, '').length;
-        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${responseText.length}자 (공백포함)`);
+        // 🚨 callGemini가 responseType='json'일 때는 이미 파싱된 객체를 반환
+        // geminiResponse 자체가 파싱된 JSON 객체
+        console.log('✅ Gemini 응답 타입:', typeof geminiResponse);
+        console.log('✅ Gemini 응답 키:', Object.keys(geminiResponse || {}));
+        
+        // content가 있는지 확인
+        const contentText = geminiResponse.content || geminiResponse.text || JSON.stringify(geminiResponse);
+        const charCountNoSpaces = contentText.replace(/\s/g, '').length;
+        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${contentText.length}자 (공백포함)`);
         safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
 
-        console.log('✅ Gemini 응답 수신:', responseText.length || 0, 'chars');
+        console.log('✅ Gemini 응답 수신:', contentText.length || 0, 'chars');
 
-        if (!responseText) {
+        if (!geminiResponse || typeof geminiResponse !== 'object') {
           throw new Error('Gemini가 빈 응답을 반환했습니다. 다시 시도해주세요.');
         }
 
-        result = JSON.parse(responseText);
-        console.log('✅ Gemini JSON 파싱 성공');
+        result = geminiResponse;
+        console.log('✅ Gemini JSON 응답 사용 완료');
 
       } catch (geminiError: any) {
         console.error('❌ Gemini 생성 실패:', geminiError);
