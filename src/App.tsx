@@ -801,16 +801,13 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-8 flex flex-col lg:flex-row gap-8 overflow-hidden h-[calc(100vh-64px)]">
         
-        <div className={`lg:w-[400px] flex flex-col gap-6 overflow-y-auto pb-24 lg:pb-0 custom-scrollbar ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
-          <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
-        </div>
-
-        <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
+        {/* 왼쪽 영역: 탭 메뉴 + 콘텐츠 */}
+        <div className={`lg:w-[400px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
           {/* 탭 메뉴 */}
-          <div className={`flex gap-2 mb-4 p-2 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-lg`}>
+          <div className={`flex gap-2 p-2 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-lg`}>
             <button
               onClick={() => setContentTab('blog')}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 contentTab === 'blog'
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
                   : darkMode
@@ -822,7 +819,7 @@ const App: React.FC = () => {
             </button>
             <button
               onClick={() => setContentTab('similarity')}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 contentTab === 'similarity'
                   ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
                   : darkMode
@@ -830,11 +827,11 @@ const App: React.FC = () => {
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              🔍 유사도 검사
+              🔍 유사도
             </button>
             <button
               onClick={() => setContentTab('card_news')}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 contentTab === 'card_news'
                   ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
                   : darkMode
@@ -846,7 +843,7 @@ const App: React.FC = () => {
             </button>
             <button
               onClick={() => setContentTab('press')}
-              className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 contentTab === 'press'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : darkMode
@@ -859,21 +856,26 @@ const App: React.FC = () => {
           </div>
 
           {/* 탭 콘텐츠 */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             {contentTab === 'similarity' ? (
-              /* 유사도 검사 탭 */
-              <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
-                <SimilarityChecker
-                  onClose={() => setContentTab('blog')}
-                  darkMode={darkMode}
-                />
-              </Suspense>
+              /* 유사도 검사 섹션 */
+              <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div></div>}>
+                  <SimilarityChecker onClose={() => setContentTab('blog')} darkMode={darkMode} />
+                </Suspense>
+              </div>
             ) : (
-              /* 기존 블로그/카드뉴스/언론보도 콘텐츠 */
-              <>
-                {/* 카드뉴스 3단계 워크플로우 */}
-                {/* 2단계: 프롬프트 확인 */}
-                {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
+              /* 블로그/카드뉴스/언론보도 입력 폼 */
+              <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
+            )}
+          </div>
+        </div>
+
+        {/* 오른쪽 영역: 결과 */}
+        <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
+          {/* 카드뉴스 3단계 워크플로우 */}
+          {/* 2단계: 프롬프트 확인 */}
+          {cardNewsPrompts && cardNewsPrompts.length > 0 ? (
             <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
               <PromptPreview
                 prompts={cardNewsPrompts}
@@ -926,9 +928,6 @@ const App: React.FC = () => {
                <p className={`mt-4 max-w-xs font-medium ${darkMode ? 'text-slate-500' : 'text-slate-300'}`}>좌측 메뉴에서 콘텐츠 유형과 주제를 선택하면<br/>최적화된 콘텐츠가 생성됩니다.</p>
             </div>
           )}
-              </>
-            )}
-          </div>
         </div>
 
       </main>
