@@ -7074,6 +7074,12 @@ ${cleanContent.slice(0, 2000)}
       responseType: 'text'
     });
     
+    // 🚨 result가 문자열인지 확인
+    if (!result || typeof result !== 'string') {
+      console.warn('⚠️ Gemini 응답이 문자열이 아닙니다:', typeof result);
+      return [];
+    }
+    
     // 따옴표로 감싸진 문장들 추출
     const phrases = result.match(/"([^"]{10,100})"/g)?.map((p: string) => p.slice(1, -1)) || [];
     
