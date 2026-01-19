@@ -1,7 +1,9 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
-import { saveContentToServer, deleteAllContent } from './services/apiService';
+import { saveContentToServer, deleteAllContent, getContentList } from './services/apiService';
+import { calculateOverallSimilarity, getSimilarityLevel } from './services/similarityService';
+import { prepareNaverBlogsForComparison } from './services/naverSearchService';
 import InputForm from './components/InputForm';
 import { supabase, signOut } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -15,6 +17,7 @@ const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
 const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
 const PasswordLogin = lazy(() => import('./components/PasswordLogin'));
+const SimilarityChecker = lazy(() => import('./components/SimilarityChecker'));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -58,6 +61,10 @@ const App: React.FC = () => {
 
   // API 키 설정 모달 상태
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  
+  // 유사도 검사 모달 상태
+  const [showSimilarityChecker, setShowSimilarityChecker] = useState(false);
+  const [autoSimilarityResult, setAutoSimilarityResult] = useState<any>(null);
   
   // 비밀번호 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -437,6 +444,52 @@ const App: React.FC = () => {
         
         if (saveResult.success) {
           console.log('✅ 서버 저장 완료! ID:', saveResult.id);
+          
+          // 🔍 구글 검색 자동 유사도 검사 시작
+          try {
+            console.log('🔍 구글 검색 유사도 검사 시작...');
+            
+            // 키워드로 구글 검색
+            const searchKeywords = request.keywords || request.topic;
+            if (searchKeywords) {
+              const naverBlogs = await prepareNaverBlogsForComparison(searchKeywords, 10);
+              
+              if (naverBlogs && naverBlogs.length > 0) {
+                console.log(`📰 구글 검색 결과 ${naverBlogs.length}개 완료`);
+                
+                // 유사도 검사 (배치)
+                const similarities = naverBlogs.map((blog) => {
+                  const similarity = calculateOverallSimilarity(result.htmlContent, blog.text);
+                  const level = getSimilarityLevel(similarity);
+                  return {
+                    id: blog.id,
+                    title: blog.title,
+                    url: blog.url,
+                    blogger: blog.blogger,
+                    similarity,
+                    level,
+                  };
+                }).sort((a, b) => b.similarity - a.similarity);
+                
+                // 가장 유사한 글 (점수가 40% 이상)
+                const highSimilarityContents = similarities.filter(s => s.similarity >= 40);
+                
+                if (highSimilarityContents.length > 0) {
+                  setAutoSimilarityResult({
+                    totalChecked: similarities.length,
+                    highSimilarity: highSimilarityContents,
+                    maxSimilarity: similarities[0].similarity,
+                    isNaverBlog: true,
+                  });
+                  console.log(`⚠️ 유사도 높은 웹사이트 발견: ${highSimilarityContents.length}개`);
+                } else {
+                  console.log('✅ 구글 검색 유사도 검사 완료: 중복 없음');
+                }
+              }
+            }
+          } catch (similarityErr) {
+            console.warn('⚠️ 구글 검색 유사도 검사 실패 (무시하고 계속):', similarityErr);
+          }
         } else {
           console.warn('⚠️ 서버 저장 실패:', saveResult.error);
         }
@@ -721,6 +774,15 @@ const App: React.FC = () => {
                 ⚙️
              </button>
              
+             {/* 유사도 검사 버튼 */}
+             <button 
+               onClick={() => setShowSimilarityChecker(true)}
+               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-blue-400' : 'hover:bg-slate-100 text-blue-600'}`}
+               title="유사도 검사"
+             >
+               🔍
+             </button>
+
              {/* 다크모드 토글 */}
              <button 
                onClick={toggleDarkMode}
@@ -881,6 +943,114 @@ const App: React.FC = () => {
         <Suspense fallback={<div>Loading...</div>}>
           <ApiKeySettings onClose={() => setShowApiKeyModal(false)} />
         </Suspense>
+      )}
+
+      {/* 유사도 검사 모달 */}
+      {showSimilarityChecker && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <SimilarityChecker 
+            onClose={() => setShowSimilarityChecker(false)}
+            savedContents={[]}
+          />
+        </Suspense>
+      )}
+
+      {/* 자동 유사도 검사 결과 알림 */}
+      {autoSimilarityResult && (
+        <div className="fixed bottom-8 right-8 z-50 animate-fadeIn">
+          <div className={`rounded-2xl shadow-2xl max-w-md overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔍</span>
+                  <h3 className="font-bold text-lg">웹 검색 유사도 검사</h3>
+                </div>
+                <button
+                  onClick={() => setAutoSimilarityResult(null)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-6 h-6 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* 본문 */}
+            <div className="p-4">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-3xl font-bold text-orange-600">
+                    {autoSimilarityResult.maxSimilarity}%
+                  </span>
+                  <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    최고 유사도
+                  </span>
+                </div>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  검색 결과 {autoSimilarityResult.totalChecked}개 중 {autoSimilarityResult.highSimilarity.length}개와 유사합니다.
+                </p>
+              </div>
+
+              {/* 유사한 글 목록 */}
+              <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
+                {autoSimilarityResult.highSimilarity.slice(0, 3).map((item: any, index: number) => (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block p-3 rounded-lg transition hover:scale-[1.02] ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                          {item.title || `글 ${index + 1}`}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {item.blogger || '네이버 블로그'}
+                          </p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                            {item.level.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className="text-xl font-bold ml-2"
+                        style={{ color: item.level.color }}
+                      >
+                        {item.similarity}%
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setAutoSimilarityResult(null);
+                    setShowSimilarityChecker(true);
+                  }}
+                  className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition"
+                >
+                  자세히 보기
+                </button>
+                <button
+                  onClick={() => setAutoSimilarityResult(null)}
+                  className={`flex-1 py-2 font-semibold rounded-lg transition ${
+                    darkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
