@@ -415,8 +415,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">2단계. 블로그 제목</label>
-          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
+          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">
+            2단계. {postType === 'press_release' ? '기사 제목' : '블로그 제목'}
+          </label>
+          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={postType === 'press_release' ? '기사 주제를 입력하세요 (예: 겨울철 피부건조 주의보)' : '블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)'} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
           <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="SEO 키워드 (쉼표 구분, 예: 피부건조, 겨울철 피부관리, 보습)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium mb-4 focus:border-emerald-500 outline-none" />
           
           {/* 소제목 직접 입력 영역 */}
