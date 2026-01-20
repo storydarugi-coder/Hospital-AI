@@ -90,6 +90,46 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, darkMode = fal
     try {
       const ai = getAiClient();
       
+      // URL 패턴 감지 (http://, https://, www.)
+      const urlPattern = /(https?:\/\/[^\s]+)|(www\.[^\s]+)/gi;
+      const urls = chatInput.match(urlPattern);
+      
+      let crawledContent = '';
+      
+      // URL이 있으면 크롤링 시도
+      if (urls && urls.length > 0) {
+        console.log('🕷️ URL 감지:', urls);
+        
+        for (const url of urls) {
+          try {
+            // www로 시작하면 https:// 추가
+            const fullUrl = url.startsWith('www.') ? `https://${url}` : url;
+            
+            console.log('🔍 크롤링 시작:', fullUrl);
+            
+            const response = await fetch('/api/crawler', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ url: fullUrl }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              crawledContent += `\n\n[${fullUrl}에서 크롤링한 내용]\n${data.content}\n`;
+              console.log('✅ 크롤링 성공:', data.content.substring(0, 100));
+            } else {
+              console.warn('⚠️ 크롤링 실패:', fullUrl, response.status);
+              crawledContent += `\n\n[${fullUrl} 크롤링 실패: 접근 불가]\n`;
+            }
+          } catch (error) {
+            console.error('❌ 크롤링 에러:', error);
+            crawledContent += `\n\n[크롤링 중 오류 발생]\n`;
+          }
+        }
+      }
+      
       const prompt = `당신은 의료 블로그 콘텐츠 편집 전문가입니다.
 
 [현재 수정된 콘텐츠]
@@ -97,8 +137,10 @@ ${refinedContent}
 
 [사용자 요청]
 ${chatInput}
+${crawledContent ? `\n${crawledContent}` : ''}
 
 위 콘텐츠를 사용자 요청에 따라 수정해주세요.
+${crawledContent ? '\n🌐 크롤링한 웹사이트 내용을 참고하여 글에 자연스럽게 반영하세요.' : ''}
 
 🚨🚨🚨 수정 규칙 (절대 준수!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -107,6 +149,7 @@ ${chatInput}
    - 수치·정량 표현 금지
    - 인과관계 단정 금지
    - 정보 제공 목적 유지 (행동 유도 아님)
+   - 출처 명시 금지 (크롤링한 사이트 이름 언급 금지!)
 
 2. 🚫 원본 길이 유지 (절대 규칙!):
    - 원본 길이의 ±20% 이내로만 수정
@@ -120,6 +163,14 @@ ${chatInput}
    - 요청된 부분만 변경하세요
    - 나머지는 그대로 유지하세요
 
+${crawledContent ? `
+4. 🌐 웹사이트 크롤링 내용 활용:
+   - 크롤링한 정보를 자연스럽게 녹여서 사용
+   - "~에 따르면", "~에서는" 같은 출처 표현 금지!
+   - "일반적으로 알려진 바에 따르면" 또는 출처 없이 사실만 서술
+   - 크롤링 내용 중 의료광고법 위반 부분은 제외
+` : ''}
+
 수정된 HTML 콘텐츠만 반환해주세요 (설명 없이).`;
 
       const result = await ai.models.generateContent({
@@ -129,9 +180,23 @@ ${chatInput}
 
       const response = result.text || '';
       
+      // 크롤링 성공 메시지 생성
+      let responseMessage = '수정 완료! 오른쪽 콘텐츠를 확인해주세요.';
+      if (urls && urls.length > 0) {
+        const successCount = (crawledContent.match(/크롤링한 내용/g) || []).length;
+        const failCount = (crawledContent.match(/크롤링 실패/g) || []).length;
+        
+        if (successCount > 0) {
+          responseMessage = `✅ ${successCount}개 사이트 크롤링 완료!\n수정된 콘텐츠를 확인해주세요.`;
+        }
+        if (failCount > 0) {
+          responseMessage += `\n⚠️ ${failCount}개 사이트는 접근 불가`;
+        }
+      }
+      
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: '수정 완료! 오른쪽 콘텐츠를 확인해주세요.',
+        content: responseMessage,
         timestamp: new Date()
       };
 
