@@ -19,7 +19,24 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
+    // 현재 날짜와 1년 전 날짜 계산
+    const now = new Date();
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(now.getFullYear() - 1);
+
+    // 네이버 검색 날짜 포맷: YYYY.MM.DD
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}.${month}.${day}`;
+    };
+
+    const startDate = formatDate(oneYearAgo);
+    const endDate = formatDate(now);
+
     console.log('🔍 네이버 검색 크롤링:', query, '(최대', maxResults, '개)');
+    console.log('📅 날짜 필터:', startDate, '~', endDate, '(최근 1년)');
 
     const blogUrls: Array<{
       title: string;
@@ -33,9 +50,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     for (let page = 1; page <= Math.min(pagesNeeded, 5); page++) {
       const start = (page - 1) * 10 + 1;
+      
+      // 날짜 필터 추가: &nso=so:r,p:1y (최근 1년) 또는 &ds=startDate&de=endDate
       const searchUrl = `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(
         query
-      )}&start=${start}`;
+      )}&start=${start}&nso=so:r,p:1y`;
 
       console.log(`📄 페이지 ${page}/${pagesNeeded} 크롤링 중...`);
 
