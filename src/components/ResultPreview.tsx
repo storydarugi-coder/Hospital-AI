@@ -3834,7 +3834,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               )}
               
               {/* 웹 검색 매칭 (네이버 블로그) */}
-              {similarityResult.webSearchMatches.length > 0 && (
+              {similarityResult.webSearchMatches.length > 0 ? (
                 <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
                   <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
                     🌐 네이버 블로그에서 발견된 유사 문장
@@ -3884,6 +3884,43 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       </li>
                     ))}
                   </ul>
+                </div>
+              ) : similarityResult.keyPhrases && similarityResult.keyPhrases.length > 0 && (
+                <div className={`mb-6 p-4 rounded-xl border-2 border-dashed ${
+                  darkMode ? 'bg-slate-700 border-slate-600' : 'bg-yellow-50 border-yellow-300'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    ⚠️ 웹 검색 결과 없음
+                  </h4>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    네이버 블로그 검색 결과가 없습니다. 다음을 확인해주세요:
+                  </p>
+                  <ul className={`text-sm space-y-2 ml-4 list-disc ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <li>
+                      <strong>Google Custom Search API 키 설정</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        Cloudflare Dashboard &gt; Workers & Pages &gt; 프로젝트 &gt; Settings &gt; Environment variables
+                      </div>
+                    </li>
+                    <li>
+                      <strong>필요한 환경변수</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        • GOOGLE_API_KEY<br/>
+                        • GOOGLE_SEARCH_ENGINE_ID
+                      </div>
+                    </li>
+                    <li>
+                      <strong>API 할당량 확인</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        무료: 100쿼리/일 | 유료: 10,000쿼리/일
+                      </div>
+                    </li>
+                  </ul>
+                  <div className={`mt-4 p-3 rounded-lg text-xs ${
+                    darkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-600'
+                  }`}>
+                    💡 <strong>참고:</strong> 콘솔(F12)에서 상세한 에러 메시지를 확인할 수 있습니다.
+                  </div>
                 </div>
               )}
               
