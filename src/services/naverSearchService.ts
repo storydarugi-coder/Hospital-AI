@@ -19,13 +19,16 @@ interface GoogleSearchResult {
 }
 
 /**
- * 구글 커스텀 검색으로 블로그 검색
+ * 구글 커스텀 검색으로 네이버 블로그만 검색
  */
 export async function searchGoogleBlogs(
   query: string,
   num: number = 10
 ): Promise<GoogleSearchResult | null> {
   try {
+    // 네이버 블로그만 검색하도록 site: 필터 추가
+    const naverBlogQuery = `site:blog.naver.com ${query}`;
+    
     // API 서버를 통해 구글 검색 (CORS 우회)
     const API_BASE_URL = import.meta.env.VITE_API_URL || '';
     const response = await fetch(`${API_BASE_URL}/api/web-search/search`, {
@@ -34,7 +37,7 @@ export async function searchGoogleBlogs(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query,
+        query: naverBlogQuery,
         num,
       }),
     });

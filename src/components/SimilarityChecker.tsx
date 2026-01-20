@@ -59,10 +59,10 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
 
     setIsChecking(true);
     setWebResults([]);
-    setCheckingMessage('🔍 구글 검색 중...');
+    setCheckingMessage('🔍 네이버 블로그 검색 중...');
     
     try {
-      // 구글 검색으로 블로그 찾기
+      // 네이버 블로그 검색
       console.log('🔍 검색 시작:', keywords);
       const blogs = await prepareNaverBlogsForComparison(keywords, 10);
       
@@ -181,7 +181,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
 
             <div>
               <label className={`block text-xs font-semibold mb-1.5 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
-                🔑 검색 키워드
+                🔑 검색 키워드 (네이버 블로그 전용)
               </label>
               <input
                 type="text"
@@ -192,8 +192,14 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
                     ? 'bg-slate-700 border-slate-600 text-white' 
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
-                placeholder="예: 당뇨병 예방법"
+                placeholder='예: "당뇨병 예방법" 병원이름'
               />
+              <p className={`text-xs mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                💡 <strong>정확한 검색 팁:</strong> 제목이나 특정 문구를 따옴표로 묶으면 정확히 검색됩니다
+              </p>
+              <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                📌 예시: <code className="bg-slate-600 text-white px-1 rounded">"고혈압 관리법" 우리병원</code>
+              </p>
             </div>
 
             <button
