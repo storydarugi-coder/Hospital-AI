@@ -21,6 +21,57 @@ interface GoogleSearchResult {
 import { extractSearchKeywords } from './geminiService';
 
 /**
+ * 네이버 검색 페이지 크롤링으로 블로그 URL 검색 (API 키 불필요)
+ */
+export async function searchNaverBlogsByCrawling(
+  query: string,
+  maxResults: number = 50
+): Promise<Array<{
+  title: string;
+  link: string;
+  description: string;
+  bloggername: string;
+}> | null> {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+    
+    console.log(`🕷️ 네이버 검색 페이지 크롤링 시작 (최대 ${maxResults}개)`);
+    
+    const response = await fetch(`${API_BASE_URL}/api/naver/crawl-search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        maxResults,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ 네이버 검색 크롤링 실패:', {
+        status: response.status,
+        error: errorData,
+      });
+      return null;
+    }
+
+    const result = await response.json();
+    
+    if (!result.items || result.items.length === 0) {
+      return null;
+    }
+    
+    console.log(`✅ 네이버 크롤링: ${result.items.length}개 블로그 URL 발견`);
+    return result.items;
+  } catch (error) {
+    console.error('네이버 검색 크롤링 오류:', error);
+    return null;
+  }
+}
+
+/**
  * 구글 직접 검색 (site: 연산자 사용)
  * 네이버, 티스토리, 브런치 블로그만 검색
  */
@@ -243,9 +294,9 @@ export async function prepareNaverBlogsForComparison(
     console.log('✅ AI 추출 키워드:', keywords);
   }
   
-  // 2단계: 구글로 블로그 검색 (site: 연산자 사용)
-  console.log('🔍 구글 블로그 검색 시작:', keywords);
-  const blogUrls = await searchBlogsDirectly(keywords, maxResults);
+  // 2단계: 네이버 검색 페이지 크롤링으로 블로그 검색
+  console.log('🔍 네이버 블로그 검색 시작:', keywords);
+  const blogUrls = await searchNaverBlogsByCrawling(keywords, maxResults);
   
   if (!blogUrls || blogUrls.length === 0) {
     console.warn('⚠️ 검색 결과 없음');
