@@ -889,9 +889,15 @@ const App: React.FC = () => {
           </div>
         ) : (
           <>
-        {/* 왼쪽 영역: 탭 메뉴 + 콘텐츠 */}
+        {/* 왼쪽 영역: 콘텐츠 + 탭 메뉴 */}
         <div className={`lg:w-[400px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
-          {/* 탭 메뉴 */}
+          {/* 탭 콘텐츠 */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* 블로그/카드뉴스/언론보도 입력 폼 */}
+            <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
+          </div>
+
+          {/* 탭 메뉴 (아래쪽으로 이동) */}
           <div className={`flex gap-2 p-2 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-lg`}>
             <button
               onClick={() => setContentTab('blog')}
@@ -953,12 +959,6 @@ const App: React.FC = () => {
             >
               📰 언론보도
             </button>
-          </div>
-
-          {/* 탭 콘텐츠 */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {/* 블로그/카드뉴스/언론보도 입력 폼 */}
-            <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
           </div>
         </div>
 
