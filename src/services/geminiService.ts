@@ -834,6 +834,34 @@ D. "지금 확인해 두는 것이 이후 선택을 가볍게 만듭니다"
 E. "이 단계에서는 (보통 하는 행동)은 충분하지 않고, (검사/확인)이 필요합니다"
 `;
 
+/**
+ * 🔍 사용자 글에서 검색 키워드 자동 추출
+ */
+export const extractSearchKeywords = async (text: string): Promise<string> => {
+  const result = await callGemini({
+    prompt: `다음 블로그 글의 핵심 주제와 키워드를 분석하여 검색에 최적화된 키워드를 추출해주세요.
+
+<블로그 글>
+${text}
+</블로그 글>
+
+다음 규칙을 따라주세요:
+1. 가장 핵심적인 주제/키워드 3-5개만 추출
+2. 검색에 효과적인 구체적인 단어 사용
+3. 키워드는 공백으로 구분 (예: "당뇨병 예방 식단 관리")
+4. 의학/건강 관련이면 병명이나 증상을 포함
+5. 병원/클리닉 이름이 있다면 반드시 포함
+6. 따옴표나 특수문자 없이 순수 키워드만 출력
+
+키워드만 출력하세요 (설명 없이):`,
+    model: GEMINI_MODEL.FLASH,
+    responseType: 'text',
+    timeout: TIMEOUTS.QUICK_OPERATION
+  });
+
+  return result?.trim() || '';
+};
+
 export const recommendImagePrompt = async (blogContent: string, currentImageAlt: string, imageStyle: ImageStyle = 'illustration', customStylePrompt?: string): Promise<string> => {
   const ai = getAiClient();
   
