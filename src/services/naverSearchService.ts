@@ -21,11 +21,12 @@ interface GoogleSearchResult {
 import { extractSearchKeywords } from './geminiService';
 
 /**
- * 네이버 검색 API로 블로그 URL 검색 (크롤링용)
+ * 구글 직접 검색 (site: 연산자 사용)
+ * 네이버, 티스토리, 브런치 블로그만 검색
  */
-export async function searchNaverBlogsForCrawling(
+export async function searchBlogsDirectly(
   query: string,
-  display: number = 20
+  maxResults: number = 20
 ): Promise<Array<{
   title: string;
   link: string;
@@ -33,31 +34,55 @@ export async function searchNaverBlogsForCrawling(
   bloggername: string;
 }> | null> {
   try {
+    // 블로그 사이트만 검색
+    const blogSites = 'site:blog.naver.com OR site:tistory.com OR site:brunch.co.kr';
+    const searchQuery = `${query} ${blogSites}`;
+    
     const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-    const response = await fetch(`${API_BASE_URL}/api/naver/search`, {
+    const response = await fetch(`${API_BASE_URL}/api/google/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query,
-        display,
+        q: searchQuery,
+        num: maxResults,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('❌ 네이버 검색 실패:', {
+      console.error('❌ 구글 검색 실패:', {
         status: response.status,
         error: errorData,
       });
-      throw new Error(`네이버 검색 실패: ${response.status}`);
+      throw new Error(`구글 검색 실패: ${response.status}`);
     }
 
     const result = await response.json();
-    return result.items || [];
+    
+    if (!result.items || result.items.length === 0) {
+      return null;
+    }
+    
+    // 블로그 URL만 필터링
+    const blogResults = result.items
+      .filter((item: any) => {
+        const url = item.link || '';
+        return url.includes('blog.naver.com') || 
+               url.includes('tistory.com') || 
+               url.includes('brunch.co.kr');
+      })
+      .map((item: any) => ({
+        title: item.title || '',
+        link: item.link || '',
+        description: item.snippet || '',
+        bloggername: item.displayLink || '블로거',
+      }));
+    
+    return blogResults.length > 0 ? blogResults : null;
   } catch (error) {
-    console.error('네이버 검색 오류:', error);
+    console.error('구글 검색 오류:', error);
     return null;
   }
 }
@@ -186,26 +211,13 @@ export async function prepareNaverBlogsForComparison(
     console.log('✅ AI 추출 키워드:', keywords);
   }
   
-  // 2단계: 네이버 API로 블로그 검색 (우선 시도)
-  console.log('🔍 네이버 API 검색 시작:', keywords);
-  let blogUrls = await searchNaverBlogsForCrawling(keywords, maxResults);
+  // 2단계: 구글로 블로그 검색 (site: 연산자 사용)
+  console.log('🔍 구글 블로그 검색 시작:', keywords);
+  const blogUrls = await searchBlogsDirectly(keywords, maxResults);
   
-  // 네이버 API 실패 시 구글 API 시도
   if (!blogUrls || blogUrls.length === 0) {
-    console.log('⚠️ 네이버 API 실패, 구글 API 시도...');
-    const searchResult = await searchGoogleBlogs(keywords, maxResults);
-    
-    if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
-      console.warn('⚠️ 검색 결과 없음');
-      return [];
-    }
-    
-    blogUrls = searchResult.items.map(item => ({
-      title: item.title,
-      link: item.link,
-      description: item.snippet,
-      bloggername: item.displayLink || '웹사이트'
-    }));
+    console.warn('⚠️ 검색 결과 없음');
+    return [];
   }
 
   console.log(`📊 검색 결과 ${blogUrls.length}개 발견`);
