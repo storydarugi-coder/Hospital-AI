@@ -7187,14 +7187,7 @@ async function extractSearchQueries(content: string): Promise<string[]> {
 async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
   try {
     console.log('🔍 웹 검색 시작...');
-    
-    const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_SEARCH_API_KEY;
-    const GOOGLE_CX = import.meta.env.VITE_GOOGLE_SEARCH_CX;
-    
-    if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-      console.log('⚠️ Google Custom Search API 키 없음 (환경변수: VITE_GOOGLE_SEARCH_API_KEY, VITE_GOOGLE_SEARCH_CX)');
-      return [];
-    }
+    console.log(`📝 검색할 문구 개수: ${keyPhrases.length}개`);
     
     const results = [];
     
@@ -7203,9 +7196,20 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
       const query = `"${phrase}" site:blog.naver.com`;
       
       try {
-        const response = await fetch(
-          `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}`
-        );
+        // 서버 API를 통해 검색 (API 키 노출 방지)
+        const response = await fetch('/api/google/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query, num: 10 })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`  ❌ 검색 API 오류: ${response.status}`, errorData);
+          continue;
+        }
         
         const data = await response.json();
         
@@ -7216,12 +7220,12 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
             matchCount: data.items.length
           });
           
-          console.log(`  📊 "${phrase}" - ${data.items.length}건 발견`);
+          console.log(`  📊 "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견`);
         } else {
-          console.log(`  ✅ "${phrase}" - 중복 없음`);
+          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음`);
         }
       } catch (error) {
-        console.error(`  ❌ 검색 실패: "${phrase}"`, error);
+        console.error(`  ❌ 검색 실패: "${phrase.substring(0, 50)}..."`, error);
       }
       
       // Google API Rate Limit 고려 (100쿼리/일)
