@@ -97,6 +97,7 @@ export async function fetchNaverBlogContent(blogUrl: string): Promise<string | n
 
 /**
  * 키워드로 구글 검색 후 유사도 비교용 데이터 준비
+ * 실제 블로그 내용을 크롤링하여 전체 텍스트로 비교
  */
 export async function prepareNaverBlogsForComparison(
   keywords: string,
@@ -109,18 +110,89 @@ export async function prepareNaverBlogsForComparison(
   blogger: string;
   date: string;
 }>> {
+  console.log('🔍 구글 검색 시작:', keywords);
   const searchResult = await searchGoogleBlogs(keywords, maxResults);
   
   if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
+    console.warn('⚠️ 검색 결과 없음');
     return [];
   }
 
-  return searchResult.items.map((item, index) => ({
-    id: `google_${index}`,
-    title: stripHtmlTags(item.title),
-    text: stripHtmlTags(item.snippet),
-    url: item.link,
-    blogger: item.displayLink || '웹사이트',
-    date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-  }));
+  console.log(`📊 검색 결과 ${searchResult.items.length}개 발견`);
+
+  // 각 블로그의 실제 내용 크롤링
+  const results = await Promise.all(
+    searchResult.items.map(async (item, index) => {
+      try {
+        console.log(`🕷️ [${index + 1}/${searchResult.items.length}] 크롤링 중:`, item.link);
+        
+        // 블로그 전체 내용 크롤링
+        const fullContent = await fetchBlogContentViaCrawler(item.link);
+        
+        if (fullContent && fullContent.length > 100) {
+          console.log(`✅ [${index + 1}] 크롤링 성공: ${fullContent.length}자`);
+          return {
+            id: `google_${index}`,
+            title: stripHtmlTags(item.title),
+            text: fullContent, // 전체 내용 사용
+            url: item.link,
+            blogger: item.displayLink || '웹사이트',
+            date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+          };
+        } else {
+          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 스니펫 사용`);
+          // 크롤링 실패 시 스니펫 사용
+          return {
+            id: `google_${index}`,
+            title: stripHtmlTags(item.title),
+            text: stripHtmlTags(item.snippet),
+            url: item.link,
+            blogger: item.displayLink || '웹사이트',
+            date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+          };
+        }
+      } catch (error) {
+        console.error(`❌ [${index + 1}] 크롤링 에러:`, error);
+        // 에러 발생 시 스니펫 사용
+        return {
+          id: `google_${index}`,
+          title: stripHtmlTags(item.title),
+          text: stripHtmlTags(item.snippet),
+          url: item.link,
+          blogger: item.displayLink || '웹사이트',
+          date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+        };
+      }
+    })
+  );
+
+  const successCount = results.filter(r => r.text.length > 200).length;
+  console.log(`✅ 크롤링 완료: ${successCount}/${results.length}개 성공`);
+
+  return results;
+}
+
+/**
+ * /api/crawler를 통해 블로그 내용 크롤링
+ */
+async function fetchBlogContentViaCrawler(url: string): Promise<string | null> {
+  try {
+    const response = await fetch('/api/crawler', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.content || null;
+  } catch (error) {
+    console.error('크롤링 에러:', error);
+    return null;
+  }
 }

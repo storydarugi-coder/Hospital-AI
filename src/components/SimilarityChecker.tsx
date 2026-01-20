@@ -19,6 +19,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
   const [result, setResult] = useState<any>(null);
   const [webResults, setWebResults] = useState<any[]>([]);
   const [isChecking, setIsChecking] = useState(false);
+  const [checkingMessage, setCheckingMessage] = useState('');
 
   // 단일 비교
   const handleSingleCheck = () => {
@@ -58,16 +59,22 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
 
     setIsChecking(true);
     setWebResults([]);
+    setCheckingMessage('🔍 구글 검색 중...');
     
     try {
       // 구글 검색으로 블로그 찾기
+      console.log('🔍 검색 시작:', keywords);
       const blogs = await prepareNaverBlogsForComparison(keywords, 10);
       
       if (blogs.length === 0) {
         alert('검색 결과가 없습니다. 다른 키워드로 시도해주세요.');
         setIsChecking(false);
+        setCheckingMessage('');
         return;
       }
+      
+      console.log(`✅ ${blogs.length}개 블로그 발견`);
+      setCheckingMessage(`📊 ${blogs.length}개 블로그와 유사도 비교 중...`);
       
       // 각 블로그와 유사도 비교
       const results = blogs.map(blog => {
@@ -88,9 +95,13 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       // 유사도 높은 순으로 정렬
       results.sort((a, b) => b.similarity - a.similarity);
       setWebResults(results);
+      
+      console.log('✅ 유사도 검사 완료');
+      setCheckingMessage('');
     } catch (error) {
       console.error('웹 검색 유사도 검사 오류:', error);
       alert('웹 검색에 실패했습니다. 다시 시도해주세요.');
+      setCheckingMessage('');
     } finally {
       setIsChecking(false);
     }
@@ -190,8 +201,20 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
               disabled={isChecking || !text1.trim() || !keywords.trim()}
               className="w-full py-3 text-sm bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isChecking ? '🔍 검색 중...' : '🔍 웹 검색 시작'}
+              {isChecking ? (checkingMessage || '🔍 검색 중...') : '🔍 웹 검색 시작'}
             </button>
+          </div>
+        )}
+
+        {/* 웹 검색 진행 상태 */}
+        {isChecking && checkingMessage && mode === 'web' && (
+          <div className={`mt-3 p-3 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-blue-50'}`}>
+            <div className="flex items-center gap-2">
+              <div className="animate-spin">⏳</div>
+              <span className={`text-sm ${darkMode ? 'text-slate-300' : 'text-blue-700'}`}>
+                {checkingMessage}
+              </span>
+            </div>
           </div>
         )}
 
