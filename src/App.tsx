@@ -18,6 +18,7 @@ const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ de
 const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
 const PasswordLogin = lazy(() => import('./components/PasswordLogin'));
 const SimilarityChecker = lazy(() => import('./components/SimilarityChecker'));
+const ContentRefiner = lazy(() => import('./components/ContentRefiner'));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -48,7 +49,7 @@ const App: React.FC = () => {
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
   
   // 오른쪽 콘텐츠 탭
-  const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'card_news' | 'press'>('blog');
+  const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'refine' | 'card_news' | 'press'>('blog');
   
   // 카드뉴스 3단계 워크플로우 상태
   // 1단계: 원고 생성 → 2단계: 프롬프트 확인 → 3단계: 이미지 생성
@@ -830,6 +831,18 @@ const App: React.FC = () => {
               🔍 유사도
             </button>
             <button
+              onClick={() => setContentTab('refine')}
+              className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                contentTab === 'refine'
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg'
+                  : darkMode
+                  ? 'text-slate-400 hover:bg-slate-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              ✨ AI 정밀보정
+            </button>
+            <button
               onClick={() => setContentTab('card_news')}
               className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
                 contentTab === 'card_news'
@@ -862,6 +875,13 @@ const App: React.FC = () => {
               <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                 <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div></div>}>
                   <SimilarityChecker onClose={() => setContentTab('blog')} darkMode={darkMode} />
+                </Suspense>
+              </div>
+            ) : contentTab === 'refine' ? (
+              /* AI 정밀보정 섹션 */
+              <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
+                  <ContentRefiner onClose={() => setContentTab('blog')} darkMode={darkMode} />
                 </Suspense>
               </div>
             ) : (
