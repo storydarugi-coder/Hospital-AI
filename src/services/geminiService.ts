@@ -7008,6 +7008,115 @@ JSON 형식으로 응답해주세요.`;
 };
 
 // ========================================
+// ✨ AI 정밀보정 - 의료광고법 기준 자동 수정
+// ========================================
+
+/**
+ * 외부 블로그 콘텐츠를 의료광고법 기준에 맞게 자동 수정
+ */
+export const refineContentByMedicalLaw = async (
+  originalContent: string,
+  onProgress?: (msg: string) => void
+): Promise<{
+  refinedContent: string;
+  fact_check: FactCheckReport;
+}> => {
+  console.log('✨ AI 정밀보정 시작...');
+  const ai = getAiClient();
+  
+  const safeProgress = onProgress || ((msg: string) => console.log('📍 Progress:', msg));
+  
+  // HTML 태그 제거
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = originalContent;
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  
+  safeProgress('📝 원본 콘텐츠 분석 중...');
+  
+  // SYSTEM_PROMPT 사용 (의료광고법 7대 원칙 포함)
+  const prompt = `${SYSTEM_PROMPT}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 작업: 외부 블로그 글 AI 정밀보정
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+아래 블로그 글을 의료광고법 및 보건복지부 심의 기준에 맞게 수정해주세요.
+
+[원본 글]
+${textContent}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 수정 지침 (반드시 준수)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. 위에 명시된 모든 의료광고법 규칙을 100% 준수
+2. 7대 수정 원칙을 반드시 적용:
+   - 치료·개선·관리·교정·효과 표현 완전 제거
+   - 의학적 인과관계 단정하지 않음
+   - 수치·정량 표현 완전 삭제
+   - 스트레칭·운동 제시는 수준 낮춤
+   - 증상→질환→위험 판단 구조 금지
+   - "~일 수 있습니다" 최소화 (7회까지만)
+   - 글의 목적: 정보 제공 (행동 유도 아님)
+
+3. 원본 글의 핵심 메시지와 구조는 최대한 유지
+4. HTML 형식으로 반환 (p, h2, h3, ul, li 태그 사용)
+5. 자연스럽고 읽기 쉬운 문장으로 수정
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 JSON 응답 형식
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "content": "수정된 HTML 콘텐츠",
+  "fact_check": {
+    "fact_score": 85,
+    "safety_score": 90,
+    "ai_smell_score": 15,
+    "conversion_score": 75,
+    "verified_facts_count": 5,
+    "issues": ["발견된 문제점들"],
+    "recommendations": ["개선 제안들"]
+  }
+}`;
+
+  try {
+    safeProgress('🤖 Gemini AI로 수정 중...');
+    
+    const result = await callGemini({
+      prompt,
+      model: GEMINI_MODEL.PRO,
+      responseType: 'json',
+      timeout: TIMEOUTS.GENERATION
+    });
+    
+    console.log('✅ 수정 완료:', result);
+    
+    if (!result || !result.content) {
+      throw new Error('수정된 콘텐츠가 반환되지 않았습니다.');
+    }
+    
+    safeProgress('✅ AI 정밀보정 완료!');
+    
+    return {
+      refinedContent: result.content,
+      fact_check: result.fact_check || {
+        fact_score: 0,
+        safety_score: 0,
+        ai_smell_score: 0,
+        conversion_score: 0,
+        verified_facts_count: 0,
+        issues: [],
+        recommendations: []
+      }
+    };
+  } catch (error) {
+    console.error('❌ AI 정밀보정 실패:', error);
+    throw error;
+  }
+};
+
+// ========================================
 // 📊 블로그 유사도 검사 시스템
 // ========================================
 

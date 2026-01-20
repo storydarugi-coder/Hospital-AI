@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { recheckAiSmell } from '../services/geminiService';
+import { refineContentByMedicalLaw } from '../services/geminiService';
 
 interface ContentRefinerProps {
   onClose: () => void;
@@ -25,16 +25,13 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, darkMode = fal
     try {
       console.log('✨ AI 정밀보정 시작...');
       
-      // 1단계: AI 냄새 검사
-      const checkResult = await recheckAiSmell(content);
-      setFactCheck(checkResult);
+      // 의료광고법 기준으로 자동 수정
+      const result = await refineContentByMedicalLaw(content, (msg) => {
+        console.log('📍', msg);
+      });
       
-      console.log('📊 검사 결과:', checkResult);
-      
-      // 2단계: 의료광고법 기준으로 수정
-      // TODO: 실제 수정 API 호출 (현재는 검사만)
-      // 임시로 원본을 refinedContent에 설정
-      setRefinedContent(content);
+      setRefinedContent(result.refinedContent);
+      setFactCheck(result.fact_check);
       
       console.log('✅ AI 정밀보정 완료');
     } catch (error) {
@@ -151,26 +148,26 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, darkMode = fal
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
                         <span className={darkMode ? 'text-slate-400' : 'text-slate-600'}>팩트 정확성:</span>
-                        <span className={`ml-2 font-bold ${factCheck.fact_check?.fact_score >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
-                          {factCheck.fact_check?.fact_score || 0}점
+                        <span className={`ml-2 font-bold ${factCheck.fact_score >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {factCheck.fact_score || 0}점
                         </span>
                       </div>
                       <div>
                         <span className={darkMode ? 'text-slate-400' : 'text-slate-600'}>의료법 안전성:</span>
-                        <span className={`ml-2 font-bold ${factCheck.fact_check?.safety_score >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
-                          {factCheck.fact_check?.safety_score || 0}점
+                        <span className={`ml-2 font-bold ${factCheck.safety_score >= 80 ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {factCheck.safety_score || 0}점
                         </span>
                       </div>
                       <div>
                         <span className={darkMode ? 'text-slate-400' : 'text-slate-600'}>AI 냄새:</span>
-                        <span className={`ml-2 font-bold ${factCheck.fact_check?.ai_smell_score <= 20 ? 'text-green-500' : 'text-yellow-500'}`}>
-                          {factCheck.fact_check?.ai_smell_score || 0}점
+                        <span className={`ml-2 font-bold ${factCheck.ai_smell_score <= 20 ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {factCheck.ai_smell_score || 0}점
                         </span>
                       </div>
                       <div>
                         <span className={darkMode ? 'text-slate-400' : 'text-slate-600'}>전환력:</span>
-                        <span className={`ml-2 font-bold ${factCheck.fact_check?.conversion_score >= 70 ? 'text-green-500' : 'text-yellow-500'}`}>
-                          {factCheck.fact_check?.conversion_score || 0}점
+                        <span className={`ml-2 font-bold ${factCheck.conversion_score >= 70 ? 'text-green-500' : 'text-yellow-500'}`}>
+                          {factCheck.conversion_score || 0}점
                         </span>
                       </div>
                     </div>
