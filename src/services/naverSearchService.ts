@@ -21,7 +21,49 @@ interface GoogleSearchResult {
 import { extractSearchKeywords } from './geminiService';
 
 /**
- * 구글 커스텀 검색으로 네이버 블로그만 검색
+ * 네이버 검색 API로 블로그 URL 검색 (크롤링용)
+ */
+export async function searchNaverBlogsForCrawling(
+  query: string,
+  display: number = 20
+): Promise<Array<{
+  title: string;
+  link: string;
+  description: string;
+  bloggername: string;
+}> | null> {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+    const response = await fetch(`${API_BASE_URL}/api/naver/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        display,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ 네이버 검색 실패:', {
+        status: response.status,
+        error: errorData,
+      });
+      throw new Error(`네이버 검색 실패: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result.items || [];
+  } catch (error) {
+    console.error('네이버 검색 오류:', error);
+    return null;
+  }
+}
+
+/**
+ * 구글 커스텀 검색 (대체 방법)
  */
 export async function searchGoogleBlogs(
   query: string,
@@ -144,22 +186,35 @@ export async function prepareNaverBlogsForComparison(
     console.log('✅ AI 추출 키워드:', keywords);
   }
   
-  // 2단계: 추출된 키워드로 검색
-  console.log('🔍 구글 검색 시작:', keywords);
-  const searchResult = await searchGoogleBlogs(keywords, maxResults);
+  // 2단계: 네이버 API로 블로그 검색 (우선 시도)
+  console.log('🔍 네이버 API 검색 시작:', keywords);
+  let blogUrls = await searchNaverBlogsForCrawling(keywords, maxResults);
   
-  if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
-    console.warn('⚠️ 검색 결과 없음');
-    return [];
+  // 네이버 API 실패 시 구글 API 시도
+  if (!blogUrls || blogUrls.length === 0) {
+    console.log('⚠️ 네이버 API 실패, 구글 API 시도...');
+    const searchResult = await searchGoogleBlogs(keywords, maxResults);
+    
+    if (!searchResult || !searchResult.items || searchResult.items.length === 0) {
+      console.warn('⚠️ 검색 결과 없음');
+      return [];
+    }
+    
+    blogUrls = searchResult.items.map(item => ({
+      title: item.title,
+      link: item.link,
+      description: item.snippet,
+      bloggername: item.displayLink || '웹사이트'
+    }));
   }
 
-  console.log(`📊 검색 결과 ${searchResult.items.length}개 발견`);
+  console.log(`📊 검색 결과 ${blogUrls.length}개 발견`);
 
   // 3단계: 각 블로그의 실제 내용 크롤링 (크롤링 성공한 것만 사용)
   const crawlResults = await Promise.all(
-    searchResult.items.map(async (item, index) => {
+    blogUrls.map(async (item, index) => {
       try {
-        console.log(`🕷️ [${index + 1}/${searchResult.items.length}] 크롤링 중:`, item.link);
+        console.log(`🕷️ [${index + 1}/${blogUrls.length}] 크롤링 중:`, item.link);
         
         // 블로그 전체 내용 크롤링
         const fullContent = await fetchBlogContentViaCrawler(item.link);
@@ -167,11 +222,11 @@ export async function prepareNaverBlogsForComparison(
         if (fullContent && fullContent.length > 100) {
           console.log(`✅ [${index + 1}] 크롤링 성공: ${fullContent.length}자`);
           return {
-            id: `google_${index}`,
+            id: `blog_${index}`,
             title: stripHtmlTags(item.title),
             text: fullContent, // 전체 내용 사용
             url: item.link,
-            blogger: item.displayLink || '웹사이트',
+            blogger: item.bloggername || '웹사이트',
             date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
           };
         } else {
@@ -188,7 +243,7 @@ export async function prepareNaverBlogsForComparison(
   // null 제거 (크롤링 성공한 것만)
   const results = crawlResults.filter((item): item is NonNullable<typeof item> => item !== null);
   
-  console.log(`✅ 크롤링 완료: ${results.length}/${searchResult.items.length}개 성공`);
+  console.log(`✅ 크롤링 완료: ${results.length}/${blogUrls.length}개 성공`);
 
   return results;
 }
