@@ -19,6 +19,7 @@ const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
 const PasswordLogin = lazy(() => import('./components/PasswordLogin'));
 const SimilarityChecker = lazy(() => import('./components/SimilarityChecker'));
 const ContentRefiner = lazy(() => import('./components/ContentRefiner'));
+const MedicalLawSearch = lazy(() => import('./components/MedicalLawSearch').then(module => ({ default: module.MedicalLawSearch })));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -1214,6 +1215,11 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 의료광고법 검색 플로팅 버튼 */}
+      <Suspense fallback={null}>
+        <MedicalLawSearch />
+      </Suspense>
     </div>
   );
 };
