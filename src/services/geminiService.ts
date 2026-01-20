@@ -324,7 +324,7 @@ ${hospitalInfo || '(검색 결과 없음)'}
   }
 }
 
-const getAiClient = () => {
+export const getAiClient = () => {
   // 1순위: Cloudflare Pages 환경변수 (빌드 시 주입됨)
   let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   
