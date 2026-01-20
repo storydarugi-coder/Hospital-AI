@@ -51,23 +51,24 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       alert('검사할 텍스트를 입력해주세요.');
       return;
     }
-    
-    if (!keywords.trim()) {
-      alert('검색 키워드를 입력해주세요.');
-      return;
-    }
 
     setIsChecking(true);
     setWebResults([]);
-    setCheckingMessage('🔍 네이버 블로그 검색 중...');
+    setCheckingMessage('📝 사용자 글 분석 중...');
     
     try {
-      // 네이버 블로그 검색
-      console.log('🔍 검색 시작:', keywords);
-      const blogs = await prepareNaverBlogsForComparison(keywords, 10);
+      // 사용자 글 분석 및 네이버 블로그 검색
+      console.log('🔍 검색 시작 (글 길이:', text1.length, '자)');
+      
+      // keywords가 있으면 수동 키워드로, 없으면 AI 자동 추출
+      const blogs = await prepareNaverBlogsForComparison(
+        text1, 
+        keywords.trim() || undefined, 
+        10
+      );
       
       if (blogs.length === 0) {
-        alert('검색 결과가 없습니다. 다른 키워드로 시도해주세요.');
+        alert('검색 결과가 없습니다. 다른 내용으로 시도해주세요.');
         setIsChecking(false);
         setCheckingMessage('');
         return;
@@ -181,7 +182,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
 
             <div>
               <label className={`block text-xs font-semibold mb-1.5 ${darkMode ? 'text-slate-300' : 'text-gray-700'}`}>
-                🔑 검색 키워드 (네이버 블로그 전용)
+                🔑 검색 키워드 (선택사항 - 비워두면 AI가 자동 추출)
               </label>
               <input
                 type="text"
@@ -192,19 +193,19 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
                     ? 'bg-slate-700 border-slate-600 text-white' 
                     : 'bg-white border-gray-300 text-gray-900'
                 }`}
-                placeholder='예: "당뇨병 예방법" 병원이름'
+                placeholder='예: "당뇨병 예방법" 병원이름 (비워두면 자동 추출)'
               />
               <p className={`text-xs mt-1 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
-                💡 <strong>정확한 검색 팁:</strong> 제목이나 특정 문구를 따옴표로 묶으면 정확히 검색됩니다
+                💡 <strong>AI 자동 추출:</strong> 비워두면 글 내용을 분석하여 자동으로 키워드를 찾습니다
               </p>
               <p className={`text-xs mt-0.5 ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
-                📌 예시: <code className="bg-slate-600 text-white px-1 rounded">"고혈압 관리법" 우리병원</code>
+                📌 <strong>수동 입력:</strong> 특정 키워드로 검색하려면 직접 입력하세요
               </p>
             </div>
 
             <button
               onClick={handleWebCheck}
-              disabled={isChecking || !text1.trim() || !keywords.trim()}
+              disabled={isChecking || !text1.trim()}
               className="w-full py-3 text-sm bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isChecking ? (checkingMessage || '🔍 검색 중...') : '🔍 웹 검색 시작'}

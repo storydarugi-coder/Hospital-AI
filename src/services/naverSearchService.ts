@@ -19,6 +19,52 @@ interface GoogleSearchResult {
 }
 
 /**
+ * Gemini API를 사용하여 사용자 글에서 검색 키워드 자동 추출
+ */
+export async function extractKeywordsFromText(text: string): Promise<string | null> {
+  try {
+    console.log('🤖 AI 키워드 추출 시작...');
+    
+    const response = await fetch('/api/gemini-text', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: `다음 블로그 글의 핵심 주제와 키워드를 분석하여 검색에 최적화된 키워드를 추출해주세요.
+
+<블로그 글>
+${text}
+</블로그 글>
+
+다음 규칙을 따라주세요:
+1. 가장 핵심적인 주제/키워드 3-5개만 추출
+2. 검색에 효과적인 구체적인 단어 사용
+3. 키워드는 공백으로 구분 (예: "당뇨병 예방 식단 관리")
+4. 의학/건강 관련이면 병명이나 증상을 포함
+5. 병원/클리닉 이름이 있다면 반드시 포함
+6. 따옴표나 특수문자 없이 순수 키워드만 출력
+
+키워드만 출력하세요 (설명 없이):`,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`키워드 추출 실패: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const keywords = data.text?.trim();
+    
+    console.log('✅ 추출된 키워드:', keywords);
+    return keywords || null;
+  } catch (error) {
+    console.error('❌ 키워드 추출 오류:', error);
+    return null;
+  }
+}
+
+/**
  * 구글 커스텀 검색으로 네이버 블로그만 검색
  */
 export async function searchGoogleBlogs(
@@ -99,11 +145,12 @@ export async function fetchNaverBlogContent(blogUrl: string): Promise<string | n
 }
 
 /**
- * 키워드로 구글 검색 후 유사도 비교용 데이터 준비
+ * 사용자 글을 분석하고 키워드로 구글 검색 후 유사도 비교용 데이터 준비
  * 실제 블로그 내용을 크롤링하여 전체 텍스트로 비교
  */
 export async function prepareNaverBlogsForComparison(
-  keywords: string,
+  userText: string,
+  manualKeywords?: string,
   maxResults: number = 10
 ): Promise<Array<{
   id: string;
@@ -113,6 +160,29 @@ export async function prepareNaverBlogsForComparison(
   blogger: string;
   date: string;
 }>> {
+  // 1단계: 사용자 글 분석 및 키워드 추출
+  console.log('📝 사용자 글 분석 중... (길이:', userText.length, '자)');
+  
+  let keywords: string;
+  
+  if (manualKeywords && manualKeywords.trim()) {
+    // 수동 키워드가 있으면 우선 사용
+    keywords = manualKeywords.trim();
+    console.log('🔑 사용자 지정 키워드 사용:', keywords);
+  } else {
+    // AI로 키워드 자동 추출
+    const extractedKeywords = await extractKeywordsFromText(userText);
+    
+    if (!extractedKeywords) {
+      console.error('❌ 키워드 추출 실패');
+      throw new Error('키워드를 추출할 수 없습니다. 텍스트를 다시 확인해주세요.');
+    }
+    
+    keywords = extractedKeywords;
+    console.log('🤖 AI 추출 키워드:', keywords);
+  }
+  
+  // 2단계: 추출된 키워드로 검색
   console.log('🔍 구글 검색 시작:', keywords);
   const searchResult = await searchGoogleBlogs(keywords, maxResults);
   
@@ -123,7 +193,7 @@ export async function prepareNaverBlogsForComparison(
 
   console.log(`📊 검색 결과 ${searchResult.items.length}개 발견`);
 
-  // 각 블로그의 실제 내용 크롤링
+  // 3단계: 각 블로그의 실제 내용 크롤링
   const results = await Promise.all(
     searchResult.items.map(async (item, index) => {
       try {
