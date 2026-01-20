@@ -10,9 +10,11 @@ const CUSTOM_PROMPT_KEY = 'hospital_custom_image_prompt';
 interface InputFormProps {
   onSubmit: (data: GenerationRequest) => void;
   isLoading: boolean;
+  onTabChange?: (tab: 'blog' | 'similarity' | 'refine' | 'card_news' | 'press') => void;
+  currentTab?: 'blog' | 'similarity' | 'refine' | 'card_news' | 'press';
 }
 
-const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
+const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange, currentTab = 'blog' }) => {
   const [postType, setPostType] = useState<PostType>('blog');
   const [category, setCategory] = useState<ContentCategory>(CATEGORIES[0].value);
   const [audienceMode, setAudienceMode] = useState<AudienceMode>('환자용(친절/공감)');
@@ -150,22 +152,45 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       <div className="flex p-1 bg-slate-100 rounded-2xl mb-8 gap-1">
         <button 
           type="button" 
-          onClick={() => setPostType('blog')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => {
+            setPostType('blog');
+            onTabChange?.('blog');
+          }}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${(postType === 'blog' || currentTab === 'blog') ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span>📝</span> 블로그
         </button>
         <button 
           type="button" 
-          onClick={() => setPostType('card_news')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => onTabChange?.('similarity')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${currentTab === 'similarity' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <span>🔍</span> 유사도
+        </button>
+        <button 
+          type="button" 
+          onClick={() => onTabChange?.('refine')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${currentTab === 'refine' ? 'bg-white text-rose-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <span>✨</span> AI보정
+        </button>
+        <button 
+          type="button" 
+          onClick={() => {
+            setPostType('card_news');
+            onTabChange?.('card_news');
+          }}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${(postType === 'card_news' || currentTab === 'card_news') ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span>🖼️</span> 카드뉴스
         </button>
         <button 
           type="button" 
-          onClick={() => setPostType('press_release')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => {
+            setPostType('press_release');
+            onTabChange?.('press');
+          }}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${(postType === 'press_release' || currentTab === 'press') ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span>🗞️</span> 보도자료
         </button>
