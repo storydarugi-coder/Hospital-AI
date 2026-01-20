@@ -11,10 +11,9 @@ interface InputFormProps {
   onSubmit: (data: GenerationRequest) => void;
   isLoading: boolean;
   onTabChange?: (tab: 'blog' | 'similarity' | 'refine' | 'card_news' | 'press') => void;
-  currentTab?: 'blog' | 'similarity' | 'refine' | 'card_news' | 'press';
 }
 
-const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange, currentTab = 'blog' }) => {
+const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange }) => {
   const [postType, setPostType] = useState<PostType>('blog');
   const [category, setCategory] = useState<ContentCategory>(CATEGORIES[0].value);
   const [audienceMode, setAudienceMode] = useState<AudienceMode>('환자용(친절/공감)');
@@ -165,7 +164,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange,
         <button 
           type="button" 
           onClick={() => onTabChange?.('similarity')}
-          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${currentTab === 'similarity' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600`}
         >
           <span className="text-sm">🔍</span> 
           <span>유사도</span>
@@ -173,7 +172,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange,
         <button 
           type="button" 
           onClick={() => onTabChange?.('refine')}
-          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${currentTab === 'refine' ? 'bg-white text-rose-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600`}
         >
           <span className="text-sm">✨</span> 
           <span>AI보정</span>

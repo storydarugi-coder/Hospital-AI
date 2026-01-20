@@ -898,7 +898,6 @@ const App: React.FC = () => {
               onSubmit={handleGenerate} 
               isLoading={state.isLoading || isGeneratingScript}
               onTabChange={setContentTab}
-              currentTab={contentTab}
             />
           </div>
         </div>
