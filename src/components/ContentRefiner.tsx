@@ -25,11 +25,20 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, darkMode = fal
   const [chatInput, setChatInput] = useState('');
   const [isChatting, setIsChatting] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 채팅 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
+
+  // Textarea 자동 높이 조절
+  useEffect(() => {
+    if (chatTextareaRef.current) {
+      chatTextareaRef.current.style.height = 'auto';
+      chatTextareaRef.current.style.height = `${Math.min(chatTextareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [chatInput]);
 
   const handleRefine = async () => {
     if (!content.trim()) {
@@ -129,7 +138,11 @@ ${chatInput}
 
   const copyToClipboard = () => {
     if (refinedContent) {
-      navigator.clipboard.writeText(refinedContent);
+      // HTML 태그 제거하고 순수 텍스트만 복사
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = refinedContent;
+      const plainText = tempDiv.innerText || tempDiv.textContent || '';
+      navigator.clipboard.writeText(plainText);
       alert('클립보드에 복사되었습니다!');
     }
   };
@@ -174,15 +187,15 @@ ${chatInput}
         <button
           onClick={() => setMode('chat')}
           disabled={!refinedContent}
-          className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all ${
+          className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
             mode === 'chat'
               ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-lg'
               : darkMode
-              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed'
-              : 'bg-slate-200 text-slate-700 hover:bg-slate-300 disabled:opacity-30 disabled:cursor-not-allowed'
+              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
           }`}
         >
-          💬 채팅 수정
+          💬 채팅 수정 {!refinedContent && <span className="text-xs ml-1">(먼저 보정 실행)</span>}
         </button>
       </div>
 
@@ -269,23 +282,30 @@ ${chatInput}
                 {/* 채팅 입력 */}
                 <div className={`p-3 border-t ${darkMode ? 'border-slate-700' : 'border-slate-200'}`}>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
+                    <textarea
+                      ref={chatTextareaRef}
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && !isChatting && handleChatSubmit()}
-                      placeholder="수정 요청을 입력하세요..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey && !isChatting) {
+                          e.preventDefault();
+                          handleChatSubmit();
+                        }
+                      }}
+                      placeholder="수정 요청을 입력하세요... (Shift+Enter: 줄바꿈)"
                       disabled={isChatting}
-                      className={`flex-1 px-3 py-2 rounded-lg text-sm ${
+                      rows={1}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm resize-none ${
                         darkMode
                           ? 'bg-slate-800 border-slate-600 text-white placeholder-slate-500'
                           : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
                       } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                      style={{ minHeight: '38px', maxHeight: '120px' }}
                     />
                     <button
                       onClick={handleChatSubmit}
                       disabled={isChatting || !chatInput.trim()}
-                      className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                      className={`px-4 py-2 rounded-lg font-bold text-sm transition-all self-end ${
                         isChatting || !chatInput.trim()
                           ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                           : 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:shadow-lg'
@@ -294,6 +314,9 @@ ${chatInput}
                       {isChatting ? '⏳' : '전송'}
                     </button>
                   </div>
+                  <p className={`text-xs mt-1 ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                    💡 Enter: 전송 | Shift+Enter: 줄바꿈
+                  </p>
                 </div>
               </div>
             </>

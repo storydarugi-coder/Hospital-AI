@@ -90,6 +90,37 @@ GPT-5.2의 토큰 제한과 프롬프트 복잡도 문제를 해결하기 위해
 - **상태**: 개발 서버 가동 중
 - **기술 스택**: Hono 4.x + React 19 + TypeScript + TailwindCSS
 
+### 🔧 Cloudflare 환경변수 설정 (필수)
+
+유사도 검사 기능을 사용하려면 다음 환경변수를 **Cloudflare Dashboard**에서 설정해야 합니다:
+
+#### 1. Google Custom Search API 설정
+
+1. **Google Cloud Console**에서 API 키 발급:
+   - https://console.cloud.google.com/
+   - "API 및 서비스" > "사용자 인증 정보"
+   - "사용자 인증 정보 만들기" > "API 키"
+   - API 키 생성 후 복사
+
+2. **Programmable Search Engine** 생성:
+   - https://programmablesearchengine.google.com/
+   - "새 검색 엔진 만들기"
+   - 검색할 사이트: `blog.naver.com`, `-namu.wiki`
+   - 검색 엔진 ID 복사
+
+3. **Cloudflare Dashboard에서 환경변수 설정**:
+   - Cloudflare Dashboard > Workers & Pages > 프로젝트 선택
+   - Settings > Environment variables
+   - 다음 변수 추가:
+     - `GOOGLE_API_KEY`: Google API 키
+     - `GOOGLE_SEARCH_ENGINE_ID`: Programmable Search Engine ID
+
+#### ⚠️ 주의사항
+
+- Google Custom Search API는 **무료 할당량 100쿼리/일** 제공
+- 유사도 검사 시 쿼리 수가 많으면 할당량 초과 가능
+- 상용 서비스의 경우 유료 플랜 고려 필요
+
 ## 개발 명령어
 ```bash
 # 개발 서버 시작

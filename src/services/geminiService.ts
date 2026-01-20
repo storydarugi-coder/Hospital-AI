@@ -749,7 +749,7 @@ const getWritingStylePrompts = (): Record<WritingStyle, string> => {
    - 공감: "쉽지 않은 일입니다"
 
 ⚠️ **절대 금지**
-- 해요체: ~해요, ~있어요, ~있죠, ~거예요, ~거죠 (글 전체 2회까지만 허용)
+- 해요체/요체: ~해요, ~있어요, ~있죠, ~거예요, ~거죠 (완전 금지)
 - 번역투: 기준점→기준, 측면에서→쪽에서, 요소→이유, 발생하다→생기다, 제공하다→알려드립니다
 - 수동태: 알려지다→알려져 있습니다, 권장되다→권장합니다, 확인되다→확인했습니다
 
@@ -769,15 +769,15 @@ const getWritingStylePrompts = (): Record<WritingStyle, string> => {
 [핵심 규칙]
 1. 도입부: 관찰로 시작
    ❌ "당뇨 전 단계인데 모르고 지나치는 사람이 절반이 넘습니다." (공포 조장)
-   ✅ "물을 많이 마셔서 화장실을 자주 간다고 생각했는데, 돌이켜보니 그게 아니었다는 분들이 있어요."
+   ✅ "물을 많이 마셔서 화장실을 자주 간다고 생각했는데, 돌이켜보니 그게 아니었다는 경우가 있습니다."
 
 2. 시점 제시 - 판단은 독자에게
    ❌ "검사를 받으세요" (명령형)
-   ✅ "이런 신호가 겹치기 시작하면 확인해볼 타이밍일 수 있어요."
+   ✅ "이런 신호가 겹치기 시작하면 확인해볼 타이밍일 수 있습니다."
 
 3. 마무리: 열린 결론
    ❌ "꼭 기억하세요"
-   ✅ "적어도 '왜 이런지 모르겠다'는 답답함은 줄일 수 있어요."
+   ✅ "적어도 '왜 이런지 모르겠다'는 답답함은 줄일 수 있습니다."
 `
   };
 };
@@ -2252,7 +2252,7 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 시점 고정 (🔥 핵심! 🔥)*
 ✅ "지켜보기보다 확인이 먼저입니다"
 ✅ "전문적인 판단이 필요할 수 있습니다"
 ✅ "개인차가 있을 수 있습니다"
-❌ "~를 고려해볼 수 있어요" (너무 약함)
+❌ "~를 고려해볼 수 있습니다" (너무 약함)
 
 [⚠️ 생활습관 카드 제한]
 - 생활습관(운동, 식단, 금연 등) 카드는 **최대 1장**만
@@ -2285,7 +2285,7 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 시점 고정 (🔥 핵심! 🔥)*
 **🚨 심의 탈락 방지 - 핵심 3가지 조정 포인트 🚨**
 
 **※ 10. 합병증 언급 시 - '예방' 단어 금지! (가장 중요!)**
-- ❌ "합병증 예방을 위해 초기 확인이 중요해요" → '예방'이 치료 효과 암시로 해석됨!
+- ❌ "합병증 예방을 위해 초기 확인이 중요합니다" → '예방'이 치료 효과 암시로 해석됨!
 - ❌ "합병증을 예방하려면..." → 치료 효과 기대 유발
 - ✅ "증상 경과를 살피는 것이 중요한 이유"
 - ✅ "고위험군에서는 경과 관찰이 더 중요합니다"
@@ -2662,7 +2662,7 @@ ${hasWindowButtons ? '- 브라우저 창 버튼(빨/노/초) 포함' : ''}
 - 증상명, 질환명 (사실 정보)
 - 질문형 제목 ("무릎이 시린 이유는?")
 - 정보 전달 ("관절염의 특징")
-- "~일 수 있어요" (가능성)`;
+- "~일 수 있습니다" (가능성)`;
 
   try {
     const response = await ai.models.generateContent({
@@ -2931,14 +2931,14 @@ ${slideCount >= 7 ? `**5~${slideCount-2}장 - 추가 정보/사례**
 
 **${slideCount-1}장 - 시점 고정 (🔥 핵심! 🔥)**
 - slideType: "content"
-- "이런 증상이 나타났다면" → "지켜보기보다 확인 시점일 수 있어요"
+- "이런 증상이 나타났다면" → "지켜보기보다 확인 시점일 수 있습니다"
 - ⚠️ 구체적 시간(2주, 48시간 등) 절대 금지! 범주형으로!
 - speakingNote: "지금이 확인할 타이밍이라는 것을 인식시키기"
 
 **${slideCount}장 - 안전한 CTA**
 - slideType: "closing"
 - ⚠️ 위 CTA 심리학 가이드 참조하여 작성!
-- "불편함이 반복된다면 전문적인 확인을 고려해볼 수 있어요"
+- "불편함이 반복된다면 전문적인 확인을 고려해볼 수 있습니다"
 - speakingNote: "직접 권유 없이 행동을 유도하는 부드러운 마무리"
 
 [중요]
@@ -3641,15 +3641,14 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
 □ 교과서식 정보 나열 없는가?
 □ "이 글만의 독특한 관찰"이 최소 1개 이상 있는가?
 
-🔥🔥🔥 [구어체 리듬 필수] - AI 말투 탈피! 🔥🔥🔥
-⚠️ 구어체 사용 제한: 글 전체에서 1~2회만 사용 (과도한 구어체는 전문성 저하)
-- "~합니다", "~됩니다" 딱딱한 어미 금지!
-- 반드시 섞어 쓸 것:
-  • "~해요", "~래요", "~다고 해요", "~더라고요" (구어체 - 1~2회만!)
-  • "~거예요", "~는 거죠", "~할 수 있어요" (부드러운 어조)
-  • "~는 편이에요", "~기도 해요", "~곤 해요" (일상 표현)
+🔥🔥🔥 [문체 규칙] - AI 말투 탈피! 🔥🔥🔥
+- "~합니다", "~됩니다" 어미 사용
+- 자연스러운 흐름을 위해 적절히 변형 가능:
+  • "~하는 경우가 있습니다", "~있다고 합니다" (정보 전달)
+  • "~할 수 있습니다", "~는 편입니다" (부드러운 어조)
+  • "~하기도 합니다", "~하곤 합니다" (일상 표현)
 - ❌ 잘못된 예: "식습관도 영향을 미치곤 합니다" 
-- ✅ 올바른 예: "짠 음식을 자주 찾게 되는 경우가 있습니다. 이럴 땐 붓기가 더 심해질 수 있어 섭취를 조절해보는 것이 좋습니다"
+- ✅ 올바른 예: "짠 음식을 자주 찾게 되는 경우가 있습니다. 이럴 때 붓기가 더 심해질 수 있어 섭취를 조절해보는 것이 좋습니다"
 - ❌ "가능성이 언급되기도 합니다" → ✅ "관련이 있다고 합니다", "영향을 줍니다"
 
 🚫 [AI·교재 말투 금지]
@@ -3661,10 +3660,10 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
 - 보고서체, 설명서체, 번역투 ❌
 - 의료/의료진/전문/전문가/전문적인 ❌ (완전 금지!)
 
-✅ [대체 표현 - 구어체로!]
-- "~할 수 있어요", "~는 편이에요", "~다고 해요"
-- "~거예요", "~기도 해요", "~곤 해요"
-- "~영향이 있다고 해요", "~관련이 있대요"
+✅ [대체 표현 - 자연스럽게!]
+- "~할 수 있습니다", "~는 편입니다", "~다고 합니다"
+- "~하는 것입니다", "~하기도 합니다", "~하곤 합니다"
+- "~영향이 있다고 합니다", "~관련이 있습니다"
 - 의료/의료진 → ✅ "상담", "확인", "도움", "점검"
 - 전문/전문가/전문적인 → ✅ "상담", "확인", "체크"
 
@@ -3886,7 +3885,7 @@ ${hospitalInfo}
     card-desc: "건강한 오늘이 행복한 내일을 만듭니다 😊"
     
     **심리학 기법 적용 예시 (마지막 카드):**
-    - 손실회피: "미루면 놓칠 수 있어요"
+    - 손실회피: "미루면 놓칠 수 있습니다"
     - 사회적증거: "많은 분들이 실천 중이에요"  
     - 시의성: "이맘때가 적기예요"
     - 감정호소: "소중한 일상, 오래 누리세요"
@@ -3938,7 +3937,7 @@ ${hospitalInfo}
     
     [📝 텍스트 분량 규칙 - 반드시 지키세요!]
     ❌ 잘못된 예 (텍스트 부족):
-    - card-subtitle: "지금 알아야 해요" (8자)
+    - card-subtitle: "지금 확인이 필요합니다" (10자)
     - card-main-title: "심정지<br/><span class='card-highlight'>4분</span>" (6자)
     - card-desc: "골든타임 사수" (6자) ← 너무 짧음!
     
@@ -3983,7 +3982,7 @@ ${hospitalInfo}
     
     [🚨 최종 검증 - 작성 후 반드시 확인하세요! 🚨]
     각 카드의 card-desc가 30자 이상인지 확인하세요!
-    예: "심장이 멈춘 지 4분이 지나면 뇌세포가 마음대로 누설되기 시작해요" (이 정도 길이)
+    예: "심장이 멈춘 지 4분이 지나면 뇌세포 손상이 시작됩니다" (이 정도 길이)
     텍스트가 너무 짧으면 독자가 정보를 얻을 수 없습니다!
   `;
 
@@ -5602,11 +5601,11 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     const sentenceIdx = Math.min(i, sentences.length - 1);
     const sentence = sentences[sentenceIdx] || request.topic;
     
-    let subtitle = isFirst ? '알아보자!' : isLast ? '함께 실천해요' : `포인트 ${i}`;
+    let subtitle = isFirst ? '알아봅시다' : isLast ? '함께 실천합니다' : `포인트 ${i}`;
     let mainTitle = isFirst 
       ? `${request.topic}<br/><span class="card-highlight">총정리</span>`
       : isLast 
-      ? `건강한 습관<br/><span class="card-highlight">시작해요!</span>`
+      ? `건강한 습관<br/><span class="card-highlight">시작합니다</span>`
       : sentence.slice(0, 15) + (sentence.length > 15 ? '...' : '');
     let desc = sentence.slice(0, 50) || '건강한 생활을 위한 정보를 확인하세요.';
     
@@ -6679,10 +6678,10 @@ ${htmlContent.substring(0, 8000)}
 • "확실히 ~입니다", "반드시 ~해야 합니다" → 단정적 표현 금지!
 
 ✅ **허용되는 대안 표현:**
-• "~일 가능성이 높아요" → "이런 패턴이 반복된다면 확인이 필요해요"
+• "~일 가능성이 높습니다" → "이런 패턴이 반복된다면 확인이 필요합니다"
 • "바로 병원 가세요" → "지속된다면 확인받아보시는 것도 방법이에요"
-• "3일이면 비염" → "며칠째 지속된다면 다른 원인일 수도 있어요"
-• "반드시 ~해야" → "~해보시는 것이 도움이 될 수 있어요"
+• "3일이면 비염" → "며칠째 지속된다면 다른 원인일 수도 있습니다"
+• "반드시 ~해야" → "~해보시는 것이 도움이 될 수 있습니다"
 
 [중요]
 🤖 AI 냄새 분석 기준 (총 100점 - 낮을수록 좋음!)
@@ -6717,7 +6716,7 @@ ${htmlContent.substring(0, 8000)}
 • '단정하기 어렵고', '오해가 생기기 쉽습니다' 등 회피형 반복 → +4점
 
 **수정 방향 (의료광고법 준수!):**
-✅ '단정하기 어렵습니다' → '이런 경우엔 다른 원인도 생각해볼 수 있어요'
+✅ '단정하기 어렵습니다' → '이런 경우엔 다른 원인도 생각해볼 수 있습니다'
 ✅ '~떠올리게 됩니다' → '한번 체크해보시는 게 좋겠어요'
 ✅ 가능성 나열 → '이 패턴이 반복되면 확인이 필요한 시점이에요'
 ⚠️ 주의: "~이면 OO병입니다" 같은 질병 단정은 절대 금지!
@@ -7049,18 +7048,42 @@ ${textContent}
 📋 수정 지침 (반드시 준수)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+🔍 Google Search 활용:
+  • 질병관리청, 보건복지부 등 공공기관 최신 정보 확인 가능
+  • 검색한 내용은 참고만 하고 출처는 절대 명시하지 말 것
+  • 검색 결과를 바탕으로 정확성 검증
+  • 의료 정보의 사실 확인 (잘못된 정보 수정)
+
 1. 위에 명시된 모든 의료광고법 규칙을 100% 준수
 2. 7대 수정 원칙을 반드시 적용:
    - 치료·개선·관리·교정·효과 표현 완전 제거
    - 의학적 인과관계 단정하지 않음
    - 수치·정량 표현 완전 삭제
+   - 수동태·피동 표현 완전 제거 (~언급된다/알려진다/보고된다 금지)
    - 스트레칭·운동 제시는 수준 낮춤
    - 증상→질환→위험 판단 구조 금지
    - "~일 수 있습니다" 최소화 (7회까지만)
    - 글의 목적: 정보 제공 (행동 유도 아님)
 
 3. 원본 글의 핵심 메시지와 구조는 최대한 유지
-4. HTML 형식으로 반환 (p, h2, h3, ul, li 태그 사용)
+
+4. 🚨🚨🚨 HTML 형식 규칙 (절대 준수)
+   ✅ 허용 태그: <p>, <ul>, <li>만 사용
+   
+   ❌ 소제목 완전 금지:
+      • h1, h2, h3, h4, h5, h6 태그 절대 사용 금지
+      • <h3>목 건강 관리</h3> ← 이런 것 절대 안 됨!
+      • 원본에 소제목이 있어도 완전히 제거
+      • 소제목 내용은 본문 첫 문장으로 자연스럽게 흡수
+   
+   ✅ 올바른 형식:
+      <p>목과 어깨의 긴장이 지속되면 불편감이 나타날 수 있습니다...</p>
+      <p>일상 생활에서 자세를 점검하는 것도 방법입니다...</p>
+   
+   ❌ 잘못된 형식:
+      <h3>목 건강 관리</h3>
+      <p>목과 어깨의 긴장이...</p>
+
 5. 자연스럽고 읽기 쉬운 문장으로 수정
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -7068,7 +7091,7 @@ ${textContent}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 {
-  "content": "수정된 HTML 콘텐츠",
+  "content": "수정된 HTML 콘텐츠 (p, ul, li 태그만 사용, h1~h6 제목 태그 절대 금지)",
   "fact_check": {
     "fact_score": 85,
     "safety_score": 90,
@@ -7081,13 +7104,14 @@ ${textContent}
 }`;
 
   try {
-    safeProgress('🤖 Gemini AI로 수정 중...');
+    safeProgress('🔍 질병관리청 최신 정보 검색 중...');
     
     const result = await callGemini({
       prompt,
       model: GEMINI_MODEL.PRO,
       responseType: 'json',
-      timeout: TIMEOUTS.GENERATION
+      timeout: TIMEOUTS.GENERATION,
+      tools: [{ googleSearch: {} }] // Google Search 활성화
     });
     
     console.log('✅ 수정 완료:', result);
@@ -7268,19 +7292,17 @@ async function extractSearchQueries(content: string): Promise<string[]> {
       }
     }
     
-    // 3. 개별 문장 중 특징적인 것들 추가 (길이 40자 이상)
+    // 3. 개별 문장 전체 추가 (3500자 이상도 전체 검사)
     const distinctiveSentences = sentences
-      .filter(s => s.length >= 40 && s.length <= 150)
-      .slice(0, 10); // 최대 10개
+      .filter(s => s.length >= 40 && s.length <= 150);
     
     queries.push(...distinctiveSentences);
     
-    // 중복 제거 및 정렬 (긴 것부터)
+    // 중복 제거 및 정렬 (긴 것부터) - 제한 없이 전체 검사
     const uniqueQueries = [...new Set(queries)]
-      .sort((a, b) => b.length - a.length)
-      .slice(0, 15); // 최대 15개 쿼리
+      .sort((a, b) => b.length - a.length);
     
-    console.log(`✅ 총 ${uniqueQueries.length}개 검색 쿼리 생성`);
+    console.log(`✅ 총 ${uniqueQueries.length}개 검색 쿼리 생성 (전체 콘텐츠 검사, 나무위키 제외)`);
     console.log('📋 검색 쿼리 샘플:', uniqueQueries.slice(0, 3));
     
     return uniqueQueries;
@@ -7301,8 +7323,8 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
     const results = [];
     
     for (const phrase of keyPhrases) {
-      // 정확한 구문 검색 ("phrase")
-      const query = `"${phrase}" site:blog.naver.com`;
+      // 정확한 구문 검색 ("phrase"), 나무위키 제외
+      const query = `"${phrase}" site:blog.naver.com -site:namu.wiki`;
       
       try {
         // 서버 API를 통해 검색 (API 키 노출 방지)
@@ -7327,24 +7349,39 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
           }
           console.error(`  ❌ 검색 API 오류: ${response.status}`, errorData);
           console.error(`  ⚠️ 환경변수 확인 필요: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID`);
-          continue;
+          console.error(`  🔧 Cloudflare Dashboard에서 환경변수 설정 필요!`);
+          console.error(`  📌 설정 위치: Cloudflare Dashboard > Workers & Pages > 프로젝트 > Settings > Environment variables`);
+          console.error(`  📌 필요한 변수: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID`);
+          
+          // 첫 번째 실패 시 더 이상 검색하지 않음 (API 키 없음)
+          console.error(`\n❌❌❌ Google API 키가 설정되지 않았습니다! 유사도 검사를 진행할 수 없습니다. ❌❌❌\n`);
+          break; // 더 이상 검색하지 않음
         }
         
         const data = await response.json();
         console.log(`  📊 검색 결과:`, data.searchInformation?.totalResults || 0, '건');
         
         if (data.items && data.items.length > 0) {
+          // 네이버 블로그 정보 추출
+          const naverBlogs = data.items.map((item: any) => ({
+            title: item.title,
+            link: item.link,
+            snippet: item.snippet,
+            displayLink: item.displayLink
+          }));
+          
           results.push({
             phrase,
-            matches: data.items,
+            matches: naverBlogs,
             matchCount: data.items.length
           });
           
-          console.log(`  ✅ "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견`);
+          console.log(`  ✅ "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견 (네이버 블로그)`);
+          console.log(`     첫 번째 매칭: ${naverBlogs[0].title}`);
         } else if (data.error) {
           console.error(`  ❌ Google API 오류:`, data.error);
         } else {
-          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음 (검색 완료)`);
+          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음`);
         }
       } catch (error) {
         console.error(`  ❌ 검색 실패: "${phrase.substring(0, 50)}..."`, error);
@@ -7356,6 +7393,13 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
     }
     
     console.log(`✅ 웹 검색 완료: ${results.length}개 문장에서 중복 발견`);
+    
+    // Google API 키가 없는 경우 경고
+    if (results.length === 0 && keyPhrases.length > 0) {
+      console.warn('⚠️⚠️⚠️ 웹 검색 결과가 없습니다. Google API 키 설정을 확인하세요! ⚠️⚠️⚠️');
+      console.warn('📌 Cloudflare Dashboard > Workers & Pages > 프로젝트 > Settings > Environment variables');
+      console.warn('📌 필요한 변수: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID');
+    }
     
     return results;
   } catch (error) {
@@ -7374,17 +7418,22 @@ function calculateSimilarityScore(
   // 자체 블로그 유사도 (0~100)
   const ownBlogScore = ownBlogSimilarity * 100;
   
-  // 웹 검색 매칭 점수
+  // 웹 검색 매칭 점수 (네이버 블로그 중복 검사)
   let webSearchScore = 0;
   const totalMatches = webSearchMatches.reduce((sum, m) => sum + m.matchCount, 0);
   
-  if (totalMatches >= 3) {
-    webSearchScore = 100;
+  // 네이버 블로그 중복 판단 기준 강화
+  if (totalMatches >= 5) {
+    webSearchScore = 100; // 5개 이상 중복: 표절 위험
+  } else if (totalMatches >= 3) {
+    webSearchScore = 80; // 3-4개 중복: 높은 유사도
   } else if (totalMatches >= 2) {
-    webSearchScore = 70;
+    webSearchScore = 60; // 2개 중복: 중간 유사도
   } else if (totalMatches >= 1) {
-    webSearchScore = 40;
+    webSearchScore = 30; // 1개 중복: 낮은 유사도
   }
+  
+  console.log(`📊 유사도 계산: 자체 DB ${ownBlogScore.toFixed(1)}점, 네이버 블로그 중복 ${totalMatches}건 → ${webSearchScore}점`);
   
   // 최종 점수 (더 높은 점수 선택)
   const finalScore = Math.max(ownBlogScore, webSearchScore);

@@ -3833,33 +3833,54 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 </div>
               )}
               
-              {/* 웹 검색 매칭 */}
+              {/* 웹 검색 매칭 (네이버 블로그) */}
               {similarityResult.webSearchMatches.length > 0 && (
                 <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
                   <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
-                    🌐 웹에서 발견된 유사 문장
+                    🌐 네이버 블로그에서 발견된 유사 문장
                   </h4>
-                  <ul className="space-y-3">
+                  <ul className="space-y-4">
                     {similarityResult.webSearchMatches.map((match: any, idx: number) => (
-                      <li key={idx} className={`p-3 rounded-lg ${
+                      <li key={idx} className={`p-4 rounded-lg border-l-4 border-red-500 ${
                         darkMode ? 'bg-slate-600' : 'bg-white'
                       }`}>
-                        <p className="font-bold mb-2 text-sm">"{match.phrase}"</p>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className={darkMode ? 'text-slate-400' : 'text-slate-500'}>
-                            {match.matchCount}건 발견
+                        <p className="font-bold mb-2 text-sm text-red-600">"{match.phrase.substring(0, 100)}..."</p>
+                        <div className="mb-2 text-xs">
+                          <span className={`font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                            {match.matchCount}건의 네이버 블로그에서 발견
                           </span>
-                          {match.matches?.[0]?.link && (
-                            <a 
-                              href={match.matches[0].link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-500 hover:underline"
-                            >
-                              확인 →
-                            </a>
-                          )}
                         </div>
+                        {/* 매칭된 블로그 목록 */}
+                        {match.matches && match.matches.length > 0 && (
+                          <div className="space-y-2 mt-3">
+                            {match.matches.slice(0, 3).map((blog: any, blogIdx: number) => (
+                              <a
+                                key={blogIdx}
+                                href={blog.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`block p-2 rounded text-xs hover:bg-opacity-80 transition-all ${
+                                  darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-50 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="font-bold text-blue-600 hover:underline mb-1">
+                                  {blog.title.replace(/<[^>]*>/g, '')}
+                                </div>
+                                <div className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {blog.snippet?.substring(0, 150)}...
+                                </div>
+                                <div className={`mt-1 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {blog.displayLink || blog.link}
+                                </div>
+                              </a>
+                            ))}
+                            {match.matches.length > 3 && (
+                              <div className={`text-xs text-center pt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                외 {match.matches.length - 3}개 블로그 더보기...
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>
