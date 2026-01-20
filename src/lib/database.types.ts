@@ -122,6 +122,44 @@ export interface Database {
           status?: 'pending' | 'completed' | 'failed' | 'cancelled';
         };
       };
+      blog_history: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          title: string;
+          content: string;
+          html_content: string;
+          keywords: string[];
+          embedding: number[] | null;
+          naver_url: string | null;
+          category: string | null;
+          published_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          title: string;
+          content: string;
+          html_content: string;
+          keywords?: string[];
+          embedding?: number[] | null;
+          naver_url?: string | null;
+          category?: string | null;
+          published_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          content?: string;
+          html_content?: string;
+          keywords?: string[];
+          embedding?: number[] | null;
+          naver_url?: string | null;
+          category?: string | null;
+          published_at?: string;
+        };
+      };
     };
   };
 }
