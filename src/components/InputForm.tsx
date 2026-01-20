@@ -148,8 +148,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
         Hospital<span className="text-emerald-600">AI</span>
       </h2>
 
-      {/* 탭 메뉴 - 2줄 그리드 (정렬 개선) */}
-      <div className="grid grid-cols-3 p-2 bg-slate-100 rounded-2xl mb-8 gap-2">
+      {/* 탭 메뉴 - 1줄 5개 그리드로 변경 (넓게 정렬) */}
+      <div className="grid grid-cols-5 p-2 bg-slate-100 rounded-2xl mb-8 gap-2">
         <button 
           type="button" 
           onClick={() => {

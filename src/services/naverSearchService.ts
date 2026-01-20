@@ -150,8 +150,8 @@ export async function prepareNaverBlogsForComparison(
 
   console.log(`📊 검색 결과 ${searchResult.items.length}개 발견`);
 
-  // 3단계: 각 블로그의 실제 내용 크롤링
-  const results = await Promise.all(
+  // 3단계: 각 블로그의 실제 내용 크롤링 (크롤링 성공한 것만 사용)
+  const crawlResults = await Promise.all(
     searchResult.items.map(async (item, index) => {
       try {
         console.log(`🕷️ [${index + 1}/${searchResult.items.length}] 크롤링 중:`, item.link);
@@ -170,34 +170,33 @@ export async function prepareNaverBlogsForComparison(
             date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
           };
         } else {
-          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 스니펫 사용`);
-          // 크롤링 실패 시 스니펫 사용
-          return {
-            id: `google_${index}`,
-            title: stripHtmlTags(item.title),
-            text: stripHtmlTags(item.snippet),
-            url: item.link,
-            blogger: item.displayLink || '웹사이트',
-            date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-          };
+          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 제외`);
+          return null; // 크롤링 실패 시 null 반환
         }
       } catch (error) {
-        console.error(`❌ [${index + 1}] 크롤링 에러:`, error);
-        // 에러 발생 시 스니펫 사용
-        return {
-          id: `google_${index}`,
-          title: stripHtmlTags(item.title),
-          text: stripHtmlTags(item.snippet),
-          url: item.link,
-          blogger: item.displayLink || '웹사이트',
-          date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-        };
+        console.error(`❌ [${index + 1}] 크롤링 에러, 제외:`, error);
+        return null; // 에러 발생 시 null 반환
       }
     })
   );
 
-  const successCount = results.filter(r => r.text.length > 200).length;
-  console.log(`✅ 크롤링 완료: ${successCount}/${results.length}개 성공`);
+  // null 제거 (크롤링 성공한 것만)
+  const crawledBlogs = crawlResults.filter((item): item is NonNullable<typeof item> => item !== null);
+  
+  console.log(`✅ 크롤링 완료: ${crawledBlogs.length}/${searchResult.items.length}개 성공`);
+
+  // 4단계: 사용자 블로그를 맨 앞에 추가
+  const results = [
+    {
+      id: 'user_blog',
+      title: '🔵 내 블로그 (원본)',
+      text: userText,
+      url: '#',
+      blogger: '내 블로그',
+      date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+    },
+    ...crawledBlogs,
+  ];
 
   return results;
 }
