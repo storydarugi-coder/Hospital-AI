@@ -28,8 +28,8 @@ export async function searchGoogleBlogs(
   num: number = 10
 ): Promise<GoogleSearchResult | null> {
   try {
-    // 네이버 블로그만 검색하도록 site: 필터 추가
-    const naverBlogQuery = `site:blog.naver.com ${query}`;
+    // Google Custom Search API는 쿼리에 site: 넣으면 안됨
+    // Search Engine 설정에서 네이버 블로그만 검색하도록 설정해야 함
     
     // API 서버를 통해 구글 검색 (CORS 우회)
     const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -39,7 +39,7 @@ export async function searchGoogleBlogs(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        query: naverBlogQuery,
+        query: query, // site: 필터 제거
         num,
       }),
     });
