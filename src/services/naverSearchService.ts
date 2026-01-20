@@ -242,11 +242,11 @@ export async function prepareNaverBlogsForComparison(
             date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
           };
         } else {
-          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 제외`);
+          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 제외 (내용 길이: ${fullContent?.length || 0}자, URL: ${item.link})`);
           return null; // 크롤링 실패 시 null 반환
         }
       } catch (error) {
-        console.error(`❌ [${index + 1}] 크롤링 에러, 제외:`, error);
+        console.error(`❌ [${index + 1}] 크롤링 에러, 제외 (URL: ${item.link}):`, error);
         return null; // 에러 발생 시 null 반환
       }
     })
