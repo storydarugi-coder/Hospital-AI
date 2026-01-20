@@ -19,25 +19,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // 현재 날짜와 1년 전 날짜 계산
-    const now = new Date();
-    const oneYearAgo = new Date(now);
-    oneYearAgo.setFullYear(now.getFullYear() - 1);
-
-    // 네이버 검색 날짜 포맷: YYYY.MM.DD
-    const formatDate = (date: Date): string => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}.${month}.${day}`;
-    };
-
-    const startDate = formatDate(oneYearAgo);
-    const endDate = formatDate(now);
-
     console.log('🔍 네이버 검색 크롤링:', query, '(최대', maxResults, '개)');
-    console.log('📅 날짜 필터:', startDate, '~', endDate, '(최근 1년)');
     console.log('🎯 정렬 방식: 정확도순 (관련성 높은 순서)');
+    console.log('📅 날짜 필터: 없음 (모든 기간 검색)');
 
     const blogUrls: Array<{
       title: string;
@@ -52,12 +36,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (let page = 1; page <= Math.min(pagesNeeded, 10); page++) {
       const start = (page - 1) * 10 + 1;
       
-      // 정확도순 + 날짜 필터
-      // so:r = 최신순 (Recent), so:sim = 정확도순 (Similarity)
-      // p:1y = 최근 1년
+      // 정확도순 검색 (날짜 필터 제거)
+      // so:sim = 정확도순 (Similarity) - 검색어와 가장 유사한 블로그 우선
+      // 날짜 필터를 제거하여 언제 작성된 글이든 관련성 높으면 검색됨
       const searchUrl = `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(
         query
-      )}&start=${start}&nso=so:sim,p:1y`;
+      )}&start=${start}&nso=so:sim`;
 
       console.log(`📄 페이지 ${page}/${pagesNeeded} 크롤링 중...`);
 
