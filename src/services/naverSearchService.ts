@@ -45,7 +45,12 @@ export async function searchGoogleBlogs(
     });
 
     if (!response.ok) {
-      throw new Error(`구글 검색 실패: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('❌ 구글 검색 실패:', {
+        status: response.status,
+        error: errorData,
+      });
+      throw new Error(`구글 검색 실패: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const result = await response.json();

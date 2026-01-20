@@ -890,7 +890,7 @@ const App: React.FC = () => {
         ) : (
           <>
         {/* 왼쪽 영역: 콘텐츠 */}
-        <div className={`lg:w-[400px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
+        <div className={`lg:w-[500px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
           {/* 콘텐츠 */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {/* 블로그/카드뉴스/언론보도 입력 폼 */}

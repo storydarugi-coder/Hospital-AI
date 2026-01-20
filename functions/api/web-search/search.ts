@@ -26,10 +26,31 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const apiKey = context.env.GOOGLE_API_KEY;
     const searchEngineId = context.env.GOOGLE_SEARCH_ENGINE_ID;
 
+    console.log('🔍 검색 요청:', {
+      query,
+      num,
+      hasApiKey: !!apiKey,
+      hasSearchEngineId: !!searchEngineId,
+    });
+
     if (!apiKey || !searchEngineId) {
-      return new Response(JSON.stringify({ error: '구글 API 키가 설정되지 않았습니다.' }), {
+      console.error('❌ 환경 변수 누락:', {
+        apiKey: apiKey ? '설정됨' : '없음',
+        searchEngineId: searchEngineId ? '설정됨' : '없음',
+      });
+      
+      return new Response(JSON.stringify({ 
+        error: '구글 API 키가 설정되지 않았습니다.',
+        details: {
+          GOOGLE_API_KEY: apiKey ? '설정됨' : '없음',
+          GOOGLE_SEARCH_ENGINE_ID: searchEngineId ? '설정됨' : '없음'
+        }
+      }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
       });
     }
 
@@ -41,7 +62,20 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('구글 API 오류:', response.status, errorText);
-      throw new Error(`구글 API 오류: ${response.status}`);
+      
+      // 더 자세한 에러 메시지 반환
+      return new Response(JSON.stringify({ 
+        error: `구글 API 오류: ${response.status}`,
+        details: errorText,
+        query,
+        searchEngineId: searchEngineId ? '설정됨' : '미설정'
+      }), {
+        status: 500,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+      });
     }
 
     const result = await response.json();
