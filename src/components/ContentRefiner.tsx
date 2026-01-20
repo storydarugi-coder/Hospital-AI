@@ -138,29 +138,70 @@ ${chatInput}
 
   const copyToClipboard = () => {
     if (refinedContent) {
-      // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
-      const tempDiv = document.createElement('div');
-      tempDiv.contentEditable = 'true';
-      tempDiv.innerHTML = refinedContent;
-      tempDiv.style.position = 'fixed';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '0';
-      document.body.appendChild(tempDiv);
-      
-      // 범위 선택
-      const range = document.createRange();
-      range.selectNodeContents(tempDiv);
-      const selection = window.getSelection();
-      if (selection) {
-        selection.removeAllRanges();
-        selection.addRange(range);
+      try {
+        // refinedContent는 이미 HTML 형식 (<p>, <ul>, <li> 태그 포함)
+        // 티스토리/네이버 블로그에 맞게 인라인 스타일 추가
+        let styledContent = refinedContent;
         
-        // execCommand로 복사 (권한 팝업 없음)
+        // <p> 태그에 기본 스타일 추가 (티스토리/네이버 블로그 호환)
+        styledContent = styledContent.replace(
+          /<p>/g, 
+          '<p style="margin: 0 0 16px 0; padding: 0; line-height: 1.8; font-size: 16px; color: #333;">'
+        );
+        
+        // <ul> 태그에 기본 스타일 추가
+        styledContent = styledContent.replace(
+          /<ul>/g,
+          '<ul style="margin: 0 0 16px 0; padding-left: 20px; line-height: 1.8;">'
+        );
+        
+        // <li> 태그에 기본 스타일 추가
+        styledContent = styledContent.replace(
+          /<li>/g,
+          '<li style="margin-bottom: 8px; line-height: 1.8; color: #333;">'
+        );
+        
+        // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
+        const tempDiv = document.createElement('div');
+        tempDiv.contentEditable = 'true';
+        tempDiv.innerHTML = styledContent;
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.left = '-9999px';
+        tempDiv.style.top = '0';
+        document.body.appendChild(tempDiv);
+        
+        // 범위 선택
+        const range = document.createRange();
+        range.selectNodeContents(tempDiv);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+          
+          // execCommand로 복사 (권한 팝업 없음)
+          const success = document.execCommand('copy');
+          
+          // 정리
+          selection.removeAllRanges();
+          document.body.removeChild(tempDiv);
+          
+          if (success) {
+            console.log('✅ HTML 복사 성공 (스타일 포함)');
+          } else {
+            throw new Error('Copy failed');
+          }
+        }
+      } catch (err) {
+        console.error('❌ 복사 실패:', err);
+        // Fallback: 텍스트만 복사
+        const tempTextArea = document.createElement('textarea');
+        tempTextArea.value = refinedContent.replace(/<[^>]*>/g, '');
+        tempTextArea.style.position = 'fixed';
+        tempTextArea.style.left = '-9999px';
+        document.body.appendChild(tempTextArea);
+        tempTextArea.select();
         document.execCommand('copy');
-        
-        // 정리
-        selection.removeAllRanges();
-        document.body.removeChild(tempDiv);
+        document.body.removeChild(tempTextArea);
       }
     }
   };
