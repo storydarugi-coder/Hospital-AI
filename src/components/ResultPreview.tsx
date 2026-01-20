@@ -1844,21 +1844,53 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const handleCopy = async () => {
     try {
       const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
-      const blob = new Blob([styledHtml], { type: 'text/html' });
-      const plainText = new Blob([editorRef.current?.innerText || ""], { type: 'text/plain' });
-      const item = new ClipboardItem({
-        'text/html': blob,
-        'text/plain': plainText
-      });
-      await navigator.clipboard.write([item]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { 
-        try {
-            await navigator.clipboard.writeText(applyInlineStylesForNaver(localHtml));
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch { console.error(_e); }
+      
+      // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
+      const tempDiv = document.createElement('div');
+      tempDiv.contentEditable = 'true';
+      tempDiv.innerHTML = styledHtml;
+      tempDiv.style.position = 'fixed';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      document.body.appendChild(tempDiv);
+      
+      // 범위 선택
+      const range = document.createRange();
+      range.selectNodeContents(tempDiv);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // execCommand로 복사 (권한 팝업 없음)
+        const success = document.execCommand('copy');
+        
+        // 정리
+        selection.removeAllRanges();
+        document.body.removeChild(tempDiv);
+        
+        if (success) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } else {
+          throw new Error('Copy failed');
+        }
+      }
+    } catch (err) { 
+      // Fallback: navigator.clipboard API (팝업 발생 가능)
+      try {
+        const blob = new Blob([applyInlineStylesForNaver(localHtml)], { type: 'text/html' });
+        const plainText = new Blob([editorRef.current?.innerText || ""], { type: 'text/plain' });
+        const item = new ClipboardItem({
+          'text/html': blob,
+          'text/plain': plainText
+        });
+        await navigator.clipboard.write([item]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        console.error('클립보드 복사 실패:', err);
+      }
     }
   };
 
