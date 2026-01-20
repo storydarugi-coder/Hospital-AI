@@ -181,22 +181,9 @@ export async function prepareNaverBlogsForComparison(
   );
 
   // null 제거 (크롤링 성공한 것만)
-  const crawledBlogs = crawlResults.filter((item): item is NonNullable<typeof item> => item !== null);
+  const results = crawlResults.filter((item): item is NonNullable<typeof item> => item !== null);
   
-  console.log(`✅ 크롤링 완료: ${crawledBlogs.length}/${searchResult.items.length}개 성공`);
-
-  // 4단계: 사용자 블로그를 맨 앞에 추가
-  const results = [
-    {
-      id: 'user_blog',
-      title: '🔵 내 블로그 (원본)',
-      text: userText,
-      url: '#',
-      blogger: '내 블로그',
-      date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-    },
-    ...crawledBlogs,
-  ];
+  console.log(`✅ 크롤링 완료: ${results.length}/${searchResult.items.length}개 성공`);
 
   return results;
 }

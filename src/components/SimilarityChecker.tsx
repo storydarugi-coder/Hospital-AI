@@ -64,7 +64,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       const blogs = await prepareNaverBlogsForComparison(
         text1, 
         keywords.trim() || undefined, 
-        10
+        20 // 검색 결과를 20개로 늘림
       );
       
       if (blogs.length === 0) {
