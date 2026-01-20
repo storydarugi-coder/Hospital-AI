@@ -25,7 +25,7 @@ import { extractSearchKeywords } from './geminiService';
  */
 export async function searchNaverBlogsByCrawling(
   query: string,
-  maxResults: number = 50
+  maxResults: number = 100
 ): Promise<Array<{
   title: string;
   link: string;
@@ -262,7 +262,7 @@ export async function fetchNaverBlogContent(blogUrl: string): Promise<string | n
 export async function prepareNaverBlogsForComparison(
   userText: string,
   manualKeywords?: string,
-  maxResults: number = 50
+  maxResults: number = 100
 ): Promise<Array<{
   id: string;
   title: string;

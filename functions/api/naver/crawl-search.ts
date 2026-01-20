@@ -7,7 +7,7 @@ interface Env {}
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const { query, maxResults = 50 } = await context.request.json() as {
+    const { query, maxResults = 100 } = await context.request.json() as {
       query: string;
       maxResults?: number;
     };
@@ -37,6 +37,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
     console.log('🔍 네이버 검색 크롤링:', query, '(최대', maxResults, '개)');
     console.log('📅 날짜 필터:', startDate, '~', endDate, '(최근 1년)');
+    console.log('🎯 정렬 방식: 정확도순 (관련성 높은 순서)');
 
     const blogUrls: Array<{
       title: string;
@@ -48,13 +49,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     // 네이버 검색 결과는 페이지당 약 10개씩
     const pagesNeeded = Math.ceil(maxResults / 10);
 
-    for (let page = 1; page <= Math.min(pagesNeeded, 5); page++) {
+    for (let page = 1; page <= Math.min(pagesNeeded, 10); page++) {
       const start = (page - 1) * 10 + 1;
       
-      // 날짜 필터 추가: &nso=so:r,p:1y (최근 1년) 또는 &ds=startDate&de=endDate
+      // 정확도순 + 날짜 필터
+      // so:r = 최신순 (Recent), so:sim = 정확도순 (Similarity)
+      // p:1y = 최근 1년
       const searchUrl = `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(
         query
-      )}&start=${start}&nso=so:r,p:1y`;
+      )}&start=${start}&nso=so:sim,p:1y`;
 
       console.log(`📄 페이지 ${page}/${pagesNeeded} 크롤링 중...`);
 
