@@ -1,6 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
 import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
+import { loadMedicalLawForGeneration } from "./medicalLawService";
 // 🚀 콘텐츠 최적화 시스템
 // 프롬프트 최적화 (향후 활용 가능성 있음)
 import { optimizePrompt as _optimizePrompt, estimateTokens as _estimateTokens } from "../utils/promptOptimizer";
@@ -3560,11 +3561,16 @@ ${crawlData.content.substring(0, 3000)}
     ? '의학 3D 일러스트, 해부학적 렌더링, 해부학적 구조, 장기 단면도, 반투명 장기, 임상 조명, 의료 색상 팔레트 (⛔금지: 귀여운 만화, 실사 얼굴)'
     : '실사 DSLR 사진, 진짜 사진, 35mm 렌즈, 자연스러운 부드러운 조명, 얕은 피사계심도, 전문 병원 환경 (⛔금지: 3D 렌더, 일러스트, 만화, 애니메이션)';
   
-  // 의료광고법 프롬프트 - SYSTEM_PROMPT 사용 (중복 제거)
+  // 의료광고법 프롬프트 - 실시간 공식 정보 로드
+  safeProgress('📋 최신 의료광고법 정보 확인 중...');
+  const medicalLawPrompt = await loadMedicalLawForGeneration();
+  safeProgress('✅ 의료광고법 정보 준비 완료');
   
   // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts 연결
   const blogPrompt = `
 한국 병·의원 네이버 블로그용 의료 콘텐츠를 작성하세요.
+
+${medicalLawPrompt}
 
 [🚨🚨🚨 글자 수 최우선 준수 - 절대 규칙!]
 목표: ${targetLength}자 (공백 제외)

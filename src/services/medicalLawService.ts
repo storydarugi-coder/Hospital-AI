@@ -367,14 +367,126 @@ export function addCustomForbiddenWord(word: {
 }
 
 /**
- * 사용자 커스텀 금지어 가져오기
+ * 의료광고법 정보를 프롬프트용 텍스트로 변환
  */
-export function getCustomForbiddenWords(): any[] {
+export function convertMedicalLawToPrompt(info: MedicalLawInfo): string {
+  const prohibitionsByCategory = info.prohibitions.reduce((acc, rule) => {
+    if (!acc[rule.category]) {
+      acc[rule.category] = [];
+    }
+    acc[rule.category].push(rule);
+    return acc;
+  }, {} as Record<string, ProhibitionRule[]>);
+
+  let prompt = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 의료광고법 제56조 금지사항 (최신 업데이트)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+마지막 업데이트: ${new Date(info.lastUpdated).toLocaleDateString('ko-KR')}
+
+⚠️ 아래 표현은 의료법 위반으로 절대 사용 금지:
+
+`;
+
+  const categoryNames: Record<string, string> = {
+    'treatment_experience': '🚨 치료경험담 (의료법 제56조 제2항 제2호)',
+    'false_info': '🚨 거짓 정보 (의료법 제56조 제2항 제3호)',
+    'comparison': '⚠️ 비교 광고 (의료법 제56조 제2항 제4호)',
+    'exaggeration': '🚨 과장 광고 (의료법 제56조 제2항 제8호)',
+    'guarantee': '🚨 보장 표현 (의료법 위반)',
+    'urgency': '⚠️ 긴급성 조장',
+    'other': '⚠️ 기타 금지사항'
+  };
+
+  Object.entries(prohibitionsByCategory).forEach(([category, rules]) => {
+    const categoryName = categoryNames[category] || category;
+    prompt += `\n${categoryName}\n`;
+    
+    rules.forEach(rule => {
+      prompt += `  • ${rule.description}\n`;
+      if (rule.examples.length > 0) {
+        prompt += `    ❌ 금지: ${rule.examples.join(', ')}\n`;
+      }
+    });
+  });
+
+  prompt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 위반 시 처벌:
+  • 1년 이하의 징역 또는 1,000만원 이하의 벌금
+  • 업무정지 또는 면허 취소
+  • 과징금 부과
+
+✅ 안전한 대체 표현:
+  • "~할 수 있습니다" (가능성 표현)
+  • "~도움이 될 수 있습니다" (보조적 표현)
+  • "~경우도 있습니다" (개별성 강조)
+  • "상담을 통해 확인해보시는 것을" (의료진 상담 권장)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+  return prompt;
+}
+
+/**
+ * 글 생성 전 의료광고법 정보 자동 로딩 및 프롬프트 생성
+ */
+export async function loadMedicalLawForGeneration(): Promise<string> {
   try {
-    const stored = localStorage.getItem('custom_forbidden_words');
-    return stored ? JSON.parse(stored) : [];
+    // 1. 캐시 확인
+    let lawInfo = getCachedMedicalLawInfo();
+    
+    // 2. 캐시 없으면 첫 번째 소스에서 가져오기
+    if (!lawInfo && MEDICAL_LAW_SOURCES.length > 0) {
+      console.log('📋 의료광고법 정보를 가져오는 중...');
+      lawInfo = await fetchMedicalLawInfo(MEDICAL_LAW_SOURCES[0].url);
+      
+      if (lawInfo) {
+        cacheMedicalLawInfo(lawInfo);
+        console.log('✅ 의료광고법 정보 로드 완료');
+      }
+    }
+    
+    // 3. 프롬프트 생성
+    if (lawInfo) {
+      return convertMedicalLawToPrompt(lawInfo);
+    }
+    
+    // 4. Fallback: 기본 금지사항
+    return getDefaultMedicalLawPrompt();
+    
   } catch (error) {
-    console.error('커스텀 금지어 가져오기 실패:', error);
-    return [];
+    console.error('의료광고법 정보 로딩 실패:', error);
+    return getDefaultMedicalLawPrompt();
   }
+}
+
+/**
+ * Fallback: 기본 의료광고법 프롬프트
+ */
+function getDefaultMedicalLawPrompt(): string {
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 의료광고법 제56조 금지사항 (기본)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨 치료경험담 (의료법 제56조 제2항 제2호)
+  • 환자 후기, 치료 사례, Before & After 금지
+  • 체험담, 실제 사례 등 모든 치료 결과 표현 금지
+
+🚨 거짓 정보 (의료법 제56조 제2항 제3호)
+  • 허위 자격, 거짓 학력, 없는 장비 광고 금지
+
+⚠️ 비교 광고 (의료법 제56조 제2항 제4호)
+  • 타 병원 대비, 최고, 1위, 어디보다 등 비교 표현 금지
+
+🚨 과장 광고 (의료법 제56조 제2항 제8호)
+  • 100% 완치, 확실한 효과, 반드시 낫습니다 등 금지
+  • 기적의 치료, 특효약 등 과장 표현 금지
+
+🚨 보장 표현
+  • 완치, 영구적 효과, 확실히, 반드시, 무조건 등 금지
+
+⚠️ 긴급성 조장
+  • 골든타임, 즉시, 지금 당장, 놓치면 후회 등 금지
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
 }
