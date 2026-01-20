@@ -155,9 +155,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange,
           type="button" 
           onClick={() => {
             setPostType('blog');
-            onTabChange?.('blog');
+            // blog도 탭 전환하지 않고 postType만 변경
           }}
-          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${(postType === 'blog' || currentTab === 'blog') ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span className="text-sm">📝</span> 
           <span>블로그</span>
@@ -182,9 +182,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange,
           type="button" 
           onClick={() => {
             setPostType('card_news');
-            onTabChange?.('card_news');
+            // card_news는 탭 전환하지 않고 postType만 변경
           }}
-          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${(postType === 'card_news' || currentTab === 'card_news') ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span className="text-sm">🖼️</span> 
           <span>카드뉴스</span>
@@ -193,9 +193,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange,
           type="button" 
           onClick={() => {
             setPostType('press_release');
-            onTabChange?.('press');
+            // press도 탭 전환하지 않고 postType만 변경
           }}
-          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${(postType === 'press_release' || currentTab === 'press') ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <span className="text-sm">🗞️</span> 
           <span>보도자료</span>
