@@ -7201,12 +7201,15 @@ async function getTextEmbedding(text: string): Promise<number[]> {
     // 텍스트 정리 (HTML 태그 제거)
     const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     
-    const result = await ai.models.generateContent({
-      model: 'text-embedding-004', // Gemini Embedding 모델
-      contents: cleanText,
+    // embedContent 메서드 사용 (generateContent가 아님!)
+    const result = await ai.models.embedContent({
+      model: 'text-embedding-004',
+      content: {
+        parts: [{ text: cleanText }],
+      },
     });
     
-    // @ts-ignore - Gemini Embedding API 응답 구조
+    // embedding.values 배열 반환
     return result.embedding?.values || [];
   } catch (error) {
     console.error('❌ 텍스트 임베딩 생성 실패:', error);

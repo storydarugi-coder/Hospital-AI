@@ -276,7 +276,8 @@ export async function prepareNaverBlogsForComparison(
   
   let keywords: string;
   
-  if (manualKeywords && manualKeywords.trim()) {
+  // manualKeywords 타입 체크 및 안전한 처리
+  if (manualKeywords && typeof manualKeywords === 'string' && manualKeywords.trim()) {
     // 수동 키워드가 있으면 우선 사용
     keywords = manualKeywords.trim();
     console.log('🔑 사용자 지정 키워드 사용:', keywords);
