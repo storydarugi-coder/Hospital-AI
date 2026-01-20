@@ -6,22 +6,29 @@
  */
 
 // 캐시 버전 - 배포 시 자동 업데이트를 위해 타임스탬프 사용
-const CACHE_VERSION = 'v6-' + '20260116d';
+const CACHE_VERSION = 'v7-' + '20260120';
 const CACHE_NAME = 'hospitalai-' + CACHE_VERSION;
 const RUNTIME_CACHE = 'hospitalai-runtime-' + CACHE_VERSION;
 
 // 캐시할 정적 자원 (해시가 바뀌는 JS/CSS와 index.html 제외!)
 const STATIC_ASSETS = [
   '/manifest.json',
+  '/favicon.svg',
 ];
 
 // 캐시하지 않을 패턴 (해시가 포함된 빌드 파일 + index.html)
 const NO_CACHE_PATTERNS = [
-  /\/assets\/.*\.js$/,
-  /\/assets\/.*\.css$/,
+  /\/assets\/.*\.js$/,      // JavaScript 번들
+  /\/assets\/.*\.css$/,     // CSS 번들
   /^\/$/, // index.html (루트)
   /\/index\.html$/,
   /\/#/, // hash routes
+];
+
+// 항상 캐시할 패턴 (정적 자산)
+const ALWAYS_CACHE_PATTERNS = [
+  /\.(png|jpg|jpeg|gif|webp|svg|ico)$/i,  // 이미지
+  /\.(woff|woff2|ttf|eot)$/i,              // 폰트
 ];
 
 // Service Worker 설치
@@ -115,10 +122,37 @@ async function cacheFirst(request) {
   
   const url = new URL(request.url);
   
+  // 정적 자산(이미지, 폰트)은 항상 캐시
+  const shouldAlwaysCache = ALWAYS_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+  if (shouldAlwaysCache) {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(request);
+    
+    if (cached) {
+      console.log('[SW] 🎨 Static asset cache hit:', url.pathname);
+      return cached;
+    }
+    
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        cache.put(request, response.clone());
+        console.log('[SW] 🎨 Static asset cached:', url.pathname);
+      }
+      return response;
+    } catch (error) {
+      console.error('[SW] Static asset fetch failed:', error);
+      throw error;
+    }
+  }
+  
   // 해시가 포함된 빌드 파일은 항상 네트워크에서 가져옴 (캐시 X)
   const shouldSkipCache = NO_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
   if (shouldSkipCache) {
-    console.log('[SW] Skip cache for hashed asset:', url.pathname);
+    // 개발 환경에서만 로그 출력
+    if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+      console.log('[SW] Skip cache for hashed asset:', url.pathname);
+    }
     try {
       return await fetch(request);
     } catch (error) {
