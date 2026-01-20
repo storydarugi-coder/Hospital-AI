@@ -3562,7 +3562,7 @@ ${crawlData.content.substring(0, 3000)}
     : '실사 DSLR 사진, 진짜 사진, 35mm 렌즈, 자연스러운 부드러운 조명, 얕은 피사계심도, 전문 병원 환경 (⛔금지: 3D 렌더, 일러스트, 만화, 애니메이션)';
   
   // 의료광고법 프롬프트 - 실시간 공식 정보 로드
-  safeProgress('📋 최신 의료광고법 정보 확인 중...');
+  safeProgress('⚖️ 2단계: 최신 의료광고법 정보 확인 중...');
   const medicalLawPrompt = await loadMedicalLawForGeneration();
   safeProgress('✅ 의료광고법 정보 준비 완료');
   
@@ -4061,8 +4061,8 @@ ${hospitalInfo}
 }`;
 
     // • Gemini 웹 검색으로 최신 정보 수집
-    console.log('• Gemini 웹 검색 시작');
-    safeProgress('• Step 1: Gemini 웹 검색 중...');
+    console.log('• 질병관리청 최신 정보 검색 시작');
+    safeProgress('🔍 1단계: 질병관리청 최신 정보 검색 중...');
     
     let geminiResults: any = null;
     let searchResults: any = {};
@@ -7080,7 +7080,7 @@ ${textContent}
 }`;
 
   try {
-    safeProgress('🔍 질병관리청 최신 정보 검색 중...');
+    safeProgress('⚖️ 의료광고법 준수 여부 검증 중...');
     
     const result = await callGemini({
       prompt,
