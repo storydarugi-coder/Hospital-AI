@@ -7197,6 +7197,8 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
       
       try {
         // 서버 API를 통해 검색 (API 키 노출 방지)
+        console.log(`  🔎 검색 중: "${phrase.substring(0, 50)}..."`);
+        
         const response = await fetch('/api/google/search', {
           method: 'POST',
           headers: {
@@ -7205,13 +7207,22 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
           body: JSON.stringify({ query, num: 10 })
         });
         
+        console.log(`  📡 API 응답: ${response.status} ${response.statusText}`);
+        
         if (!response.ok) {
-          const errorData = await response.json();
+          let errorData;
+          try {
+            errorData = await response.json();
+          } catch {
+            errorData = await response.text();
+          }
           console.error(`  ❌ 검색 API 오류: ${response.status}`, errorData);
+          console.error(`  ⚠️ 환경변수 확인 필요: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID`);
           continue;
         }
         
         const data = await response.json();
+        console.log(`  📊 검색 결과:`, data.searchInformation?.totalResults || 0, '건');
         
         if (data.items && data.items.length > 0) {
           results.push({
@@ -7220,12 +7231,15 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
             matchCount: data.items.length
           });
           
-          console.log(`  📊 "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견`);
+          console.log(`  ✅ "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견`);
+        } else if (data.error) {
+          console.error(`  ❌ Google API 오류:`, data.error);
         } else {
-          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음`);
+          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음 (검색 완료)`);
         }
       } catch (error) {
         console.error(`  ❌ 검색 실패: "${phrase.substring(0, 50)}..."`, error);
+        console.error(`  ❌ 에러 상세:`, error);
       }
       
       // Google API Rate Limit 고려 (100쿼리/일)
