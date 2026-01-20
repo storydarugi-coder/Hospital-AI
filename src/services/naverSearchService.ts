@@ -28,7 +28,7 @@ export async function searchGoogleBlogs(
   try {
     // API 서버를 통해 구글 검색 (CORS 우회)
     const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-    const response = await fetch(`${API_BASE_URL}/api/google/search`, {
+    const response = await fetch(`${API_BASE_URL}/api/web-search/search`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

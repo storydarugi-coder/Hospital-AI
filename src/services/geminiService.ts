@@ -7199,7 +7199,7 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
         // 서버 API를 통해 검색 (API 키 노출 방지)
         console.log(`  🔎 검색 중: "${phrase.substring(0, 50)}..."`);
         
-        const response = await fetch('/api/google/search', {
+        const response = await fetch('/api/web-search/search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
