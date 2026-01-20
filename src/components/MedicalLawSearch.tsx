@@ -28,12 +28,19 @@ export function MedicalLawSearch() {
     }
   }, []);
 
-  // 최신 업데이트 확인
+  // 최신 업데이트 확인 (에러 처리 추가)
   useEffect(() => {
-    checkMedicalLawUpdates().then(result => {
-      setHasUpdates(result.hasUpdates);
-      setUpdateInfo(result);
-    });
+    checkMedicalLawUpdates()
+      .then(result => {
+        setHasUpdates(result.hasUpdates);
+        setUpdateInfo(result);
+      })
+      .catch(error => {
+        // 에러 무시 (API 없어도 정상 동작)
+        console.debug('의료광고법 업데이트 확인 API 없음 (정상)');
+        setHasUpdates(false);
+        setUpdateInfo(null);
+      });
   }, []);
 
   // 의료광고법 정보 가져오기

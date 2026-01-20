@@ -272,7 +272,14 @@ export async function checkMedicalLawUpdates(): Promise<{
 }> {
   try {
     // 보건복지부 보도자료에서 의료광고 관련 최신 정보 확인
-    const response = await fetch('/api/medical-law/updates');
+    const response = await fetch('/api/medical-law/updates', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // 에러가 발생해도 무시 (선택적 기능)
+      signal: AbortSignal.timeout(3000), // 3초 타임아웃
+    });
     
     if (!response.ok) {
       return { hasUpdates: false };
@@ -281,7 +288,7 @@ export async function checkMedicalLawUpdates(): Promise<{
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('의료광고법 업데이트 확인 실패:', error);
+    // 에러를 조용히 처리 (API가 없어도 정상 동작)
     return { hasUpdates: false };
   }
 }
