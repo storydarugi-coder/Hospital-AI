@@ -57,27 +57,33 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
         const html = await response.text();
 
-        // 블로그 검색 결과 추출 (정규식 사용)
-        // 네이버 검색 결과 HTML 구조에서 블로그 링크 추출
-        const blogLinkPattern =
-          /<a[^>]*class="[^"]*api_txt_lines[^"]*"[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g;
-        const descPattern = /<a[^>]*class="[^"]*dsc_link[^"]*"[^>]*>([^<]*)<\/a>/g;
-        const namePattern = /<a[^>]*class="[^"]*name[^"]*"[^>]*>([^<]*)<\/a>/g;
-
-        let match;
+        // 블로그 검색 결과 추출 (2026년 최신 네이버 구조에 맞게)
         const pageResults: typeof blogUrls = [];
 
-        // 제목과 링크 추출
-        while ((match = blogLinkPattern.exec(html)) !== null) {
-          const [, link, title] = match;
-          if (
-            link &&
-            (link.includes('blog.naver.com') ||
-              link.includes('tistory.com') ||
-              link.includes('brunch.co.kr'))
-          ) {
+        // 1. 블로그 URL과 제목을 함께 추출
+        // <a ... href="https://blog.naver.com/..." ... data-heatmap-target=".link">
+        //   <span class="... headline1 ...">제목</span>
+        // </a>
+        const titleLinkPattern =
+          /<a[^>]*href="(https:\/\/(?:blog\.naver\.com|.*?\.tistory\.com|brunch\.co\.kr)\/[^"]*)"[^>]*data-heatmap-target="\.link"[^>]*>[\s\S]*?<span[^>]*headline1[^>]*>([\s\S]*?)<\/span>/g;
+
+        let match;
+        while ((match = titleLinkPattern.exec(html)) !== null) {
+          const link = match[1];
+          let title = match[2];
+          
+          // HTML 태그 제거 (<mark>, <b> 등)
+          title = title
+            .replace(/<mark>/g, '')
+            .replace(/<\/mark>/g, '')
+            .replace(/<b>/g, '')
+            .replace(/<\/b>/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim();
+
+          if (title && link) {
             pageResults.push({
-              title: title.trim(),
+              title: title,
               link: link,
               description: '',
               bloggername: '',
@@ -85,18 +91,47 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
           }
         }
 
-        // 설명 추가
-        let descIndex = 0;
-        while ((match = descPattern.exec(html)) !== null && descIndex < pageResults.length) {
-          pageResults[descIndex].description = match[1].trim();
-          descIndex++;
+        // 2. 설명 추출
+        // <span class="... body1 ...">설명 텍스트</span>
+        const descPattern =
+          /<span[^>]*class="[^"]*sds-comps-text[^"]*body1[^"]*"[^>]*>([\s\S]*?)<\/span>/g;
+        const descriptions: string[] = [];
+        
+        while ((match = descPattern.exec(html)) !== null) {
+          let desc = match[1];
+          // HTML 태그 제거
+          desc = desc
+            .replace(/<mark>/g, '')
+            .replace(/<\/mark>/g, '')
+            .replace(/<[^>]*>/g, '')
+            .trim();
+          
+          if (desc.length > 20) { // 최소 길이 체크
+            descriptions.push(desc);
+          }
         }
 
-        // 블로거 이름 추가
-        let nameIndex = 0;
-        while ((match = namePattern.exec(html)) !== null && nameIndex < pageResults.length) {
-          pageResults[nameIndex].bloggername = match[1].trim();
-          nameIndex++;
+        // 설명 할당
+        for (let i = 0; i < pageResults.length && i < descriptions.length; i++) {
+          pageResults[i].description = descriptions[i];
+        }
+
+        // 3. 블로거 이름 추출
+        // <span class="... profile-info-title-text ..."><a ...><span ...>블로거명</span></a></span>
+        const bloggerPattern =
+          /<span[^>]*profile-info-title-text[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>[\s\S]*?<\/span>/g;
+        const bloggers: string[] = [];
+        
+        while ((match = bloggerPattern.exec(html)) !== null) {
+          const blogger = match[1].trim();
+          if (blogger) {
+            bloggers.push(blogger);
+          }
+        }
+
+        // 블로거 이름 할당
+        for (let i = 0; i < pageResults.length && i < bloggers.length; i++) {
+          pageResults[i].bloggername = bloggers[i];
         }
 
         console.log(`✅ 페이지 ${page}: ${pageResults.length}개 발견`);
