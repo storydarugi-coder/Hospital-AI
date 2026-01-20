@@ -10,7 +10,11 @@ interface Env {
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   try {
-    const { q, num = 10 } = await context.request.json() as { q: string; num?: number };
+    const { q, num = 10, start = 1 } = await context.request.json() as { 
+      q: string; 
+      num?: number;
+      start?: number;
+    };
 
     if (!q) {
       return new Response(JSON.stringify({ error: 'Query is required' }), {
@@ -38,6 +42,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     searchUrl.searchParams.append('cx', CX);
     searchUrl.searchParams.append('q', q);
     searchUrl.searchParams.append('num', Math.min(num, 10).toString());
+    searchUrl.searchParams.append('start', start.toString()); // 페이지네이션 지원
 
     const response = await fetch(searchUrl.toString());
 

@@ -26,7 +26,7 @@ import { extractSearchKeywords } from './geminiService';
  */
 export async function searchBlogsDirectly(
   query: string,
-  maxResults: number = 20
+  maxResults: number = 50
 ): Promise<Array<{
   title: string;
   link: string;
@@ -39,34 +39,65 @@ export async function searchBlogsDirectly(
     const searchQuery = `${query} ${blogSites}`;
     
     const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-    const response = await fetch(`${API_BASE_URL}/api/google/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: searchQuery,
-        num: maxResults,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ 구글 검색 실패:', {
-        status: response.status,
-        error: errorData,
-      });
-      throw new Error(`구글 검색 실패: ${response.status}`);
-    }
-
-    const result = await response.json();
     
-    if (!result.items || result.items.length === 0) {
+    // 구글 API는 한번에 최대 10개만 가져올 수 있으므로 여러번 요청
+    const allResults: any[] = [];
+    const batchSize = 10;
+    const numBatches = Math.ceil(maxResults / batchSize);
+    
+    for (let i = 0; i < numBatches; i++) {
+      const start = i * batchSize + 1; // 구글 API는 1부터 시작
+      
+      console.log(`🔍 검색 배치 ${i + 1}/${numBatches} (start: ${start})`);
+      
+      const response = await fetch(`${API_BASE_URL}/api/google/search`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: searchQuery,
+          num: batchSize,
+          start: start,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`❌ 구글 검색 실패 (배치 ${i + 1}):`, {
+          status: response.status,
+          error: errorData,
+        });
+        
+        // 첫 번째 배치 실패면 에러, 아니면 계속 진행
+        if (i === 0) {
+          throw new Error(`구글 검색 실패: ${response.status}`);
+        }
+        break;
+      }
+
+      const result = await response.json();
+      
+      if (result.items && result.items.length > 0) {
+        allResults.push(...result.items);
+        console.log(`✅ 배치 ${i + 1}: ${result.items.length}개 발견 (총 ${allResults.length}개)`);
+      } else {
+        console.log(`⚠️ 배치 ${i + 1}: 결과 없음, 중단`);
+        break;
+      }
+      
+      // 요청 사이에 약간의 지연 (Rate limit 방지)
+      if (i < numBatches - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    
+    if (allResults.length === 0) {
       return null;
     }
     
     // 블로그 URL만 필터링
-    const blogResults = result.items
+    const blogResults = allResults
       .filter((item: any) => {
         const url = item.link || '';
         return url.includes('blog.naver.com') || 
@@ -80,6 +111,7 @@ export async function searchBlogsDirectly(
         bloggername: item.displayLink || '블로거',
       }));
     
+    console.log(`📊 총 ${blogResults.length}개 블로그 URL 발견`);
     return blogResults.length > 0 ? blogResults : null;
   } catch (error) {
     console.error('구글 검색 오류:', error);
@@ -179,7 +211,7 @@ export async function fetchNaverBlogContent(blogUrl: string): Promise<string | n
 export async function prepareNaverBlogsForComparison(
   userText: string,
   manualKeywords?: string,
-  maxResults: number = 10
+  maxResults: number = 50
 ): Promise<Array<{
   id: string;
   title: string;
