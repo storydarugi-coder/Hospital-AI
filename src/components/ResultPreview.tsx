@@ -1845,15 +1845,15 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
       
-      // HTML 엔티티 디코딩 (네모 문자 방지)
-      const tempDecoder = document.createElement('textarea');
-      tempDecoder.innerHTML = styledHtml;
-      styledHtml = tempDecoder.value;
+      // HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(styledHtml, 'text/html');
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
       tempDiv.contentEditable = 'true';
-      tempDiv.innerHTML = styledHtml;
+      // doc.body.innerHTML을 사용하여 디코딩된 HTML 적용
+      tempDiv.innerHTML = doc.body.innerHTML;
       tempDiv.style.position = 'fixed';
       tempDiv.style.left = '-9999px';
       tempDiv.style.top = '0';
