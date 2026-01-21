@@ -7209,8 +7209,8 @@ async function getTextEmbedding(text: string): Promise<number[]> {
       },
     });
     
-    // embedding.values 배열 반환
-    return result.embedding?.values || [];
+    // embedding.values 배열 반환 (결과는 배열 형태)
+    return result.embeddings?.[0]?.values || [];
   } catch (error) {
     console.error('❌ 텍스트 임베딩 생성 실패:', error);
     return [];
