@@ -376,13 +376,13 @@ const App: React.FC = () => {
       localStorage.removeItem('hospitalai_card_ref_image');
       console.log('🗑️ 로컬 저장본 삭제 완료');
       
-      // 🆕 서버 저장본도 삭제
-      const deleteResult = await deleteAllContent();
-      if (deleteResult.success) {
-        console.log('🗑️ 서버 저장본 삭제 완료!');
-      } else {
-        console.warn('⚠️ 서버 저장본 삭제 실패:', deleteResult.error);
-      }
+      // 🆕 서버 저장본은 삭제하지 않음 (사용자가 이전 글을 참고할 수 있도록)
+      // const deleteResult = await deleteAllContent();
+      // if (deleteResult.success) {
+      //   console.log('🗑️ 서버 저장본 삭제 완료!');
+      // } else {
+      //   console.warn('⚠️ 서버 저장본 삭제 실패:', deleteResult.error);
+      // }
     } catch (e) {
       console.warn('저장본 삭제 실패:', e);
     }
