@@ -27,6 +27,21 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '영구적 효과', severity: 'critical', replacement: ['장기적인 관리', '꾸준한 관리'], reason: '치료 효과 보장 금지', category: 'guarantee' },
   { word: '특효약', severity: 'critical', replacement: ['도움이 되는 방법', '고려해볼 만한 방법'], reason: '과장 광고 금지', category: 'exaggeration' },
   { word: '기적의', severity: 'critical', replacement: ['효과적인', '도움이 되는'], reason: '과장 광고 금지', category: 'exaggeration' },
+  // 🚨 새로 추가: 증상 호전·개선·완화 암시 표현 금지
+  { word: '증상 호전', severity: 'critical', replacement: ['경과 관찰', '변화 확인'], reason: '증상 호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '호전됩니다', severity: 'critical', replacement: ['변화가 나타나기도 합니다', '경과를 살펴볼 수 있습니다'], reason: '호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '호전될 수', severity: 'critical', replacement: ['변화가 나타날 수', '경과를 살펴볼 수'], reason: '호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '호전이 가능', severity: 'critical', replacement: ['변화가 나타날 수 있습니다', '경과를 확인할 수 있습니다'], reason: '호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '증상이 개선', severity: 'critical', replacement: ['변화가 나타날 수', '경과 확인'], reason: '개선 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '개선됩니다', severity: 'critical', replacement: ['변화가 나타나기도 합니다', '경과를 살펴볼 수 있습니다'], reason: '개선 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '개선될 수', severity: 'critical', replacement: ['변화가 나타날 수', '경과를 확인할 수'], reason: '개선 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '개선이 가능', severity: 'critical', replacement: ['변화가 나타날 수 있습니다', '경과를 확인할 수 있습니다'], reason: '개선 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '증상이 완화', severity: 'critical', replacement: ['변화가 나타날 수', '경과 확인'], reason: '완화 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '완화됩니다', severity: 'critical', replacement: ['변화가 나타나기도 합니다', '경과를 살펴볼 수 있습니다'], reason: '완화 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '완화될 수', severity: 'critical', replacement: ['변화가 나타날 수', '경과를 확인할 수'], reason: '완화 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '증상이 나아', severity: 'critical', replacement: ['변화가 나타날 수', '경과 확인'], reason: '증상 호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '나아집니다', severity: 'critical', replacement: ['변화가 나타나기도 합니다', '경과를 살펴볼 수 있습니다'], reason: '증상 호전 암시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '상태가 좋아', severity: 'critical', replacement: ['변화가 나타날 수', '경과 확인'], reason: '증상 호전 암시 금지 (의료광고법)', category: 'medical_law' },
   
   // ===== High: 높은 위험 =====
   { word: '최고', severity: 'high', replacement: ['우수한', '전문적인'], reason: '비교 광고 금지', category: 'comparison' },
