@@ -1843,7 +1843,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
   const handleCopy = async () => {
     try {
-      const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
+      // HTML 엔티티 디코딩 (네모 문자 방지)
+      const tempDecoder = document.createElement('textarea');
+      tempDecoder.innerHTML = styledHtml;
+      styledHtml = tempDecoder.value;
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
