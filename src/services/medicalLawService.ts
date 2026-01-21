@@ -70,7 +70,8 @@ export async function fetchMedicalLawInfo(sourceUrl: string): Promise<MedicalLaw
 
     return await response.json();
   } catch (error) {
-    console.error('의료광고법 정보 가져오기 실패:', error);
+    // API가 없어도 기본 프롬프트 사용 (조용히 처리)
+    console.debug('의료광고법 API 없음 (기본 프롬프트 사용)');
     return null;
   }
 }
@@ -441,14 +442,16 @@ export async function loadMedicalLawForGeneration(): Promise<string> {
     // 1. 캐시 확인
     let lawInfo = getCachedMedicalLawInfo();
     
-    // 2. 캐시 없으면 첫 번째 소스에서 가져오기
+    // 2. 캐시 없으면 첫 번째 소스에서 가져오기 (선택적)
     if (!lawInfo && MEDICAL_LAW_SOURCES.length > 0) {
-      console.log('📋 의료광고법 정보를 가져오는 중...');
+      console.debug('📋 의료광고법 정보 확인 중...');
       lawInfo = await fetchMedicalLawInfo(MEDICAL_LAW_SOURCES[0].url);
       
       if (lawInfo) {
         cacheMedicalLawInfo(lawInfo);
         console.log('✅ 의료광고법 정보 로드 완료');
+      } else {
+        console.debug('📋 기본 의료광고법 프롬프트 사용');
       }
     }
     
@@ -461,7 +464,7 @@ export async function loadMedicalLawForGeneration(): Promise<string> {
     return getDefaultMedicalLawPrompt();
     
   } catch (error) {
-    console.error('의료광고법 정보 로딩 실패:', error);
+    console.debug('의료광고법 정보 로딩 실패 (기본 프롬프트 사용)');
     return getDefaultMedicalLawPrompt();
   }
 }
