@@ -18,7 +18,7 @@ export interface ForbiddenWord {
 }
 
 export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
-  // ===== Critical: 의료법 중대 위반 =====
+  // ===== Critical: 의료법 중대 위반 (단어) =====
   { word: '완치', severity: 'critical', replacement: ['증상 호전', '경과 관찰'], reason: '치료 효과 보장 금지', category: 'guarantee' },
   { word: '100%', severity: 'critical', replacement: ['많은 분들이', '대부분의 경우'], reason: '효과 보장 금지', category: 'guarantee' },
   { word: '확실히 치료', severity: 'critical', replacement: ['도움이 될 수 있습니다', '개선될 수 있습니다'], reason: '치료 효과 보장 금지', category: 'guarantee' },
@@ -97,6 +97,71 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '진단', severity: 'critical', replacement: ['(사용 금지)'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
   { word: '판단', severity: 'critical', replacement: ['파악', '살펴보기'], reason: '의료법 위반 - 완전 금지 (P1)', category: 'medical_law' },
   { word: '체크', severity: 'critical', replacement: ['확인', '살펴보기'], reason: '자가진단 유도 금지 (의료광고법)', category: 'medical_law' },
+  
+  // ===== Critical: 의료광고법 위반 (문장 구조 패턴) =====
+  // 효과 보장 문장 패턴
+  { word: '~하면 낫습니다', severity: 'critical', replacement: ['~을 고려할 수 있습니다', '~경우가 있습니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~로 치료됩니다', severity: 'critical', replacement: ['~을 고려할 수 있습니다', '~방법이 있습니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~로 해결됩니다', severity: 'critical', replacement: ['~을 고려할 수 있습니다', '~방법이 있습니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~하면 좋아집니다', severity: 'critical', replacement: ['~경우가 있습니다', '~도움이 되기도 합니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~하면 개선됩니다', severity: 'critical', replacement: ['~변화가 나타나기도 합니다', '~경과를 확인할 수 있습니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~하면 호전됩니다', severity: 'critical', replacement: ['~변화가 나타나기도 합니다', '~경과를 확인할 수 있습니다'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~을 통해 치료', severity: 'critical', replacement: ['~을 통해 변화 확인', '~방법을 고려'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~을 통해 개선', severity: 'critical', replacement: ['~을 통해 변화 확인', '~방법을 고려'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '~을 통해 호전', severity: 'critical', replacement: ['~을 통해 변화 확인', '~방법을 고려'], reason: '치료 효과 보장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  
+  // 진단/판단 유도 문장 패턴
+  { word: '~일 수 있습니다', severity: 'critical', replacement: ['~으로 알려져 있습니다', '~경우도 있습니다'], reason: '진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~이라면', severity: 'critical', replacement: ['~상황에서는', '~경우에는'], reason: '진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~인지 확인', severity: 'critical', replacement: ['~상황을 살펴보기', '~경과 확인'], reason: '자가진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '셀프 체크', severity: 'critical', replacement: ['상황 확인', '경과 살펴보기'], reason: '자가진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '자가 진단', severity: 'critical', replacement: ['상황 확인', '경과 파악'], reason: '자가진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '스스로 체크', severity: 'critical', replacement: ['스스로 확인', '상황 살펴보기'], reason: '자가진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '본인의 증상', severity: 'critical', replacement: ['경험하는 상황', '나타나는 변화'], reason: '자가진단 유도 문장 구조 금지 (의료광고법)', category: 'medical_law' },
+  
+  // 비교 광고 문장 패턴
+  { word: '다른 곳보다', severity: 'critical', replacement: ['(삭제)', '의료적으로'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  { word: '타 의료기관', severity: 'critical', replacement: ['(삭제)', '일반적으로'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  { word: '다른 병원보다', severity: 'critical', replacement: ['(삭제)', '의료적으로'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  { word: '여기서만', severity: 'critical', replacement: ['(삭제)', '의료적으로'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  { word: '유일하게', severity: 'critical', replacement: ['의료적으로', '(삭제)'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  { word: '독보적', severity: 'critical', replacement: ['의료적인', '(삭제)'], reason: '비교 광고 문장 구조 금지 (의료광고법)', category: 'comparison' },
+  
+  // 긴급성/공포 조장 문장 패턴
+  { word: '빨리 치료하지 않으면', severity: 'critical', replacement: ['시간이 되실 때', '여유를 갖고'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '방치할 경우', severity: 'critical', replacement: ['경과를 지켜보면', '시간이 지나면'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '늦기 전에', severity: 'critical', replacement: ['시간이 되실 때', '여유가 되시면'], reason: '긴급성 과장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '손쓸 수 없', severity: 'critical', replacement: ['경과가 달라질 수', '변화가 나타날 수'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '악화될 수 있', severity: 'critical', replacement: ['변화가 나타날 수', '경과가 달라질 수'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '더 심각해', severity: 'critical', replacement: ['변화가 나타나', '경과가 달라져'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '큰일', severity: 'critical', replacement: ['주의가 필요', '살펴볼 필요'], reason: '공포 조장 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  
+  // 행동 유도/강제성 문장 패턴
+  { word: '~해야만 합니다', severity: 'critical', replacement: ['~경우가 있습니다', '~도움이 되기도 합니다'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '반드시 ~해야', severity: 'critical', replacement: ['~도움이 될 수', '~고려할 수'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '꼭 ~해야', severity: 'critical', replacement: ['~도움이 될 수', '~고려할 수'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '필수적으로', severity: 'critical', replacement: ['도움이 되는', '고려해볼 만한'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '꼭 필요', severity: 'critical', replacement: ['도움이 될 수 있는', '고려해볼 만한'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '~하셔야 합니다', severity: 'critical', replacement: ['~경우가 있습니다', '~도움이 되기도 합니다'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '~하시길 권합니다', severity: 'critical', replacement: ['~경우가 있습니다', '~도움이 되기도 합니다'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '내원하셔야', severity: 'critical', replacement: ['내원하시면', '방문하시면'], reason: '행동 강제 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  
+  // 기간/시간 명시 문장 패턴
+  { word: '일주일 이내', severity: 'critical', replacement: ['일정 기간 내', '며칠 사이'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '며칠 안에', severity: 'critical', replacement: ['일정 기간 내', '시간이 지나면'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '3일 이내', severity: 'critical', replacement: ['며칠 사이', '일정 기간 내'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '5일 만에', severity: 'critical', replacement: ['며칠 만에', '일정 기간 후'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '2주 후', severity: 'critical', replacement: ['일정 기간 후', '시간이 지나면'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '한 달 내', severity: 'critical', replacement: ['일정 기간 내', '시간이 지나면'], reason: '구체적 기간 명시 금지 (의료광고법)', category: 'medical_law' },
+  
+  // 성공률/통계 제시 문장 패턴
+  { word: '%의 환자', severity: 'critical', replacement: ['많은 분들', '일부 경우'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '만족도 %', severity: 'critical', replacement: ['(삭제)', '일반적으로'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '성공률', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '개선율', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '호전율', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '대부분의 환자', severity: 'critical', replacement: ['많은 분들', '내원하시는 분들 중'], reason: '통계 제시 + 환자 표현 금지 (의료광고법)', category: 'guarantee' },
+  { word: '거의 모든', severity: 'critical', replacement: ['많은', '적지 않은'], reason: '통계 과장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
 ];
 
 // ============================================
