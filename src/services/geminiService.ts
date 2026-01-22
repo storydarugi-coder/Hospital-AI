@@ -7550,31 +7550,88 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
 }
 
 /**
- * 유사도 점수 계산
+ * 유사도 점수 계산 (개선: 단일 출처 중심 분석)
+ * 
+ * 로직 개선:
+ * - 기존: 전체 문장 매칭 개수 합산 (여러 블로그에 흩어진 매칭도 고득점)
+ * - 개선: 단일 블로그와의 매칭 개수를 기준으로 표절 위험 판단
  */
 function calculateSimilarityScore(
   ownBlogSimilarity: number,
   webSearchMatches: any[]
-): { score: number; status: string; message: string } {
+): { score: number; status: string; message: string; topSourceInfo?: any } {
   // 자체 블로그 유사도 (0~100)
   const ownBlogScore = ownBlogSimilarity * 100;
   
-  // 웹 검색 매칭 점수 (네이버 블로그 중복 검사)
+  // 웹 검색 매칭 점수 - 단일 출처 기준으로 재계산
   let webSearchScore = 0;
-  const totalMatches = webSearchMatches.reduce((sum, m) => sum + m.matchCount, 0);
+  let topSourceInfo: any = null;
   
-  // 네이버 블로그 중복 판단 기준 강화
-  if (totalMatches >= 5) {
-    webSearchScore = 100; // 5개 이상 중복: 표절 위험
-  } else if (totalMatches >= 3) {
-    webSearchScore = 80; // 3-4개 중복: 높은 유사도
-  } else if (totalMatches >= 2) {
-    webSearchScore = 60; // 2개 중복: 중간 유사도
-  } else if (totalMatches >= 1) {
-    webSearchScore = 30; // 1개 중복: 낮은 유사도
+  if (webSearchMatches.length === 0) {
+    console.log('📊 웹 검색 매칭 없음');
+  } else {
+    // 각 문장 매칭에서 블로그별로 매칭 횟수 집계
+    const blogMatchCounts = new Map<string, { count: number; blogInfo: any; matchedPhrases: string[] }>();
+    
+    for (const match of webSearchMatches) {
+      const phrase = match.phrase;
+      
+      // 각 매칭된 블로그에 대해
+      for (const blog of match.matches || []) {
+        const blogKey = blog.link || blog.displayLink || blog.title;
+        
+        if (!blogMatchCounts.has(blogKey)) {
+          blogMatchCounts.set(blogKey, {
+            count: 0,
+            blogInfo: blog,
+            matchedPhrases: []
+          });
+        }
+        
+        const entry = blogMatchCounts.get(blogKey)!;
+        entry.count += 1;
+        entry.matchedPhrases.push(phrase);
+      }
+    }
+    
+    // 가장 많이 매칭된 블로그 찾기
+    let maxMatchCount = 0;
+    for (const [blogKey, info] of blogMatchCounts.entries()) {
+      if (info.count > maxMatchCount) {
+        maxMatchCount = info.count;
+        topSourceInfo = {
+          blogKey,
+          matchCount: info.count,
+          blogInfo: info.blogInfo,
+          matchedPhrases: info.matchedPhrases
+        };
+      }
+    }
+    
+    // 단일 블로그와의 매칭 개수 기준으로 점수 산정
+    if (maxMatchCount >= 5) {
+      webSearchScore = 100; // 한 블로그에서 5개 이상: 표절 위험 높음
+    } else if (maxMatchCount >= 3) {
+      webSearchScore = 70; // 한 블로그에서 3-4개: 중간 위험
+    } else if (maxMatchCount >= 2) {
+      webSearchScore = 40; // 한 블로그에서 2개: 낮은 위험
+    } else if (maxMatchCount >= 1) {
+      webSearchScore = 20; // 한 블로그에서 1개: 일반적인 표현
+    }
+    
+    const totalPhrases = webSearchMatches.length;
+    const totalMatches = webSearchMatches.reduce((sum, m) => sum + m.matchCount, 0);
+    
+    console.log(`📊 유사도 계산 (단일 출처 기준):`);
+    console.log(`  - 자체 DB: ${ownBlogScore.toFixed(1)}점`);
+    console.log(`  - 검색한 문장 수: ${totalPhrases}개`);
+    console.log(`  - 전체 매칭 수: ${totalMatches}건 (여러 블로그에 분산)`);
+    console.log(`  - 최다 매칭 블로그: ${maxMatchCount}건`);
+    if (topSourceInfo) {
+      console.log(`  - 최다 매칭 출처: ${topSourceInfo.blogInfo.title || topSourceInfo.blogKey}`);
+    }
+    console.log(`  → 웹 검색 점수: ${webSearchScore}점`);
   }
-  
-  console.log(`📊 유사도 계산: 자체 DB ${ownBlogScore.toFixed(1)}점, 네이버 블로그 중복 ${totalMatches}건 → ${webSearchScore}점`);
   
   // 최종 점수 (더 높은 점수 선택)
   const finalScore = Math.max(ownBlogScore, webSearchScore);
@@ -7585,16 +7642,27 @@ function calculateSimilarityScore(
   
   if (finalScore >= 80) {
     status = 'HIGH_RISK';
-    message = '🚨 매우 유사한 콘텐츠가 발견되었습니다! 재작성을 권장합니다.';
+    if (topSourceInfo) {
+      message = `🚨 특정 블로그와 ${topSourceInfo.matchCount}개 문장이 일치합니다! 재작성을 권장합니다.`;
+    } else {
+      message = '🚨 매우 유사한 콘텐츠가 발견되었습니다! 재작성을 권장합니다.';
+    }
   } else if (finalScore >= 60) {
     status = 'MEDIUM_RISK';
-    message = '⚠️ 유사한 콘텐츠가 있습니다. 수정을 권장합니다.';
+    if (topSourceInfo) {
+      message = `⚠️ 특정 블로그와 ${topSourceInfo.matchCount}개 문장이 유사합니다. 수정을 권장합니다.`;
+    } else {
+      message = '⚠️ 유사한 콘텐츠가 있습니다. 수정을 권장합니다.';
+    }
   } else if (finalScore >= 40) {
     status = 'LOW_RISK';
     message = '💡 일부 유사한 표현이 있습니다. 확인해보세요.';
+  } else if (finalScore > 0) {
+    status = 'ORIGINAL';
+    message = '✅ 일반적인 표현이 일부 있으나 독창적입니다.';
   }
   
-  return { score: finalScore, status, message };
+  return { score: finalScore, status, message, topSourceInfo };
 }
 
 /**
@@ -7658,12 +7726,17 @@ export const checkContentSimilarity = async (
     result.finalScore = scoreResult.score;
     result.status = scoreResult.status;
     result.message = scoreResult.message;
+    result.topSourceInfo = scoreResult.topSourceInfo; // 최다 매칭 출처 정보 추가
     result.checkDuration = Date.now() - startTime;
     
     console.log('==================== 유사도 검사 완료 ====================');
     console.log('최종 점수:', result.finalScore);
     console.log('상태:', result.status);
     console.log('메시지:', result.message);
+    if (result.topSourceInfo) {
+      console.log('최다 매칭 출처:', result.topSourceInfo.blogInfo?.title || result.topSourceInfo.blogKey);
+      console.log('매칭 횟수:', result.topSourceInfo.matchCount);
+    }
     console.log('소요 시간:', result.checkDuration, 'ms');
     console.log('=======================================================');
     

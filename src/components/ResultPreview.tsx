@@ -3859,6 +3859,67 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                 </p>
               </div>
               
+              {/* 최다 매칭 출처 정보 (개선된 UI) */}
+              {similarityResult.topSourceInfo && similarityResult.topSourceInfo.matchCount > 0 && (
+                <div className={`mb-6 p-5 rounded-xl border-2 ${
+                  similarityResult.topSourceInfo.matchCount >= 5 
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : similarityResult.topSourceInfo.matchCount >= 3
+                    ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                    : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    {similarityResult.topSourceInfo.matchCount >= 5 ? '🚨' : 
+                     similarityResult.topSourceInfo.matchCount >= 3 ? '⚠️' : '💡'} 
+                    최다 유사 출처
+                  </h4>
+                  <div className="space-y-3">
+                    <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-white'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <a
+                          href={similarityResult.topSourceInfo.blogInfo?.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-blue-600 hover:underline flex-1"
+                        >
+                          {similarityResult.topSourceInfo.blogInfo?.title?.replace(/<[^>]*>/g, '') || '블로그'}
+                        </a>
+                        <span className={`ml-3 px-3 py-1 rounded-full text-sm font-bold ${
+                          similarityResult.topSourceInfo.matchCount >= 5 
+                            ? 'bg-red-500 text-white'
+                            : similarityResult.topSourceInfo.matchCount >= 3
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-blue-500 text-white'
+                        }`}>
+                          {similarityResult.topSourceInfo.matchCount}개 문장 일치
+                        </span>
+                      </div>
+                      <p className={`text-xs mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {similarityResult.topSourceInfo.blogInfo?.snippet?.substring(0, 150)}...
+                      </p>
+                      <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {similarityResult.topSourceInfo.blogInfo?.displayLink || similarityResult.topSourceInfo.blogKey}
+                      </p>
+                    </div>
+                    <div className={`text-sm p-3 rounded-lg ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                      <p className="font-bold mb-2">📝 일치하는 문장:</p>
+                      <ul className="space-y-1 text-xs">
+                        {similarityResult.topSourceInfo.matchedPhrases?.slice(0, 5).map((phrase: string, idx: number) => (
+                          <li key={idx} className={`${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            • "{phrase.substring(0, 80)}..."
+                          </li>
+                        ))}
+                        {similarityResult.topSourceInfo.matchedPhrases?.length > 5 && (
+                          <li className={`italic ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                            외 {similarityResult.topSourceInfo.matchedPhrases.length - 5}개 문장 더...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* 자체 블로그 매칭 */}
               {similarityResult.ownBlogMatches.length > 0 && (
                 <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
