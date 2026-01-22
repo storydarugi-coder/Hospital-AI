@@ -4,3 +4,7 @@ pages_build_output_dir = "dist"
 
 # Functions 설정이 루트의 functions/ 폴더에서 자동으로 로드됨
 # /api/* 경로는 functions/api/ 폴더의 핸들러로 라우팅됨
+
+# 환경 변수 (빌드 시 사용)
+[build.environment]
+VITE_GEMINI_API_KEY = "AIzaSyBn92lemW0AUoXTlzEctthG6LPHd0SLSiI"
