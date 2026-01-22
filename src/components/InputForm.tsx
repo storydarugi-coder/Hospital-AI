@@ -61,15 +61,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
   const [isLoadingTitles, setIsLoadingTitles] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation(); // 이벤트 전파 중단
+    e.stopPropagation();
     
-    // 현재 스크롤 위치 저장
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
-    
-    console.log('🔵 Form Submit 시작 (스크롤 위치:', scrollY, ')');
+    console.log('🔵 Form Submit 시작');
     console.log('  - topic:', topic);
     console.log('  - postType:', postType, '(type:', typeof postType, ')');
     console.log('  - category:', category);
@@ -117,12 +113,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
     
     // onSubmit 호출
     onSubmit(requestData);
-    
-    // 스크롤 위치 복원 (약간의 딜레이 후)
-    setTimeout(() => {
-      window.scrollTo(scrollX, scrollY);
-      console.log('✅ 스크롤 위치 복원:', scrollY);
-    }, 0);
   };
 
   const handleRecommendTrends = async () => {
@@ -627,7 +617,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
         )}
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={isLoading || !topic.trim()}
           className={`w-full py-5 rounded-2xl text-white font-black text-lg shadow-2xl transition-all active:scale-95 ${isLoading ? 'bg-slate-400' : postType === 'blog' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
