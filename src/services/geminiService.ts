@@ -7978,7 +7978,3 @@ export const saveBlogHistory = async (
   }
 };
 
-해도 메인 플로우는 계속 진행
-  }
-};
-
