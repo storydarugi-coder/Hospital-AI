@@ -33,3 +33,4 @@ logs/
 .idea/
 .vscode/
 *.swp
+# Trigger deployment - API key updated in Cloudflare
