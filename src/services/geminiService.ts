@@ -30,7 +30,7 @@ const GEMINI_MODEL = {
 const TIMEOUTS = {
   GENERATION: 300000,      // 5분
   IMAGE_GENERATION: 180000, // 3분
-  QUICK_OPERATION: 30000,   // 30초
+  QUICK_OPERATION: 60000,   // 60초 (임베딩 API 타임아웃 대응)
 } as const;
 
 // 🚀 Gemini API 호출 래퍼 함수
@@ -7203,8 +7203,13 @@ async function getTextEmbedding(text: string): Promise<number[]> {
     // 임베딩 모델 가져오기
     const model = ai.getGenerativeModel({ model: 'text-embedding-004' });
     
-    // embedContent 메서드 사용
-    const result = await model.embedContent(cleanText);
+    // embedContent 메서드 사용 (60초 타임아웃)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Embedding API timeout (60초)')), 60000);
+    });
+    
+    const embedPromise = model.embedContent(cleanText);
+    const result = await Promise.race([embedPromise, timeoutPromise]);
     
     // embedding.values 배열 반환
     return result.embedding?.values || [];
