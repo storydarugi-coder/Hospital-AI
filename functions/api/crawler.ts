@@ -2,7 +2,34 @@
 // Path: /api/crawler
 
 interface Env {
-  // 환경 변수가 필요하면 여기 정의
+  // KV Namespace for rate limiting (optional)
+  RATE_LIMIT?: KVNamespace;
+}
+
+// 간단한 in-memory rate limiter (Cloudflare Worker에서 작동)
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(ip: string): { allowed: boolean; resetTime?: number } {
+  const now = Date.now();
+  const limit = 30; // 분당 30개 요청
+  const window = 60000; // 60초 윈도우
+  
+  const record = requestCounts.get(ip);
+  
+  if (!record || now > record.resetTime) {
+    // 새 윈도우 시작
+    requestCounts.set(ip, { count: 1, resetTime: now + window });
+    return { allowed: true };
+  }
+  
+  if (record.count >= limit) {
+    // Rate limit 초과
+    return { allowed: false, resetTime: record.resetTime };
+  }
+  
+  // 카운트 증가
+  record.count++;
+  return { allowed: true };
 }
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
@@ -13,6 +40,34 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   };
 
   try {
+    // Rate limiting 체크
+    const ip = context.request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rateLimitResult = checkRateLimit(ip);
+    
+    if (!rateLimitResult.allowed) {
+      const retryAfter = rateLimitResult.resetTime 
+        ? Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000) 
+        : 60;
+      
+      console.warn(`🚫 Rate limit exceeded for IP: ${ip}`);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Too Many Requests', 
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter 
+        }),
+        { 
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': retryAfter.toString()
+          }
+        }
+      );
+    }
+
     const { url } = await context.request.json();
     
     if (!url) {

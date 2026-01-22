@@ -321,7 +321,7 @@ export async function prepareNaverBlogsForComparison(
 
   // 3단계: 각 블로그의 실제 내용 크롤링 (순차적 처리 + 지연)
   const results = [];
-  const CRAWL_DELAY = 300; // 각 요청 사이 300ms 지연 (rate limit 방지)
+  const CRAWL_DELAY = 800; // 각 요청 사이 800ms 지연 (rate limit 방지 - 300ms → 800ms 증가)
   
   for (let index = 0; index < blogUrls.length; index++) {
     const item = blogUrls[index];
@@ -384,12 +384,12 @@ async function fetchBlogContentViaCrawler(url: string, retries = 3): Promise<str
       // 429 (Too Many Requests) 처리
       if (response.status === 429) {
         if (attempt < retries) {
-          const waitTime = Math.min(1000 * Math.pow(2, attempt), 8000); // 지수 백오프 (최대 8초)
-          console.warn(`⏳ [재시도 ${attempt}/${retries}] 429 에러, ${waitTime}ms 대기 중...`);
+          const waitTime = Math.min(2000 * Math.pow(2, attempt), 16000); // 지수 백오프 (최대 16초, 2초 시작)
+          console.warn(`⏳ [재시도 ${attempt}/${retries}] 429 에러 (Rate Limit), ${waitTime}ms 대기 중...`);
           await delay(waitTime);
           continue;
         }
-        console.error(`❌ 429 에러 최대 재시도 초과: ${url}`);
+        console.error(`❌ 429 에러 최대 재시도 초과 (Rate Limit 초과): ${url}`);
         return null;
       }
 
