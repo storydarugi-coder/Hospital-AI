@@ -191,6 +191,62 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '호전율', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
   { word: '대부분의 환자', severity: 'critical', replacement: ['많은 분들', '내원하시는 분들 중'], reason: '통계 제시 + 환자 표현 금지 (의료광고법)', category: 'guarantee' },
   { word: '거의 모든', severity: 'critical', replacement: ['많은', '적지 않은'], reason: '통계 과장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  
+  // ===== P1: 구체적 표현 강화 =====
+  // "확인이 필요", "점검해볼 필요" 문장 패턴
+  { word: '확인이 필요', severity: 'critical', replacement: ['살펴보시면', '참고해보시면'], reason: '검사 유도 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '점검해볼 필요', severity: 'critical', replacement: ['살펴보시는 것도', '확인해보시는 것도'], reason: '검사 유도 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '확인해보는 것이 좋', severity: 'critical', replacement: ['살펴보시는 것도', '참고하시는 것도'], reason: '검사 유도 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  { word: '점검이 필요', severity: 'critical', replacement: ['살펴보시면', '확인해보시면'], reason: '검사 유도 문장 구조 금지 (의료광고법)', category: 'urgency' },
+  
+  // "병원에서", "검사로 확인" 표현
+  { word: '병원에서', severity: 'critical', replacement: ['(삭제)', '내원 시'], reason: '병원 직접 언급 금지 (의료광고법)', category: 'medical_law' },
+  { word: '검사로 확인', severity: 'critical', replacement: ['경과 확인', '살펴보기'], reason: '검사 유도 금지 (의료광고법)', category: 'medical_law' },
+  { word: '검사를 통해', severity: 'critical', replacement: ['경과 확인을 통해', '살펴보면'], reason: '검사 유도 금지 (의료광고법)', category: 'medical_law' },
+  { word: '의료진과 상담', severity: 'critical', replacement: ['(사용 금지)', '내원 상담'], reason: '의료진 표현 + 상담 유도 금지 (의료광고법)', category: 'medical_law' },
+  
+  // 구체적 검사명
+  { word: '초음파', severity: 'critical', replacement: ['(삭제)', '영상 확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: 'CT', severity: 'critical', replacement: ['(삭제)', '영상 확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: 'MRI', severity: 'critical', replacement: ['(삭제)', '영상 확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: 'X-ray', severity: 'critical', replacement: ['(삭제)', '영상 확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: '엑스레이', severity: 'critical', replacement: ['(삭제)', '영상 확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: '내시경', severity: 'critical', replacement: ['(삭제)', '확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: '혈액검사', severity: 'critical', replacement: ['(삭제)', '확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: '피검사', severity: 'critical', replacement: ['(삭제)', '확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  { word: '생검', severity: 'critical', replacement: ['(삭제)', '확인'], reason: '구체적 검사명 금지 (의료광고법)', category: 'medical_law' },
+  
+  // "원인은 ~", "특징은 ~" 정의형 패턴
+  { word: '원인은', severity: 'critical', replacement: ['관련이 있는 것으로', '연관되는 것으로'], reason: '질환 정의형 금지 (의료광고법)', category: 'definition' },
+  { word: '특징은', severity: 'critical', replacement: ['나타나는 것으로', '알려진 것은'], reason: '질환 정의형 금지 (의료광고법)', category: 'definition' },
+  { word: '증상은', severity: 'critical', replacement: ['나타나는 경우는', '경험하는 것은'], reason: '질환 정의형 금지 (의료광고법)', category: 'definition' },
+  { word: '발생 원인', severity: 'critical', replacement: ['관련된 요인', '연관된 부분'], reason: '질환 원인 설명 금지 (의료광고법)', category: 'definition' },
+  
+  // ===== P0: 서술 구조 패턴 감지 =====
+  // 간접 연결 패턴
+  { word: '~와 연관될 수 있', severity: 'critical', replacement: ['~와 관련이 있다고 알려져 있습니다', '~요인 중 하나로 거론됩니다'], reason: '질환 간접 연결 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~와 관련이 있을 수', severity: 'critical', replacement: ['~와 관련이 있다고 알려져 있습니다', '~요인으로 언급됩니다'], reason: '질환 간접 연결 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~의 가능성', severity: 'critical', replacement: ['~로 알려진 경우', '~로 언급되는 경우'], reason: '질환 추정 유도 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~을 의심해볼', severity: 'critical', replacement: ['~를 고려해볼', '~로 알려진'], reason: '진단 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  
+  // 증상 나열 → 확인 유도 흐름
+  { word: '이런 증상이 있다면', severity: 'critical', replacement: ['이런 경우에는', '이런 상황에서는'], reason: '자가진단 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '해당된다면', severity: 'critical', replacement: ['경우에는', '상황에서는'], reason: '자가진단 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '나타난다면', severity: 'critical', replacement: ['나타나는 경우', '경험하는 경우'], reason: '자가진단 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '체크해보세요', severity: 'critical', replacement: ['살펴보세요', '참고하세요'], reason: '자가진단 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '확인해보시기 바랍니다', severity: 'critical', replacement: ['살펴보시면', '참고하시면'], reason: '검사 유도 구조 금지 (의료광고법)', category: 'urgency' },
+  
+  // 검사 방법을 해결책처럼 제시
+  { word: '검사가 도움', severity: 'critical', replacement: ['살펴보는 것이 도움', '확인이 도움'], reason: '검사 해결책 제시 금지 (의료광고법)', category: 'medical_law' },
+  { word: '검사를 받으면', severity: 'critical', replacement: ['살펴보면', '확인하면'], reason: '검사 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '검사로 알 수', severity: 'critical', replacement: ['살펴볼 수', '확인할 수'], reason: '검사 유도 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '병원 방문', severity: 'critical', replacement: ['내원', '(삭제)'], reason: '병원 직접 언급 + 방문 유도 금지 (의료광고법)', category: 'urgency' },
+  { word: '내원하시면', severity: 'critical', replacement: ['상황에 따라', '경우에 따라'], reason: '내원 유도 구조 금지 (의료광고법)', category: 'urgency' },
+  
+  // 여러 증상을 하나의 질환으로 수렴
+  { word: '이는 ~의 신호', severity: 'critical', replacement: ['이는 나타나는 경우입니다', '이는 알려진 경우입니다'], reason: '질환 수렴 구조 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~일 가능성이 높', severity: 'critical', replacement: ['~로 알려진 경우', '~로 언급되는 경우'], reason: '질환 추정 유도 금지 (의료광고법)', category: 'medical_law' },
+  { word: '~때문일 수', severity: 'critical', replacement: ['~관련이 있을 수', '~연관이 있을 수'], reason: '원인 단정 구조 금지 (의료광고법)', category: 'medical_law' },
 ];
 
 // ============================================
@@ -338,6 +394,7 @@ export interface SeoAnalysisResult {
   firstParagraphScore: number;
   subheadingScore: number;
   readabilityScore: number;
+  structuralRiskScore: number; // 추가: 구조적 위험 점수
   
   details: {
     titleLength: number;
@@ -348,6 +405,9 @@ export interface SeoAnalysisResult {
     subheadingCount: number;
     avgSentenceLength: number;
     totalCharCount: number;
+    diseasePatternCount: number; // 추가: 질환 중심 패턴 수
+    checklistCount: number; // 추가: 체크리스트 패턴 수
+    shortSentenceRatio: number; // 추가: 짧은 문장 비율
   };
   
   suggestions: string[];
@@ -440,13 +500,77 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
     readabilityScore -= 10;
   }
   
-  // 총점 계산
+  // ===== P2: 네이버 SEO 위험 판정 (질환 중심 글, 체크리스트형 글) =====
+  let structuralRiskScore = 100;
+  
+  // 6. 질환 중심 글 감지
+  const diseasePatterns = [
+    /질환.*원인/gi,
+    /질환.*특징/gi,
+    /질환.*증상/gi,
+    /발생.*원인/gi,
+    /원인은.*입니다/gi,
+    /특징은.*입니다/gi,
+    /증상은.*입니다/gi,
+    /질병.*정의/gi,
+    /질환.*정의/gi
+  ];
+  
+  let diseasePatternCount = 0;
+  diseasePatterns.forEach(pattern => {
+    const matches = plainText.match(pattern);
+    if (matches) diseasePatternCount += matches.length;
+  });
+  
+  if (diseasePatternCount >= 3) {
+    structuralRiskScore -= 40;
+    suggestions.push('⚠️ 질환 중심 글로 판정될 위험: 증상/경험 중심으로 재구성하세요.');
+  } else if (diseasePatternCount >= 2) {
+    structuralRiskScore -= 20;
+    suggestions.push('질환 정의형 표현이 많습니다. 독자 경험 중심으로 수정하세요.');
+  }
+  
+  // 7. 체크리스트형 글 감지
+  const checklistPatterns = [
+    /1\./g,
+    /2\./g,
+    /3\./g,
+    /✓/g,
+    /□/g,
+    /☑/g,
+    /증상.*해당/gi,
+    /체크.*필요/gi,
+    /확인.*필요/gi,
+    /이런 증상/gi,
+    /다음 증상/gi
+  ];
+  
+  let checklistCount = 0;
+  checklistPatterns.forEach(pattern => {
+    const matches = plainText.match(pattern);
+    if (matches) checklistCount += matches.length;
+  });
+  
+  // 나열 구조 감지 (연속된 짧은 문장)
+  const shortSentences = sentences.filter(s => s.trim().length < 30 && s.trim().length > 5);
+  const shortSentenceRatio = shortSentences.length / sentences.length;
+  
+  if ((checklistCount >= 5 || shortSentenceRatio > 0.4) && diseasePatternCount >= 1) {
+    structuralRiskScore -= 50;
+    suggestions.push('🚨 체크리스트형 글로 판정될 위험: 증상 나열 → 스토리텔링 구조로 변경하세요.');
+  } else if (checklistCount >= 3 || shortSentenceRatio > 0.3) {
+    structuralRiskScore -= 25;
+    suggestions.push('나열형 구조가 많습니다. 이야기 흐름으로 연결하세요.');
+  }
+  
+  // 총점 계산 (구조적 위험 추가)
   const totalScore = Math.round(
-    titleScore * 0.25 +
-    keywordDensityScore * 0.25 +
-    firstParagraphScore * 0.20 +
-    subheadingScore * 0.15 +
-    readabilityScore * 0.15
+    titleScore * 0.22 +
+    keywordDensityScore * 0.22 +
+    firstParagraphScore * 0.18 +
+    subheadingScore * 0.13 +
+    readabilityScore * 0.13 +
+    structuralRiskScore * 0.12  // 구조적 위험 가중치 추가
   );
   
   return {
@@ -456,6 +580,7 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
     firstParagraphScore: Math.max(0, firstParagraphScore),
     subheadingScore: Math.max(0, subheadingScore),
     readabilityScore: Math.max(0, readabilityScore),
+    structuralRiskScore: Math.max(0, structuralRiskScore), // 추가
     details: {
       titleLength,
       titleHasKeyword,
@@ -464,7 +589,10 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
       firstParagraphHasKeyword,
       subheadingCount,
       avgSentenceLength,
-      totalCharCount: totalChars
+      totalCharCount: totalChars,
+      diseasePatternCount, // 추가
+      checklistCount, // 추가
+      shortSentenceRatio // 추가
     },
     suggestions
   };
