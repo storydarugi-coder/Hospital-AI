@@ -3698,7 +3698,11 @@ ${crawlData.content.substring(0, 3000)}
    - 글의 주요 키워드: "${request.keyword || request.title}"
    - 병원 소개를 키워드와 자연스럽게 연결하여 작성
    - 예: "${request.keyword}" 관련하여 이 병원에서 도움을 받을 수 있습니다
-   - 키워드를 억지로 반복하지 말고, 문맥에 맞게 3~4회 자연스럽게 언급
+   - 🚨 **키워드 등장 빈도** (여러 키워드가 있을 경우):
+     • 첫 번째 키워드(가장 중요): 4~5회 등장
+     • 두 번째 키워드: 2~3회 등장
+     • 세 번째 이후 키워드: 1~2회 등장
+   - 키워드를 억지로 반복하지 말고, 문맥에 맞게 자연스럽게 언급
 4. **포함할 정보** (크롤링된 내용에 있는 경우에만!):
    - 야간 진료 여부 (예: "평일 저녁 8시까지 야간 진료")
    - 공휴일 진료 여부 (예: "토요일/일요일에도 진료")
@@ -3757,7 +3761,7 @@ ${medicalLawPrompt}
 - 마지막 소제목에서 정확히 목표 글자 수 도달
 🔥 반드시 작성 후 글자 수 세어서 범위 내인지 확인!
 
-[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 3~4회 자연스럽게 포함) / 이미지: ${targetImageCount}장
+[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 자연스럽게 포함 - 첫 번째 키워드 4~5회, 두 번째 2~3회, 세 번째 이후 1~2회) / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
 ${HUMAN_WRITING_RULES}
@@ -5011,7 +5015,7 @@ ${learnedStyleInstruction}
 - 의료진: ${doctorName} ${doctorTitle}
 - 보도 유형: ${pressTypeLabel}
 - 주제: ${request.topic}
-- SEO 키워드: ${request.keywords} ⚠️ **필수**: 본문에 최소 1회 ~ 최대 3회 자연스럽게 포함
+- SEO 키워드: ${request.keywords} ⚠️ **필수**: 본문에 자연스럽게 포함 (첫 번째 키워드 4~5회, 두 번째 2~3회, 세 번째 이후 1~2회)
 - ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자
 ${hospitalInfo}
 
