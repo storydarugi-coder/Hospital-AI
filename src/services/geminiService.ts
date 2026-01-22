@@ -7200,19 +7200,19 @@ async function getTextEmbedding(text: string): Promise<number[]> {
     // 텍스트 정리 (HTML 태그 제거)
     const cleanText = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     
-    // 임베딩 모델 가져오기
-    const model = ai.getGenerativeModel({ model: 'text-embedding-004' });
-    
     // embedContent 메서드 사용 (60초 타임아웃)
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Embedding API timeout (60초)')), 60000);
     });
     
-    const embedPromise = model.embedContent(cleanText);
+    const embedPromise = ai.models.embedContent({
+      model: 'text-embedding-004',
+      contents: cleanText,
+    });
     const result = await Promise.race([embedPromise, timeoutPromise]);
     
-    // embedding.values 배열 반환
-    return result.embedding?.values || [];
+    // embeddings[0].values 배열 반환
+    return result.embeddings?.[0]?.values || [];
   } catch (error) {
     console.error('❌ 텍스트 임베딩 생성 실패:', error);
     return [];
