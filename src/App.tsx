@@ -480,11 +480,13 @@ const App: React.FC = () => {
         if (saveResult.success) {
           console.log('✅ 서버 저장 완료! ID:', saveResult.id);
           
-          // 🔍 구글 검색 자동 유사도 검사 시작
+          // 🔍 자동 유사도 검사 비활성화 (사용자가 수동으로 실행)
+          // 이유: 크롤링 100개가 자동으로 실행되어 성능 저하 발생
+          // ResultPreview의 "🔍 유사도" 버튼으로 수동 실행 가능
+          /*
           try {
             console.log('🔍 구글 검색 유사도 검사 시작...');
             
-            // 키워드로 구글 검색
             const searchKeywords = request.keywords || request.topic;
             if (searchKeywords) {
               const naverBlogs = await prepareNaverBlogsForComparison(searchKeywords, 10);
@@ -492,7 +494,6 @@ const App: React.FC = () => {
               if (naverBlogs && naverBlogs.length > 0) {
                 console.log(`📰 구글 검색 결과 ${naverBlogs.length}개 완료`);
                 
-                // 유사도 검사 (배치)
                 const similarities = naverBlogs.map((blog) => {
                   const similarity = calculateOverallSimilarity(result.htmlContent, blog.text);
                   const level = getSimilarityLevel(similarity);
@@ -506,7 +507,6 @@ const App: React.FC = () => {
                   };
                 }).sort((a, b) => b.similarity - a.similarity);
                 
-                // 가장 유사한 글 (점수가 40% 이상)
                 const highSimilarityContents = similarities.filter(s => s.similarity >= 40);
                 
                 if (highSimilarityContents.length > 0) {
@@ -525,6 +525,7 @@ const App: React.FC = () => {
           } catch (similarityErr) {
             console.warn('⚠️ 구글 검색 유사도 검사 실패 (무시하고 계속):', similarityErr);
           }
+          */
         } else {
           console.warn('⚠️ 서버 저장 실패:', saveResult.error);
         }

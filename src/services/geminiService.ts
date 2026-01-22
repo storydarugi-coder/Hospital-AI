@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
-import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
+import { SYSTEM_PROMPT, getStage1_ContentGeneration, getStage2_AiRemovalAndCompliance } from "../lib/gpt52-prompts-staged";
 import { loadMedicalLawForGeneration } from "./medicalLawService";
 // API 키 매니저 (다중 키 로드 밸런싱 + 폴백)
 import {
@@ -3741,11 +3741,16 @@ ${crawlData.content.substring(0, 3000)}
   const medicalLawPrompt = await loadMedicalLawForGeneration();
   safeProgress('✅ Step 0 완료: 의료광고법 정보 준비 완료');
   
-  // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts 연결
+  // 🚀 GPT-5.2 프롬프트 연결 (Stage 1)
+  const gpt52Stage1 = getStage1_ContentGeneration(targetLength);
+  
+  // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts + GPT-5.2 통합
   const blogPrompt = `
 한국 병·의원 네이버 블로그용 의료 콘텐츠를 작성하세요.
 
 ${medicalLawPrompt}
+
+${gpt52Stage1}
 
 [🚨🚨🚨 글자 수 최우선 준수 - 절대 규칙!]
 목표: ${targetLength}자 (공백 제외)
