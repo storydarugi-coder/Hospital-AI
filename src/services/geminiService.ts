@@ -3592,9 +3592,9 @@ ${crawlData.content.substring(0, 3000)}
     : '실사 DSLR 사진, 진짜 사진, 35mm 렌즈, 자연스러운 부드러운 조명, 얕은 피사계심도, 전문 병원 환경 (⛔금지: 3D 렌더, 일러스트, 만화, 애니메이션)';
   
   // 의료광고법 프롬프트 - 실시간 공식 정보 로드
-  safeProgress('⚖️ 2단계: 최신 의료광고법 정보 확인 중...');
+  safeProgress('⚖️ Step 0: 의료광고법 정보 로드 중...');
   const medicalLawPrompt = await loadMedicalLawForGeneration();
-  safeProgress('✅ 의료광고법 정보 준비 완료');
+  safeProgress('✅ Step 0 완료: 의료광고법 정보 준비 완료');
   
   // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts 연결
   const blogPrompt = `
