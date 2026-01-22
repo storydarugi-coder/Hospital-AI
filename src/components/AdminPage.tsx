@@ -75,6 +75,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     sql: '',
     title: ''
   });
+  
+  // 블로그 미리보기 모달
+  const [previewBlog, setPreviewBlog] = useState<any | null>(null);
 
   const [dataError, setDataError] = useState<string>('');
   
@@ -889,12 +892,20 @@ DELETE FROM profiles WHERE id = '${user.id}';`;
                             </a>
                           )}
                         </div>
-                        <button
-                          onClick={() => deleteBlog(blog.id)}
-                          className="px-3 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/30 transition-colors text-sm whitespace-nowrap"
-                        >
-                          🗑️ 삭제
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setPreviewBlog(blog)}
+                            className="px-3 py-2 bg-blue-500/20 text-blue-400 font-bold rounded-lg hover:bg-blue-500/30 transition-colors text-sm whitespace-nowrap"
+                          >
+                            👁️ 보기
+                          </button>
+                          <button
+                            onClick={() => deleteBlog(blog.id)}
+                            className="px-3 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/30 transition-colors text-sm whitespace-nowrap"
+                          >
+                            🗑️ 삭제
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -962,6 +973,63 @@ DELETE FROM profiles WHERE id = '${user.id}';`;
                   닫기
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 블로그 미리보기 모달 */}
+      {previewBlog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl my-8">
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6 border-b border-slate-600 flex justify-between items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-2xl font-bold text-white mb-2">{previewBlog.title}</h2>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                  <span>📅 {formatDate(previewBlog.created_at)}</span>
+                  {previewBlog.category && (
+                    <span className="px-2 py-1 bg-blue-500/30 text-blue-300 rounded-full text-xs font-bold">
+                      {previewBlog.category}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewBlog(null)}
+                className="text-white hover:text-slate-300 text-3xl font-bold leading-none flex-shrink-0"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* 콘텐츠 */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] bg-slate-50">
+              <div 
+                className="prose prose-slate max-w-none"
+                dangerouslySetInnerHTML={{ __html: previewBlog.content || '<p class="text-slate-400">내용이 없습니다.</p>' }}
+              />
+            </div>
+            
+            {/* 푸터 */}
+            <div className="bg-slate-100 p-4 border-t border-slate-300 flex justify-between items-center gap-4">
+              <div className="flex gap-2 flex-wrap">
+                {previewBlog.keywords && previewBlog.keywords.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {previewBlog.keywords.map((keyword: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-medium">
+                        #{keyword}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setPreviewBlog(null)}
+                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors whitespace-nowrap"
+              >
+                닫기
+              </button>
             </div>
           </div>
         </div>
