@@ -436,37 +436,87 @@ export function convertMedicalLawToPrompt(info: MedicalLawInfo): string {
 
 /**
  * 글 생성 전 의료광고법 정보 자동 로딩 및 프롬프트 생성
+ * - Supabase 캐시 우선 사용 (24시간 유효)
+ * - 캐시 없으면 크롤링 후 저장
  */
 export async function loadMedicalLawForGeneration(): Promise<string> {
   try {
-    // 1. 캐시 확인
-    let lawInfo = getCachedMedicalLawInfo();
+    console.log('🏥 의료광고법 정보 로드 시작...');
     
-    // 2. 캐시 없으면 첫 번째 소스에서 가져오기 (선택적)
-    if (!lawInfo && MEDICAL_LAW_SOURCES.length > 0) {
-      console.debug('📋 의료광고법 정보 확인 중...');
-      lawInfo = await fetchMedicalLawInfo(MEDICAL_LAW_SOURCES[0].url);
-      
-      if (lawInfo) {
-        cacheMedicalLawInfo(lawInfo);
-        console.log('✅ 의료광고법 정보 로드 완료');
-      } else {
-        console.debug('📋 기본 의료광고법 프롬프트 사용');
-      }
-    }
+    // 1. Supabase 캐시에서 최신 규칙 가져오기 (자동으로 24시간 체크 및 크롤링)
+    const { getMedicalLawRules } = await import('./medicalLawCrawler');
+    const prohibitions = await getMedicalLawRules();
     
-    // 3. 프롬프트 생성
-    if (lawInfo) {
-      return convertMedicalLawToPrompt(lawInfo);
-    }
+    console.log(`✅ 의료광고법 규칙 ${prohibitions.length}개 로드 완료`);
     
-    // 4. Fallback: 기본 금지사항
-    return getDefaultMedicalLawPrompt();
+    // 2. 프롬프트 생성
+    return convertProhibitionsToPrompt(prohibitions);
     
   } catch (error) {
-    console.debug('의료광고법 정보 로딩 실패 (기본 프롬프트 사용)');
+    console.error('❌ 의료광고법 로딩 실패, 기본 프롬프트 사용:', error);
     return getDefaultMedicalLawPrompt();
   }
+}
+
+/**
+ * Prohibitions를 프롬프트 텍스트로 변환
+ */
+function convertProhibitionsToPrompt(prohibitions: any[]): string {
+  const prohibitionsByCategory = prohibitions.reduce((acc: any, rule: any) => {
+    if (!acc[rule.category]) {
+      acc[rule.category] = [];
+    }
+    acc[rule.category].push(rule);
+    return acc;
+  }, {});
+
+  let prompt = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 의료광고법 제56조 금지사항 (최신 자동 업데이트)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 최근 업데이트: 하루 1회 자동 크롤링
+
+⚠️ 아래 표현은 의료법 위반으로 절대 사용 금지:
+
+`;
+
+  const categoryNames: Record<string, string> = {
+    'treatment_experience': '🚨 치료경험담 (의료법 제56조 제2항 제2호)',
+    'false_info': '🚨 거짓 정보 (의료법 제56조 제2항 제3호)',
+    'comparison': '⚠️ 비교 광고 (의료법 제56조 제2항 제4호)',
+    'exaggeration': '🚨 과장 광고 (의료법 제56조 제2항 제8호)',
+    'guarantee': '🚨 보장 표현 (의료법 위반)',
+    'urgency': '⚠️ 긴급성 조장',
+    'medical_law': '🚨 의료법 위반 표현',
+    'other': '⚠️ 기타 금지사항'
+  };
+
+  Object.entries(prohibitionsByCategory).forEach(([category, rules]: [string, any]) => {
+    const categoryName = categoryNames[category] || category;
+    prompt += `\n${categoryName}\n`;
+    
+    rules.forEach((rule: any) => {
+      prompt += `  • ${rule.description}\n`;
+      if (rule.examples && rule.examples.length > 0) {
+        prompt += `    ❌ 금지: ${rule.examples.slice(0, 5).join(', ')}\n`;
+      }
+    });
+  });
+
+  prompt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 위반 시 처벌:
+  • 1년 이하의 징역 또는 1,000만원 이하의 벌금
+  • 업무정지 또는 면허 취소
+  • 과징금 부과
+
+✅ 안전한 대체 표현:
+  • "~할 수 있습니다" (가능성 표현)
+  • "~도움이 될 수 있습니다" (보조적 표현)
+  • "~경우도 있습니다" (개별성 강조)
+  • "상담을 통해 확인해보시는 것을" (의료진 상담 권장)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+  return prompt;
 }
 
 /**

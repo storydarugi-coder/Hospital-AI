@@ -160,6 +160,43 @@ export interface Database {
           published_at?: string;
         };
       };
+      medical_law_cache: {
+        Row: {
+          id: string;
+          source_url: string;
+          last_crawled_at: string;
+          prohibitions: any; // JSONB
+          summary: string | null;
+          raw_content: string | null;
+          version: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_url: string;
+          last_crawled_at?: string;
+          prohibitions?: any;
+          summary?: string | null;
+          raw_content?: string | null;
+          version?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          source_url?: string;
+          last_crawled_at?: string;
+          prohibitions?: any;
+          summary?: string | null;
+          raw_content?: string | null;
+          version?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+      };
     };
   };
 }
