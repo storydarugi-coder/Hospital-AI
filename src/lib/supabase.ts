@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-// Supabase 설정 - 하드코딩 (Cloudflare Pages 배포 시 환경변수로 교체 권장)
-const SUPABASE_URL = 'https://giiatpxkhponcbduyzci.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpaWF0cHhraHBvbmNiZHV5emNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MzA0MzksImV4cCI6MjA4MzAwNjQzOX0.YsjqdemCH18UcK_fIa6yTulQkw00AemZeROhTaFIpBg';
+// Supabase 설정 - 환경변수 우선, 없으면 하드코딩 값 사용
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://giiatpxkhponcbduyzci.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpaWF0cHhraHBvbmNiZHV5emNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MzA0MzksImV4cCI6MjA4MzAwNjQzOX0.YsjqdemCH18UcK_fIa6yTulQkw00AemZeROhTaFIpBg';
+
+console.log('[Supabase] 초기화:', {
+  url: SUPABASE_URL,
+  keyPrefix: SUPABASE_ANON_KEY.substring(0, 20) + '...',
+  fromEnv: !!import.meta.env.VITE_SUPABASE_URL
+});
 
 // Supabase 클라이언트 생성
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
