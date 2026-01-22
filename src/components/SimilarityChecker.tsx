@@ -150,8 +150,8 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
             url: url,
             blogger: blog.displayLink || blog.bloggername || blog.source || '출처 불명',
             similarity: Math.round(finalSimilarity),
-            level: finalSimilarity >= 60 ? 'high' : finalSimilarity >= 30 ? 'medium' : 'low',
-            snippet: `${matchCount}개 문장 일치 (${Math.round(finalSimilarity)}%) - ${matchedPhrases[0].substring(0, 80)}...`,
+            level: getSimilarityLevel(Math.round(finalSimilarity)),
+            snippet: `전체 유사도 ${Math.round(finalSimilarity)}% - ${matchCount}개 부분 일치`,
           });
         });
       }
@@ -384,9 +384,14 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
         {/* 웹 검색 결과 */}
         {webResults.length > 0 && (
           <div className="mt-4 space-y-2">
-            <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
-              🌐 검색 결과 ({webResults.length}개)
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                🌐 유사 블로그 검색 결과 ({webResults.length}개)
+              </h3>
+              <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                💡 전체 글 내용 기준 유사도
+              </p>
+            </div>
             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {webResults.map((item, index) => (
                 <div
@@ -397,27 +402,39 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
                   style={{ borderColor: item.level.color + '40' }}
                   onClick={() => window.open(item.url, '_blank')}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <h4 className={`text-xs font-semibold truncate mb-1 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                      <h4 className={`text-sm font-bold mb-1 ${darkMode ? 'text-white' : 'text-gray-800'}`}>
                         {item.title}
                       </h4>
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-purple-500 hover:underline truncate block"
+                        className="text-xs text-purple-500 hover:underline block mb-1"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {item.blogger}
+                        📝 {item.blogger}
                       </a>
+                      <p className={`text-xs ${darkMode ? 'text-slate-400' : 'text-gray-500'}`}>
+                        {item.snippet || `전체 유사도: ${item.similarity}%`}
+                      </p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div
-                        className="text-xl font-bold"
+                        className="text-2xl font-black mb-1"
                         style={{ color: item.level.color }}
                       >
                         {item.similarity}%
+                      </div>
+                      <div
+                        className="text-xs font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: item.level.color + '20',
+                          color: item.level.color,
+                        }}
+                      >
+                        {typeof item.level === 'string' ? item.level : item.level.label}
                       </div>
                     </div>
                   </div>
