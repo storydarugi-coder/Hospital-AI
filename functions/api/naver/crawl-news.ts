@@ -35,7 +35,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const todayDate = formatNaverDate(today); // 예: 20260122
 
     console.log('📰 네이버 뉴스 검색 크롤링:', query, '(최대', maxResults, '개)');
-    console.log('🎯 정렬 방식: 최신순 (최근 뉴스 우선)');
+    console.log('🎯 정렬 방식: 관련도순 (많이 본 뉴스 우선)');
     console.log('📅 날짜 필터:', todayDate, '(오늘 당일만)');
 
     const newsUrls: Array<{
@@ -52,13 +52,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (let page = 1; page <= Math.min(pagesNeeded, 5); page++) {
       const start = (page - 1) * 10 + 1;
       
-      // 최신순 + 오늘 날짜만 + 정확한 문구 검색 (따옴표)
-      // so:dd = 최신순 (Date Descending)
+      // 관련도순 (인기순) + 오늘 날짜만 + 정확한 문구 검색 (따옴표)
+      // so:r = 관련도순 (Relevance - 많이 본 뉴스, 인기 있는 뉴스 우선)
       // ds=시작일&de=종료일 (YYYYMMDD 형식) - 오늘 당일로 설정
       const exactQuery = `"${query}"`;
       const searchUrl = `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(
         exactQuery
-      )}&start=${start}&sm=tab_opt&nso=so:dd,p:from${todayDate}to${todayDate}`;
+      )}&start=${start}&sm=tab_opt&nso=so:r,p:from${todayDate}to${todayDate}`;
 
       console.log(`📄 페이지 ${page}/${pagesNeeded} 크롤링 중...`);
 
