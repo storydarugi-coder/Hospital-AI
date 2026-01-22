@@ -461,12 +461,14 @@ export function detectAiSmell(text: string): {
     { pattern: /내원/g, name: '내원 (독자 중심 표현 사용 권장)', maxAllowed: 0 },
     { pattern: /\([가-힣]+\d{4}\)/g, name: '기관명(연도) 형식 (절대 금지!)', maxAllowed: 0 },
     
-    // 🚨 임신/출산 관련 키워드 절대 금지 (산부인과 = 임신/출산 프레임 제거!)
-    { pattern: /임신|출산|아기|태아|분만|산모/g, name: '임신/출산/아기 키워드 (절대 금지!)', maxAllowed: 0 },
-    { pattern: /임신\s*(준비|계획|초기|중)/g, name: '임신 관련 표현 (절대 금지!)', maxAllowed: 0 },
-    { pattern: /출산\s*계획|제왕절개|자연분만|산도/g, name: '출산 관련 표현 (절대 금지!)', maxAllowed: 0 },
-    { pattern: /아이를\s*기다리|아기를\s*갖기\s*위해/g, name: '아기 관련 표현 (절대 금지!)', maxAllowed: 0 },
-    { pattern: /태아에게\s*영향|엄마가\s*되기\s*위해/g, name: '태아/엄마 관련 표현 (절대 금지!)', maxAllowed: 0 },
+    // 🚨 임신/출산 관련 키워드 조건부 금지
+    // ⚠️ 사용자 입력에 임신/출산 키워드가 없으면 금지!
+    // ✅ 사용자 입력에 임신/출산 키워드가 있으면 허용 (주제니까!)
+    { pattern: /임신|출산|아기|태아|분만|산모/g, name: '임신/출산/아기 (사용자 요청 없으면 금지!)', maxAllowed: 0 },
+    { pattern: /임신\s*(준비|계획|초기|중)/g, name: '임신 관련 표현 (사용자 요청 없으면 금지!)', maxAllowed: 0 },
+    { pattern: /출산\s*계획|제왕절개|자연분만|산도/g, name: '출산 관련 표현 (사용자 요청 없으면 금지!)', maxAllowed: 0 },
+    { pattern: /아이를\s*기다리|아기를\s*갖기\s*위해/g, name: '아기 관련 표현 (사용자 요청 없으면 금지!)', maxAllowed: 0 },
+    { pattern: /태아에게\s*영향|엄마가\s*되기\s*위해/g, name: '태아/엄마 관련 표현 (사용자 요청 없으면 금지!)', maxAllowed: 0 },
     
     // 🚨 광고성 핵심 단어 금지 (피드백 반영)
     { pattern: /지름길/g, name: '지름길 (광고성 표현 - 금지!)', maxAllowed: 0 },
