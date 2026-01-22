@@ -130,19 +130,28 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
           });
         });
         
-        // Map을 배열로 변환
+        // Map을 배열로 변환 - 실제 유사도 계산
         blogMap.forEach((data, url) => {
           const blog = data.blog;
           const matchCount = data.matchCount;
+          const matchedPhrases = data.matchedPhrases;
+          
+          // 실제 유사도 계산: 매칭된 문장들의 총 길이 / 원문 길이
+          const totalMatchedLength = matchedPhrases.reduce((sum, phrase) => sum + phrase.length, 0);
+          const originalLength = content.replace(/<[^>]*>/g, '').length;
+          const actualSimilarity = Math.min((totalMatchedLength / originalLength) * 100, 100);
+          
+          // 최소 유사도 보장: 매칭이 있으면 최소 20%
+          const finalSimilarity = actualSimilarity > 0 ? Math.max(actualSimilarity, 20) : 0;
           
           allMatches.push({
             id: `web-${allMatches.length}`,
             title: (blog.title || '제목 없음').replace(/<[^>]*>/g, ''),
             url: url,
             blogger: blog.displayLink || blog.bloggername || blog.source || '출처 불명',
-            similarity: Math.min(50 + (matchCount * 5), 100), // 매칭 개수에 따라 유사도 증가
-            level: matchCount >= 3 ? 'high' : matchCount >= 2 ? 'medium' : 'low',
-            snippet: `${matchCount}개 문장 일치 - ${(blog.snippet || blog.description || '').replace(/<[^>]*>/g, '').substring(0, 100)}...`,
+            similarity: Math.round(finalSimilarity),
+            level: finalSimilarity >= 60 ? 'high' : finalSimilarity >= 30 ? 'medium' : 'low',
+            snippet: `${matchCount}개 문장 일치 (${Math.round(finalSimilarity)}%) - ${matchedPhrases[0].substring(0, 80)}...`,
           });
         });
       }
