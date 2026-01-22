@@ -313,6 +313,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const savedScrollPosition = useRef<number>(0);
 
   useEffect(() => {
     setLocalHtml(content.fullHtml);
@@ -1060,12 +1062,24 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setDownloadModalOpen(true);
   };
 
-  // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트
+  // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트 + 스크롤 위치 복원
   useEffect(() => {
     if (editorRef.current && !isInternalChange.current) {
+      // 현재 스크롤 위치 저장
+      if (scrollContainerRef.current) {
+        savedScrollPosition.current = scrollContainerRef.current.scrollTop;
+      }
+      
       const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
       if (editorRef.current.innerHTML !== styledHtml) {
         editorRef.current.innerHTML = styledHtml;
+        
+        // DOM 업데이트 후 스크롤 위치 복원
+        requestAnimationFrame(() => {
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = savedScrollPosition.current;
+          }
+        });
       }
     }
     isInternalChange.current = false;
@@ -3674,7 +3688,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
 
 
-      <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {activeTab === 'preview' ? (
           <div className={`mx-auto bg-white shadow-lg border border-slate-100 p-12 naver-preview min-h-[800px] ${content.postType === 'card_news' ? 'max-w-xl' : 'max-w-3xl'}`}>
               <div 
