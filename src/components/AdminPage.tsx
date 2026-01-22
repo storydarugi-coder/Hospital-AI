@@ -42,7 +42,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments'>('api');
+  const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments' | 'blogs'>('api');
   
   // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
   const [configValues, setConfigValues] = useState(() => {
@@ -59,12 +59,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   // 사용자 및 결제 데이터
   const [users, setUsers] = useState<UserData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     paidUsers: 0,
     totalRevenue: 0,
-    todaySignups: 0
+    todaySignups: 0,
+    totalBlogs: 0
   });
   
   // SQL 힌트 모달
@@ -178,6 +180,59 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setLoadingData(false);
   }, []);
 
+  // 블로그 이력 로드 함수
+  const loadBlogHistory = useCallback(async () => {
+    setLoadingData(true);
+    setDataError('');
+    
+    try {
+      const { data: blogsData, error: blogsError } = await supabase
+        .from('blog_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (blogsError) {
+        console.error('블로그 이력 로드 에러:', blogsError);
+        if (blogsError.code === '42P01' || blogsError.message?.includes('does not exist')) {
+          setDataError('⚠️ blog_history 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
+        } else {
+          setDataError(`블로그 이력 로드 실패: ${blogsError.message}`);
+        }
+      } else {
+        setBlogs(blogsData || []);
+        setStats(prev => ({
+          ...prev,
+          totalBlogs: blogsData?.length || 0
+        }));
+      }
+    } catch (err) {
+      console.error('블로그 이력 로드 오류:', err);
+      setDataError(`블로그 이력 로드 오류: ${String(err)}`);
+    }
+    setLoadingData(false);
+  }, []);
+
+  // 블로그 삭제 함수
+  const deleteBlog = async (blogId: string) => {
+    if (!confirm('정말로 이 블로그 글을 삭제하시겠습니까?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('blog_history')
+        .delete()
+        .eq('id', blogId);
+      
+      if (error) {
+        alert(`삭제 실패: ${error.message}`);
+      } else {
+        alert('✅ 삭제 완료!');
+        loadBlogHistory(); // 목록 새로고침
+      }
+    } catch (err) {
+      alert(`삭제 오류: ${String(err)}`);
+    }
+  };
+
   // 관리자 인증 확인 - 이미 인증된 경우 콜백만 호출
   useEffect(() => {
     if (isAuthenticated) {
@@ -191,6 +246,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadUsersAndPayments();
   }, [isAuthenticated, loadUsersAndPayments]);
+
+  // 블로그 탭 활성화 시 블로그 이력 로드
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (activeTab === 'blogs') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadBlogHistory();
+    }
+  }, [isAuthenticated, activeTab, loadBlogHistory]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,7 +427,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
             <div className="text-3xl mb-2">👥</div>
             <div className="text-2xl font-black text-white">{stats.totalUsers}</div>
@@ -383,6 +447,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div className="text-3xl mb-2">🆕</div>
             <div className="text-2xl font-black text-white">{stats.todaySignups}</div>
             <div className="text-sm text-slate-400">오늘 가입</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+            <div className="text-3xl mb-2">📝</div>
+            <div className="text-2xl font-black text-white">{stats.totalBlogs}</div>
+            <div className="text-sm text-slate-400">저장된 글</div>
           </div>
         </div>
 
@@ -417,6 +486,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             }`}
           >
             💳 결제 내역
+          </button>
+          <button
+            onClick={() => setActiveTab('blogs')}
+            className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
+              activeTab === 'blogs' 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-white/10 text-slate-400 hover:text-white'
+            }`}
+          >
+            📝 블로그 관리
           </button>
         </div>
 
@@ -716,6 +795,93 @@ DELETE FROM profiles WHERE id = '${user.id}';`;
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Blog History Tab */}
+          {activeTab === 'blogs' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black text-white">블로그 관리</h2>
+                <button 
+                  onClick={loadBlogHistory}
+                  disabled={loadingData}
+                  className="px-4 py-2 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-colors text-sm disabled:opacity-50"
+                >
+                  {loadingData ? '로딩...' : '🔄 새로고침'}
+                </button>
+              </div>
+              
+              {dataError && (
+                <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl">
+                  <p className="text-red-300 text-sm font-medium">{dataError}</p>
+                </div>
+              )}
+              
+              {blogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-4">📝</div>
+                  <p className="text-slate-400 font-medium">
+                    {loadingData ? '블로그 이력을 불러오는 중...' : '아직 저장된 블로그 글이 없습니다.'}
+                  </p>
+                  <p className="text-slate-500 text-sm mt-2">
+                    블로그 글을 생성하면 여기에 자동으로 저장됩니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm text-slate-400 mb-4">
+                    총 {blogs.length}개의 블로그 글이 저장되어 있습니다.
+                  </div>
+                  {blogs.map((blog) => (
+                    <div 
+                      key={blog.id} 
+                      className="bg-white/5 rounded-xl p-5 border border-slate-700 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-white mb-2 truncate">
+                            {blog.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mb-3">
+                            <span>📅 {formatDate(blog.created_at)}</span>
+                            {blog.category && (
+                              <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-bold">
+                                {blog.category}
+                              </span>
+                            )}
+                            {blog.keywords && blog.keywords.length > 0 && (
+                              <span className="text-xs text-slate-500">
+                                🏷️ {blog.keywords.slice(0, 3).join(', ')}
+                                {blog.keywords.length > 3 && ` +${blog.keywords.length - 3}`}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-300 line-clamp-2">
+                            {blog.content?.substring(0, 150)}...
+                          </p>
+                          {blog.naver_url && (
+                            <a 
+                              href={blog.naver_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-2 text-xs text-green-400 hover:text-green-300 underline"
+                            >
+                              🔗 네이버 블로그에서 보기
+                            </a>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deleteBlog(blog.id)}
+                          className="px-3 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/30 transition-colors text-sm whitespace-nowrap"
+                        >
+                          🗑️ 삭제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
