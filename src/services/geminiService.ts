@@ -7378,7 +7378,12 @@ async function checkSimilarityWithOwnBlogs(
     }
     
     if (!blogHistory || blogHistory.length === 0) {
-      console.log('ℹ️ 저장된 블로그 이력 없음');
+      console.log('');
+      console.log('═══════════════════════════════════════════');
+      console.log('📝 첫 글 작성이시네요!');
+      console.log('   이 글을 다운로드하면 다음부터 자체 유사도 검사가 가능합니다.');
+      console.log('═══════════════════════════════════════════');
+      console.log('');
       return { maxSimilarity: 0, matches: [] };
     }
     
@@ -7421,7 +7426,11 @@ async function checkSimilarityWithOwnBlogs(
       matches: sortedMatches.slice(0, 5) // 상위 5개만
     };
   } catch (error) {
-    console.error('❌ 자체 블로그 유사도 검사 실패:', error);
+    // 에러를 콘솔에만 기록 (사용자에게는 보이지 않음)
+    console.log('ℹ️ 자체 블로그 이력을 확인할 수 없습니다 (첫 글이거나 DB 연결 문제)');
+    console.log('   에러 상세:', error);
+    
+    // 빈 결과 반환 (정상적으로 처리)
     return { maxSimilarity: 0, matches: [] };
   }
 }

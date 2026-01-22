@@ -3949,7 +3949,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               )}
               
               {/* 자체 블로그 매칭 */}
-              {similarityResult.ownBlogMatches.length > 0 && (
+              {similarityResult.ownBlogMatches.length > 0 ? (
                 <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
                   <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
                     📚 자체 블로그 유사 글
@@ -3978,6 +3978,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       );
                     })}
                   </ul>
+                </div>
+              ) : (
+                <div className={`mb-6 p-4 rounded-xl border-2 border-dashed ${
+                  darkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-blue-50 border-blue-300'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    📚 자체 블로그 유사 글
+                  </h4>
+                  <div className={`text-center py-4 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className="text-lg mb-2">✨ 첫 글이시네요!</p>
+                    <p className="text-sm">
+                      이 글을 <strong>PDF 다운로드</strong> 또는 <strong>카드뉴스 다운로드</strong>하면<br/>
+                      다음부터 자체 블로그와의 유사도 검사가 가능합니다.
+                    </p>
+                  </div>
                 </div>
               )}
               
