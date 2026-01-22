@@ -33,13 +33,13 @@ const ALWAYS_CACHE_PATTERNS = [
 
 // Service Worker 설치
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
+  console.log('[SW] 서비스 워커 설치 중...');
   
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static assets');
+      console.log('[SW] 정적 자산 캐싱 중...');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.error('[SW] Cache addAll failed:', err);
+        console.error('[SW] 캐시 추가 실패:', err);
       });
     })
   );
@@ -50,7 +50,7 @@ self.addEventListener('install', (event) => {
 
 // Service Worker 활성화
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
+  console.log('[SW] 서비스 워커 활성화 중...');
   
   event.waitUntil(
     (async () => {
@@ -59,7 +59,7 @@ self.addEventListener('activate', (event) => {
       await Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-            console.log('[SW] Deleting old cache:', cacheName);
+            console.log('[SW] 이전 캐시 삭제:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -74,7 +74,7 @@ self.addEventListener('activate', (event) => {
         client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
       });
       
-      console.log('[SW] Activated and notified clients');
+      console.log('[SW] 활성화 완료 및 클라이언트 알림 전송');
     })()
   );
 });

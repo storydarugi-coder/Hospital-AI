@@ -186,19 +186,30 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setDataError('');
     
     try {
+      console.log('[Admin] 블로그 이력 로드 시작...');
+      console.log('[Admin] Supabase 클라이언트:', supabase ? '✅ 존재' : '❌ 없음');
+      
       const { data: blogsData, error: blogsError } = await supabase
         .from('blog_history')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      console.log('[Admin] 블로그 쿼리 결과:', { 
+        데이터개수: blogsData?.length, 
+        에러: blogsError,
+        에러코드: blogsError?.code,
+        에러메시지: blogsError?.message
+      });
       
       if (blogsError) {
         console.error('블로그 이력 로드 에러:', blogsError);
         if (blogsError.code === '42P01' || blogsError.message?.includes('does not exist')) {
           setDataError('⚠️ blog_history 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
         } else {
-          setDataError(`블로그 이력 로드 실패: ${blogsError.message}`);
+          setDataError(`블로그 이력 로드 실패: ${blogsError.message || blogsError.code || '알 수 없는 오류'}`);
         }
       } else {
+        console.log(`[Admin] ✅ 블로그 ${blogsData?.length || 0}개 로드 완료`);
         setBlogs(blogsData || []);
         setStats(prev => ({
           ...prev,
@@ -207,7 +218,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       }
     } catch (err) {
       console.error('블로그 이력 로드 오류:', err);
-      setDataError(`블로그 이력 로드 오류: ${String(err)}`);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error('에러 상세:', {
+        message: errorMsg,
+        stack: err instanceof Error ? err.stack : undefined
+      });
+      setDataError(`블로그 이력 로드 실패: ${errorMsg}`);
     }
     setLoadingData(false);
   }, []);
