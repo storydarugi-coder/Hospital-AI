@@ -4001,7 +4001,7 @@ ${hospitalInfo}
     console.log('📍 onProgress 호출 직전...');
     try {
       if (typeof onProgress === 'function') {
-        safeProgress('• Step 1: 최신 정보를 검색하고 있습니다...');
+        safeProgress('🔍 Step 1: 질병관리청 최신 정보 검색 중...');
       } else {
         console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
       }
@@ -4092,7 +4092,6 @@ ${hospitalInfo}
 
     // • Gemini 웹 검색으로 최신 정보 수집
     console.log('• 질병관리청 최신 정보 검색 시작');
-    safeProgress('🔍 1단계: 질병관리청 최신 정보 검색 중...');
     
     let geminiResults: any = null;
     let searchResults: any = {};
@@ -4380,7 +4379,7 @@ ${hospitalInfo}
     // 📍 Step 2: AI가 검색 결과를 바탕으로 글 작성
     console.log('📍 Step 2 시작: AI 글쓰기...');
     if (typeof onProgress === 'function') {
-      safeProgress('✍️ Step 2: AI가 자연스러운 글을 작성하고 있습니다...');
+      safeProgress('✍️ Step 2: 의료광고법 준수하며 자연스러운 글 작성 중...');
     }
     
     // Gemini 전용 프롬프트 사용 - v5.3 프롬프트 적용
