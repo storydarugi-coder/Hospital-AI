@@ -7353,9 +7353,8 @@ async function checkSimilarityWithOwnBlogs(
   try {
     console.log('🔍 자체 블로그 DB 유사도 검사 시작...');
     
-    // Supabase에서 블로그 이력 가져오기
-    const { createClient } = await import('../lib/supabase');
-    const supabase = createClient();
+    // Supabase 클라이언트 가져오기
+    const { supabase } = await import('../lib/supabase');
     
     // 현재 사용자 ID 가져오기
     const { data: { user } } = await supabase.auth.getUser();
@@ -7877,8 +7876,7 @@ export const saveBlogHistory = async (
     console.log('💾 블로그 이력 저장 중...');
     
     // Supabase 클라이언트 import
-    const { createClient } = await import('../lib/supabase');
-    const supabase = createClient();
+    const { supabase } = await import('../lib/supabase');
     
     // 현재 로그인한 사용자 ID 가져오기
     const { data: { user } } = await supabase.auth.getUser();
