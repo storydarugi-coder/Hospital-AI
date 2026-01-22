@@ -97,24 +97,52 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
         });
       }
       
-      // 웹 검색 매칭 결과
+      // 웹 검색 매칭 결과 - 중복 제거 및 정확한 매핑
       if (result.webSearchMatches && result.webSearchMatches.length > 0) {
+        // URL 기준으로 중복 제거용 Map
+        const blogMap = new Map<string, {
+          blog: any;
+          matchedPhrases: string[];
+          matchCount: number;
+        }>();
+        
+        // 모든 매칭 수집
         result.webSearchMatches.forEach((phraseMatch: any) => {
-          // phraseMatch는 { phrase, matches: [...], matchCount, source } 구조
           const phrase = phraseMatch.phrase || '';
           const matches = phraseMatch.matches || [];
           
-          // 각 블로그 매칭을 개별 항목으로 추가
-          matches.forEach((blog: any, blogIdx: number) => {
-            allMatches.push({
-              id: `web-${allMatches.length}-${blogIdx}`,
-              title: (blog.title || '제목 없음').replace(/<[^>]*>/g, ''), // HTML 태그 제거
-              url: blog.link || '#',
-              blogger: blog.displayLink || blog.source || '출처 불명',
-              similarity: 50, // 매칭된 경우 기본 50% (실제 유사도는 전체 점수에서 계산됨)
-              level: 'medium',
-              snippet: `"${phrase.substring(0, 80)}..." 포함 - ${(blog.snippet || blog.description || '').replace(/<[^>]*>/g, '').substring(0, 100)}`,
-            });
+          matches.forEach((blog: any) => {
+            const url = blog.link || blog.url || '#';
+            
+            if (blogMap.has(url)) {
+              // 이미 있는 블로그면 문장만 추가
+              const existing = blogMap.get(url)!;
+              existing.matchedPhrases.push(phrase);
+              existing.matchCount++;
+            } else {
+              // 새 블로그 추가
+              blogMap.set(url, {
+                blog,
+                matchedPhrases: [phrase],
+                matchCount: 1
+              });
+            }
+          });
+        });
+        
+        // Map을 배열로 변환
+        blogMap.forEach((data, url) => {
+          const blog = data.blog;
+          const matchCount = data.matchCount;
+          
+          allMatches.push({
+            id: `web-${allMatches.length}`,
+            title: (blog.title || '제목 없음').replace(/<[^>]*>/g, ''),
+            url: url,
+            blogger: blog.displayLink || blog.bloggername || blog.source || '출처 불명',
+            similarity: Math.min(50 + (matchCount * 5), 100), // 매칭 개수에 따라 유사도 증가
+            level: matchCount >= 3 ? 'high' : matchCount >= 2 ? 'medium' : 'low',
+            snippet: `${matchCount}개 문장 일치 - ${(blog.snippet || blog.description || '').replace(/<[^>]*>/g, '').substring(0, 100)}...`,
           });
         });
       }
