@@ -392,6 +392,9 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
+    // 🔒 스크롤 위치 고정 (글 생성 시 스크롤 튀는 현상 방지)
+    const currentScrollY = window.scrollY || window.pageYOffset;
+    
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
       localStorage.removeItem('hospitalai_autosave');
@@ -419,6 +422,11 @@ const App: React.FC = () => {
 
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
+    
+    // 🔒 스크롤 복원 (다음 프레임에서 실행)
+    setTimeout(() => {
+      window.scrollTo(0, currentScrollY);
+    }, 0);
     
     console.log('📋 postType 확인:', request.postType);
     
