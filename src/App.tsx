@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
 import { saveContentToServer, deleteAllContent, getContentList } from './services/apiService';
@@ -48,6 +48,10 @@ const App: React.FC = () => {
   const [_isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
+  
+  // 스크롤 위치 저장 ref
+  const scrollPositionRef = useRef<number>(0);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
   
   // 오른쪽 콘텐츠 탭
   const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'refine' | 'card_news' | 'press'>('blog');
@@ -99,6 +103,19 @@ const App: React.FC = () => {
     localStorage.setItem('darkMode', String(newMode));
   };
   
+  // 스크롤 위치 복원 (탭 전환 후)
+  useEffect(() => {
+    if (mobileTab === 'input' && leftPanelRef.current && scrollPositionRef.current > 0) {
+      // 약간의 딜레이 후 스크롤 복원 (DOM 렌더링 대기)
+      const timer = setTimeout(() => {
+        if (leftPanelRef.current) {
+          leftPanelRef.current.scrollTop = scrollPositionRef.current;
+          console.log('📍 복원된 스크롤 위치:', scrollPositionRef.current);
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileTab]);
 
 
   // Supabase 인증 상태 감시
@@ -395,15 +412,13 @@ const App: React.FC = () => {
     }
 
     // 🔧 스크롤 위치 저장 (탭 전환 전)
-    const currentScrollY = window.scrollY;
+    if (leftPanelRef.current) {
+      scrollPositionRef.current = leftPanelRef.current.scrollTop;
+      console.log('📍 저장된 스크롤 위치:', scrollPositionRef.current);
+    }
 
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
-    
-    // 🔧 스크롤 위치 복원 (탭 전환 후)
-    requestAnimationFrame(() => {
-      window.scrollTo(0, currentScrollY);
-    });
     
     console.log('📋 postType 확인:', request.postType);
     
@@ -907,7 +922,7 @@ const App: React.FC = () => {
         {/* 왼쪽 영역: 콘텐츠 */}
         <div className={`lg:w-[500px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
           {/* 콘텐츠 */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div ref={leftPanelRef} className="flex-1 overflow-y-auto custom-scrollbar">
             {/* 블로그/카드뉴스/언론보도 입력 폼 */}
             <InputForm 
               onSubmit={handleGenerate} 
