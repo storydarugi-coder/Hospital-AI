@@ -7620,7 +7620,7 @@ export const saveBlogHistory = async (
     // 임베딩 생성
     const embedding = await getTextEmbedding(content);
     
-    // Supabase에 저장
+    // Supabase에 저장 (created_at은 DB에서 자동 생성)
     const { error } = await supabase.from('blog_history').insert({
       user_id: userId,
       title,
@@ -7629,8 +7629,8 @@ export const saveBlogHistory = async (
       keywords,
       embedding,
       naver_url: naverUrl,
-      category,
-      published_at: new Date().toISOString()
+      category
+      // created_at은 DB DEFAULT NOW()로 자동 생성
     });
     
     if (error) throw error;
