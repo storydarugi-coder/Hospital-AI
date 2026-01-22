@@ -319,38 +319,41 @@ export async function prepareNaverBlogsForComparison(
 
   console.log(`📊 검색 결과 ${blogUrls.length}개 발견`);
 
-  // 3단계: 각 블로그의 실제 내용 크롤링 (크롤링 성공한 것만 사용)
-  const crawlResults = await Promise.all(
-    blogUrls.map(async (item, index) => {
-      try {
-        console.log(`🕷️ [${index + 1}/${blogUrls.length}] 크롤링 중:`, item.link);
-        
-        // 블로그 전체 내용 크롤링
-        const fullContent = await fetchBlogContentViaCrawler(item.link);
-        
-        if (fullContent && fullContent.length > 100) {
-          console.log(`✅ [${index + 1}] 크롤링 성공: ${fullContent.length}자`);
-          return {
-            id: `blog_${index}`,
-            title: stripHtmlTags(item.title),
-            text: fullContent, // 전체 내용 사용
-            url: item.link,
-            blogger: item.bloggername || '웹사이트',
-            date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
-          };
-        } else {
-          console.warn(`⚠️ [${index + 1}] 크롤링 실패, 제외 (내용 길이: ${fullContent?.length || 0}자, URL: ${item.link})`);
-          return null; // 크롤링 실패 시 null 반환
-        }
-      } catch (error) {
-        console.error(`❌ [${index + 1}] 크롤링 에러, 제외 (URL: ${item.link}):`, error);
-        return null; // 에러 발생 시 null 반환
+  // 3단계: 각 블로그의 실제 내용 크롤링 (순차적 처리 + 지연)
+  const results = [];
+  const CRAWL_DELAY = 300; // 각 요청 사이 300ms 지연 (rate limit 방지)
+  
+  for (let index = 0; index < blogUrls.length; index++) {
+    const item = blogUrls[index];
+    
+    try {
+      console.log(`🕷️ [${index + 1}/${blogUrls.length}] 크롤링 중:`, item.link);
+      
+      // 블로그 전체 내용 크롤링 (재시도 포함)
+      const fullContent = await fetchBlogContentViaCrawler(item.link);
+      
+      if (fullContent && fullContent.length > 100) {
+        console.log(`✅ [${index + 1}] 크롤링 성공: ${fullContent.length}자`);
+        results.push({
+          id: `blog_${index}`,
+          title: stripHtmlTags(item.title),
+          text: fullContent, // 전체 내용 사용
+          url: item.link,
+          blogger: item.bloggername || '웹사이트',
+          date: new Date().toISOString().split('T')[0].replace(/-/g, ''),
+        });
+      } else {
+        console.warn(`⚠️ [${index + 1}] 크롤링 실패, 제외 (내용 길이: ${fullContent?.length || 0}자, URL: ${item.link})`);
       }
-    })
-  );
-
-  // null 제거 (크롤링 성공한 것만)
-  const results = crawlResults.filter((item): item is NonNullable<typeof item> => item !== null);
+      
+      // 다음 요청 전 지연 (마지막 항목 제외)
+      if (index < blogUrls.length - 1) {
+        await delay(CRAWL_DELAY);
+      }
+    } catch (error) {
+      console.error(`❌ [${index + 1}] 크롤링 에러, 제외 (URL: ${item.link}):`, error);
+    }
+  }
   
   console.log(`✅ 크롤링 완료: ${results.length}/${blogUrls.length}개 성공`);
 
@@ -358,26 +361,54 @@ export async function prepareNaverBlogsForComparison(
 }
 
 /**
- * /api/crawler를 통해 블로그 내용 크롤링
+ * 지연 함수 (ms)
  */
-async function fetchBlogContentViaCrawler(url: string): Promise<string | null> {
-  try {
-    const response = await fetch('/api/crawler', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    });
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-    if (!response.ok) {
+/**
+ * /api/crawler를 통해 블로그 내용 크롤링 (재시도 + 지연 포함)
+ */
+async function fetchBlogContentViaCrawler(url: string, retries = 3): Promise<string | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch('/api/crawler', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      // 429 (Too Many Requests) 처리
+      if (response.status === 429) {
+        if (attempt < retries) {
+          const waitTime = Math.min(1000 * Math.pow(2, attempt), 8000); // 지수 백오프 (최대 8초)
+          console.warn(`⏳ [재시도 ${attempt}/${retries}] 429 에러, ${waitTime}ms 대기 중...`);
+          await delay(waitTime);
+          continue;
+        }
+        console.error(`❌ 429 에러 최대 재시도 초과: ${url}`);
+        return null;
+      }
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = await response.json();
+      return data.content || null;
+    } catch (error) {
+      if (attempt < retries) {
+        const waitTime = 1000 * attempt;
+        console.warn(`⏳ [재시도 ${attempt}/${retries}] 에러 발생, ${waitTime}ms 대기 중...`);
+        await delay(waitTime);
+        continue;
+      }
+      console.error('크롤링 에러 (최대 재시도 초과):', error);
       return null;
     }
-
-    const data = await response.json();
-    return data.content || null;
-  } catch (error) {
-    console.error('크롤링 에러:', error);
-    return null;
   }
+  return null;
 }
