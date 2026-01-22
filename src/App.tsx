@@ -394,8 +394,16 @@ const App: React.FC = () => {
       console.warn('저장본 삭제 실패:', e);
     }
 
+    // 🔧 스크롤 위치 저장 (탭 전환 전)
+    const currentScrollY = window.scrollY;
+
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
+    
+    // 🔧 스크롤 위치 복원 (탭 전환 후)
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollY);
+    });
     
     console.log('📋 postType 확인:', request.postType);
     
