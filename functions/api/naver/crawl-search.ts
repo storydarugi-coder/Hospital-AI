@@ -52,11 +52,13 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     for (let page = 1; page <= Math.min(pagesNeeded, 10); page++) {
       const start = (page - 1) * 10 + 1;
       
-      // 정확도순 + 날짜 필터
+      // 정확도순 + 날짜 필터 + 정확한 문구 검색 (따옴표)
       // so:sim = 정확도순 (Similarity)
       // ds=시작일&de=종료일 (YYYYMMDD 형식)
+      // 따옴표로 감싸서 정확히 일치하는 문장만 검색
+      const exactQuery = `"${query}"`;
       const searchUrl = `https://search.naver.com/search.naver?where=blog&query=${encodeURIComponent(
-        query
+        exactQuery
       )}&start=${start}&sm=tab_opt&nso=so:sim,p:from${startDate}to${endDate}`;
 
       console.log(`📄 페이지 ${page}/${pagesNeeded} 크롤링 중...`);
