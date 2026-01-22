@@ -272,20 +272,27 @@ const App: React.FC = () => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       
-      // 페이지 전환 시 스크롤을 맨 위로
-      window.scrollTo(0, 0);
+      let newPage: PageType = 'app';
       
       if (hash === '#admin') {
-        setCurrentPage('admin');
+        newPage = 'admin';
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
-        setCurrentPage('auth');
+        newPage = 'auth';
       } else {
         // 🚀 기본적으로 앱 페이지로 (로그인 불필요)
-        setCurrentPage('app');
+        newPage = 'app';
         if (!hash || hash === '#') {
           window.location.hash = 'app';
         }
       }
+      
+      // 페이지가 실제로 바뀔 때만 스크롤을 맨 위로 (같은 페이지 내 동작 시 스크롤 유지)
+      setCurrentPage(prevPage => {
+        if (prevPage !== newPage) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return newPage;
+      });
     };
 
     handleHashChange();
