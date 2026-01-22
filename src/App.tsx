@@ -394,6 +394,15 @@ const App: React.FC = () => {
   const handleGenerate = async (request: GenerationRequest) => {
     // 🔒 스크롤 위치 고정 (글 생성 시 스크롤 튀는 현상 방지)
     const currentScrollY = window.scrollY || window.pageYOffset;
+    console.log('🔒 현재 스크롤 위치 저장:', currentScrollY);
+    
+    // 🔒 스크롤 방지 함수 (여러 번 실행)
+    const preventScroll = () => {
+      if (window.scrollY !== currentScrollY) {
+        console.log('⚠️ 스크롤이 변경됨! 복원:', window.scrollY, '→', currentScrollY);
+        window.scrollTo(0, currentScrollY);
+      }
+    };
     
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
@@ -423,10 +432,12 @@ const App: React.FC = () => {
     console.log('📱 모바일 탭 전환: result');
     setMobileTab('result');
     
-    // 🔒 스크롤 복원 (다음 프레임에서 실행)
-    setTimeout(() => {
-      window.scrollTo(0, currentScrollY);
-    }, 0);
+    // 🔒 스크롤 복원 (여러 번 실행하여 확실하게 고정)
+    preventScroll(); // 즉시 실행
+    setTimeout(preventScroll, 0); // 다음 프레임
+    setTimeout(preventScroll, 10); // 10ms 후
+    setTimeout(preventScroll, 50); // 50ms 후
+    setTimeout(preventScroll, 100); // 100ms 후
     
     console.log('📋 postType 확인:', request.postType);
     
