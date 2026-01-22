@@ -1088,12 +1088,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       if (editorRef.current.innerHTML !== styledHtml) {
         editorRef.current.innerHTML = styledHtml;
         
-        // DOM 업데이트 후 스크롤 위치 복원
-        requestAnimationFrame(() => {
-          if (scrollContainerRef.current) {
+        // DOM 업데이트 후 스크롤 위치 복원 (더 안정적인 방법)
+        setTimeout(() => {
+          if (scrollContainerRef.current && savedScrollPosition.current > 0) {
             scrollContainerRef.current.scrollTop = savedScrollPosition.current;
           }
-        });
+        }, 0);
       }
     }
     isInternalChange.current = false;
