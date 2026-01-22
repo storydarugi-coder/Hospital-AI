@@ -52,6 +52,8 @@ export async function searchNaverBlogsByCrawling(
       const errorData = await response.json().catch(() => ({}));
       console.error('❌ 네이버 검색 크롤링 실패:', {
         status: response.status,
+        statusText: response.statusText,
+        url: response.url,
         error: errorData,
       });
       return null;
@@ -59,7 +61,18 @@ export async function searchNaverBlogsByCrawling(
 
     const result = await response.json();
     
+    console.log('🔍 네이버 API 응답:', {
+      hasItems: !!result.items,
+      itemsLength: result.items?.length || 0,
+      total: result.total,
+      keys: Object.keys(result),
+    });
+    
     if (!result.items || result.items.length === 0) {
+      console.warn('⚠️ 검색 결과 없음:', {
+        query,
+        result: JSON.stringify(result).substring(0, 200),
+      });
       return null;
     }
     
