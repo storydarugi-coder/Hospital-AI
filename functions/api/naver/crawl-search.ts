@@ -82,81 +82,142 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         // 블로그 검색 결과 추출 (2026년 최신 네이버 구조에 맞게)
         const pageResults: typeof blogUrls = [];
 
-        // 1. 블로그 URL과 제목을 함께 추출
-        // <a ... href="https://blog.naver.com/..." ... data-heatmap-target=".link">
-        //   <span class="... headline1 ...">제목</span>
-        // </a>
-        const titleLinkPattern =
-          /<a[^>]*href="(https:\/\/(?:blog\.naver\.com|.*?\.tistory\.com|brunch\.co\.kr)\/[^"]*)"[^>]*data-heatmap-target="\.link"[^>]*>[\s\S]*?<span[^>]*headline1[^>]*>([\s\S]*?)<\/span>/g;
-
+        // 1. 먼저 모든 블로그 URL 추출 (더 관대한 패턴)
+        const urlPattern = /https:\/\/(?:blog\.naver\.com|[a-zA-Z0-9-]+\.tistory\.com|brunch\.co\.kr)\/[^\s"<>]*/g;
+        const foundUrls: string[] = [];
         let match;
-        while ((match = titleLinkPattern.exec(html)) !== null) {
-          const link = match[1];
-          let title = match[2];
-          
-          // HTML 태그 제거 (<mark>, <b> 등)
-          title = title
-            .replace(/<mark>/g, '')
-            .replace(/<\/mark>/g, '')
-            .replace(/<b>/g, '')
-            .replace(/<\/b>/g, '')
-            .replace(/<[^>]*>/g, '')
-            .trim();
+        
+        while ((match = urlPattern.exec(html)) !== null) {
+          const url = match[0];
+          if (!foundUrls.includes(url) && url.length > 30) { // 중복 제거 및 최소 길이 체크
+            foundUrls.push(url);
+          }
+        }
+        
+        console.log(`🔗 페이지 ${page}에서 ${foundUrls.length}개 URL 발견`);
 
-          if (title && link) {
+        // 2. 블로그 URL과 제목을 함께 추출 (여러 패턴 시도)
+        const titleLinkPatterns = [
+          // 패턴 1: data-heatmap-target
+          /<a[^>]*href="(https:\/\/(?:blog\.naver\.com|.*?\.tistory\.com|brunch\.co\.kr)\/[^"]*)"[^>]*data-heatmap-target="\.link"[^>]*>[\s\S]*?<span[^>]*headline1[^>]*>([\s\S]*?)<\/span>/g,
+          // 패턴 2: title_link 클래스
+          /<a[^>]*class="[^"]*title_link[^"]*"[^>]*href="(https:\/\/(?:blog\.naver\.com|.*?\.tistory\.com|brunch\.co\.kr)\/[^"]*)"[^>]*>([\s\S]*?)<\/a>/g,
+          // 패턴 3: 단순 URL과 제목
+          /<a[^>]*href="(https:\/\/(?:blog\.naver\.com|.*?\.tistory\.com|brunch\.co\.kr)\/[^"]*)"[^>]*>([^<]+)</g,
+        ];
+
+        for (const pattern of titleLinkPatterns) {
+          pattern.lastIndex = 0; // 정규식 초기화
+          while ((match = pattern.exec(html)) !== null) {
+            const link = match[1];
+            let title = match[2];
+            
+            // HTML 태그 제거 (<mark>, <b> 등)
+            title = title
+              .replace(/<mark>/g, '')
+              .replace(/<\/mark>/g, '')
+              .replace(/<b>/g, '')
+              .replace(/<\/b>/g, '')
+              .replace(/<[^>]*>/g, '')
+              .trim();
+
+            if (title && link && !pageResults.find(r => r.link === link)) {
+              pageResults.push({
+                title: title,
+                link: link,
+                description: '',
+                bloggername: '',
+              });
+            }
+          }
+        }
+        
+        // 3. URL만 발견되고 제목이 없는 경우, 기본 제목 할당
+        for (const url of foundUrls) {
+          if (!pageResults.find(r => r.link === url)) {
             pageResults.push({
-              title: title,
-              link: link,
+              title: '네이버 블로그', // 기본 제목
+              link: url,
               description: '',
               bloggername: '',
             });
           }
         }
 
-        // 2. 설명 추출
-        // <span class="... body1 ...">설명 텍스트</span>
-        const descPattern =
-          /<span[^>]*class="[^"]*sds-comps-text[^"]*body1[^"]*"[^>]*>([\s\S]*?)<\/span>/g;
+        // 4. 설명 추출 (더 관대한 패턴)
+        const descPatterns = [
+          // 패턴 1: body1 클래스
+          /<span[^>]*class="[^"]*sds-comps-text[^"]*body1[^"]*"[^>]*>([\s\S]*?)<\/span>/g,
+          // 패턴 2: dsc_link 클래스
+          /<a[^>]*class="[^"]*dsc_link[^"]*"[^>]*>([\s\S]*?)<\/a>/g,
+          // 패턴 3: 단순 설명
+          /<div[^>]*class="[^"]*api_txt_lines[^"]*"[^>]*>([\s\S]*?)<\/div>/g,
+        ];
+        
         const descriptions: string[] = [];
         
-        while ((match = descPattern.exec(html)) !== null) {
-          let desc = match[1];
-          // HTML 태그 제거
-          desc = desc
-            .replace(/<mark>/g, '')
-            .replace(/<\/mark>/g, '')
-            .replace(/<[^>]*>/g, '')
-            .trim();
-          
-          if (desc.length > 20) { // 최소 길이 체크
-            descriptions.push(desc);
+        for (const pattern of descPatterns) {
+          pattern.lastIndex = 0;
+          while ((match = pattern.exec(html)) !== null) {
+            let desc = match[1];
+            // HTML 태그 제거
+            desc = desc
+              .replace(/<mark>/g, '')
+              .replace(/<\/mark>/g, '')
+              .replace(/<[^>]*>/g, '')
+              .trim();
+            
+            if (desc.length > 20) { // 최소 길이 체크
+              descriptions.push(desc);
+            }
           }
         }
 
         // 설명 할당
         for (let i = 0; i < pageResults.length && i < descriptions.length; i++) {
-          pageResults[i].description = descriptions[i];
+          if (!pageResults[i].description) {
+            pageResults[i].description = descriptions[i];
+          }
         }
 
-        // 3. 블로거 이름 추출
-        // <span class="... profile-info-title-text ..."><a ...><span ...>블로거명</span></a></span>
-        const bloggerPattern =
-          /<span[^>]*profile-info-title-text[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>[\s\S]*?<\/span>/g;
+        // 5. 블로거 이름 추출 (더 관대한 패턴)
+        const bloggerPatterns = [
+          // 패턴 1: profile-info-title-text
+          /<span[^>]*profile-info-title-text[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>[\s\S]*?<\/span>/g,
+          // 패턴 2: name 클래스
+          /<span[^>]*class="[^"]*name[^"]*"[^>]*>(.*?)<\/span>/g,
+          // 패턴 3: sub_txt 클래스
+          /<span[^>]*class="[^"]*sub_txt[^"]*"[^>]*>(.*?)<\/span>/g,
+        ];
+        
         const bloggers: string[] = [];
         
-        while ((match = bloggerPattern.exec(html)) !== null) {
-          const blogger = match[1].trim();
-          if (blogger) {
-            bloggers.push(blogger);
+        for (const pattern of bloggerPatterns) {
+          pattern.lastIndex = 0;
+          while ((match = pattern.exec(html)) !== null) {
+            const blogger = match[1]
+              .replace(/<[^>]*>/g, '')
+              .trim();
+            if (blogger && blogger.length > 0) {
+              bloggers.push(blogger);
+            }
           }
         }
 
         // 블로거 이름 할당
         for (let i = 0; i < pageResults.length && i < bloggers.length; i++) {
-          pageResults[i].bloggername = bloggers[i];
+          if (!pageResults[i].bloggername) {
+            pageResults[i].bloggername = bloggers[i];
+          }
+        }
+        
+        // 기본값 설정
+        for (const result of pageResults) {
+          if (!result.bloggername) result.bloggername = '블로거';
+          if (!result.description) result.description = result.title;
         }
 
-        console.log(`✅ 페이지 ${page}: ${pageResults.length}개 발견`);
+        console.log(`✅ 페이지 ${page}: ${pageResults.length}개 발견 (제목: ${pageResults.filter(r => r.title && r.title !== '네이버 블로그').length}개, URL만: ${pageResults.filter(r => r.title === '네이버 블로그').length}개)`);
         blogUrls.push(...pageResults);
 
         if (blogUrls.length >= maxResults || pageResults.length === 0) {
