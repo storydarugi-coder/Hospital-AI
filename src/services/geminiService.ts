@@ -7466,29 +7466,29 @@ async function extractSearchQueries(content: string): Promise<string[]> {
 }
 
 /**
- * Google Custom Search API로 정확한 문장 검색
+ * 네이버 크롤링으로 정확한 문장 검색 (Google API 불필요)
  */
 async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
   try {
-    console.log('🔍 웹 검색 시작...');
+    console.log('🔍 네이버 크롤링 검색 시작...');
     console.log(`📝 검색할 문구 개수: ${keyPhrases.length}개`);
     
     const results = [];
     
     for (const phrase of keyPhrases) {
-      // 정확한 구문 검색 ("phrase"), 나무위키 제외
-      const query = `"${phrase}" site:blog.naver.com -site:namu.wiki`;
-      
       try {
-        // 서버 API를 통해 검색 (API 키 노출 방지)
-        console.log(`  🔎 검색 중: "${phrase.substring(0, 50)}..."`);
+        console.log(`  🔎 네이버 검색 중: "${phrase.substring(0, 50)}..."`);
         
-        const response = await fetch('/api/web-search/search', {
+        // 네이버 검색 페이지 크롤링 API 사용
+        const response = await fetch('/api/naver/crawl-search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ query, num: 10 })
+          body: JSON.stringify({ 
+            query: phrase, 
+            maxResults: 10 
+          })
         });
         
         console.log(`  📡 API 응답: ${response.status} ${response.statusText}`);
@@ -7500,27 +7500,20 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
           } catch {
             errorData = await response.text();
           }
-          console.error(`  ❌ 검색 API 오류: ${response.status}`, errorData);
-          console.error(`  ⚠️ 환경변수 확인 필요: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID`);
-          console.error(`  🔧 Cloudflare Dashboard에서 환경변수 설정 필요!`);
-          console.error(`  📌 설정 위치: Cloudflare Dashboard > Workers & Pages > 프로젝트 > Settings > Environment variables`);
-          console.error(`  📌 필요한 변수: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID`);
-          
-          // 첫 번째 실패 시 더 이상 검색하지 않음 (API 키 없음)
-          console.error(`\n❌❌❌ Google API 키가 설정되지 않았습니다! 유사도 검사를 진행할 수 없습니다. ❌❌❌\n`);
-          break; // 더 이상 검색하지 않음
+          console.error(`  ❌ 네이버 크롤링 오류: ${response.status}`, errorData);
+          continue; // 다음 문구로 계속
         }
         
         const data = await response.json();
-        console.log(`  📊 검색 결과:`, data.searchInformation?.totalResults || 0, '건');
+        console.log(`  📊 검색 결과:`, data.total || 0, '건');
         
         if (data.items && data.items.length > 0) {
           // 네이버 블로그 정보 추출
           const naverBlogs = data.items.map((item: any) => ({
             title: item.title,
             link: item.link,
-            snippet: item.snippet,
-            displayLink: item.displayLink
+            snippet: item.description,
+            displayLink: item.bloggername
           }));
           
           results.push({
@@ -7531,8 +7524,6 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
           
           console.log(`  ✅ "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견 (네이버 블로그)`);
           console.log(`     첫 번째 매칭: ${naverBlogs[0].title}`);
-        } else if (data.error) {
-          console.error(`  ❌ Google API 오류:`, data.error);
         } else {
           console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음`);
         }
@@ -7541,22 +7532,19 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
         console.error(`  ❌ 에러 상세:`, error);
       }
       
-      // Google API Rate Limit 고려 (100쿼리/일)
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Rate Limit 고려 (네이버 크롤링)
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.log(`✅ 웹 검색 완료: ${results.length}개 문장에서 중복 발견`);
+    console.log(`✅ 네이버 검색 완료: ${results.length}개 문장에서 중복 발견`);
     
-    // Google API 키가 없는 경우 경고
     if (results.length === 0 && keyPhrases.length > 0) {
-      console.warn('⚠️⚠️⚠️ 웹 검색 결과가 없습니다. Google API 키 설정을 확인하세요! ⚠️⚠️⚠️');
-      console.warn('📌 Cloudflare Dashboard > Workers & Pages > 프로젝트 > Settings > Environment variables');
-      console.warn('📌 필요한 변수: GOOGLE_API_KEY, GOOGLE_SEARCH_ENGINE_ID');
+      console.warn('⚠️ 네이버 검색 결과가 없습니다.');
     }
     
     return results;
   } catch (error) {
-    console.error('❌ 웹 검색 실패:', error);
+    console.error('❌ 네이버 검색 실패:', error);
     return [];
   }
 }
