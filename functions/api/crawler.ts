@@ -11,7 +11,7 @@ const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
 function checkRateLimit(ip: string): { allowed: boolean; resetTime?: number } {
   const now = Date.now();
-  const limit = 30; // 분당 30개 요청
+  const limit = 60; // 분당 60개 요청 (Rate Limit 완화)
   const window = 60000; // 60초 윈도우
   
   const record = requestCounts.get(ip);

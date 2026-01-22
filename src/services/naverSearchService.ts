@@ -4,6 +4,54 @@
  * - 검색 결과와 유사도 비교
  */
 
+// 🚀 요청 큐 시스템 추가 (Rate Limit 회피)
+class RequestQueue {
+  private queue: Array<() => Promise<any>> = [];
+  private processing = false;
+  private readonly MAX_CONCURRENT = 3; // 동시 최대 3개 요청
+  private readonly DELAY_BETWEEN_REQUESTS = 1000; // 요청 간 1초 대기
+
+  async add<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await fn();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+      this.processQueue();
+    });
+  }
+
+  private async processQueue() {
+    if (this.processing || this.queue.length === 0) return;
+    
+    this.processing = true;
+    
+    while (this.queue.length > 0) {
+      const fn = this.queue.shift();
+      if (fn) {
+        try {
+          await fn();
+        } catch (error) {
+          console.error('❌ Queue processing error:', error);
+        }
+        // 요청 간 딜레이
+        if (this.queue.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, this.DELAY_BETWEEN_REQUESTS));
+        }
+      }
+    }
+    
+    this.processing = false;
+  }
+}
+
+// 전역 요청 큐 인스턴스
+const crawlerQueue = new RequestQueue();
+
 interface GoogleSearchItem {
   title: string;
   link: string;
@@ -368,47 +416,50 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * /api/crawler를 통해 블로그 내용 크롤링 (재시도 + 지연 포함)
+ * /api/crawler를 통해 블로그 내용 크롤링 (재시도 + 지연 + 큐 시스템)
  */
 async function fetchBlogContentViaCrawler(url: string, retries = 3): Promise<string | null> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch('/api/crawler', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
+  // 🚀 요청 큐에 추가하여 Rate Limit 회피
+  return crawlerQueue.add(async () => {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch('/api/crawler', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url }),
+        });
 
-      // 429 (Too Many Requests) 처리
-      if (response.status === 429) {
+        // 429 (Too Many Requests) 처리
+        if (response.status === 429) {
+          if (attempt < retries) {
+            const waitTime = Math.min(2000 * Math.pow(2, attempt), 16000); // 지수 백오프 (최대 16초, 2초 시작)
+            console.warn(`⏳ [재시도 ${attempt}/${retries}] 429 에러 (Rate Limit), ${waitTime}ms 대기 중...`);
+            await delay(waitTime);
+            continue;
+          }
+          console.error(`❌ 429 에러 최대 재시도 초과 (Rate Limit 초과): ${url}`);
+          return null;
+        }
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const data = await response.json();
+        return data.content || null;
+      } catch (error) {
         if (attempt < retries) {
-          const waitTime = Math.min(2000 * Math.pow(2, attempt), 16000); // 지수 백오프 (최대 16초, 2초 시작)
-          console.warn(`⏳ [재시도 ${attempt}/${retries}] 429 에러 (Rate Limit), ${waitTime}ms 대기 중...`);
+          const waitTime = 1000 * attempt;
+          console.warn(`⏳ [재시도 ${attempt}/${retries}] 에러 발생, ${waitTime}ms 대기 중...`);
           await delay(waitTime);
           continue;
         }
-        console.error(`❌ 429 에러 최대 재시도 초과 (Rate Limit 초과): ${url}`);
+        console.error('크롤링 에러 (최대 재시도 초과):', error);
         return null;
       }
-
-      if (!response.ok) {
-        return null;
-      }
-
-      const data = await response.json();
-      return data.content || null;
-    } catch (error) {
-      if (attempt < retries) {
-        const waitTime = 1000 * attempt;
-        console.warn(`⏳ [재시도 ${attempt}/${retries}] 에러 발생, ${waitTime}ms 대기 중...`);
-        await delay(waitTime);
-        continue;
-      }
-      console.error('크롤링 에러 (최대 재시도 초과):', error);
-      return null;
     }
-  }
-  return null;
+    return null;
+  });
 }
