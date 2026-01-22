@@ -5663,6 +5663,11 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     throw new Error('AI가 콘텐츠를 생성하지 못했습니다. 다시 시도해주세요.');
   }
   
+  // 🔧 마크다운 **볼드** 처리 (AI가 실수로 남긴 마크다운 제거 또는 변환)
+  // ** 로 감싼 텍스트를 <strong> 태그로 변환하거나 그냥 제거
+  body = body.replace(/\*\*([^*]+)\*\*/g, '$1'); // ** 제거 (강조 없이 일반 텍스트로)
+  // 또는 강조하고 싶으면: body = body.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  
   // body가 HTML이 아닌 JSON/배열 형태인지 검증
   if (body && (body.startsWith('[{') || body.startsWith('{"'))) {
     console.error('AI returned JSON instead of HTML, attempting to extract...');
