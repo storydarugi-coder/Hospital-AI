@@ -71,35 +71,52 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   
   let result = html;
   
+  // 컨테이너 스타일 적용 (class 기반)
   result = result.replace(
     /<div class="naver-post-container"[^>]*>/g,
-    `<div style="${t.containerStyle}">`
+    `<div class="naver-post-container" style="${t.containerStyle}">`
   );
   
   // 메인 제목 (h2.main-title) 스타일 적용
   result = result.replace(
     /<h2 class="main-title"[^>]*>/g,
-    `<h2 style="${t.mainTitleStyle}">`
+    `<h2 class="main-title" style="${t.mainTitleStyle}">`
   );
   
+  // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
   result = result.replace(
-    /<h3[^>]*>/g,
-    `<h3 style="${t.h3Style}">`
+    /<h3(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      // 기존 style 속성 제거
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<h3${cleaned} style="${t.h3Style}">`;
+    }
   );
   
+  // p 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
   result = result.replace(
-    /<p[^>]*>/g,
-    `<p style="${t.pStyle}">`
+    /<p(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      // 기존 style 속성 제거
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<p${cleaned} style="${t.pStyle}">`;
+    }
   );
   
+  // 이미지 wrapper 스타일 적용
   result = result.replace(
     /<div class="content-image-wrapper"[^>]*>/g,
-    `<div style="${t.imageWrapperStyle}">`
+    `<div class="content-image-wrapper" style="${t.imageWrapperStyle}">`
   );
   
+  // img 태그 스타일 적용 (기존 style 병합)
   result = result.replace(
     /<img([^>]*)>/g,
-    `<img style="${t.imgStyle}" $1>`
+    (match, attrs) => {
+      // 기존 style 제거하고 새로 적용
+      const cleaned = attrs.replace(/\s*style="[^"]*"/gi, '');
+      return `<img${cleaned} style="${t.imgStyle}">`;
+    }
   );
   
   return result;
