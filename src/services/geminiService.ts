@@ -29,16 +29,38 @@ import { contentCache as _contentCache } from "../utils/contentCache";
 // 현재 년도 - getWritingStylePrompts()에서 동적으로 사용
 const _CURRENT_YEAR = new Date().getFullYear();
 
-// 🔑 Gemini API 키 목록 (다중 키 로드 밸런싱)
-const GEMINI_API_KEYS = [
-  'AIzaSyCw30eOBLZ2KbF2u-6SBFvossYk-tZ-V2U',
-  'AIzaSyBF4WMRyNpZVs7g9hGHaQvyOKNL7gbMv-Y',
-];
+// 🔑 Gemini API 키 목록 (환경변수에서 로드)
+const getApiKeysFromEnv = (): string[] => {
+  const keys: string[] = [];
+  
+  // 환경변수에서 API 키들 가져오기
+  const key1 = import.meta.env.VITE_GEMINI_API_KEY;
+  const key2 = import.meta.env.VITE_GEMINI_API_KEY_2;
+  const key3 = import.meta.env.VITE_GEMINI_API_KEY_3;
+  
+  if (key1) keys.push(key1);
+  if (key2) keys.push(key2);
+  if (key3) keys.push(key3);
+  
+  // localStorage에서도 확인 (사용자가 직접 입력한 경우)
+  const localKey = localStorage.getItem('GEMINI_API_KEY');
+  if (localKey && !keys.includes(localKey)) {
+    keys.push(localKey);
+  }
+  
+  return keys;
+};
+
+const GEMINI_API_KEYS = getApiKeysFromEnv();
 
 // API 키 매니저 초기화
-initializeApiKeyManager(GEMINI_API_KEYS);
-console.log('🔐 다중 API 키 시스템 활성화 (총 ' + GEMINI_API_KEYS.length + '개)');
-logApiKeyStatus();
+if (GEMINI_API_KEYS.length > 0) {
+  initializeApiKeyManager(GEMINI_API_KEYS);
+  console.log('🔐 다중 API 키 시스템 활성화 (총 ' + GEMINI_API_KEYS.length + '개)');
+  logApiKeyStatus();
+} else {
+  console.warn('⚠️ 환경변수에 API 키가 설정되지 않았습니다. 사용자가 직접 입력해야 합니다.');
+}
 
 /**
  * Gemini API 호출 래퍼 (자동 폴백 및 재시도)
