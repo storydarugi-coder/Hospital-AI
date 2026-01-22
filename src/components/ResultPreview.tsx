@@ -3927,20 +3927,28 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                     📚 자체 블로그 유사 글
                   </h4>
                   <ul className="space-y-2">
-                    {similarityResult.ownBlogMatches.map((match: any, idx: number) => (
-                      <li key={idx} className={`flex justify-between items-center p-3 rounded-lg ${
-                        darkMode ? 'bg-slate-600' : 'bg-white'
-                      }`}>
-                        <span className="truncate flex-1 text-sm">{match.blog.title}</span>
-                        <span className={`font-bold ml-3 text-lg ${
-                          match.similarity >= 0.8 ? 'text-red-500' :
-                          match.similarity >= 0.6 ? 'text-yellow-500' :
-                          'text-blue-500'
+                    {similarityResult.ownBlogMatches.map((match: any, idx: number) => {
+                      // similarity 값 안전하게 처리
+                      const similarity = typeof match.similarity === 'number' && !isNaN(match.similarity) 
+                        ? match.similarity 
+                        : 0;
+                      const percentage = (similarity * 100).toFixed(1);
+                      
+                      return (
+                        <li key={idx} className={`flex justify-between items-center p-3 rounded-lg ${
+                          darkMode ? 'bg-slate-600' : 'bg-white'
                         }`}>
-                          {(match.similarity * 100).toFixed(1)}%
-                        </span>
-                      </li>
-                    ))}
+                          <span className="truncate flex-1 text-sm">{match.blog?.title || '제목 없음'}</span>
+                          <span className={`font-bold ml-3 text-lg ${
+                            similarity >= 0.8 ? 'text-red-500' :
+                            similarity >= 0.6 ? 'text-yellow-500' :
+                            'text-blue-500'
+                          }`}>
+                            {percentage}%
+                          </span>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

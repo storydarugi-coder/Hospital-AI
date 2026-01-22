@@ -78,17 +78,21 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       // 자체 블로그 매칭 결과
       if (result.ownBlogMatches && result.ownBlogMatches.length > 0) {
         result.ownBlogMatches.forEach((match: any, index: number) => {
-          const similarity = Math.round(match.similarity * 100);
+          // similarity 값 안전하게 처리
+          const similarityValue = typeof match.similarity === 'number' && !isNaN(match.similarity)
+            ? match.similarity
+            : 0;
+          const similarity = Math.round(similarityValue * 100);
           const level = getSimilarityLevel(similarity);
           
           allMatches.push({
             id: `own-${index}`,
-            title: `[내 블로그] ${match.title}`,
-            url: match.url || '#',
+            title: `[내 블로그] ${match.blog?.title || match.title || '제목 없음'}`,
+            url: match.blog?.url || match.url || '#',
             blogger: '내 블로그',
             similarity,
             level,
-            snippet: match.content?.substring(0, 150) + '...' || '내용 없음',
+            snippet: (match.blog?.content || match.content || '').substring(0, 150) + '...',
           });
         });
       }
