@@ -7353,20 +7353,37 @@ async function checkSimilarityWithOwnBlogs(
   try {
     console.log('🔍 자체 블로그 DB 유사도 검사 시작...');
     
-    // TODO: Supabase에서 블로그 이력 가져오기
-    // const { data: blogHistory } = await supabase
-    //   .from('blog_history')
-    //   .select('*')
-    //   .order('publishedAt', { ascending: false })
-    //   .limit(100);
+    // Supabase에서 블로그 이력 가져오기
+    const { createClient } = await import('../lib/supabase');
+    const supabase = createClient();
     
-    // 현재는 임시 구현 (빈 배열)
-    const blogHistory: any[] = [];
+    // 현재 사용자 ID 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (blogHistory.length === 0) {
+    let query = supabase
+      .from('blog_history')
+      .select('*')
+      .order('published_at', { ascending: false })
+      .limit(100);
+    
+    // 로그인한 사용자의 경우 본인 글만, 아니면 모든 글
+    if (user?.id) {
+      query = query.eq('user_id', user.id);
+    }
+    
+    const { data: blogHistory, error } = await query;
+    
+    if (error) {
+      console.error('❌ Supabase 쿼리 실패:', error);
+      return { maxSimilarity: 0, matches: [] };
+    }
+    
+    if (!blogHistory || blogHistory.length === 0) {
       console.log('ℹ️ 저장된 블로그 이력 없음');
       return { maxSimilarity: 0, matches: [] };
     }
+    
+    console.log(`📚 ${blogHistory.length}개의 블로그 이력 로드 완료`);
     
     // 새 글 벡터화
     const newEmbedding = await getTextEmbedding(content);
@@ -7376,13 +7393,17 @@ async function checkSimilarityWithOwnBlogs(
       return { maxSimilarity: 0, matches: [] };
     }
     
+    console.log(`✅ 새 글 임베딩 생성 완료 (차원: ${newEmbedding.length})`);
+    
     // 기존 글들과 유사도 비교
-    const similarities = await Promise.all(
-      blogHistory.map(async (blog) => {
-        const similarity = cosineSimilarity(newEmbedding, blog.embedding || []);
+    const similarities = blogHistory
+      .filter(blog => blog.embedding && Array.isArray(blog.embedding) && blog.embedding.length > 0)
+      .map((blog) => {
+        const similarity = cosineSimilarity(newEmbedding, blog.embedding as number[]);
         return { blog, similarity };
-      })
-    );
+      });
+    
+    console.log(`📊 ${similarities.length}개 글과 유사도 비교 완료`);
     
     // 유사도 높은 순으로 정렬
     const sortedMatches = similarities
@@ -7392,6 +7413,9 @@ async function checkSimilarityWithOwnBlogs(
     const maxSimilarity = sortedMatches.length > 0 ? sortedMatches[0].similarity : 0;
     
     console.log(`✅ 자체 DB 검사 완료: 최대 유사도 ${(maxSimilarity * 100).toFixed(1)}%`);
+    if (sortedMatches.length > 0) {
+      console.log(`   - 상위 매칭: "${sortedMatches[0].blog.title}" (${(sortedMatches[0].similarity * 100).toFixed(1)}%)`);
+    }
     
     return {
       maxSimilarity,
@@ -7773,31 +7797,48 @@ export const saveBlogHistory = async (
     console.log('💾 블로그 이력 저장 중...');
     
     // Supabase 클라이언트 import
-    const { supabase } = await import('../lib/supabase');
+    const { createClient } = await import('../lib/supabase');
+    const supabase = createClient();
     
     // 현재 로그인한 사용자 ID 가져오기
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || null;
     
+    console.log(`👤 사용자 ID: ${userId || '익명'}`);
+    
     // 임베딩 생성
+    console.log('🔄 임베딩 벡터 생성 중...');
     const embedding = await getTextEmbedding(content);
     
-    // Supabase에 저장 (created_at은 DB에서 자동 생성)
+    if (embedding.length === 0) {
+      console.warn('⚠️ 임베딩 생성 실패, 임베딩 없이 저장합니다.');
+    } else {
+      console.log(`✅ 임베딩 생성 완료 (차원: ${embedding.length})`);
+    }
+    
+    // Supabase에 저장
     const { error } = await supabase.from('blog_history').insert({
       user_id: userId,
       title,
       content,
       html_content: htmlContent,
       keywords,
-      embedding,
+      embedding: embedding.length > 0 ? embedding : null,
       naver_url: naverUrl,
-      category
+      category,
+      published_at: new Date().toISOString()
       // created_at은 DB DEFAULT NOW()로 자동 생성
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase 저장 오류:', error);
+      throw error;
+    }
     
     console.log('✅ 블로그 이력 저장 완료');
+    console.log(`   - 제목: ${title}`);
+    console.log(`   - 키워드: ${keywords.join(', ')}`);
+    console.log(`   - 임베딩: ${embedding.length > 0 ? '✓' : '✗'}`);
   } catch (error) {
     console.error('❌ 블로그 이력 저장 실패:', error);
     // 저장 실패해도 메인 플로우는 계속 진행

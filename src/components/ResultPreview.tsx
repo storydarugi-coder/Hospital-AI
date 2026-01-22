@@ -1032,6 +1032,20 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 결과 메시지
       if (failedCards.length === 0) {
         setCardDownloadProgress(`✅ ${successCount}장 모두 다운로드 완료!`);
+        
+        // 🆕 블로그 이력 저장 (카드뉴스 다운로드 성공 시)
+        if (content.title && localHtml) {
+          saveBlogHistory(
+            content.title,
+            localHtml.replace(/<[^>]*>/g, ' ').trim(),
+            localHtml,
+            content.keyword?.split(',').map(k => k.trim()) || [],
+            undefined,
+            content.category
+          ).catch(err => {
+            console.error('블로그 이력 저장 실패 (메인 플로우는 계속):', err);
+          });
+        }
       } else {
         setCardDownloadProgress(`⚠️ ${successCount}장 완료, ${failedCards.length}장 실패 (${failedCards.join(', ')}번)`);
       }
@@ -1628,6 +1642,20 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     
     try {
       const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
+      // 🆕 블로그 이력 저장 (백그라운드에서 실행)
+      if (content.title && localHtml) {
+        saveBlogHistory(
+          content.title,
+          localHtml.replace(/<[^>]*>/g, ' ').trim(), // 텍스트만 추출
+          localHtml, // HTML 전체
+          content.keyword?.split(',').map(k => k.trim()) || [],
+          undefined, // naverUrl
+          content.category
+        ).catch(err => {
+          console.error('블로그 이력 저장 실패 (메인 플로우는 계속):', err);
+        });
+      }
       
       // 새 창에서 프린트 다이얼로그 열기 (PDF로 저장 가능)
       const printWindow = window.open('', '_blank');
