@@ -47,6 +47,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   // 🗞️ 보도자료용 state
   const [hospitalName, setHospitalName] = useState<string>('');
+  const [hospitalWebsite, setHospitalWebsite] = useState<string>('');
   const [doctorName, setDoctorName] = useState<string>('');
   const [doctorTitle, setDoctorTitle] = useState<string>('원장');
   const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'>('achievement');
@@ -98,6 +99,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       customSubheadings: customSubheadings.trim() || undefined,
       // 🗞️ 보도자료용 필드
       hospitalName: postType === 'press_release' ? hospitalName : undefined,
+      hospitalWebsite: postType === 'press_release' ? hospitalWebsite : undefined,
       doctorName: postType === 'press_release' ? doctorName : undefined,
       doctorTitle: postType === 'press_release' ? doctorTitle : undefined,
       pressType: postType === 'press_release' ? pressType : undefined,
@@ -297,6 +299,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
                       />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">
+                      병원 웹사이트 (선택)
+                      <span className="text-xs font-normal text-slate-500 ml-2">병원 정보를 자동으로 분석합니다</span>
+                    </label>
+                    <input 
+                      type="url"
+                      value={hospitalWebsite}
+                      onChange={(e) => setHospitalWebsite(e.target.value)}
+                      placeholder="예: https://www.hospital.com"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                    />
                   </div>
                   
                   <div>
@@ -562,4 +578,5 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   );
 };
 
-export default InputForm;
+// 🚀 성능 개선: React.memo로 불필요한 리렌더 방지
+export default React.memo(InputForm);

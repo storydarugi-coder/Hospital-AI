@@ -75,6 +75,7 @@ export interface GenerationRequest {
   customSubheadings?: string; // 사용자가 직접 입력한 소제목들 (줄바꿈으로 구분)
   // 보도자료용 필드
   hospitalName?: string; // 병원명
+  hospitalWebsite?: string; // 병원 웹사이트 URL (크롤링용)
   doctorName?: string; // 의료진 이름
   doctorTitle?: string; // 직함 (예: 원장, 부원장, 과장)
   pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'; // 보도 유형

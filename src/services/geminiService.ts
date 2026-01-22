@@ -1,6 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, CardNewsSlideScript } from "../types";
 import { getStagePrompt, SYSTEM_PROMPT as GPT52_SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
+// 🚀 콘텐츠 최적화 시스템
+import { optimizePrompt, estimateTokens } from "../utils/promptOptimizer";
+import { generateHumanWritingPrompt, detectAiSmell } from "../utils/humanWritingPrompts";
+import { autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
+import { contentCache } from "../utils/contentCache";
 
 // 현재 년도를 동적으로 가져오기
 const CURRENT_YEAR = new Date().getFullYear();
@@ -1833,8 +1838,8 @@ ${prompt}
 `;
 
 // promptText에서 서로 충돌하는 키워드/섹션을 제거(특히 photo에서 [일러스트] 같은 것)
-const normalizePromptTextForImage = (raw: string): string => {
-  if (!raw) return '';
+const normalizePromptTextForImage = (raw: string | undefined | null): string => {
+  if (!raw || typeof raw !== 'string') return '';
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
   // 🔧 중복 제거: CARD_LAYOUT_RULE 전체 블록 및 관련 지시문 제거
@@ -2627,7 +2632,7 @@ export const generateSingleImage = async (
   const ai = getAiClient();
 
   // 1) 입력 정리: 충돌 문구 제거
-  const cleanPromptText = normalizePromptTextForImage(promptText);
+  const cleanPromptText = normalizePromptTextForImage(promptText) || '';
   
   // 🎨 참고 이미지가 없으면 기본 프레임 이미지 사용
   let effectiveReferenceImage = referenceImage;
@@ -2643,16 +2648,19 @@ export const generateSingleImage = async (
   // 3) 최종 프롬프트 조립: 완성형 카드 이미지 (텍스트가 이미지 픽셀로 렌더링!)
   // 🔧 핵심 텍스트를 프롬프트 상단에 배치하여 모델이 반드시 인식하도록!
   
+  // 🚨 핵심 문장 추출 전 안전 체크
+  console.log('📝 핵심 문장 추출 시작, cleanPromptText 타입:', typeof cleanPromptText, '길이:', cleanPromptText?.length);
+  
   // cleanPromptText에서 핵심 텍스트 추출 (다양한 패턴 지원)
-  const subtitleMatch = cleanPromptText.match(/subtitle:\s*"([^"]+)"/i) || 
-                        cleanPromptText.match(/subtitle:\s*([^\n,]+)/i);
-  const mainTitleMatch = cleanPromptText.match(/mainTitle:\s*"([^"]+)"/i) || 
-                         cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i);
-  const descriptionMatch = cleanPromptText.match(/description:\s*"([^"]+)"/i) ||
-                           cleanPromptText.match(/description:\s*([^\n]+)/i);
+  const subtitleMatch = (cleanPromptText && typeof cleanPromptText === 'string') ? 
+                        (cleanPromptText.match(/subtitle:\s*"([^"]+)"/i) || cleanPromptText.match(/subtitle:\s*([^\n,]+)/i)) : null;
+  const mainTitleMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                         (cleanPromptText.match(/mainTitle:\s*"([^"]+)"/i) || cleanPromptText.match(/mainTitle:\s*([^\n,]+)/i)) : null;
+  const descriptionMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                           (cleanPromptText.match(/description:\s*"([^"]+)"/i) || cleanPromptText.match(/description:\s*([^\n]+)/i)) : null;
   // 🎨 비주얼 지시문 추출
-  const visualMatch = cleanPromptText.match(/비주얼:\s*([^\n]+)/i) ||
-                      cleanPromptText.match(/visual:\s*([^\n]+)/i);
+  const visualMatch = (cleanPromptText && typeof cleanPromptText === 'string') ?
+                      (cleanPromptText.match(/비주얼:\s*([^\n]+)/i) || cleanPromptText.match(/visual:\s*([^\n]+)/i)) : null;
   
   const extractedSubtitle = (subtitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
   const extractedMainTitle = (mainTitleMatch?.[1] || '').trim().replace(/^["']|["']$/g, '');
@@ -5923,7 +5931,7 @@ ${JSON.stringify(searchResults, null, 2)}
 {
   "title": "제목 (상태 점검형 질문)",
   "content": "HTML 형식의 본문 내용 (크로스체크된 정보 우선 사용)",
-  "imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],
+  ${targetImageCount > 0 ? '"imagePrompts": ["이미지 프롬프트1", "이미지 프롬프트2", ...],' : '⚠️ imagePrompts 필드 생략 - 이미지 0장 설정됨'}
   "fact_check": {
     "fact_score": 0-100 (높을수록 좋음),
     "safety_score": 0-100 (높을수록 좋음),
@@ -6203,6 +6211,92 @@ ${getStylePromptForGeneration(learnedStyle)}
     }
   }
   
+  // 🔍 웹 검색 수행 (최신 의료 정보, 통계 수집)
+  onProgress('🔍 최신 의료 정보 검색 중...');
+  
+  const searchQuery = `${request.category} ${request.topic} ${request.keywords} 최신 연구 통계 가이드라인 ${year}년`;
+  let searchResults = '';
+  
+  try {
+    const searchData = await callGPTWebSearch(searchQuery);
+    if (searchData && searchData.collected_facts && searchData.collected_facts.length > 0) {
+      console.log('✅ 보도자료용 검색 결과:', searchData.collected_facts.length, '건');
+      searchResults = `\n[🔍 검색된 최신 의료 정보 - 반드시 활용!]\n`;
+      searchData.collected_facts.slice(0, 8).forEach((fact: any, idx: number) => {
+        searchResults += `${idx + 1}. ${fact.fact || fact.content}\n   출처: ${fact.source || 'N/A'}\n\n`;
+      });
+    } else {
+      console.log('⚠️ 검색 결과 없음 - 기본 프롬프트로 진행');
+    }
+  } catch (error) {
+    console.warn('⚠️ 웹 검색 실패, 기본 정보로 작성:', error);
+  }
+  
+  // 🏥 병원 웹사이트 크롤링 (강점, 특징 분석)
+  let hospitalInfo = '';
+  if (request.hospitalWebsite && request.hospitalWebsite.trim()) {
+    onProgress('🏥 병원 웹사이트 분석 중...');
+    try {
+      const crawlResponse = await fetch('/api/crawler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: request.hospitalWebsite })
+      });
+      
+      if (crawlResponse.ok) {
+        const crawlData = await crawlResponse.json();
+        if (crawlData.content) {
+          console.log('✅ 병원 웹사이트 크롤링 완료:', crawlData.content.substring(0, 200));
+          
+          // AI로 병원 강점 분석
+          const ai = getAiClient();
+          const analysisResult = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: `다음은 ${hospitalName}의 웹사이트 내용입니다. 
+            
+웹사이트 내용:
+${crawlData.content.substring(0, 3000)}
+
+[분석 요청]
+위 병원 웹사이트에서 다음 정보를 추출해주세요:
+
+1. 병원의 핵심 강점 (3~5개)
+2. 특화 진료과목이나 특별한 의료 서비스
+3. 병원의 차별화된 특징 (장비, 시스템, 의료진 등)
+4. 병원의 비전이나 철학
+5. 수상 경력이나 인증 사항
+
+출력 형식:
+[병원 강점]
+- 강점 1
+- 강점 2
+...
+
+[특화 서비스]
+- 서비스 1
+- 서비스 2
+...
+
+[차별화 요소]
+- 요소 1
+- 요소 2
+...
+
+간결하게 핵심만 추출해주세요. 없는 정보는 생략하세요.`,
+            config: { responseMimeType: "text/plain" }
+          });
+          
+          hospitalInfo = `\n[🏥 ${hospitalName} 병원 정보 - 웹사이트 분석 결과]\n${analysisResult.text}\n\n`;
+          console.log('✅ 병원 강점 분석 완료:', hospitalInfo.substring(0, 200));
+        }
+      } else {
+        console.warn('⚠️ 크롤링 API 실패:', crawlResponse.status);
+      }
+    } catch (error) {
+      console.warn('⚠️ 병원 웹사이트 분석 실패:', error);
+    }
+  }
+  
   onProgress('🗞️ 보도자료 작성 중...');
   
   const pressPrompt = `
@@ -6219,6 +6313,8 @@ ${learnedStyleInstruction}
 - 주제: ${request.topic}
 - 키워드: ${request.keywords}
 - ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자 (반드시 이 글자 수를 넘지 마세요!)
+${searchResults}
+${hospitalInfo}
 
 [필수 포함 문구 - 반드시 보도자료 하단에 포함]
 ⚠️ 본 자료는 ${hospitalName}의 홍보 목적으로 작성된 보도자료입니다.
@@ -6570,10 +6666,17 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     // 참고 이미지 설정 (표지 또는 본문 스타일 이미지)
     const referenceImage = request.coverStyleImage || request.contentStyleImage;
     const copyMode = request.styleCopyMode; // true=레이아웃 복제, false=느낌만 참고
-    
+
+    // imagePrompts가 없으면 빈 배열로 초기화
+    if (!agentResult.imagePrompts || !Array.isArray(agentResult.imagePrompts)) {
+      agentResult.imagePrompts = [];
+    }
+
     // • 디버그: imagePrompts 내용 확인
-    console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
-    
+    if (agentResult.imagePrompts.length > 0) {
+      console.log('🎨 첫 생성 imagePrompts:', agentResult.imagePrompts.map((p, i) => ({ index: i, promptHead: p.substring(0, 200) })));
+    }
+
     // 순차 생성으로 진행률 표시
     const images: { index: number; data: string; prompt: string }[] = [];
     for (let i = 0; i < Math.min(maxImages, agentResult.imagePrompts.length); i++) {
@@ -6685,8 +6788,13 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
   // 카드뉴스: generateSingleImage (텍스트 포함, 브라우저 프레임, 1:1)
   // ⚠️ 이미지 0장이면 생성 스킵
   let images: { index: number; data: string; prompt: string }[] = [];
-  
-  if (maxImages > 0) {
+
+  // imagePrompts가 없으면 빈 배열로 초기화 (imageCount가 0일 때 AI가 생략할 수 있음)
+  if (!textData.imagePrompts || !Array.isArray(textData.imagePrompts)) {
+    textData.imagePrompts = [];
+  }
+
+  if (maxImages > 0 && textData.imagePrompts.length > 0) {
     // 순차 생성으로 진행률 표시
     for (let i = 0; i < Math.min(maxImages, textData.imagePrompts.length); i++) {
       safeProgress(`🎨 이미지 ${i + 1}/${maxImages}장 생성 중...`);
