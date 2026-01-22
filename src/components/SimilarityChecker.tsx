@@ -99,21 +99,22 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
       
       // 웹 검색 매칭 결과
       if (result.webSearchMatches && result.webSearchMatches.length > 0) {
-        result.webSearchMatches.forEach((match: any, index: number) => {
-          // similarity가 소수(0~1)면 100 곱하기, 이미 100점대면 그대로
-          const similarity = match.similarity < 2 
-            ? Math.round(match.similarity * 100) 
-            : Math.round(match.similarity);
-          const level = getSimilarityLevel(similarity);
+        result.webSearchMatches.forEach((phraseMatch: any) => {
+          // phraseMatch는 { phrase, matches: [...], matchCount, source } 구조
+          const phrase = phraseMatch.phrase || '';
+          const matches = phraseMatch.matches || [];
           
-          allMatches.push({
-            id: `web-${index}`,
-            title: match.title || '제목 없음',
-            url: match.url || match.link || '#',
-            blogger: match.source || '출처 불명',
-            similarity,
-            level,
-            snippet: match.snippet || match.description || '내용 없음',
+          // 각 블로그 매칭을 개별 항목으로 추가
+          matches.forEach((blog: any, blogIdx: number) => {
+            allMatches.push({
+              id: `web-${allMatches.length}-${blogIdx}`,
+              title: (blog.title || '제목 없음').replace(/<[^>]*>/g, ''), // HTML 태그 제거
+              url: blog.link || '#',
+              blogger: blog.displayLink || blog.source || '출처 불명',
+              similarity: 50, // 매칭된 경우 기본 50% (실제 유사도는 전체 점수에서 계산됨)
+              level: 'medium',
+              snippet: `"${phrase.substring(0, 80)}..." 포함 - ${(blog.snippet || blog.description || '').replace(/<[^>]*>/g, '').substring(0, 100)}`,
+            });
           });
         });
       }
