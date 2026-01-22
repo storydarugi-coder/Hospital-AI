@@ -2,6 +2,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
 import { SYSTEM_PROMPT } from "../lib/gpt52-prompts-staged";
 import { loadMedicalLawForGeneration } from "./medicalLawService";
+// API 키 매니저 (다중 키 로드 밸런싱 + 폴백)
+import {
+  initializeApiKeyManager,
+  getApiKey,
+  handleApiFailure,
+  handleApiSuccess,
+  logApiKeyStatus,
+} from "./apiKeyManager";
 // 🚀 콘텐츠 최적화 시스템
 // 프롬프트 최적화 (향후 활용 가능성 있음)
 import { optimizePrompt as _optimizePrompt, estimateTokens as _estimateTokens } from "../utils/promptOptimizer";
@@ -20,6 +28,71 @@ import { contentCache as _contentCache } from "../utils/contentCache";
 
 // 현재 년도 - getWritingStylePrompts()에서 동적으로 사용
 const _CURRENT_YEAR = new Date().getFullYear();
+
+// 🔑 Gemini API 키 목록 (다중 키 로드 밸런싱)
+const GEMINI_API_KEYS = [
+  'AIzaSyCw30eOBLZ2KbF2u-6SBFvossYk-tZ-V2U',
+  'AIzaSyBF4WMRyNpZVs7g9hGHaQvyOKNL7gbMv-Y',
+];
+
+// API 키 매니저 초기화
+initializeApiKeyManager(GEMINI_API_KEYS);
+console.log('🔐 다중 API 키 시스템 활성화 (총 ' + GEMINI_API_KEYS.length + '개)');
+logApiKeyStatus();
+
+/**
+ * Gemini API 호출 래퍼 (자동 폴백 및 재시도)
+ */
+async function callGeminiWithFallback<T>(
+  apiCall: (client: GoogleGenAI) => Promise<T>,
+  maxRetries: number = 2
+): Promise<T> {
+  let lastError: any = null;
+  let currentKey: string | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      currentKey = getApiKey();
+      
+      if (!currentKey) {
+        throw new Error('사용 가능한 API 키가 없습니다');
+      }
+      
+      const client = new GoogleGenAI({ apiKey: currentKey });
+      const result = await apiCall(client);
+      
+      // 성공 시 키 상태 업데이트
+      handleApiSuccess(currentKey);
+      
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      
+      // 할당량 초과 에러 확인
+      const isQuotaError = 
+        error?.message?.includes('quota') ||
+        error?.message?.includes('RESOURCE_EXHAUSTED') ||
+        error?.status === 429;
+      
+      if (isQuotaError && currentKey) {
+        console.warn(`⚠️ API 할당량 초과 (시도 ${attempt + 1}/${maxRetries})`);
+        handleApiFailure(currentKey, error);
+        logApiKeyStatus();
+        
+        // 다음 시도 전 짧은 대기
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        // 할당량 문제가 아니면 즉시 에러 던지기
+        throw error;
+      }
+    }
+  }
+  
+  // 모든 재시도 실패
+  console.error('❌ 모든 API 키에서 요청 실패');
+  logApiKeyStatus();
+  throw lastError;
+}
 
 // 🎯 Gemini API 상수
 const GEMINI_MODEL = {
@@ -326,10 +399,15 @@ ${hospitalInfo || '(검색 결과 없음)'}
 }
 
 export const getAiClient = () => {
-  // 1순위: Cloudflare Pages 환경변수 (빌드 시 주입됨)
-  let apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  // 1순위: 다중 API 키 시스템에서 사용 가능한 키 가져오기
+  let apiKey = getApiKey();
   
-  // 2순위: localStorage
+  // 2순위: 환경변수 (Cloudflare Pages)
+  if (!apiKey) {
+    apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  }
+  
+  // 3순위: localStorage (사용자 입력)
   if (!apiKey) {
     apiKey = localStorage.getItem('GEMINI_API_KEY');
   }
@@ -337,6 +415,7 @@ export const getAiClient = () => {
   if (!apiKey) {
     throw new Error("API Key가 설정되지 않았습니다. API Key를 입력해주세요.");
   }
+  
   return new GoogleGenAI({ apiKey });
 };
 
