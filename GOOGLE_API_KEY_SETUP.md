@@ -28,21 +28,39 @@ VITE_GEMINI_API_KEY=AIzaSyDOVqA7HP5yRZWalhEu12ECrhqP2R3cetg
 
 로컬에서 개발 서버를 실행하면 이 API 키가 자동으로 사용됩니다.
 
-## 2. Cloudflare Pages 프로덕션 환경 설정
+## 2. Cloudflare Pages 프로덕션 환경 설정 ⚠️ **중요!**
 
-### 방법 A: Cloudflare 대시보드 (권장)
+### 방법 A: Cloudflare 대시보드 (권장) ⭐
+
+**🚨 현재 상태: 이전 API 키가 빌드에 포함되어 배포됨**
+
+배포된 사이트(https://story-darugi.com)는 Cloudflare에서 빌드할 때 환경 변수를 사용하므로, 반드시 Cloudflare 대시보드에서 환경 변수를 설정해야 합니다!
+
+**단계:**
 
 1. [Cloudflare Dashboard](https://dash.cloudflare.com/) 접속
 2. **Workers & Pages** 메뉴로 이동
 3. `hospital-ai` 프로젝트 선택
 4. **Settings** → **Environment variables** 탭으로 이동
-5. **Add variables** 버튼 클릭
-6. 다음 환경 변수 추가:
+5. 기존 `VITE_GEMINI_API_KEY` 확인:
+   - 있으면: **Edit** 클릭하여 값 변경
+   - 없으면: **Add variables** 클릭
+6. 환경 변수 설정:
    - **Variable name**: `VITE_GEMINI_API_KEY`
    - **Value**: `AIzaSyDOVqA7HP5yRZWalhEu12ECrhqP2R3cetg`
-   - **Environment**: Production (또는 필요한 환경)
+   - **Environment**: Production (체크)
+   - **Environment**: Preview (선택사항)
 7. **Save** 버튼 클릭
-8. 프로젝트 재배포 (자동 또는 수동)
+8. **프로젝트 재배포 필수!**
+   - **Deployments** 탭으로 이동
+   - 최신 배포 옆 **⋯** 메뉴 클릭
+   - **Retry deployment** 선택
+   - 또는 새 커밋을 푸시하여 자동 배포 트리거
+
+**배포 후 확인:**
+- https://story-darugi.com 접속
+- F12 → Console 확인
+- "키 1: ...2R3cetg - ✅ 사용 가능" 표시되면 성공!
 
 ### 방법 B: Wrangler CLI (인증 필요)
 
