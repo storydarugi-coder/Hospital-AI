@@ -442,7 +442,7 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
     suggestions.push('제목에 물음표 사용을 피해주세요 (의료광고법).');
   }
   
-  // 2. 키워드 밀도 분석
+  // 2. 키워드 밀도 분석 (3~4회 자연스러운 포함 기준)
   const totalChars = plainText.replace(/\s/g, '').length;
   const keywordCount = keyword ? (plainText.match(new RegExp(escapeRegex(keyword), 'gi')) || []).length : 0;
   const keywordDensity = keyword && totalChars > 0 
@@ -452,14 +452,18 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
   let keywordDensityScore = 100;
   
   if (keyword) {
-    if (keywordDensity < 0.5) {
+    // 3~4회 권장: 1000자 기준 약 1.0~1.6% 밀도
+    if (keywordCount < 3) {
       keywordDensityScore -= 30;
-      suggestions.push(`키워드 밀도가 너무 낮습니다 (${keywordDensity.toFixed(1)}%). 키워드를 더 자연스럽게 추가해주세요.`);
-    } else if (keywordDensity > 3) {
+      suggestions.push(`키워드가 ${keywordCount}회만 사용되었습니다. 3~4회 자연스럽게 추가해주세요.`);
+    } else if (keywordDensity > 4) {
       keywordDensityScore -= 40;
       suggestions.push(`키워드 밀도가 너무 높습니다 (${keywordDensity.toFixed(1)}%). 키워드 스터핑으로 인식될 수 있습니다.`);
-    } else if (keywordDensity > 2.5) {
+    } else if (keywordDensity > 3.5) {
       keywordDensityScore -= 15;
+      suggestions.push(`키워드가 약간 많습니다 (${keywordCount}회). 3~4회가 적정합니다.`);
+    } else if (keywordCount >= 3 && keywordCount <= 4) {
+      // 최적 범위 (추가 점수 없음, 100점 유지)
     }
   }
   
