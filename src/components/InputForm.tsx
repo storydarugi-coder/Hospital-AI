@@ -63,7 +63,13 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔵 Form Submit 시작');
+    e.stopPropagation(); // 이벤트 전파 중단
+    
+    // 현재 스크롤 위치 저장
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+    
+    console.log('🔵 Form Submit 시작 (스크롤 위치:', scrollY, ')');
     console.log('  - topic:', topic);
     console.log('  - postType:', postType, '(type:', typeof postType, ')');
     console.log('  - category:', category);
@@ -108,7 +114,15 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
     
     console.log('📦 전송할 requestData:', JSON.stringify(requestData, null, 2));
     console.log('✅ onSubmit 호출');
+    
+    // onSubmit 호출
     onSubmit(requestData);
+    
+    // 스크롤 위치 복원 (약간의 딜레이 후)
+    setTimeout(() => {
+      window.scrollTo(scrollX, scrollY);
+      console.log('✅ 스크롤 위치 복원:', scrollY);
+    }, 0);
   };
 
   const handleRecommendTrends = async () => {
