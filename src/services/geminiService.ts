@@ -7428,7 +7428,7 @@ async function checkSimilarityWithOwnBlogs(
 }
 
 /**
- * 전체 콘텐츠를 청크로 나눠서 검색 문구 추출
+ * 전체 콘텐츠에서 검색 쿼리 추출 (개선: 의미 있는 문장 선별)
  */
 async function extractSearchQueries(content: string): Promise<string[]> {
   try {
@@ -7442,45 +7442,73 @@ async function extractSearchQueries(content: string): Promise<string[]> {
       return [cleanContent.slice(0, 100)];
     }
     
-    // 콘텐츠를 문장으로 분리 (마침표, 느낌표, 물음표 기준)
+    // 콘텐츠를 문장으로 분리 (마침표, 느낌표, 물음표, 줄바꿈 기준)
     const sentences = cleanContent
-      .split(/[.!?]\s+/)
+      .split(/[.!?\n]\s+/)
       .map(s => s.trim())
-      .filter(s => s.length >= 20 && s.length <= 200); // 너무 짧거나 긴 문장 제외
+      .filter(s => {
+        // 길이 필터링: 20~200자
+        if (s.length < 20 || s.length > 200) return false;
+        
+        // 의미 없는 문장 제외
+        if (s.match(/^[\d\s\-–—:,.·•]+$/)) return false; // 숫자/기호만
+        if (s.match(/^(제목|부제|소제목|[0-9]+\.)/) ) return false; // 제목 형식
+        if (s.split(/\s+/).length < 3) return false; // 단어 3개 미만
+        
+        return true;
+      });
     
-    console.log(`📝 총 ${sentences.length}개 문장 추출`);
+    console.log(`📝 총 ${sentences.length}개 의미있는 문장 추출`);
     
-    // 문장을 그룹으로 묶어서 검색 쿼리 생성 (2-3문장씩)
+    // 검색 쿼리 생성 전략
     const queries: string[] = [];
     
-    // 1. 2문장씩 묶어서 추가
-    for (let i = 0; i < sentences.length - 1; i += 2) {
-      const chunk = sentences.slice(i, i + 2).join('. ');
-      if (chunk.length >= 30 && chunk.length <= 150) {
-        queries.push(chunk);
-      }
-    }
-    
-    // 2. 3문장씩 묶어서 추가 (더 긴 매칭)
-    for (let i = 0; i < sentences.length - 2; i += 3) {
-      const chunk = sentences.slice(i, i + 3).join('. ');
-      if (chunk.length >= 50 && chunk.length <= 200) {
-        queries.push(chunk);
-      }
-    }
-    
-    // 3. 개별 문장 전체 추가 (3500자 이상도 전체 검사)
+    // 1. 개별 문장 (가장 정확한 매칭)
+    // 특징적인 문장 우선: 40~120자 범위
     const distinctiveSentences = sentences
-      .filter(s => s.length >= 40 && s.length <= 150);
+      .filter(s => s.length >= 40 && s.length <= 120)
+      .filter(s => {
+        // 일반적인 표현 제외
+        const commonPhrases = [
+          '알고 계신가요', '대해 알아보겠습니다', '주의가 필요합니다',
+          '도움이 됩니다', '중요합니다', '필요합니다'
+        ];
+        return !commonPhrases.some(phrase => s.includes(phrase));
+      });
     
     queries.push(...distinctiveSentences);
     
-    // 중복 제거 및 정렬 (긴 것부터) - 제한 없이 전체 검사
-    const uniqueQueries = [...new Set(queries)]
-      .sort((a, b) => b.length - a.length);
+    // 2. 2문장 조합 (문맥 포함)
+    for (let i = 0; i < sentences.length - 1; i += 2) {
+      const chunk = sentences.slice(i, i + 2).join('. ');
+      if (chunk.length >= 50 && chunk.length <= 180) {
+        queries.push(chunk);
+      }
+    }
     
-    console.log(`✅ 총 ${uniqueQueries.length}개 검색 쿼리 생성 (전체 콘텐츠 검사, 나무위키 제외)`);
-    console.log('📋 검색 쿼리 샘플:', uniqueQueries.slice(0, 3));
+    // 3. 긴 문장 (상세 설명)
+    const longSentences = sentences
+      .filter(s => s.length >= 80 && s.length <= 150);
+    queries.push(...longSentences.slice(0, 10)); // 상위 10개만
+    
+    // 중복 제거 및 우선순위 정렬
+    const uniqueQueries = [...new Set(queries)]
+      .sort((a, b) => {
+        // 1순위: 길이 (70~120자가 최적)
+        const lenDiffA = Math.abs(a.length - 95);
+        const lenDiffB = Math.abs(b.length - 95);
+        if (lenDiffA !== lenDiffB) return lenDiffA - lenDiffB;
+        
+        // 2순위: 긴 것부터
+        return b.length - a.length;
+      })
+      .slice(0, 50); // 최대 50개 쿼리로 제한 (성능 고려)
+    
+    console.log(`✅ ${uniqueQueries.length}개 검색 쿼리 생성 (의미있는 문장 위주)`);
+    console.log('📋 최우선 쿼리 샘플:');
+    uniqueQueries.slice(0, 3).forEach((q, i) => {
+      console.log(`   ${i + 1}. "${q.substring(0, 60)}..." (${q.length}자)`);
+    });
     
     return uniqueQueries;
   } catch (error) {
@@ -7490,21 +7518,25 @@ async function extractSearchQueries(content: string): Promise<string[]> {
 }
 
 /**
- * 네이버 크롤링으로 정확한 문장 검색 (Google API 불필요)
+ * 네이버 크롤링 + Google Custom Search로 정확한 문장 검색
+ * 1순위: 네이버 크롤링 (무료, 한국어 최적화)
+ * 2순위: Google Custom Search (환경변수 설정 시, 글로벌 검색)
  */
 async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
   try {
-    console.log('🔍 네이버 크롤링 검색 시작...');
+    console.log('🔍 외부 글 검색 시작...');
     console.log(`📝 검색할 문구 개수: ${keyPhrases.length}개`);
     
     const results = [];
+    let naverSuccessCount = 0;
+    let googleFallbackCount = 0;
     
     for (const phrase of keyPhrases) {
       try {
-        console.log(`  🔎 네이버 검색 중: "${phrase.substring(0, 50)}..."`);
+        console.log(`  🔎 검색 중: "${phrase.substring(0, 50)}..."`);
         
-        // 네이버 검색 페이지 크롤링 API 사용
-        const response = await fetch('/api/naver/crawl-search', {
+        // 1단계: 네이버 크롤링 시도
+        const naverResponse = await fetch('/api/naver/crawl-search', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -7515,60 +7547,108 @@ async function searchExactMatch(keyPhrases: string[]): Promise<any[]> {
           })
         });
         
-        console.log(`  📡 API 응답: ${response.status} ${response.statusText}`);
-        
-        if (!response.ok) {
-          let errorData;
-          try {
-            errorData = await response.json();
-          } catch {
-            errorData = await response.text();
+        if (naverResponse.ok) {
+          const naverData = await naverResponse.json();
+          
+          if (naverData.items && naverData.items.length > 0) {
+            // 네이버 블로그 정보 추출
+            const naverBlogs = naverData.items.map((item: any) => ({
+              title: item.title,
+              link: item.link,
+              snippet: item.description,
+              displayLink: item.bloggername,
+              source: '네이버 블로그'
+            }));
+            
+            results.push({
+              phrase,
+              matches: naverBlogs,
+              matchCount: naverData.items.length,
+              source: 'naver'
+            });
+            
+            naverSuccessCount++;
+            console.log(`  ✅ 네이버: ${naverData.items.length}건 발견`);
+            console.log(`     - "${naverBlogs[0].title}"`);
+            
+            // Rate Limit 고려
+            await new Promise(resolve => setTimeout(resolve, 800));
+            continue;
           }
-          console.error(`  ❌ 네이버 크롤링 오류: ${response.status}`, errorData);
-          continue; // 다음 문구로 계속
         }
         
-        const data = await response.json();
-        console.log(`  📊 검색 결과:`, data.total || 0, '건');
+        // 2단계: Google Custom Search 폴백 (네이버 실패 시)
+        console.log(`  🔄 네이버 결과 없음, Google 검색 시도...`);
         
-        if (data.items && data.items.length > 0) {
-          // 네이버 블로그 정보 추출
-          const naverBlogs = data.items.map((item: any) => ({
-            title: item.title,
-            link: item.link,
-            snippet: item.description,
-            displayLink: item.bloggername
-          }));
-          
-          results.push({
-            phrase,
-            matches: naverBlogs,
-            matchCount: data.items.length
+        try {
+          const googleResponse = await fetch('/api/google/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              q: `"${phrase}"`, // 따옴표로 정확한 문장 검색
+              num: 10 
+            })
           });
           
-          console.log(`  ✅ "${phrase.substring(0, 50)}..." - ${data.items.length}건 발견 (네이버 블로그)`);
-          console.log(`     첫 번째 매칭: ${naverBlogs[0].title}`);
-        } else {
-          console.log(`  ✅ "${phrase.substring(0, 50)}..." - 중복 없음`);
+          if (googleResponse.ok) {
+            const googleData = await googleResponse.json();
+            
+            if (googleData.items && googleData.items.length > 0) {
+              const googleResults = googleData.items.map((item: any) => ({
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet,
+                displayLink: item.displayLink,
+                source: 'Google'
+              }));
+              
+              results.push({
+                phrase,
+                matches: googleResults,
+                matchCount: googleData.items.length,
+                source: 'google'
+              });
+              
+              googleFallbackCount++;
+              console.log(`  ✅ Google: ${googleData.items.length}건 발견`);
+              console.log(`     - "${googleResults[0].title}"`);
+            } else {
+              console.log(`  ℹ️ Google 결과도 없음 - 독창적 문장`);
+            }
+          } else {
+            console.log(`  ⚠️ Google API 미설정 또는 오류`);
+          }
+        } catch (googleError) {
+          console.log(`  ⚠️ Google 검색 실패:`, googleError);
         }
+        
+        // Rate Limit 고려
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
       } catch (error) {
         console.error(`  ❌ 검색 실패: "${phrase.substring(0, 50)}..."`, error);
-        console.error(`  ❌ 에러 상세:`, error);
       }
-      
-      // Rate Limit 고려 (네이버 크롤링)
-      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    console.log(`✅ 네이버 검색 완료: ${results.length}개 문장에서 중복 발견`);
+    console.log('');
+    console.log('========================================');
+    console.log('📊 외부 글 검색 결과 요약');
+    console.log(`   - 검색한 문구: ${keyPhrases.length}개`);
+    console.log(`   - 네이버 매칭: ${naverSuccessCount}개`);
+    console.log(`   - Google 매칭: ${googleFallbackCount}개`);
+    console.log(`   - 중복 발견: ${results.length}개 문장`);
+    console.log('========================================');
+    console.log('');
     
     if (results.length === 0 && keyPhrases.length > 0) {
-      console.warn('⚠️ 네이버 검색 결과가 없습니다.');
+      console.log('✅ 모든 문장이 독창적입니다!');
     }
     
     return results;
   } catch (error) {
-    console.error('❌ 네이버 검색 실패:', error);
+    console.error('❌ 외부 글 검색 실패:', error);
     return [];
   }
 }
