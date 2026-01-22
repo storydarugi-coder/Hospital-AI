@@ -19,10 +19,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       });
     }
 
-    // 동적 날짜 계산: 1년 전 ~ 오늘
+    // 동적 날짜 계산: 6개월 전 ~ 오늘
     const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    const sixMonthsAgo = new Date(today);
+    sixMonthsAgo.setMonth(today.getMonth() - 6);
 
     // 네이버 검색 날짜 포맷: YYYYMMDD (점 없음!)
     const formatNaverDate = (date: Date): string => {
@@ -32,12 +32,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return `${year}${month}${day}`; // YYYYMMDD 형식
     };
 
-    const startDate = formatNaverDate(oneYearAgo); // 예: 20250120
-    const endDate = formatNaverDate(today);         // 예: 20260120
+    const startDate = formatNaverDate(sixMonthsAgo); // 예: 20250722
+    const endDate = formatNaverDate(today);          // 예: 20260122
 
     console.log('🔍 네이버 검색 크롤링:', query, '(최대', maxResults, '개)');
     console.log('🎯 정렬 방식: 정확도순 (관련성 높은 순서)');
-    console.log('📅 날짜 필터:', startDate, '~', endDate, '(최근 1년)');
+    console.log('📅 날짜 필터:', startDate, '~', endDate, '(최근 6개월)');
 
     const blogUrls: Array<{
       title: string;
