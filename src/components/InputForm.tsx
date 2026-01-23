@@ -156,9 +156,16 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
       <div className="grid grid-cols-5 p-2 bg-slate-100 rounded-2xl mb-8 gap-2">
         <button 
           type="button" 
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
             setPostType('blog');
             // blog도 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
           }}
           className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
@@ -183,9 +190,16 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
         </button>
         <button 
           type="button" 
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
             setPostType('card_news');
             // card_news는 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
           }}
           className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
@@ -194,9 +208,16 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
         </button>
         <button 
           type="button" 
-          onClick={() => {
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
             setPostType('press_release');
             // press도 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
           }}
           className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
