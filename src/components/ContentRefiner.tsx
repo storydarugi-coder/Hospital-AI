@@ -133,6 +133,9 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, onNavigate, da
         }
       }
       
+      // humanWritingPrompts import 필요
+      const { HUMAN_WRITING_RULES, MEDICAL_LAW_HUMAN_PROMPT } = await import('../utils/humanWritingPrompts');
+      
       const prompt = `당신은 의료 블로그 콘텐츠 편집 전문가입니다.
 
 ⚠️ 중요: 당신은 "수정자"이지 "새로 작성자"가 아닙니다!
@@ -168,7 +171,11 @@ ${crawledContent ? '\n🌐 크롤링한 웹사이트 내용을 참고하여 글�
 2. 나머지는 그대로 유지
 3. 전체를 다시 쓰지 말 것!
 
-[우선순위 2] 의료광고법 준수
+${HUMAN_WRITING_RULES}
+
+${MEDICAL_LAW_HUMAN_PROMPT}
+
+[우선순위 2] 추가 준수 사항
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 • 치료·개선·관리·효과 표현 금지
 • 수치·정량 표현 금지
@@ -194,6 +201,7 @@ ${crawledContent ? `
 □ 사용자가 요청한 부분만 수정했는가?
 □ 도입부/마무리를 추가하지 않았는가?
 □ 의료광고법을 준수했는가?
+□ 금지어(양상, 문제 등)를 사용하지 않았는가?
 
 수정된 HTML 콘텐츠만 반환해주세요 (설명 없이).`;
 
