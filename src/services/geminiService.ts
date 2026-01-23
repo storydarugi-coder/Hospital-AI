@@ -5476,7 +5476,8 @@ ${hospitalInfo}
     issues: [],
     recommendations: ['보도 전 법무팀 검토 권장', '인용 통계 출처 확인 필요', 'AI 냄새 점수 확인 - 문장 패턴 다양화 권장']
     },
-    postType: 'press_release'
+    postType: 'press_release',
+    cssTheme: request.cssTheme || 'modern' // CSS 테마 (기본값: modern)
   };
 };
 
@@ -5609,7 +5610,8 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
       postType: 'card_news',
       imageStyle: request.imageStyle,
       customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
-      cardPrompts: agentResult.cardPrompts // 재생성용 프롬프트 데이터
+      cardPrompts: agentResult.cardPrompts, // 재생성용 프롬프트 데이터
+      cssTheme: request.cssTheme || 'modern' // CSS 테마 (기본값: modern)
     };
     } catch (error) {
     console.error('미니 에이전트 방식 실패, 기존 방식으로 폴백:', error);
@@ -6080,7 +6082,8 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     postType: request.postType,
     imageStyle: request.imageStyle,
     customImagePrompt: request.customImagePrompt, // 커스텀 이미지 프롬프트 저장 (재생성용)
-    seoScore // SEO 점수 자동 포함
+    seoScore, // SEO 점수 자동 포함
+    cssTheme: request.cssTheme || 'modern' // CSS 테마 (기본값: modern)
   };
 };
 
