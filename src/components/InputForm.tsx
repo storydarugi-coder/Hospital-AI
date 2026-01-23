@@ -499,6 +499,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
             <textarea
               value={customSubheadings}
               onChange={(e) => setCustomSubheadings(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+              }}
               placeholder={"소제목을 한 줄에 하나씩 입력하세요\n예:\n무릎 통증의 주요 원인\n통증을 줄이는 생활 습관\n병원 방문이 필요한 시점"}
               className="w-full p-3 bg-white border border-blue-200 rounded-xl text-sm font-medium focus:border-blue-400 outline-none resize-none"
               rows={5}
@@ -587,6 +592,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange 
                <textarea
                  value={customPrompt}
                  onChange={(e) => setCustomPrompt(e.target.value)}
+                 onPaste={(e) => {
+                   e.preventDefault();
+                   const text = e.clipboardData.getData('text/plain');
+                   document.execCommand('insertText', false, text);
+                 }}
                  placeholder="예: 따뜻한 파스텔톤, 손그림 느낌의 일러스트, 부드러운 선, 귀여운 캐릭터 스타일..."
                  className="w-full p-3 bg-white border border-orange-200 rounded-xl text-sm font-medium focus:border-orange-400 outline-none resize-none"
                  rows={3}
