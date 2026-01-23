@@ -3050,6 +3050,8 @@ ${HUMAN_WRITING_RULES}
 
 ${MEDICAL_LAW_HUMAN_PROMPT}
 
+${PARAGRAPH_STRUCTURE_GUIDE}
+
 [진료과별 맞춤 가이드]
 ${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
   ? CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
@@ -3797,6 +3799,8 @@ ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 ${HUMAN_WRITING_RULES}
 
 ${MEDICAL_LAW_HUMAN_PROMPT}
+
+${PARAGRAPH_STRUCTURE_GUIDE}
 
 [진료과별 맞춤 가이드]
 ${request.category && CATEGORY_SPECIFIC_PROMPTS[request.category as unknown as keyof typeof CATEGORY_SPECIFIC_PROMPTS] 
