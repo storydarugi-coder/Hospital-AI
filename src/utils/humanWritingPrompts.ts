@@ -523,7 +523,7 @@ export function detectAiSmell(text: string): {
     { pattern: /측면에서/g, name: '~측면에서 (번역투 - AI 냄새!)', maxAllowed: 0 },
     { pattern: /관점에서/g, name: '~관점에서 (번역투 - AI 냄새!)', maxAllowed: 0 },
     { pattern: /~에\s*있어서/g, name: '~에 있어서 (번역투 - AI 냄새!)', maxAllowed: 0 },
-    { pattern: /측면|양상|양태/g, name: '측면/양상/양태 (번역투 논문체!)', maxAllowed: 1 },
+    { pattern: /측면|양상|양태/g, name: '측면/양상/양태 (번역투 논문체 - 완전 금지!)', maxAllowed: 0 },
     { pattern: /제공하다|제공됩니다/g, name: '제공하다 (번역투)', maxAllowed: 1 },
     { pattern: /발생하다|발생합니다/g, name: '발생하다 (번역투 - 생기다/나타나다로 변경)', maxAllowed: 2 },
     { pattern: /나타나다|나타납니다/g, name: '나타나다 (과다 사용 - 보이다/드러나다로 변경)', maxAllowed: 3 },
