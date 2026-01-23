@@ -277,11 +277,11 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
         const doc = parser.parseFromString(refinedContent, 'text/html');
         const decodedContent = doc.body.innerHTML;
         
-        // 깨끗한 HTML만 복사 (스타일 제거)
+        // 맑은 고딕 12pt로 복사
         const cleanHtml = decodedContent
-          .replace(/<p>/g, '<p style="margin: 0 0 1em 0;">')
-          .replace(/<ul>/g, '<ul style="margin: 0 0 1em 0; padding-left: 1.5em;">')
-          .replace(/<li>/g, '<li style="margin: 0.25em 0;">');
+          .replace(/<p>/g, '<p style="font-family: \'맑은 고딕\', \'Malgun Gothic\', sans-serif; font-size: 12pt; margin: 0 0 1em 0; line-height: 1.6;">')
+          .replace(/<ul>/g, '<ul style="font-family: \'맑은 고딕\', \'Malgun Gothic\', sans-serif; font-size: 12pt; margin: 0 0 1em 0; padding-left: 1.5em; line-height: 1.6;">')
+          .replace(/<li>/g, '<li style="font-family: \'맑은 고딕\', \'Malgun Gothic\', sans-serif; font-size: 12pt; margin: 0.25em 0; line-height: 1.6;">');
         
         // Clipboard API 사용 (권한 팝업 없음)
         const blob = new Blob([cleanHtml], { type: 'text/html' });
