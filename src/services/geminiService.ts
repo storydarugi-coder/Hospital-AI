@@ -137,6 +137,9 @@ interface GeminiCallConfig {
   schema?: any;
   timeout?: number;
   systemPrompt?: string;
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
 }
 
 async function callGemini(config: GeminiCallConfig): Promise<any> {
@@ -147,7 +150,11 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
     contents: config.systemPrompt 
       ? `${config.systemPrompt}\n\n${config.prompt}`
       : config.prompt,
-    config: {}
+    config: {
+      temperature: config.temperature || 0.85,  // 유려한 글쓰기를 위한 온도
+      topP: config.topP || 0.95,
+      maxOutputTokens: config.maxOutputTokens || 8192
+    }
   };
   
   // Google Search 설정
@@ -7230,7 +7237,16 @@ export const refineContentByMedicalLaw = async (
   safeProgress('📝 원본 콘텐츠 분석 중...');
   
   // SYSTEM_PROMPT + 모든 글쓰기 프롬프트 통합
-  const prompt = `당신은 의료 블로그 전문 에디터입니다.
+  const prompt = `[당신의 정체성]
+당신은 10년 경력의 의료 전문 작가입니다.
+독자들이 "이 글 읽기 편하네!", "이해가 쏙쏙 되네!"라고 말하는 글을 씁니다.
+
+당신의 특징:
+• 번역투 대신 자연스러운 일상 언어 사용
+• 추상적 표현 대신 구체적인 감각 묘사
+• 독자가 공감할 수 있는 상황 설정
+• 유려한 문장 흐름 (짧은 문장 → 중간 문장 → 긴 문장 리듬)
+• 딱딱한 의학 용어는 쉽게 풀어서 설명
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 미션: 자연스럽고 읽기 좋은 블로그 글로 다듬기
@@ -7239,8 +7255,12 @@ export const refineContentByMedicalLaw = async (
 [원본 글]
 ${textContent}
 
-위 글을 자연스럽고 유려한 블로그 글로 다듬어주세요.
-딱딱한 느낌을 없애고, 읽는 사람이 편하게 읽을 수 있도록 해주세요.
+[작업 순서 - 단계별로 생각하며 진행하세요]
+1단계: 원본의 핵심 메시지와 구조 파악
+2단계: AI 티 나는 표현 찾기 (번역투, 추상어, 종결어미 반복)
+3단계: 자연스러운 한국어 표현으로 교체
+4단계: 문장 흐름 개선 (짧음→중간→긴 리듬)
+5단계: 자기 검토 후 최종 수정
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✨ 작업 가이드
@@ -7294,14 +7314,36 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
    • 원본 소제목은 본문 첫 문장으로 흡수
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ 최종 체크
+🔍 자기 검토 (제출 전 필수!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-□ 자연스럽고 읽기 좋은 문체?
-□ 의료광고법 준수?
-□ 원본 길이 ±20% 이내?
-□ 문단 개수 동일?
-□ 딱딱한 표현 제거?
+작성한 글을 다시 읽고 다음을 확인하세요:
+
+□ **AI 냄새 제거?**
+   • 번역투: "양상", "요소", "측면", "관련이", "영향을 미치다"
+   • 추상어: "불편감" → "아프다", "거슬린다"
+   • 반복: 같은 종결어미 3번 이상?
+
+□ **문장 흐름 자연스러움?**
+   • 짧은 문장만? → 리듬 단조로움
+   • 긴 문장만? → 만연체
+   • 짧음→중간→긴 리듬 섞였는지?
+
+□ **구체적 감각 묘사?**
+   • "통증" → "욱신거리다", "찌릿하다", "묵직하다"
+   • 추상적 설명만 있는지 확인
+
+□ **의료광고법 준수?**
+   • 단정 표현: "치료됩니다" → "도움될 수 있어요"
+   • 수치/통계 제거
+   • 출처 명시 금지
+
+□ **원본과 비교?**
+   • 길이: ±20% 이내
+   • 문단 개수: 동일
+   • 핵심 메시지: 유지
+
+**문제가 발견되면 즉시 수정하세요!**
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 JSON 응답 형식
