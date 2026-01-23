@@ -299,19 +299,18 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
   const copyToClipboard = () => {
     if (refinedContent) {
       try {
-        // refinedContent는 이미 HTML 형식 (<p>, <ul>, <li> 태그 포함)
-        // 🎨 applyThemeToHtml 함수 사용 (ResultPreview와 동일한 방식)
-        let styledContent = applyThemeToHtml(refinedContent, 'modern');
-        
-        // 🔥 HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
+        // 🔥 1단계: HTML 엔티티 디코딩 먼저! (DOMParser 사용)
         const parser = new DOMParser();
-        const doc = parser.parseFromString(styledContent, 'text/html');
+        const doc = parser.parseFromString(refinedContent, 'text/html');
+        const decodedContent = doc.body.innerHTML;
+        
+        // 🎨 2단계: 디코딩된 HTML에 스타일 적용
+        let styledContent = applyThemeToHtml(decodedContent, 'modern');
         
         // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
         const tempDiv = document.createElement('div');
         tempDiv.contentEditable = 'true';
-        // doc.body.innerHTML을 사용하여 디코딩된 HTML 적용
-        tempDiv.innerHTML = doc.body.innerHTML;
+        tempDiv.innerHTML = styledContent;
         tempDiv.style.position = 'fixed';
         tempDiv.style.left = '-9999px';
         tempDiv.style.top = '0';
@@ -333,7 +332,7 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
           document.body.removeChild(tempDiv);
           
           if (success) {
-            console.log('✅ HTML 복사 성공 (스타일 포함)');
+            console.log('✅ HTML 복사 성공 (스타일 포함, 네모 문자 없음)');
           } else {
             throw new Error('Copy failed');
           }
