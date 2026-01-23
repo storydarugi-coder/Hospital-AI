@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { refineContentByMedicalLaw } from '../services/geminiService';
 import { getAiClient } from '../services/geminiService';
+import { applyThemeToHtml } from '../utils/cssThemes';
+import type { CssTheme } from '../types';
 
 interface ContentRefinerProps {
   onClose: () => void;
@@ -241,26 +243,8 @@ ${crawledContent ? `
     if (refinedContent) {
       try {
         // refinedContent는 이미 HTML 형식 (<p>, <ul>, <li> 태그 포함)
-        // 티스토리/네이버 블로그에 맞게 인라인 스타일 추가
-        let styledContent = refinedContent;
-        
-        // <p> 태그에 기본 스타일 추가 (티스토리/네이버 블로그 호환)
-        styledContent = styledContent.replace(
-          /<p>/g, 
-          '<p style="margin: 0 0 16px 0; padding: 0; line-height: 1.8; font-size: 16px; color: #333;">'
-        );
-        
-        // <ul> 태그에 기본 스타일 추가
-        styledContent = styledContent.replace(
-          /<ul>/g,
-          '<ul style="margin: 0 0 16px 0; padding-left: 20px; line-height: 1.8;">'
-        );
-        
-        // <li> 태그에 기본 스타일 추가
-        styledContent = styledContent.replace(
-          /<li>/g,
-          '<li style="margin-bottom: 8px; line-height: 1.8; color: #333;">'
-        );
+        // 🎨 applyThemeToHtml 함수 사용 (ResultPreview와 동일한 방식)
+        let styledContent = applyThemeToHtml(refinedContent, 'modern');
         
         // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
         const tempDiv = document.createElement('div');
