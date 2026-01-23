@@ -7296,6 +7296,8 @@ ${HUMAN_WRITING_RULES}
 
 ${MEDICAL_LAW_HUMAN_PROMPT}
 
+${PARAGRAPH_STRUCTURE_GUIDE}
+
 🔍 Google Search 활용:
   • 질병관리청, 보건복지부 등 공공기관 최신 정보 확인 가능
   • 검색한 내용은 참고만 하고 출처는 절대 명시하지 말 것

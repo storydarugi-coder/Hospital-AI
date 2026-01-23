@@ -134,7 +134,7 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, onNavigate, da
       }
       
       // humanWritingPrompts import 필요
-      const { HUMAN_WRITING_RULES, MEDICAL_LAW_HUMAN_PROMPT } = await import('../utils/humanWritingPrompts');
+      const { HUMAN_WRITING_RULES, MEDICAL_LAW_HUMAN_PROMPT, PARAGRAPH_STRUCTURE_GUIDE } = await import('../utils/humanWritingPrompts');
       
       const prompt = `당신은 의료 블로그 콘텐츠 편집 전문가입니다.
 
@@ -174,6 +174,8 @@ ${crawledContent ? '\n🌐 크롤링한 웹사이트 내용을 참고하여 글�
 ${HUMAN_WRITING_RULES}
 
 ${MEDICAL_LAW_HUMAN_PROMPT}
+
+${PARAGRAPH_STRUCTURE_GUIDE}
 
 [우선순위 2] 추가 준수 사항
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
