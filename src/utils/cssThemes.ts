@@ -71,16 +71,30 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   
   let result = html;
   
-  // 컨테이너 스타일 적용 (class 기반)
-  result = result.replace(
-    /<div class="naver-post-container"[^>]*>/g,
-    `<div class="naver-post-container" style="${t.containerStyle}">`
-  );
+  // 🎨 컨테이너가 없으면 자동으로 감싸기
+  if (!result.includes('class="naver-post-container"')) {
+    result = `<div class="naver-post-container" style="${t.containerStyle}">${result}</div>`;
+  } else {
+    // 컨테이너 스타일 적용 (class 기반)
+    result = result.replace(
+      /<div class="naver-post-container"[^>]*>/g,
+      `<div class="naver-post-container" style="${t.containerStyle}">`
+    );
+  }
   
   // 메인 제목 (h2.main-title) 스타일 적용
   result = result.replace(
     /<h2 class="main-title"[^>]*>/g,
     `<h2 class="main-title" style="${t.mainTitleStyle}">`
+  );
+  
+  // 🔥 h2 태그 (main-title 클래스 없는 경우) 스타일 적용
+  result = result.replace(
+    /<h2(?![^>]*class="main-title")([^>]*)>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<h2${cleaned} style="${t.mainTitleStyle}">`;
+    }
   );
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
@@ -100,6 +114,31 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
       // 기존 style 속성 제거
       const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
       return `<p${cleaned} style="${t.pStyle}">`;
+    }
+  );
+  
+  // 🔥 ul, ol 리스트 스타일 추가 (네이버 블로그 최적화)
+  result = result.replace(
+    /<ul(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<ul${cleaned} style="margin:20px 0; padding-left:30px; line-height:1.9;">`;
+    }
+  );
+  
+  result = result.replace(
+    /<ol(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<ol${cleaned} style="margin:20px 0; padding-left:30px; line-height:1.9;">`;
+    }
+  );
+  
+  result = result.replace(
+    /<li(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<li${cleaned} style="font-size:17px; color:#333; margin-bottom:12px; line-height:1.85;">`;
     }
   );
   
