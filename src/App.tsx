@@ -40,6 +40,20 @@ const App: React.FC = () => {
     progress: '',
   });
   
+  // 각 탭별 독립적인 상태 관리
+  const [blogState, setBlogState] = useState<GenerationState>({
+    isLoading: false,
+    error: null,
+    data: null,
+    progress: '',
+  });
+  const [pressState, setPressState] = useState<GenerationState>({
+    isLoading: false,
+    error: null,
+    data: null,
+    progress: '',
+  });
+  
   // Supabase 인증 상태
   const [_supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [_userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -55,6 +69,20 @@ const App: React.FC = () => {
   
   // 오른쪽 콘텐츠 탭
   const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'refine' | 'card_news' | 'press'>('blog');
+  
+  // 현재 탭에 맞는 state 가져오기
+  const getCurrentState = (): GenerationState => {
+    if (contentTab === 'press') return pressState;
+    if (contentTab === 'blog' || contentTab === 'card_news') return blogState;
+    return state; // similarity, refine
+  };
+  
+  // 현재 탭에 맞는 setState 가져오기
+  const getCurrentSetState = (): React.Dispatch<React.SetStateAction<GenerationState>> => {
+    if (contentTab === 'press') return setPressState;
+    if (contentTab === 'blog' || contentTab === 'card_news') return setBlogState;
+    return setState;
+  };
   
   // 카드뉴스 3단계 워크플로우 상태
   // 1단계: 원고 생성 → 2단계: 프롬프트 확인 → 3단계: 이미지 생성
@@ -458,6 +486,7 @@ const App: React.FC = () => {
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
     if (request.postType === 'card_news') {
       console.log('🎴 카드뉴스 모드 시작');
+      setContentTab('card_news'); // 카드뉴스 탭으로 이동
       setIsGeneratingScript(true);
       setCardNewsScript(null);
       setPendingRequest(request);
@@ -476,14 +505,24 @@ const App: React.FC = () => {
       return;
     }
 
-    // 블로그: 기존 플로우 (한 번에 생성)
+    // 블로그/언론보도: 기존 플로우 (한 번에 생성)
     console.log('📝 블로그/보도자료 모드 시작');
-    setState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
+    
+    // 🔥 탭 자동 전환 + 언론보도는 pressState에, 블로그는 blogState에 저장
+    if (request.postType === 'press_release') {
+      setContentTab('press'); // 언론보도 탭으로 이동
+    } else {
+      setContentTab('blog'); // 블로그 탭으로 이동
+    }
+    
+    const targetSetState = request.postType === 'press_release' ? setPressState : setBlogState;
+    
+    targetSetState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
     
     console.log('🚀 generateFullPost 호출 시작');
     try {
-      const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
-      setState({ isLoading: false, error: null, data: result, progress: '' });
+      const result = await generateFullPost(request, (p) => targetSetState(prev => ({ ...prev, progress: p })));
+      targetSetState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 🆕 API 서버에 자동 저장
       try {
@@ -561,7 +600,7 @@ const App: React.FC = () => {
        const friendlyError = isNetworkError 
          ? '⚠️ 인터넷 연결이 불안정합니다. 네트워크 상태를 확인하고 다시 시도해주세요.'
          : `❌ 오류 발생: ${errorMsg}`;
-       setState(prev => ({ ...prev, isLoading: false, error: friendlyError }));
+       targetSetState(prev => ({ ...prev, isLoading: false, error: friendlyError }));
        setMobileTab('input');
     }
   };
@@ -991,13 +1030,13 @@ const App: React.FC = () => {
                 category={pendingRequest?.category}
               />
             </Suspense>
-          ) : state.isLoading || isGeneratingScript ? (
+          ) : (getCurrentState().isLoading || isGeneratingScript) ? (
             <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
               <div className="relative mb-10">
                 <div className={`w-24 h-24 border-8 border-t-emerald-500 rounded-full animate-spin ${darkMode ? 'border-slate-700' : 'border-emerald-50'}`}></div>
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
-              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{state.progress || scriptProgress}</h2>
+              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{getCurrentState().progress || scriptProgress}</h2>
               <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
                 {pendingRequest?.postType === 'card_news' 
                   ? '카드뉴스 원고를 생성하고 있습니다...' 
@@ -1006,9 +1045,9 @@ const App: React.FC = () => {
                   : <>네이버 스마트블록 노출을 위한 최적의<br/>의료 콘텐츠를 생성하고 있습니다.</>}
               </p>
             </div>
-          ) : state.data ? (
+          ) : getCurrentState().data ? (
             <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
-              <ResultPreview content={state.data} darkMode={darkMode} />
+              <ResultPreview content={getCurrentState().data!} darkMode={darkMode} />
             </Suspense>
           ) : (
             <div className={`h-full rounded-[40px] shadow-2xl border flex flex-col items-center justify-center p-20 text-center group transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
@@ -1031,23 +1070,26 @@ const App: React.FC = () => {
 
 
       {/* API 에러 모달 */}
-      {state.error && (
+      {(getCurrentState().error || state.error) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`rounded-3xl p-8 max-w-md w-full shadow-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-xl font-black flex items-center gap-2 ${
-                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? 'text-amber-600'
                   : 'text-red-600'
               }`}>
-                {state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                {(getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? '⚠️ API 사용량 한도 초과'
-                  : state.error.includes('네트워크') || state.error.includes('인터넷')
+                  : (getCurrentState().error || state.error || '').includes('네트워크') || (getCurrentState().error || state.error || '').includes('인터넷')
                   ? '📡 네트워크 오류'
                   : '❌ 오류 발생'}
               </h3>
               <button 
-                onClick={() => setState(prev => ({ ...prev, error: null }))}
+                onClick={() => {
+                  getCurrentSetState()(prev => ({ ...prev, error: null }));
+                  setState(prev => ({ ...prev, error: null }));
+                }}
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                   darkMode ? 'bg-slate-700 text-slate-400 hover:bg-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
@@ -1057,19 +1099,19 @@ const App: React.FC = () => {
             </div>
             
             <div className={`rounded-xl p-4 mb-6 ${
-              state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+              (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                 ? darkMode ? 'bg-amber-900/30 border border-amber-700' : 'bg-amber-50 border border-amber-200'
                 : darkMode ? 'bg-red-900/30 border border-red-700' : 'bg-red-50 border border-red-200'
             }`}>
               <p className={`text-sm font-medium mb-3 ${
-                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? darkMode ? 'text-amber-300' : 'text-amber-700'
                   : darkMode ? 'text-red-300' : 'text-red-700'
               }`}>
-                {state.error}
+                {getCurrentState().error || state.error}
               </p>
               
-              {(state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')) && (
+              {((getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')) && (
                 <div className={`text-xs space-y-1 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
                   <p>• Gemini API 일일 사용량 한도에 도달했습니다.</p>
                   <p>• 보통 1-2시간 후 다시 사용 가능합니다.</p>
