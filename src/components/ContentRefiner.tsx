@@ -553,30 +553,6 @@ ${crawledContent ? `
                     </div>
                   </div>
                 )}
-                
-                {/* 다음 단계로 이동 버튼 */}
-                {refinedContent && onNavigate && (
-                  <div className={`mt-4 p-4 rounded-lg ${darkMode ? 'bg-slate-800 border border-slate-700' : 'bg-blue-50 border border-blue-200'}`}>
-                    <h3 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
-                      ✨ 다음 단계로 이동
-                    </h3>
-                    <button
-                      onClick={() => {
-                        // 수정된 내용을 클립보드에 복사
-                        navigator.clipboard.writeText(refinedContent);
-                        // 블로그 탭으로 이동
-                        onNavigate('blog');
-                      }}
-                      className={`w-full px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                        darkMode 
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-500' 
-                          : 'bg-green-500 text-white hover:bg-green-600'
-                      }`}
-                    >
-                      📝 블로그 가기
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="h-full flex items-center justify-center">
