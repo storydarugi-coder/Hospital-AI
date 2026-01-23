@@ -1246,6 +1246,17 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     return text
       .replace(/\s+/g, ' ')  // 연속 공백을 하나로
       .replace(/\n+/g, ' ')  // 줄바꿈을 공백으로
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width 문자 제거
+      .replace(/[^\x20-\x7E\uAC00-\uD7A3\u3131-\u318E\u1100-\u11FF]/g, (char) => {
+        // 한글, 영문, 숫자, 기본 특수문자 외에는 대체
+        const code = char.charCodeAt(0);
+        // 이모지 범위 확인 (U+1F300-U+1F9FF)
+        if (code >= 0x1F300 && code <= 0x1F9FF) {
+          return char; // 이모지는 유지
+        }
+        // 그 외 특수 유니코드는 공백으로
+        return ' ';
+      })
       .trim();
   };
 
