@@ -272,55 +272,55 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
   const copyToClipboard = () => {
     if (refinedContent) {
       try {
-        // 🔥 1단계: HTML 엔티티 디코딩 먼저! (DOMParser 사용)
+        // HTML 엔티티 디코딩
         const parser = new DOMParser();
         const doc = parser.parseFromString(refinedContent, 'text/html');
         const decodedContent = doc.body.innerHTML;
         
-        // 🎨 2단계: 디코딩된 HTML에 스타일 적용
-        let styledContent = applyThemeToHtml(decodedContent, 'modern');
+        // 깨끗한 HTML만 복사 (스타일 제거)
+        const cleanHtml = decodedContent
+          .replace(/<p>/g, '<p style="margin: 0 0 1em 0;">')
+          .replace(/<ul>/g, '<ul style="margin: 0 0 1em 0; padding-left: 1.5em;">')
+          .replace(/<li>/g, '<li style="margin: 0.25em 0;">');
         
-        // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
-        const tempDiv = document.createElement('div');
-        tempDiv.contentEditable = 'true';
-        tempDiv.innerHTML = styledContent;
-        tempDiv.style.position = 'fixed';
-        tempDiv.style.left = '-9999px';
-        tempDiv.style.top = '0';
-        document.body.appendChild(tempDiv);
+        // Clipboard API 사용 (권한 팝업 없음)
+        const blob = new Blob([cleanHtml], { type: 'text/html' });
+        const blobText = new Blob([decodedContent.replace(/<[^>]*>/g, '')], { type: 'text/plain' });
         
-        // 범위 선택
-        const range = document.createRange();
-        range.selectNodeContents(tempDiv);
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
+        const clipboardItem = new ClipboardItem({
+          'text/html': blob,
+          'text/plain': blobText
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
+          console.log('✅ HTML 복사 성공 (깨끗한 형식)');
+          alert('복사 완료! 워드에 붙여넣기 하세요.');
+        }).catch(err => {
+          console.error('Clipboard API 실패, fallback 시도:', err);
+          // Fallback: execCommand 방식
+          const tempDiv = document.createElement('div');
+          tempDiv.contentEditable = 'true';
+          tempDiv.innerHTML = cleanHtml;
+          tempDiv.style.position = 'fixed';
+          tempDiv.style.left = '-9999px';
+          document.body.appendChild(tempDiv);
           
-          // execCommand로 복사 (권한 팝업 없음)
-          const success = document.execCommand('copy');
-          
-          // 정리
-          selection.removeAllRanges();
-          document.body.removeChild(tempDiv);
-          
-          if (success) {
-            console.log('✅ HTML 복사 성공 (스타일 포함, 네모 문자 없음)');
-          } else {
-            throw new Error('Copy failed');
+          const range = document.createRange();
+          range.selectNodeContents(tempDiv);
+          const selection = window.getSelection();
+          if (selection) {
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            selection.removeAllRanges();
           }
-        }
+          document.body.removeChild(tempDiv);
+          console.log('✅ HTML 복사 성공 (fallback)');
+          alert('복사 완료! 워드에 붙여넣기 하세요.');
+        });
       } catch (err) {
         console.error('❌ 복사 실패:', err);
-        // Fallback: 텍스트만 복사
-        const tempTextArea = document.createElement('textarea');
-        tempTextArea.value = refinedContent.replace(/<[^>]*>/g, '');
-        tempTextArea.style.position = 'fixed';
-        tempTextArea.style.left = '-9999px';
-        document.body.appendChild(tempTextArea);
-        tempTextArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempTextArea);
+        alert('복사에 실패했습니다.');
       }
     }
   };
@@ -526,7 +526,7 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
                     : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
                 }`}
               >
-                📋 복사
+                복사
               </button>
             )}
           </div>
