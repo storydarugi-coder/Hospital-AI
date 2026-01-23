@@ -1247,15 +1247,19 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       .replace(/\s+/g, ' ')  // 연속 공백을 하나로
       .replace(/\n+/g, ' ')  // 줄바꿈을 공백으로
       .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width 문자 제거
-      .replace(/[^\x20-\x7E\uAC00-\uD7A3\u3131-\u318E\u1100-\u11FF]/g, (char) => {
-        // 한글, 영문, 숫자, 기본 특수문자 외에는 대체
+      .replace(/[\u0332-\u0338]/g, '') // Combining 밑줄 문자 제거 (̲)
+      .replace(/[\u035C-\u0362]/g, '') // 기타 Combining 문자 제거
+      .replace(/[^\x20-\x7E\uAC00-\uD7A3\u3131-\u318E\u1100-\u11FF\u3000-\u303F\uFF00-\uFFEF]/g, (char) => {
+        // 한글, 영문, 숫자, 기본 특수문자, 한글 자모, CJK 기호 외에는 검사
         const code = char.charCodeAt(0);
-        // 이모지 범위 확인 (U+1F300-U+1F9FF)
-        if (code >= 0x1F300 && code <= 0x1F9FF) {
+        // 이모지 범위 확인 (U+1F300-U+1F9FF, U+2600-U+26FF, U+2700-U+27BF)
+        if ((code >= 0x1F300 && code <= 0x1F9FF) ||
+            (code >= 0x2600 && code <= 0x26FF) ||
+            (code >= 0x2700 && code <= 0x27BF)) {
           return char; // 이모지는 유지
         }
-        // 그 외 특수 유니코드는 공백으로
-        return ' ';
+        // 그 외 특수 유니코드는 제거
+        return '';
       })
       .trim();
   };
