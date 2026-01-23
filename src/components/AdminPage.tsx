@@ -183,13 +183,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setLoadingData(false);
   }, []);
 
-  // 블로그 이력 로드 함수
-  const loadBlogHistory = useCallback(async () => {
+  // 블로그 이력 로드 함수 (재시도 로직 포함)
+  const loadBlogHistory = useCallback(async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     setLoadingData(true);
     setDataError('');
     
     try {
-      console.log('[Admin] 블로그 이력 로드 시작...');
+      console.log('[Admin] 블로그 이력 로드 시작...', retryCount > 0 ? `(재시도 ${retryCount}/${MAX_RETRIES})` : '');
       console.log('[Admin] Supabase 클라이언트:', supabase ? '✅ 존재' : '❌ 없음');
       
       const { data: blogsData, error: blogsError } = await supabase
@@ -206,10 +208,19 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       
       if (blogsError) {
         console.error('블로그 이력 로드 에러:', blogsError);
+        
+        // 네트워크 오류 시 재시도
+        if ((blogsError.message?.includes('fetch') || blogsError.message?.includes('network')) && retryCount < MAX_RETRIES) {
+          console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
+          setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+          return loadBlogHistory(retryCount + 1);
+        }
+        
         if (blogsError.code === '42P01' || blogsError.message?.includes('does not exist')) {
           setDataError('⚠️ blog_history 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
         } else {
-          setDataError(`블로그 이력 로드 실패: ${blogsError.message || blogsError.code || '알 수 없는 오류'}`);
+          setDataError(`블로그 이력 로드 실패: ${blogsError.message || blogsError.code || '알 수 없는 오류'}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
         }
       } else {
         console.log(`[Admin] ✅ 블로그 ${blogsData?.length || 0}개 로드 완료`);
@@ -226,7 +237,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
         message: errorMsg,
         stack: err instanceof Error ? err.stack : undefined
       });
-      setDataError(`블로그 이력 로드 실패: ${errorMsg}`);
+      
+      // 네트워크 오류 시 재시도
+      if (errorMsg.includes('fetch') && retryCount < MAX_RETRIES) {
+        console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
+        setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+        return loadBlogHistory(retryCount + 1);
+      }
+      
+      setDataError(`블로그 이력 로드 실패: ${errorMsg}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
     }
     setLoadingData(false);
   }, []);
