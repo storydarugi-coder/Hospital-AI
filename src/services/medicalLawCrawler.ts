@@ -115,7 +115,7 @@ async function crawlAndUpdateMedicalLaw(): Promise<void> {
     });
     
     if (!response.ok) {
-      console.warn('⚠️ 크롤링 실패, 기본 규칙 사용');
+      // 크롤링 실패 시 조용히 기본 규칙 사용
       await saveDefaultRulesToCache();
       return;
     }
