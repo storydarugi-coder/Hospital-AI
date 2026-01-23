@@ -152,11 +152,7 @@ const ScriptPreview: React.FC<ScriptPreviewProps> = ({
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1.5 bg-white/20 rounded-xl text-white text-xs font-bold">
-              1단계: 원고 확인
-            </span>
-          </div>
+          {/* 단계 표시 제거 - 불필요한 정보 */}
         </div>
       </div>
 

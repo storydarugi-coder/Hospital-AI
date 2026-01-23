@@ -552,53 +552,21 @@ ${crawledContent ? `
                     <h3 className={`text-sm font-bold mb-3 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
                       ✨ 다음 단계로 이동
                     </h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          // 수정된 내용을 클립보드에 복사
-                          navigator.clipboard.writeText(refinedContent);
-                          // 블로그 탭으로 이동
-                          onNavigate('blog');
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                          darkMode 
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-500' 
-                            : 'bg-green-500 text-white hover:bg-green-600'
-                        }`}
-                      >
-                        📝 블로그 가기
-                      </button>
-                      <button
-                        onClick={() => {
-                          // 수정된 내용을 클립보드에 복사
-                          navigator.clipboard.writeText(refinedContent);
-                          // 카드뉴스 탭으로 이동
-                          onNavigate('card_news');
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                          darkMode 
-                            ? 'bg-purple-600 text-white hover:bg-purple-500' 
-                            : 'bg-purple-500 text-white hover:bg-purple-600'
-                        }`}
-                      >
-                        🎴 카드뉴스 가기
-                      </button>
-                      <button
-                        onClick={() => {
-                          // 수정된 내용을 클립보드에 복사
-                          navigator.clipboard.writeText(refinedContent);
-                          // 언론보도 탭으로 이동
-                          onNavigate('press');
-                        }}
-                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                          darkMode 
-                            ? 'bg-blue-600 text-white hover:bg-blue-500' 
-                            : 'bg-blue-500 text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        📰 언론보도 가기
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        // 수정된 내용을 클립보드에 복사
+                        navigator.clipboard.writeText(refinedContent);
+                        // 블로그 탭으로 이동
+                        onNavigate('blog');
+                      }}
+                      className={`w-full px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                        darkMode 
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-500' 
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      }`}
+                    >
+                      📝 블로그 가기
+                    </button>
                   </div>
                 )}
               </div>
