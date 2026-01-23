@@ -246,10 +246,15 @@ ${crawledContent ? `
         // 🎨 applyThemeToHtml 함수 사용 (ResultPreview와 동일한 방식)
         let styledContent = applyThemeToHtml(refinedContent, 'modern');
         
+        // 🔥 HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(styledContent, 'text/html');
+        
         // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
         const tempDiv = document.createElement('div');
         tempDiv.contentEditable = 'true';
-        tempDiv.innerHTML = styledContent;
+        // doc.body.innerHTML을 사용하여 디코딩된 HTML 적용
+        tempDiv.innerHTML = doc.body.innerHTML;
         tempDiv.style.position = 'fixed';
         tempDiv.style.left = '-9999px';
         tempDiv.style.top = '0';
