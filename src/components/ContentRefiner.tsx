@@ -371,6 +371,11 @@ ${crawledContent ? `
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text/plain');
+                  document.execCommand('insertText', false, text);
+                }}
                 placeholder="수정할 블로그 글을 붙여넣으세요..."
                 className={`flex-1 p-4 rounded-xl border resize-none font-mono text-sm ${
                   darkMode
@@ -447,6 +452,11 @@ ${crawledContent ? `
                       ref={chatTextareaRef}
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const text = e.clipboardData.getData('text/plain');
+                        document.execCommand('insertText', false, text);
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey && !isChatting) {
                           e.preventDefault();
