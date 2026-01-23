@@ -651,7 +651,7 @@ const translateStylePromptToKorean = async (englishPrompt: string): Promise<stri
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_MODEL.PRO,
       contents: `다음 이미지 스타일 프롬프트를 자연스러운 한국어로 번역해주세요.
 전문 용어는 유지하고, 의미를 정확히 전달해주세요.
 

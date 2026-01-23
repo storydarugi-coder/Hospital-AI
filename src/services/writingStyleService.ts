@@ -1,6 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { LearnedWritingStyle } from "../types";
 
+const GEMINI_MODEL = {
+  PRO: 'gemini-3-pro-preview',
+} as const;
+
 const getAiClient = () => {
   const apiKey = localStorage.getItem('GEMINI_API_KEY');
   if (!apiKey) {
@@ -17,7 +21,7 @@ export const extractTextFromImage = async (base64Image: string): Promise<string>
   
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_MODEL.PRO,
       contents: [
         {
           role: 'user',
@@ -83,7 +87,7 @@ export const extractTextFromDocument = async (file: File): Promise<string> => {
         : 'application/msword';
     
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_MODEL.PRO,
       contents: [
         {
           role: 'user',
@@ -169,7 +173,7 @@ JSON으로 답변해주세요:
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: GEMINI_MODEL.PRO,
       contents: prompt,
       config: {
         responseMimeType: "application/json",
