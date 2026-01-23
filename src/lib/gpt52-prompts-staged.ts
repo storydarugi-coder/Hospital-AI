@@ -714,7 +714,7 @@ ${MEDICAL_ADVERTISING_LAW_FULL}
 /**
  * 1단계: 콘텐츠 생성 + SEO
  */
-export const getStage1_ContentGeneration = (textLength: number = 2000) => {
+export const getStage1_ContentGeneration = (textLength: number = 1500) => {
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 1단계: 콘텐츠 생성 - 즉시 실행
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -872,7 +872,7 @@ export const getStage1_ContentGeneration = (textLength: number = 2000) => {
 /**
  * 2단계: AI 제거 + 최종 검증
  */
-export const getStage2_AiRemovalAndCompliance = (textLength: number = 2000) => {
+export const getStage2_AiRemovalAndCompliance = (textLength: number = 1500) => {
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔍 2단계: AI 제거 및 최종 검증 - 철저히 확인
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1107,7 +1107,7 @@ export const getStage4_FinalCheck = () => getStage2_AiRemovalAndCompliance();
 /**
  * 프롬프트 가져오기
  */
-export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 2000): string => {
+export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 1500): string => {
   switch (stageNumber) {
     case 1:
       return getStage1_ContentGeneration(textLength);
@@ -1125,12 +1125,12 @@ export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 
 /**
  * 전체 프롬프트 (시스템 + 단계별)
  */
-export const getFullPrompt = (stageNumber: 1 | 2, textLength: number = 2000) => ({
+export const getFullPrompt = (stageNumber: 1 | 2, textLength: number = 1500) => ({
   system: SYSTEM_PROMPT,
   user: getStagePrompt(stageNumber, textLength)
 });
 
-export const getAllStages = (textLength: number = 2000) => ({
+export const getAllStages = (textLength: number = 1500) => ({
   system: SYSTEM_PROMPT,
   stage1: getStage1_ContentGeneration(textLength),
   stage2: getStage2_AiRemovalAndCompliance(textLength)

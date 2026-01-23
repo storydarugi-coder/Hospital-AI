@@ -3405,7 +3405,7 @@ export const generateBlogPostText = async (request: GenerationRequest, onProgres
   const safeProgress = onProgress || ((msg: string) => console.log('📍 BlogText Progress:', msg));
   const ai = getAiClient();
   const isCardNews = request.postType === 'card_news';
-  const targetLength = request.textLength || 2000;
+  const targetLength = request.textLength || 1500;
   const targetSlides = request.slideCount || 6;
   
   // 스타일 참고 이미지 분석 (카드뉴스일 때만 - 표지/본문 분리)
