@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 
-// Supabase 설정 - 하드코딩 (Cloudflare Pages 배포 시 환경변수로 교체 권장)
-const SUPABASE_URL = 'https://giiatpxkhponcbduyzci.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpaWF0cHhraHBvbmNiZHV5emNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MzA0MzksImV4cCI6MjA4MzAwNjQzOX0.YsjqdemCH18UcK_fIa6yTulQkw00AemZeROhTaFIpBg';
+// Supabase 설정 - 환경변수 우선, 없으면 하드코딩 값 사용
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://giiatpxkhponcbduyzci.supabase.co';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdpaWF0cHhraHBvbmNiZHV5emNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc0MzA0MzksImV4cCI6MjA4MzAwNjQzOX0.YsjqdemCH18UcK_fIa6yTulQkw00AemZeROhTaFIpBg';
+
+console.log('[Supabase] 초기화:', {
+  url: SUPABASE_URL,
+  keyPrefix: SUPABASE_ANON_KEY.substring(0, 20) + '...',
+  fromEnv: !!import.meta.env.VITE_SUPABASE_URL
+});
 
 // Supabase 클라이언트 생성
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -60,7 +66,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
         full_name: name,
         avatar_url: null,
         created_at: new Date().toISOString()
-      }, { onConflict: 'id' });
+      } as any, { onConflict: 'id' });
       
       // subscriptions 테이블에 무료 플랜 생성
       await supabase.from('subscriptions').upsert({
@@ -69,7 +75,7 @@ export const signUpWithEmail = async (email: string, password: string, name: str
         credits_total: 3,
         credits_used: 0,
         expires_at: null
-      }, { onConflict: 'user_id' });
+      } as any, { onConflict: 'user_id' });
       
       console.log('✅ 프로필 및 구독 정보 생성 완료:', data.user.email);
     } catch (profileError) {
@@ -105,7 +111,7 @@ export const signInWithEmail = async (email: string, password: string) => {
           full_name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || '사용자',
           avatar_url: data.user.user_metadata?.avatar_url || null,
           created_at: new Date().toISOString()
-        }, { onConflict: 'id' });
+        } as any, { onConflict: 'id' });
         
         // subscriptions도 없으면 생성
         await supabase.from('subscriptions').upsert({
@@ -114,7 +120,7 @@ export const signInWithEmail = async (email: string, password: string) => {
           credits_total: 3,
           credits_used: 0,
           expires_at: null
-        }, { onConflict: 'user_id' });
+        } as any, { onConflict: 'user_id' });
         
         console.log('✅ 기존 유저 프로필 자동 생성:', data.user.email);
       }
@@ -126,7 +132,7 @@ export const signInWithEmail = async (email: string, password: string) => {
   return { data, error };
 };
 
-export const signInWithOAuth = async (provider: 'google') => {
+export const signInWithOAuth = async (_provider: 'google') => {
   // OAuth 리다이렉트 URL - Supabase가 콜백 시 #access_token을 추가함
   // 따라서 baseURL만 지정하고, 인증 후 App.tsx에서 hash를 파싱
   const redirectUrl = window.location.origin;

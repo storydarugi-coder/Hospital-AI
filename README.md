@@ -1,11 +1,46 @@
 # Hospital Toolchain - 병원 블로그 마케팅 전용
 
-> 🚀 최신 업데이트: GPT-5.2 5단계 프롬프트 시스템 적용!
+> 🚀 최신 업데이트 (2026-01-20): 네이버 블로그 검색 및 크롤링 시스템 대폭 개선!
 
 ## 프로젝트 개요
 - **이름**: Hospital Toolchain
 - **목적**: 의료광고법을 준수하는 블로그 콘텐츠를 AI로 자동 생성
 - **기술 스택**: Hono + React + Cloudflare Pages + Google Gemini API + OpenAI GPT-5.2
+
+## 🆕 최신 업데이트 (2026-01-20)
+
+### 네이버 블로그 검색 및 크롤링 시스템 개선
+
+#### 1. 네이버 검색 파싱 로직 업데이트
+- **문제**: 네이버가 HTML 구조를 변경하여 검색 결과를 찾을 수 없었음
+- **해결**: 최신 HTML 구조에 맞게 파싱 로직 개선
+  - `headline1` 클래스를 사용한 제목 추출
+  - `body1` 클래스를 사용한 설명 추출
+  - `profile-info-title-text`를 사용한 블로거 이름 추출
+  - HTML 태그 제거 로직 개선
+
+#### 2. 네이버 블로그 크롤러 개선
+- **문제**: 블로그 내용이 15~50자만 추출되어 유사도 검사 실패
+- **원인**: 네이버 블로그는 iframe을 사용하며, 실제 내용은 PostView URL에 존재
+- **해결**: PostView URL로 자동 변환하여 본문 추출
+  - `https://blog.naver.com/blogId/logNo` → `https://blog.naver.com/PostView.naver?blogId=...&logNo=...`
+  - `se-text-paragraph` 클래스를 사용한 정확한 본문 추출
+  - HTML 엔티티 올바르게 디코딩
+  - 최대 문자 제한 10,000자로 증가
+- **결과**: 35개 문단, 2,757자 성공적으로 추출 (테스트 완료)
+
+#### 3. 최근 1년 날짜 필터 추가
+- **문제**: 오래된 블로그(2020년 등) 포함으로 인한 품질 저하
+- **해결**: 동적으로 최근 1년 콘텐츠만 검색
+  - 현재 날짜 기준 자동 계산 (예: 2025.01.20 ~ 2026.01.20)
+  - URL 파라미터 `&nso=so:r,p:1y` 추가
+  - 최신 의료 정보 및 트렌드 반영
+- **결과**: 유사도 검사 품질 향상, 관련성 높은 콘텐츠만 분석
+
+#### 4. 유사도 검사 기능 정상화
+- 네이버 블로그 검색 → 본문 크롤링 → 유사도 분석 전체 파이프라인 정상 작동
+- 크롤링 성공률 대폭 향상
+- 최신 콘텐츠만 분석하여 정확도 개선
 
 ## ⭐ 새로운 기능: 단계별 프롬프트 시스템
 
@@ -90,6 +125,37 @@ GPT-5.2의 토큰 제한과 프롬프트 복잡도 문제를 해결하기 위해
 - **상태**: 개발 서버 가동 중
 - **기술 스택**: Hono 4.x + React 19 + TypeScript + TailwindCSS
 
+### 🔧 Cloudflare 환경변수 설정 (필수)
+
+유사도 검사 기능을 사용하려면 다음 환경변수를 **Cloudflare Dashboard**에서 설정해야 합니다:
+
+#### 1. Google Custom Search API 설정
+
+1. **Google Cloud Console**에서 API 키 발급:
+   - https://console.cloud.google.com/
+   - "API 및 서비스" > "사용자 인증 정보"
+   - "사용자 인증 정보 만들기" > "API 키"
+   - API 키 생성 후 복사
+
+2. **Programmable Search Engine** 생성:
+   - https://programmablesearchengine.google.com/
+   - "새 검색 엔진 만들기"
+   - 검색할 사이트: `blog.naver.com`, `-namu.wiki`
+   - 검색 엔진 ID 복사
+
+3. **Cloudflare Dashboard에서 환경변수 설정**:
+   - Cloudflare Dashboard > Workers & Pages > 프로젝트 선택
+   - Settings > Environment variables
+   - 다음 변수 추가:
+     - `GOOGLE_API_KEY`: Google API 키
+     - `GOOGLE_SEARCH_ENGINE_ID`: Programmable Search Engine ID
+
+#### ⚠️ 주의사항
+
+- Google Custom Search API는 **무료 할당량 100쿼리/일** 제공
+- 유사도 검사 시 쿼리 수가 많으면 할당량 초과 가능
+- 상용 서비스의 경우 유료 플랜 고려 필요
+
 ## 개발 명령어
 ```bash
 # 개발 서버 시작
@@ -164,4 +230,16 @@ Private - 비공개 프로젝트
    - 단일 프롬프트 사용
 
 ---
-마지막 업데이트: 2026-01-08
+마지막 업데이트: 2026-01-20
+
+## 변경 이력
+
+### 2026-01-20
+- 네이버 블로그 검색 파싱 로직 업데이트 (최신 HTML 구조 대응)
+- 네이버 블로그 크롤러 개선 (PostView URL 사용, 본문 추출 정확도 향상)
+- 최근 1년 날짜 필터 추가 (동적 날짜 계산, 최신 콘텐츠만 검색)
+- 유사도 검사 기능 정상화
+
+### 2026-01-08
+- GPT-5.2 5단계 프롬프트 시스템 도입
+- 토큰 효율성 및 품질 향상

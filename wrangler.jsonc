@@ -3,5 +3,18 @@
   "name": "hospital-ai",
   "compatibility_date": "2024-12-30",
   "pages_build_output_dir": "./dist",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "APP_PASSWORD": "0000"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "API_KEYS",
+      "id": "c3e58f4d007b4462bb3db65c8eb5b2da"
+    },
+    {
+      "binding": "CONTENT_KV",
+      "id": "c9b8a80da1e14406af9dee9ba01ac058"
+    }
+  ]
 }

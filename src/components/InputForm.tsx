@@ -10,9 +10,10 @@ const CUSTOM_PROMPT_KEY = 'hospital_custom_image_prompt';
 interface InputFormProps {
   onSubmit: (data: GenerationRequest) => void;
   isLoading: boolean;
+  onTabChange?: (tab: 'blog' | 'similarity' | 'refine' | 'card_news' | 'press') => void;
 }
 
-const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
+const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading, onTabChange }) => {
   const [postType, setPostType] = useState<PostType>('blog');
   const [category, setCategory] = useState<ContentCategory>(CATEGORIES[0].value);
   const [audienceMode, setAudienceMode] = useState<AudienceMode>('환자용(친절/공감)');
@@ -37,7 +38,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     }
   }, []);
   
-  const [textLength, setTextLength] = useState<number>(2000);
+  const [textLength, setTextLength] = useState<number>(1500);
   const [slideCount, setSlideCount] = useState<number>(6);
   const [imageCount, setImageCount] = useState<number>(0); // 기본값 0장
   const [writingStyle, setWritingStyle] = useState<WritingStyle>('empathy'); // 기본값: 공감형
@@ -47,6 +48,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   
   // 🗞️ 보도자료용 state
   const [hospitalName, setHospitalName] = useState<string>('');
+  const [hospitalWebsite, setHospitalWebsite] = useState<string>('');
   const [doctorName, setDoctorName] = useState<string>('');
   const [doctorTitle, setDoctorTitle] = useState<string>('원장');
   const [pressType, setPressType] = useState<'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'>('achievement');
@@ -59,8 +61,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   const [seoTitles, setSeoTitles] = useState<SeoTitleItem[]>([]);
   const [isLoadingTitles, setIsLoadingTitles] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     console.log('🔵 Form Submit 시작');
     console.log('  - topic:', topic);
     console.log('  - postType:', postType, '(type:', typeof postType, ')');
@@ -98,6 +102,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
       customSubheadings: customSubheadings.trim() || undefined,
       // 🗞️ 보도자료용 필드
       hospitalName: postType === 'press_release' ? hospitalName : undefined,
+      hospitalWebsite: postType === 'press_release' ? hospitalWebsite : undefined,
       doctorName: postType === 'press_release' ? doctorName : undefined,
       doctorTitle: postType === 'press_release' ? doctorTitle : undefined,
       pressType: postType === 'press_release' ? pressType : undefined,
@@ -105,6 +110,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
     
     console.log('📦 전송할 requestData:', JSON.stringify(requestData, null, 2));
     console.log('✅ onSubmit 호출');
+    
+    // onSubmit 호출
     onSubmit(requestData);
   };
 
@@ -145,27 +152,77 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         Hospital<span className="text-emerald-600">AI</span>
       </h2>
 
-      <div className="flex p-1 bg-slate-100 rounded-2xl mb-8 gap-1">
+      {/* 탭 메뉴 - 1줄 5개 그리드로 변경 (넓게 정렬) */}
+      <div className="grid grid-cols-5 p-2 bg-slate-100 rounded-2xl mb-8 gap-2">
         <button 
           type="button" 
-          onClick={() => setPostType('blog')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
+            setPostType('blog');
+            // blog도 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
+          }}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'blog' ? 'bg-white text-emerald-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
         >
-          <span>📝</span> 블로그
+          <span className="text-sm">📝</span> 
+          <span>블로그</span>
         </button>
         <button 
           type="button" 
-          onClick={() => setPostType('card_news')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => onTabChange?.('similarity')}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600`}
         >
-          <span>🖼️</span> 카드뉴스
+          <span className="text-sm">🔍</span> 
+          <span>유사도</span>
         </button>
         <button 
           type="button" 
-          onClick={() => setPostType('press_release')}
-          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+          onClick={() => onTabChange?.('refine')}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 text-slate-400 hover:text-slate-600`}
         >
-          <span>🗞️</span> 보도자료
+          <span className="text-sm">✨</span> 
+          <span>AI보정</span>
+        </button>
+        <button 
+          type="button" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
+            setPostType('card_news');
+            // card_news는 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
+          }}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'card_news' ? 'bg-white text-blue-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <span className="text-sm">🖼️</span> 
+          <span>카드뉴스</span>
+        </button>
+        <button 
+          type="button" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const scrollY = window.scrollY;
+            setPostType('press_release');
+            // press도 탭 전환하지 않고 postType만 변경
+            // 스크롤 위치 유지 (리렌더링 후)
+            requestAnimationFrame(() => {
+              window.scrollTo(0, scrollY);
+            });
+          }}
+          className={`py-3 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${postType === 'press_release' ? 'bg-white text-purple-600 shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <span className="text-sm">🗞️</span> 
+          <span>보도자료</span>
         </button>
       </div>
       
@@ -202,6 +259,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
            {postType === 'blog' ? (
                <div className="space-y-4">
+                  {/* 병원 홈페이지 URL 입력란 */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">
+                      🏥 병원 홈페이지 (선택)
+                      <span className="text-xs font-normal text-slate-500 ml-2">소제목에 "병원 소개" 입력 시 자동 크롤링</span>
+                    </label>
+                    <input 
+                      type="url"
+                      value={referenceUrl}
+                      onChange={(e) => setReferenceUrl(e.target.value)}
+                      placeholder="예: https://www.hospital.com"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 text-sm"
+                    />
+                  </div>
                   <div>
                     <div className="flex justify-between mb-2">
                       <label className="text-xs font-black text-slate-400 uppercase tracking-widest">글자 수 목표</label>
@@ -211,7 +282,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                       type="range" 
                       min="1500" 
                       max="3500" 
-                      step="500" 
+                      step="100" 
                       value={textLength} 
                       onChange={(e) => setTextLength(parseInt(e.target.value))}
                       className="w-full accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
@@ -297,6 +368,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                         className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
                       />
                     </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase tracking-widest">
+                      병원 웹사이트 (선택)
+                      <span className="text-xs font-normal text-slate-500 ml-2">병원 정보를 자동으로 분석합니다</span>
+                    </label>
+                    <input 
+                      type="url"
+                      value={hospitalWebsite}
+                      onChange={(e) => setHospitalWebsite(e.target.value)}
+                      placeholder="예: https://www.hospital.com"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-purple-500 text-sm"
+                    />
                   </div>
                   
                   <div>
@@ -399,8 +484,10 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">2단계. 블로그 제목</label>
-          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
+          <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest">
+            2단계. {postType === 'press_release' ? '기사 제목' : '블로그 제목'}
+          </label>
+          <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder={postType === 'press_release' ? '기사 주제를 입력하세요 (예: 겨울철 피부건조 주의보)' : '블로그 글 제목을 입력하세요 (예: 겨울철 피부건조 원인과 해결법)'} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-bold mb-3 focus:border-emerald-500 outline-none text-lg" required />
           <input type="text" value={keywords} onChange={(e) => setKeywords(e.target.value)} placeholder="SEO 키워드 (쉼표 구분, 예: 피부건조, 겨울철 피부관리, 보습)" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl font-medium mb-4 focus:border-emerald-500 outline-none" />
           
           {/* 소제목 직접 입력 영역 */}
@@ -412,6 +499,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
             <textarea
               value={customSubheadings}
               onChange={(e) => setCustomSubheadings(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text/plain');
+                document.execCommand('insertText', false, text);
+              }}
               placeholder={"소제목을 한 줄에 하나씩 입력하세요\n예:\n무릎 통증의 주요 원인\n통증을 줄이는 생활 습관\n병원 방문이 필요한 시점"}
               className="w-full p-3 bg-white border border-blue-200 rounded-xl text-sm font-medium focus:border-blue-400 outline-none resize-none"
               rows={5}
@@ -500,6 +592,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                <textarea
                  value={customPrompt}
                  onChange={(e) => setCustomPrompt(e.target.value)}
+                 onPaste={(e) => {
+                   e.preventDefault();
+                   const text = e.clipboardData.getData('text/plain');
+                   document.execCommand('insertText', false, text);
+                 }}
                  placeholder="예: 따뜻한 파스텔톤, 손그림 느낌의 일러스트, 부드러운 선, 귀여운 캐릭터 스타일..."
                  className="w-full p-3 bg-white border border-orange-200 rounded-xl text-sm font-medium focus:border-orange-400 outline-none resize-none"
                  rows={3}
@@ -513,11 +610,11 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         )}
 
 
-        {/* 4단계: 블로그/보도자료는 스타일 설정 표시 (카드뉴스는 숨김) */}
-        {(postType === 'blog' || postType === 'press_release') && (
+        {/* 4단계: 블로그만 스타일 설정 표시 (보도자료/카드뉴스는 숨김) */}
+        {postType === 'blog' && (
           <div className="border-t border-slate-100 pt-6 mt-2 space-y-6">
             <label className="block text-xs font-black text-slate-400 mb-2 uppercase tracking-widest flex justify-between">
-               {postType === 'press_release' ? '3단계' : '4단계'}. 스타일 설정 (선택사항)
+               4단계. 스타일 설정 (선택사항)
                <span className="text-emerald-600 font-bold">말투 학습으로 나만의 스타일 적용</span>
             </label>
             
@@ -527,7 +624,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                 setLearnedStyleId(styleId);
               }}
               selectedStyleId={learnedStyleId}
-              contentType={postType === 'press_release' ? 'press_release' : 'blog'}
+              contentType="blog"
             />
 
             {/* 학습된 말투가 없을 때만 기본 페르소나/말투 선택 표시 */}
@@ -551,7 +648,8 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
         )}
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleSubmit}
           disabled={isLoading || !topic.trim()}
           className={`w-full py-5 rounded-2xl text-white font-black text-lg shadow-2xl transition-all active:scale-95 ${isLoading ? 'bg-slate-400' : postType === 'blog' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
@@ -562,4 +660,5 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
   );
 };
 
-export default InputForm;
+// 🚀 성능 개선: React.memo로 불필요한 리렌더 방지
+export default React.memo(InputForm);

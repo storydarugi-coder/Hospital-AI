@@ -13,7 +13,7 @@ export const CSS_THEMES: Record<CssTheme, {
   modern: {
     name: '모던 카드',
     description: '카드형 박스 + 그림자 효과',
-    mainTitleStyle: 'font-size:32px; font-weight:900; color:#1a1a1a; margin-bottom:30px; padding-bottom:20px; border-bottom:3px solid #4a90e2; line-height:1.4;',
+    mainTitleStyle: 'font-size:32px; font-weight:900; color:#1a1a1a; margin-bottom:30px; padding-bottom:20px; border-bottom:1px solid #ddd; line-height:1.4;',
     containerStyle: 'max-width:800px; margin:0 auto; padding:40px; background:#fff; font-family:Malgun Gothic,sans-serif; line-height:1.9;',
     h3Style: 'font-size:26px; font-weight:800; color:#1a1a1a; margin:50px 0 20px; padding:15px 20px; background:#f8f9fa; border-left:5px solid #4a90e2; border-radius:8px;',
     pStyle: 'font-size:17px; color:#333; margin-bottom:25px; line-height:1.85;',
@@ -71,35 +71,91 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   
   let result = html;
   
-  result = result.replace(
-    /<div class="naver-post-container"[^>]*>/g,
-    `<div style="${t.containerStyle}">`
-  );
+  // 🎨 컨테이너가 없으면 자동으로 감싸기
+  if (!result.includes('class="naver-post-container"')) {
+    result = `<div class="naver-post-container" style="${t.containerStyle}">${result}</div>`;
+  } else {
+    // 컨테이너 스타일 적용 (class 기반)
+    result = result.replace(
+      /<div class="naver-post-container"[^>]*>/g,
+      `<div class="naver-post-container" style="${t.containerStyle}">`
+    );
+  }
   
   // 메인 제목 (h2.main-title) 스타일 적용
   result = result.replace(
     /<h2 class="main-title"[^>]*>/g,
-    `<h2 style="${t.mainTitleStyle}">`
+    `<h2 class="main-title" style="${t.mainTitleStyle}">`
+  );
+  
+  // 🔥 h2 태그 (main-title 클래스 없는 경우) 스타일 적용
+  result = result.replace(
+    /<h2(?![^>]*class="main-title")([^>]*)>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<h2${cleaned} style="${t.mainTitleStyle}">`;
+    }
+  );
+  
+  // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
+  result = result.replace(
+    /<h3(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      // 기존 style 속성 제거
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<h3${cleaned} style="${t.h3Style}">`;
+    }
+  );
+  
+  // p 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
+  result = result.replace(
+    /<p(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      // 기존 style 속성 제거
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<p${cleaned} style="${t.pStyle}">`;
+    }
+  );
+  
+  // 🔥 ul, ol 리스트 스타일 추가 (네이버 블로그 최적화)
+  result = result.replace(
+    /<ul(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<ul${cleaned} style="margin:20px 0; padding-left:30px; line-height:1.9;">`;
+    }
   );
   
   result = result.replace(
-    /<h3[^>]*>/g,
-    `<h3 style="${t.h3Style}">`
+    /<ol(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<ol${cleaned} style="margin:20px 0; padding-left:30px; line-height:1.9;">`;
+    }
   );
   
   result = result.replace(
-    /<p[^>]*>/g,
-    `<p style="${t.pStyle}">`
+    /<li(\s+[^>]*)?>/g,
+    (match, attrs) => {
+      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+      return `<li${cleaned} style="font-size:17px; color:#333; margin-bottom:12px; line-height:1.85;">`;
+    }
   );
   
+  // 이미지 wrapper 스타일 적용
   result = result.replace(
     /<div class="content-image-wrapper"[^>]*>/g,
-    `<div style="${t.imageWrapperStyle}">`
+    `<div class="content-image-wrapper" style="${t.imageWrapperStyle}">`
   );
   
+  // img 태그 스타일 적용 (기존 style 병합)
   result = result.replace(
     /<img([^>]*)>/g,
-    `<img style="${t.imgStyle}" $1>`
+    (match, attrs) => {
+      // 기존 style 제거하고 새로 적용
+      const cleaned = attrs.replace(/\s*style="[^"]*"/gi, '');
+      return `<img${cleaned} style="${t.imgStyle}">`;
+    }
   );
   
   return result;

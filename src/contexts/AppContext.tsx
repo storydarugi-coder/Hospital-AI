@@ -58,27 +58,23 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
-const INITIAL_STATE: AppState = {
-  user: null,
-  userProfile: null,
-  isLoggedIn: false,
-  isAdmin: false,
-  isLoading: false,
-  error: null,
-  darkMode: false,
-  apiKeyReady: false,
+// 초기 상태를 함수로 생성 (localStorage에서 darkMode 복원)
+const getInitialState = (): AppState => {
+  const savedDarkMode = typeof window !== 'undefined' ? localStorage.getItem('darkMode') : null;
+  return {
+    user: null,
+    userProfile: null,
+    isLoggedIn: false,
+    isAdmin: false,
+    isLoading: false,
+    error: null,
+    darkMode: savedDarkMode === 'true',
+    apiKeyReady: false,
+  };
 };
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
-
-  // LocalStorage에서 darkMode 복원
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode');
-    if (savedDarkMode) {
-      setState(prev => ({ ...prev, darkMode: savedDarkMode === 'true' }));
-    }
-  }, []);
+  const [state, setState] = useState<AppState>(getInitialState);
 
   // darkMode 변경 시 LocalStorage 저장
   useEffect(() => {

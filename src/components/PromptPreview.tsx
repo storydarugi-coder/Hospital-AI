@@ -50,18 +50,20 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
   };
 
   // 프롬프트에서 핵심 텍스트 추출해서 보여주기 (""안의 텍스트만!)
-  const extractDisplayText = (prompt: string): { subtitle: string; mainTitle: string; description: string; visual: string } => {
+  const extractDisplayText = (prompt: string): { subtitle: string; mainTitle: string; description: string; visual: string; style: string } => {
     // "" 안의 텍스트만 추출
     const subtitleMatch = prompt.match(/subtitle:\s*"([^"]+)"/i);
     const mainTitleMatch = prompt.match(/mainTitle:\s*"([^"]+)"/i);
     const descMatch = prompt.match(/description:\s*"([^"]+)"/i);
-    const visualMatch = prompt.match(/비주얼:\s*(.+)/i) || prompt.match(/\[VISUAL\]\s*(.+)/i);
+    const visualMatch = prompt.match(/비주얼:\s*(.+?)(?:\n|$)/i) || prompt.match(/\[VISUAL\]\s*(.+?)(?:\n|$)/i);
+    const styleMatch = prompt.match(/스타일:\s*(.+?)(?:\n|$)/i) || prompt.match(/style:\s*(.+?)(?:\n|$)/i);
     
     return {
       subtitle: subtitleMatch?.[1]?.trim() || '',
       mainTitle: mainTitleMatch?.[1]?.trim() || '',
       description: descMatch?.[1]?.trim() || '',
       visual: visualMatch?.[1]?.trim().replace(/,?\s*Background:.*$/i, '') || '',
+      style: styleMatch?.[1]?.trim() || '',
     };
   };
 
@@ -245,6 +247,18 @@ const PromptPreview: React.FC<PromptPreviewProps> = ({
                         </div>
                         <div className={`text-sm ${darkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>
                           {displayText.visual}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* 🖼️ 이미지 스타일 */}
+                    {displayText.style && (
+                      <div className={`p-3 rounded-xl border ${darkMode ? 'bg-purple-900/30 border-purple-700/50' : 'bg-purple-50 border-purple-100'}`}>
+                        <div className={`text-[10px] font-bold mb-1 ${darkMode ? 'text-purple-400' : 'text-purple-600'}`}>
+                          🖼️ 이미지 스타일
+                        </div>
+                        <div className={`text-sm ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+                          {displayText.style}
                         </div>
                       </div>
                     )}

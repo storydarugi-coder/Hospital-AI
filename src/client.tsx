@@ -3,8 +3,6 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 // Tailwind CSS
 import './index.css'
-// 성능 모니터링 초기화
-import './utils/performance'
 
 const container = document.getElementById('root')
 if (container) {

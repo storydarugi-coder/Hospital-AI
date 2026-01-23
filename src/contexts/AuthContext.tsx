@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, Session } from '@supabase/supabase-js';
+import { User, Session as _Session } from '@supabase/supabase-js';
 import { supabase, reinitializeSupabase, isSupabaseConfigured, getUserIP, hashIP } from '../lib/supabase';
-import { PLANS, PlanType } from '../lib/database.types';
+import { PLANS as _PLANS, PlanType } from '../lib/database.types';
 import type { Database } from '../lib/database.types';
 
 // Supabase 테이블 타입
@@ -94,18 +94,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: { session } } = await newClient.auth.getSession();
       if (session?.user) {
         setUser(session.user);
-        
+
         // 사용자 정보 추출
         const userEmail = session.user.email;
-        const userName = session.user.user_metadata?.full_name || 
+        const userName = session.user.user_metadata?.full_name ||
                         session.user.user_metadata?.name ||
                         session.user.email?.split('@')[0] || null;
-        
-        await loadProfile(session.user.id, newClient, userEmail, userName);
-        await loadSubscription(session.user.id, newClient);
+
+        // 🚀 성능 개선: 병렬 쿼리 실행 (N+1 문제 해결)
+        await Promise.all([
+          loadProfile(session.user.id, newClient, userEmail, userName),
+          loadSubscription(session.user.id, newClient)
+        ]);
       }
 
-      // IP 기반 무료 사용량 확인
+      // IP 기반 무료 사용량 확인 (필요한 경우만)
       if (ipHash) {
         await loadFreeUses(ipHash, newClient);
       }
@@ -118,15 +121,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           setUser(session.user);
-          
+
           // OAuth 로그인 시 사용자 정보 추출
           const userEmail = session.user.email;
-          const userName = session.user.user_metadata?.full_name || 
+          const userName = session.user.user_metadata?.full_name ||
                           session.user.user_metadata?.name ||
                           session.user.email?.split('@')[0] || null;
-          
-          await loadProfile(session.user.id, newClient, userEmail, userName);
-          await loadSubscription(session.user.id, newClient);
+
+          // 🚀 성능 개선: 병렬 쿼리 실행
+          await Promise.all([
+            loadProfile(session.user.id, newClient, userEmail, userName),
+            loadSubscription(session.user.id, newClient)
+          ]);
         } else {
           setUser(null);
           setProfile(null);
@@ -272,11 +278,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error: error || null };
   };
 
-  const signInWithProvider = async (provider: 'google' | 'kakao' | 'naver') => {
+  const signInWithProvider = async (_provider: 'google' | 'kakao' | 'naver') => {
     if (!configured) return { error: new Error('Supabase not configured') };
 
     const { error } = await client.auth.signInWithOAuth({
-      provider: provider as any,
+      provider: _provider as any,
       options: {
         redirectTo: window.location.origin + '/#app'
       }
@@ -294,13 +300,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setProfile(null);
       setSubscription(null);
-      
-      // 로컬스토리지에서 Supabase 세션 삭제
-      const keys = Object.keys(localStorage);
-      keys.forEach(key => {
-        if (key.startsWith('sb-') || key.includes('supabase')) {
-          localStorage.removeItem(key);
-        }
+
+      // 🚀 성능 개선: localStorage 정리를 백그라운드로 처리 (UI 블로킹 방지)
+      requestIdleCallback(() => {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
       });
     }
   };
@@ -323,9 +331,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user && subscription) {
       // 로그인 유저 - 크레딧 차감
       if (subscription.credits_total !== -1) {
-        const { error } = await client
-          .from('subscriptions')
-          .update({ credits_used: subscription.credits_used + 1 } as any)
+        const { error } = await (client
+          .from('subscriptions') as any)
+          .update({ credits_used: subscription.credits_used + 1 })
           .eq('user_id', user.id);
 
         if (error) return false;
@@ -337,8 +345,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } : null);
       }
 
-      // 사용 로그 기록
-      await client.from('usage_logs').insert({
+      // 🚀 성능 개선: 사용 로그는 백그라운드에서 비동기로 (await 제거)
+      void client.from('usage_logs').insert({
         user_id: user.id,
         ip_hash: ipHash || 'unknown',
         action_type: 'generate_blog'
@@ -346,28 +354,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     } else if (ipHash) {
       // 비로그인 - IP 기반 무료 사용량 차감
+      // 🚀 성능 개선: select-then-update 대신 upsert 사용
       const { data: existing } = await client
         .from('ip_limits')
-        .select('*')
+        .select('free_uses')
         .eq('ip_hash', ipHash)
-        .single() as { data: IpLimitRow | null; error: any };
+        .single() as { data: Pick<IpLimitRow, 'free_uses'> | null; error: any };
 
-      if (existing) {
-        await client
-          .from('ip_limits')
-          .update({ free_uses: existing.free_uses + 1 } as any)
-          .eq('ip_hash', ipHash);
-      } else {
-        await client.from('ip_limits').insert({
-          ip_hash: ipHash,
-          free_uses: 1
-        } as any);
-      }
+      const newFreeUses = (existing?.free_uses || 0) + 1;
+
+      // upsert로 insert/update를 한 번에 처리
+      await client.from('ip_limits').upsert({
+        ip_hash: ipHash,
+        free_uses: newFreeUses
+      } as any, {
+        onConflict: 'ip_hash'
+      });
 
       setFreeUsesRemaining(prev => Math.max(0, prev - 1));
 
-      // 사용 로그 기록
-      await client.from('usage_logs').insert({
+      // 🚀 성능 개선: 사용 로그는 백그라운드에서 비동기로 (await 제거)
+      void client.from('usage_logs').insert({
         user_id: null,
         ip_hash: ipHash,
         action_type: 'generate_blog'

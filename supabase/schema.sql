@@ -213,6 +213,96 @@ CREATE INDEX IF NOT EXISTS idx_payments_user_id ON public.payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
 
 -- ============================================
+-- 8. Blog History Table (유사도 검사용)
+-- ============================================
+CREATE TABLE IF NOT EXISTS public.blog_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL, -- HTML 태그 제거된 순수 텍스트
+  html_content TEXT, -- 원본 HTML
+  keywords TEXT[], -- 키워드 배열
+  embedding VECTOR(768), -- Gemini Embedding 벡터 (768차원)
+  naver_url TEXT, -- 네이버 블로그 URL
+  category TEXT, -- 진료과
+  published_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- blog_history 테이블 RLS 활성화
+ALTER TABLE public.blog_history ENABLE ROW LEVEL SECURITY;
+
+-- 본인 이력만 조회/추가/삭제 가능
+CREATE POLICY "Users can view own blog history" ON public.blog_history
+  FOR SELECT USING (auth.uid() = user_id);
+  
+CREATE POLICY "Users can insert own blog history" ON public.blog_history
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  
+CREATE POLICY "Users can delete own blog history" ON public.blog_history
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- ============================================
+-- 9. Blog History Indexes & Functions
+-- ============================================
+
+-- 기본 인덱스
+CREATE INDEX IF NOT EXISTS idx_blog_history_user_id ON public.blog_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_blog_history_published_at ON public.blog_history(published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_blog_history_category ON public.blog_history(category);
+
+-- 벡터 유사도 검색 인덱스 (pgvector 확장 필요)
+-- Supabase에서 pgvector 확장이 활성화된 경우에만 작동
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- IVFFlat 인덱스 (빠른 유사도 검색)
+CREATE INDEX IF NOT EXISTS idx_blog_history_embedding ON public.blog_history 
+USING ivfflat (embedding vector_cosine_ops)
+WITH (lists = 100);
+
+-- 유사도 검색 함수 (코사인 유사도 기반)
+CREATE OR REPLACE FUNCTION match_blog_posts(
+  query_embedding VECTOR(768),
+  match_threshold FLOAT DEFAULT 0.3,
+  match_count INT DEFAULT 5,
+  filter_user_id UUID DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  content TEXT,
+  html_content TEXT,
+  keywords TEXT[],
+  naver_url TEXT,
+  category TEXT,
+  published_at TIMESTAMPTZ,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    blog_history.id,
+    blog_history.title,
+    blog_history.content,
+    blog_history.html_content,
+    blog_history.keywords,
+    blog_history.naver_url,
+    blog_history.category,
+    blog_history.published_at,
+    1 - (blog_history.embedding <=> query_embedding) AS similarity
+  FROM public.blog_history
+  WHERE 
+    (filter_user_id IS NULL OR blog_history.user_id = filter_user_id)
+    AND blog_history.embedding IS NOT NULL
+    AND 1 - (blog_history.embedding <=> query_embedding) > match_threshold
+  ORDER BY blog_history.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+
+-- ============================================
 -- 완료! 
 -- ============================================
 -- 다음 단계:

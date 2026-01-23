@@ -1,9 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { GenerationRequest, GenerationState, CardNewsScript, CardPromptData } from './types';
 import { generateFullPost, generateCardNewsScript, convertScriptToCardNews, generateSingleImage } from './services/geminiService';
-import { saveContentToServer } from './services/apiService';
+import { saveContentToServer, deleteAllContent, getContentList } from './services/apiService';
+import { calculateOverallSimilarity, getSimilarityLevel } from './services/similarityService';
+import { prepareNaverBlogsForComparison } from './services/naverSearchService';
 import InputForm from './components/InputForm';
-import { supabase, signOut, deleteAccount } from './lib/supabase';
+import { supabase, signOut } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -15,6 +17,9 @@ const AdminPage = lazy(() => import('./components/AdminPage'));
 const AuthPage = lazy(() => import('./components/AuthPage').then(module => ({ default: module.AuthPage })));
 const ApiKeySettings = lazy(() => import('./components/ApiKeySettings'));
 const PasswordLogin = lazy(() => import('./components/PasswordLogin'));
+const SimilarityChecker = lazy(() => import('./components/SimilarityChecker'));
+const ContentRefiner = lazy(() => import('./components/ContentRefiner'));
+const MedicalLawSearch = lazy(() => import('./components/MedicalLawSearch').then(module => ({ default: module.MedicalLawSearch })));
 
 type PageType = 'app' | 'admin' | 'auth';
 
@@ -35,14 +40,49 @@ const App: React.FC = () => {
     progress: '',
   });
   
+  // 각 탭별 독립적인 상태 관리
+  const [blogState, setBlogState] = useState<GenerationState>({
+    isLoading: false,
+    error: null,
+    data: null,
+    progress: '',
+  });
+  const [pressState, setPressState] = useState<GenerationState>({
+    isLoading: false,
+    error: null,
+    data: null,
+    progress: '',
+  });
+  
   // Supabase 인증 상태
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [_supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [_userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
+  const [_isAdmin, setIsAdmin] = useState<boolean>(false); // 관리자 여부
 
   const [mobileTab, setMobileTab] = useState<'input' | 'result'>('input');
+  
+  // 스크롤 위치 저장 ref
+  const scrollPositionRef = useRef<number>(0);
+  const leftPanelRef = useRef<HTMLDivElement>(null);
+  
+  // 오른쪽 콘텐츠 탭
+  const [contentTab, setContentTab] = useState<'blog' | 'similarity' | 'refine' | 'card_news' | 'press'>('blog');
+  
+  // 현재 탭에 맞는 state 가져오기
+  const getCurrentState = (): GenerationState => {
+    if (contentTab === 'press') return pressState;
+    if (contentTab === 'blog' || contentTab === 'card_news') return blogState;
+    return state; // similarity, refine
+  };
+  
+  // 현재 탭에 맞는 setState 가져오기
+  const getCurrentSetState = (): React.Dispatch<React.SetStateAction<GenerationState>> => {
+    if (contentTab === 'press') return setPressState;
+    if (contentTab === 'blog' || contentTab === 'card_news') return setBlogState;
+    return setState;
+  };
   
   // 카드뉴스 3단계 워크플로우 상태
   // 1단계: 원고 생성 → 2단계: 프롬프트 확인 → 3단계: 이미지 생성
@@ -51,13 +91,17 @@ const App: React.FC = () => {
   const [pendingRequest, setPendingRequest] = useState<GenerationRequest | null>(null);
   const [scriptProgress, setScriptProgress] = useState<string>('');
   const [isGeneratingScript, setIsGeneratingScript] = useState<boolean>(false);
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
+  const [_currentStep, setCurrentStep] = useState<1 | 2 | 3>(1); // 🆕 현재 단계
   
 
   
 
   // API 키 설정 모달 상태
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  
+  // 유사도 검사 모달 상태
+  const [showSimilarityChecker, setShowSimilarityChecker] = useState(false);
+  const [autoSimilarityResult, setAutoSimilarityResult] = useState<any>(null);
   
   // 비밀번호 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -87,6 +131,19 @@ const App: React.FC = () => {
     localStorage.setItem('darkMode', String(newMode));
   };
   
+  // 스크롤 위치 복원 (탭 전환 후)
+  useEffect(() => {
+    if (mobileTab === 'input' && leftPanelRef.current && scrollPositionRef.current > 0) {
+      // 약간의 딜레이 후 스크롤 복원 (DOM 렌더링 대기)
+      const timer = setTimeout(() => {
+        if (leftPanelRef.current) {
+          leftPanelRef.current.scrollTop = scrollPositionRef.current;
+          console.log('📍 복원된 스크롤 위치:', scrollPositionRef.current);
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [mobileTab]);
 
 
   // Supabase 인증 상태 감시
@@ -202,7 +259,7 @@ const App: React.FC = () => {
                 full_name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '사용자',
                 avatar_url: session.user.user_metadata?.avatar_url || null,
                 created_at: new Date().toISOString()
-              }, { onConflict: 'id' });
+              } as any, { onConflict: 'id' });
               
               await supabase.from('subscriptions').upsert({
                 user_id: session.user.id,
@@ -210,7 +267,7 @@ const App: React.FC = () => {
                 credits_total: 3,
                 credits_used: 0,
                 expires_at: null
-              }, { onConflict: 'user_id' });
+              } as any, { onConflict: 'user_id' });
               
               console.log('✅ 프로필 자동 생성 완료:', session.user.email);
             }
@@ -260,20 +317,27 @@ const App: React.FC = () => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       
-      // 페이지 전환 시 스크롤을 맨 위로
-      window.scrollTo(0, 0);
+      let newPage: PageType = 'app';
       
       if (hash === '#admin') {
-        setCurrentPage('admin');
+        newPage = 'admin';
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
-        setCurrentPage('auth');
+        newPage = 'auth';
       } else {
         // 🚀 기본적으로 앱 페이지로 (로그인 불필요)
-        setCurrentPage('app');
+        newPage = 'app';
         if (!hash || hash === '#') {
           window.location.hash = 'app';
         }
       }
+      
+      // 페이지가 실제로 바뀔 때만 스크롤을 맨 위로 (같은 페이지 내 동작 시 스크롤 유지)
+      setCurrentPage(prevPage => {
+        if (prevPage !== newPage) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        return newPage;
+      });
     };
 
     handleHashChange();
@@ -287,8 +351,8 @@ const App: React.FC = () => {
     setCurrentPage(page);
   };
 
-  // 로그아웃 핸들러
-  const handleLogout = async () => {
+  // 로그아웃 핸들러 (TODO: UI에 연결 필요)
+  const _handleLogout = async () => {
     try {
       await signOut();
     } catch (error) {
@@ -356,15 +420,52 @@ const App: React.FC = () => {
   }, [currentPage]);
 
   const handleGenerate = async (request: GenerationRequest) => {
+    // 🔒 스크롤 위치 고정 (글 생성 시 스크롤 튀는 현상 방지)
+    const currentScrollY = window.scrollY || window.pageYOffset;
+    const currentScrollX = window.scrollX || window.pageXOffset;
+    console.log('🔒 현재 스크롤 위치 저장:', currentScrollY, currentScrollX);
+    
+    // 🔒 스크롤 잠금 함수 (이벤트 리스너로 완전 차단)
+    const lockScroll = (e: Event) => {
+      e.preventDefault();
+      window.scrollTo(currentScrollX, currentScrollY);
+    };
+    
+    // 🔒 스크롤 잠금 활성화
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('scroll', lockScroll, { passive: false });
+    
+    // 🔒 100ms 후 스크롤 잠금 해제
+    setTimeout(() => {
+      window.removeEventListener('scroll', lockScroll);
+      document.body.style.overflow = '';
+      window.scrollTo(currentScrollX, currentScrollY);
+      console.log('🔓 스크롤 잠금 해제');
+    }, 200);
+    
     // 🗑️ 새 콘텐츠 생성 시 이전 저장본 자동 삭제
     try {
       localStorage.removeItem('hospitalai_autosave');
       localStorage.removeItem('hospitalai_autosave_history');
       localStorage.removeItem('hospitalai_card_prompt_history');
       localStorage.removeItem('hospitalai_card_ref_image');
-      console.log('🗑️ 이전 저장본 삭제 완료');
+      console.log('🗑️ 로컬 저장본 삭제 완료');
+      
+      // 🆕 서버 저장본은 삭제하지 않음 (사용자가 이전 글을 참고할 수 있도록)
+      // const deleteResult = await deleteAllContent();
+      // if (deleteResult.success) {
+      //   console.log('🗑️ 서버 저장본 삭제 완료!');
+      // } else {
+      //   console.warn('⚠️ 서버 저장본 삭제 실패:', deleteResult.error);
+      // }
     } catch (e) {
       console.warn('저장본 삭제 실패:', e);
+    }
+
+    // 🔧 스크롤 위치 저장 (탭 전환 전)
+    if (leftPanelRef.current) {
+      scrollPositionRef.current = leftPanelRef.current.scrollTop;
+      console.log('📍 저장된 스크롤 위치:', scrollPositionRef.current);
     }
 
     console.log('📱 모바일 탭 전환: result');
@@ -385,6 +486,7 @@ const App: React.FC = () => {
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
     if (request.postType === 'card_news') {
       console.log('🎴 카드뉴스 모드 시작');
+      setContentTab('card_news'); // 카드뉴스 탭으로 이동
       setIsGeneratingScript(true);
       setCardNewsScript(null);
       setPendingRequest(request);
@@ -403,14 +505,24 @@ const App: React.FC = () => {
       return;
     }
 
-    // 블로그: 기존 플로우 (한 번에 생성)
+    // 블로그/언론보도: 기존 플로우 (한 번에 생성)
     console.log('📝 블로그/보도자료 모드 시작');
-    setState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
+    
+    // 🔥 탭 자동 전환 + 언론보도는 pressState에, 블로그는 blogState에 저장
+    if (request.postType === 'press_release') {
+      setContentTab('press'); // 언론보도 탭으로 이동
+    } else {
+      setContentTab('blog'); // 블로그 탭으로 이동
+    }
+    
+    const targetSetState = request.postType === 'press_release' ? setPressState : setBlogState;
+    
+    targetSetState(prev => ({ ...prev, isLoading: true, error: null, progress: 'SEO 최적화 키워드 분석 및 이미지 생성 중...' }));
     
     console.log('🚀 generateFullPost 호출 시작');
     try {
-      const result = await generateFullPost(request, (p) => setState(prev => ({ ...prev, progress: p })));
-      setState({ isLoading: false, error: null, data: result, progress: '' });
+      const result = await generateFullPost(request, (p) => targetSetState(prev => ({ ...prev, progress: p })));
+      targetSetState({ isLoading: false, error: null, data: result, progress: '' });
       
       // 🆕 API 서버에 자동 저장
       try {
@@ -429,6 +541,53 @@ const App: React.FC = () => {
         
         if (saveResult.success) {
           console.log('✅ 서버 저장 완료! ID:', saveResult.id);
+          
+          // 🔍 자동 유사도 검사 비활성화 (사용자가 수동으로 실행)
+          // 이유: 크롤링 100개가 자동으로 실행되어 성능 저하 발생
+          // ResultPreview의 "🔍 유사도" 버튼으로 수동 실행 가능
+          /*
+          try {
+            console.log('🔍 구글 검색 유사도 검사 시작...');
+            
+            const searchKeywords = request.keywords || request.topic;
+            if (searchKeywords) {
+              const naverBlogs = await prepareNaverBlogsForComparison(searchKeywords, 10);
+              
+              if (naverBlogs && naverBlogs.length > 0) {
+                console.log(`📰 구글 검색 결과 ${naverBlogs.length}개 완료`);
+                
+                const similarities = naverBlogs.map((blog) => {
+                  const similarity = calculateOverallSimilarity(result.htmlContent, blog.text);
+                  const level = getSimilarityLevel(similarity);
+                  return {
+                    id: blog.id,
+                    title: blog.title,
+                    url: blog.url,
+                    blogger: blog.blogger,
+                    similarity,
+                    level,
+                  };
+                }).sort((a, b) => b.similarity - a.similarity);
+                
+                const highSimilarityContents = similarities.filter(s => s.similarity >= 40);
+                
+                if (highSimilarityContents.length > 0) {
+                  setAutoSimilarityResult({
+                    totalChecked: similarities.length,
+                    highSimilarity: highSimilarityContents,
+                    maxSimilarity: similarities[0].similarity,
+                    isNaverBlog: true,
+                  });
+                  console.log(`⚠️ 유사도 높은 웹사이트 발견: ${highSimilarityContents.length}개`);
+                } else {
+                  console.log('✅ 구글 검색 유사도 검사 완료: 중복 없음');
+                }
+              }
+            }
+          } catch (similarityErr) {
+            console.warn('⚠️ 구글 검색 유사도 검사 실패 (무시하고 계속):', similarityErr);
+          }
+          */
         } else {
           console.warn('⚠️ 서버 저장 실패:', saveResult.error);
         }
@@ -441,7 +600,7 @@ const App: React.FC = () => {
        const friendlyError = isNetworkError 
          ? '⚠️ 인터넷 연결이 불안정합니다. 네트워크 상태를 확인하고 다시 시도해주세요.'
          : `❌ 오류 발생: ${errorMsg}`;
-       setState(prev => ({ ...prev, isLoading: false, error: friendlyError }));
+       targetSetState(prev => ({ ...prev, isLoading: false, error: friendlyError }));
        setMobileTab('input');
     }
   };
@@ -607,7 +766,7 @@ const App: React.FC = () => {
 
   // 로딩 중 (admin/pricing 페이지는 로딩 화면 없이 바로 표시)
   // app 페이지는 로딩 중에도 UI 표시 (apiKeyReady 체크에서 처리)
-  if (authLoading && currentPage !== 'admin' && currentPage !== 'pricing' && currentPage !== 'app') {
+  if (authLoading && currentPage !== 'admin' && (currentPage as string) !== 'pricing' && currentPage !== 'app') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -713,6 +872,15 @@ const App: React.FC = () => {
                 ⚙️
              </button>
              
+             {/* 유사도 검사 버튼 */}
+             <button 
+               onClick={() => setShowSimilarityChecker(true)}
+               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-blue-400' : 'hover:bg-slate-100 text-blue-600'}`}
+               title="유사도 검사"
+             >
+               🔍
+             </button>
+
              {/* 다크모드 토글 */}
              <button 
                onClick={toggleDarkMode}
@@ -728,10 +896,110 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-8 flex flex-col lg:flex-row gap-8 overflow-hidden h-[calc(100vh-64px)]">
         
-        <div className={`lg:w-[400px] flex flex-col gap-6 overflow-y-auto pb-24 lg:pb-0 custom-scrollbar ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
-          <InputForm onSubmit={handleGenerate} isLoading={state.isLoading || isGeneratingScript} />
+        {/* AI 정밀보정과 유사도 검사는 전체 화면 사용 */}
+        {contentTab === 'refine' || contentTab === 'similarity' ? (
+          <div className="w-full h-full flex flex-col gap-4 overflow-hidden">
+            {/* 탭 메뉴 */}
+            <div className={`flex gap-2 p-2 rounded-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'} shadow-lg w-full max-w-4xl mx-auto`}>
+              <button
+                onClick={() => setContentTab('blog')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  contentTab === 'blog'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
+                    : darkMode
+                    ? 'text-slate-400 hover:bg-slate-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                📝 블로그
+              </button>
+              <button
+                onClick={() => setContentTab('similarity')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  contentTab === 'similarity'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    : darkMode
+                    ? 'text-slate-400 hover:bg-slate-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🔍 유사도
+              </button>
+              <button
+                onClick={() => setContentTab('refine')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  contentTab === 'refine'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg'
+                    : darkMode
+                    ? 'text-slate-400 hover:bg-slate-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                ✨ AI 정밀보정
+              </button>
+              <button
+                onClick={() => setContentTab('card_news')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  contentTab === 'card_news'
+                    ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg'
+                    : darkMode
+                    ? 'text-slate-400 hover:bg-slate-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                🎨 카드뉴스
+              </button>
+              <button
+                onClick={() => setContentTab('press')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                  contentTab === 'press'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                    : darkMode
+                    ? 'text-slate-400 hover:bg-slate-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                📰 언론보도
+              </button>
+            </div>
+
+            {/* 전체 화면 콘텐츠 */}
+            <div className="flex-1 overflow-hidden">
+              {contentTab === 'similarity' ? (
+                <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                  <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div></div>}>
+                    <SimilarityChecker onClose={() => setContentTab('blog')} darkMode={darkMode} />
+                  </Suspense>
+                </div>
+              ) : (
+                <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                  <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin"></div></div>}>
+                    <ContentRefiner 
+                      onClose={() => setContentTab('blog')} 
+                      onNavigate={(tab) => setContentTab(tab)}
+                      darkMode={darkMode} 
+                    />
+                  </Suspense>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+        {/* 왼쪽 영역: 콘텐츠 */}
+        <div className={`lg:w-[500px] flex flex-col gap-4 overflow-hidden pb-24 lg:pb-0 ${mobileTab === 'result' ? 'hidden lg:flex' : 'flex'}`}>
+          {/* 콘텐츠 */}
+          <div ref={leftPanelRef} className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* 블로그/카드뉴스/언론보도 입력 폼 */}
+            <InputForm 
+              onSubmit={handleGenerate} 
+              isLoading={state.isLoading || isGeneratingScript}
+              onTabChange={setContentTab}
+            />
+          </div>
         </div>
 
+        {/* 오른쪽 영역: 결과 */}
         <div className={`flex-1 h-full flex flex-col ${mobileTab === 'input' ? 'hidden lg:flex' : 'flex'} overflow-hidden`}>
           {/* 카드뉴스 3단계 워크플로우 */}
           {/* 2단계: 프롬프트 확인 */}
@@ -762,13 +1030,13 @@ const App: React.FC = () => {
                 category={pendingRequest?.category}
               />
             </Suspense>
-          ) : state.isLoading || isGeneratingScript ? (
+          ) : (getCurrentState().isLoading || isGeneratingScript) ? (
             <div className={`rounded-[40px] border p-20 flex flex-col items-center justify-center h-full text-center shadow-2xl animate-pulse transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
               <div className="relative mb-10">
                 <div className={`w-24 h-24 border-8 border-t-emerald-500 rounded-full animate-spin ${darkMode ? 'border-slate-700' : 'border-emerald-50'}`}></div>
                 <div className="absolute inset-0 flex items-center justify-center text-3xl">🏥</div>
               </div>
-              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{state.progress || scriptProgress}</h2>
+              <h2 className={`text-2xl font-black mb-4 ${darkMode ? 'text-slate-100' : 'text-slate-800'}`}>{getCurrentState().progress || scriptProgress}</h2>
               <p className={`max-w-xs font-medium text-center ${darkMode ? 'text-slate-400' : 'text-slate-400'}`}>
                 {pendingRequest?.postType === 'card_news' 
                   ? '카드뉴스 원고를 생성하고 있습니다...' 
@@ -777,9 +1045,9 @@ const App: React.FC = () => {
                   : <>네이버 스마트블록 노출을 위한 최적의<br/>의료 콘텐츠를 생성하고 있습니다.</>}
               </p>
             </div>
-          ) : state.data ? (
+          ) : getCurrentState().data ? (
             <Suspense fallback={<div className="rounded-[40px] border p-20 flex items-center justify-center"><div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin"></div></div>}>
-              <ResultPreview content={state.data} darkMode={darkMode} />
+              <ResultPreview content={getCurrentState().data!} darkMode={darkMode} />
             </Suspense>
           ) : (
             <div className={`h-full rounded-[40px] shadow-2xl border flex flex-col items-center justify-center p-20 text-center group transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
@@ -789,6 +1057,8 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
+          </>
+        )}
 
       </main>
 
@@ -800,23 +1070,26 @@ const App: React.FC = () => {
 
 
       {/* API 에러 모달 */}
-      {state.error && (
+      {(getCurrentState().error || state.error) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`rounded-3xl p-8 max-w-md w-full shadow-2xl ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-xl font-black flex items-center gap-2 ${
-                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? 'text-amber-600'
                   : 'text-red-600'
               }`}>
-                {state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                {(getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? '⚠️ API 사용량 한도 초과'
-                  : state.error.includes('네트워크') || state.error.includes('인터넷')
+                  : (getCurrentState().error || state.error || '').includes('네트워크') || (getCurrentState().error || state.error || '').includes('인터넷')
                   ? '📡 네트워크 오류'
                   : '❌ 오류 발생'}
               </h3>
               <button 
-                onClick={() => setState(prev => ({ ...prev, error: null }))}
+                onClick={() => {
+                  getCurrentSetState()(prev => ({ ...prev, error: null }));
+                  setState(prev => ({ ...prev, error: null }));
+                }}
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                   darkMode ? 'bg-slate-700 text-slate-400 hover:bg-slate-600' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
                 }`}
@@ -826,19 +1099,19 @@ const App: React.FC = () => {
             </div>
             
             <div className={`rounded-xl p-4 mb-6 ${
-              state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+              (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                 ? darkMode ? 'bg-amber-900/30 border border-amber-700' : 'bg-amber-50 border border-amber-200'
                 : darkMode ? 'bg-red-900/30 border border-red-700' : 'bg-red-50 border border-red-200'
             }`}>
               <p className={`text-sm font-medium mb-3 ${
-                state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')
+                (getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')
                   ? darkMode ? 'text-amber-300' : 'text-amber-700'
                   : darkMode ? 'text-red-300' : 'text-red-700'
               }`}>
-                {state.error}
+                {getCurrentState().error || state.error}
               </p>
               
-              {(state.error.includes('API 사용량') || state.error.includes('quota') || state.error.includes('limit')) && (
+              {((getCurrentState().error || state.error || '').includes('API 사용량') || (getCurrentState().error || state.error || '').includes('quota') || (getCurrentState().error || state.error || '').includes('limit')) && (
                 <div className={`text-xs space-y-1 ${darkMode ? 'text-amber-400' : 'text-amber-600'}`}>
                   <p>• Gemini API 일일 사용량 한도에 도달했습니다.</p>
                   <p>• 보통 1-2시간 후 다시 사용 가능합니다.</p>
@@ -874,6 +1147,119 @@ const App: React.FC = () => {
           <ApiKeySettings onClose={() => setShowApiKeyModal(false)} />
         </Suspense>
       )}
+
+      {/* 유사도 검사 모달 */}
+      {showSimilarityChecker && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <SimilarityChecker 
+            onClose={() => setShowSimilarityChecker(false)}
+            savedContents={[]}
+          />
+        </Suspense>
+      )}
+
+      {/* 자동 유사도 검사 결과 알림 */}
+      {autoSimilarityResult && (
+        <div className="fixed bottom-8 right-8 z-50 animate-fadeIn">
+          <div className={`rounded-2xl shadow-2xl max-w-md overflow-hidden ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔍</span>
+                  <h3 className="font-bold text-lg">웹 검색 유사도 검사</h3>
+                </div>
+                <button
+                  onClick={() => setAutoSimilarityResult(null)}
+                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-6 h-6 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* 본문 */}
+            <div className="p-4">
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-3xl font-bold text-orange-600">
+                    {autoSimilarityResult.maxSimilarity}%
+                  </span>
+                  <span className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    최고 유사도
+                  </span>
+                </div>
+                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                  검색 결과 {autoSimilarityResult.totalChecked}개 중 {autoSimilarityResult.highSimilarity.length}개와 유사합니다.
+                </p>
+              </div>
+
+              {/* 유사한 글 목록 */}
+              <div className="space-y-2 max-h-40 overflow-y-auto mb-4">
+                {autoSimilarityResult.highSimilarity.slice(0, 3).map((item: any, index: number) => (
+                  <a
+                    key={item.id}
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`block p-3 rounded-lg transition hover:scale-[1.02] ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-800'}`}>
+                          {item.title || `글 ${index + 1}`}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {item.blogger || '네이버 블로그'}
+                          </p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                            {item.level.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className="text-xl font-bold ml-2"
+                        style={{ color: item.level.color }}
+                      >
+                        {item.similarity}%
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+
+              {/* 버튼 */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setAutoSimilarityResult(null);
+                    setShowSimilarityChecker(true);
+                  }}
+                  className="flex-1 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition"
+                >
+                  자세히 보기
+                </button>
+                <button
+                  onClick={() => setAutoSimilarityResult(null)}
+                  className={`flex-1 py-2 font-semibold rounded-lg transition ${
+                    darkMode
+                      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 의료광고법 검색 플로팅 버튼 */}
+      <Suspense fallback={null}>
+        <MedicalLawSearch />
+      </Suspense>
     </div>
   );
 };

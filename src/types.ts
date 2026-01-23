@@ -75,6 +75,7 @@ export interface GenerationRequest {
   customSubheadings?: string; // 사용자가 직접 입력한 소제목들 (줄바꿈으로 구분)
   // 보도자료용 필드
   hospitalName?: string; // 병원명
+  hospitalWebsite?: string; // 병원 웹사이트 URL (크롤링용)
   doctorName?: string; // 의료진 이름
   doctorTitle?: string; // 직함 (예: 원장, 부원장, 과장)
   pressType?: 'achievement' | 'new_service' | 'research' | 'event' | 'award' | 'health_tips'; // 보도 유형
@@ -235,4 +236,44 @@ export interface SeoTitleItem {
   title: string;
   score: number;
   type: '신뢰' | '안전' | '정보' | '공감';
+}
+
+// 블로그 이력 (자체 DB용)
+export interface BlogHistory {
+  id: string;
+  title: string;
+  content: string;
+  htmlContent?: string;
+  keywords: string[];
+  embedding?: number[]; // Gemini Embedding API로 생성한 벡터
+  publishedAt: Date;
+  naverUrl?: string;
+  category?: string;
+}
+
+// 유사도 검사 결과
+export interface SimilarityCheckResult {
+  finalScore: number; // 0~100점, 높을수록 유사도 높음
+  status: 'ORIGINAL' | 'LOW_RISK' | 'MEDIUM_RISK' | 'HIGH_RISK';
+  message: string;
+  ownBlogMatches: OwnBlogMatch[]; // 자체 블로그와의 유사도
+  webSearchMatches: WebSearchMatch[]; // 웹 검색 결과
+  keyPhrases: string[]; // 추출된 핵심 문장들
+  checkDuration: number; // 검사 소요 시간 (ms)
+}
+
+// 자체 블로그 매칭 결과
+export interface OwnBlogMatch {
+  blog: BlogHistory;
+  similarity: number; // 0~1 (코사인 유사도)
+  matchedPhrases: string[]; // 유사한 문장들
+}
+
+// 웹 검색 매칭 결과
+export interface WebSearchMatch {
+  phrase: string; // 검색한 핵심 문장
+  url: string;
+  title: string;
+  snippet: string;
+  matchCount: number; // 정확히 일치하는 문장 개수
 }

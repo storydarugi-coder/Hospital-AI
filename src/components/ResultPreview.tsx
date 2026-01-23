@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { GeneratedContent, ImageStyle, CssTheme, SeoScoreReport, FactCheckReport } from '../types';
-import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide, evaluateSeoScore, recheckAiSmell, CARD_LAYOUT_RULE, DEFAULT_STYLE_PROMPTS } from '../services/geminiService';
-import { CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { GeneratedContent, ImageStyle as _ImageStyle, CssTheme, SeoScoreReport, FactCheckReport, SimilarityCheckResult } from '../types';
+import { modifyPostWithAI, generateSingleImage, generateBlogImage, recommendImagePrompt, recommendCardNewsPrompt, regenerateCardSlide as _regenerateCardSlide, evaluateSeoScore, recheckAiSmell, checkContentSimilarity, saveBlogHistory, CARD_LAYOUT_RULE as _CARD_LAYOUT_RULE, STYLE_KEYWORDS } from '../services/geminiService';
+import { CSS_THEMES as _CSS_THEMES, applyThemeToHtml } from '../utils/cssThemes';
 import { optimizeAllImagesInHtml, formatFileSize } from '../utils/imageOptimizer';
 import { saveAs } from 'file-saver';
 
@@ -9,6 +9,63 @@ import { saveAs } from 'file-saver';
 // 동적 임포트: 초기 번들 크기 최적화
 let docxModule: any = null;
 let html2canvasModule: any = null;
+
+// html2canvas용 oklch 색상 제거 함수
+// 클론된 Document에서 모든 스타일시트의 oklch를 제거하고 인라인 스타일에 안전한 색상 적용
+const removeOklchFromClonedDoc = (clonedDoc: Document, clonedElement: HTMLElement) => {
+  try {
+    // 1. 모든 <style> 태그에서 oklch 제거
+    const styleTags = clonedDoc.querySelectorAll('style');
+    styleTags.forEach(styleTag => {
+      if (styleTag.textContent) {
+        // oklch(...), oklab(...), color(...) 함수를 안전한 색상으로 대체
+        styleTag.textContent = styleTag.textContent
+          .replace(/oklch\([^)]+\)/gi, 'transparent')
+          .replace(/oklab\([^)]+\)/gi, 'transparent')
+          .replace(/color\([^)]+\)/gi, 'transparent');
+      }
+    });
+    
+    // 2. 모든 요소의 인라인 스타일에서 oklch 제거
+    const allElements = clonedElement.querySelectorAll('*');
+    const processElement = (el: Element) => {
+      if (el instanceof HTMLElement && el.style) {
+        const styleAttr = el.getAttribute('style');
+        if (styleAttr && (styleAttr.includes('oklch') || styleAttr.includes('oklab') || styleAttr.includes('color('))) {
+          el.setAttribute('style', styleAttr
+            .replace(/oklch\([^)]+\)/gi, 'transparent')
+            .replace(/oklab\([^)]+\)/gi, 'transparent')
+            .replace(/color\([^)]+\)/gi, 'transparent')
+          );
+        }
+      }
+    };
+    
+    processElement(clonedElement);
+    allElements.forEach(processElement);
+    
+    // 3. <link> 스타일시트 제거 (외부 CSS에 oklch가 있을 수 있음)
+    const linkTags = clonedDoc.querySelectorAll('link[rel="stylesheet"]');
+    linkTags.forEach(link => link.remove());
+    
+    // 4. CSS 변수(--*)도 제거 - Tailwind가 여기에 oklch를 넣음
+    const rootStyle = clonedDoc.documentElement.style;
+    if (rootStyle) {
+      // CSS 변수를 모두 제거
+      const cssText = rootStyle.cssText;
+      if (cssText.includes('oklch') || cssText.includes('oklab')) {
+        clonedDoc.documentElement.setAttribute('style', cssText
+          .replace(/oklch\([^)]+\)/gi, 'transparent')
+          .replace(/oklab\([^)]+\)/gi, 'transparent')
+        );
+      }
+    }
+    
+    console.log('✅ oklch 색상 제거 완료');
+  } catch (e) {
+    console.warn('oklch 제거 중 오류:', e);
+  }
+};
 
 interface ResultPreviewProps {
   content: GeneratedContent;
@@ -83,7 +140,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   // 카드 재생성 모달
   const [cardRegenModalOpen, setCardRegenModalOpen] = useState(false);
   const [cardRegenIndex, setCardRegenIndex] = useState(0);
-  const [cardRegenInstruction, setCardRegenInstruction] = useState('');
+  const [cardRegenInstruction, setCardRegenInstruction] = useState(''); // 향후 재생성 지시사항 기능에 활용
   const [isRegeneratingCard, setIsRegeneratingCard] = useState(false);
   const [cardRegenProgress, setCardRegenProgress] = useState('');
   
@@ -91,7 +148,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const [editSubtitle, setEditSubtitle] = useState('');
   const [editMainTitle, setEditMainTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
-  const [editTags, setEditTags] = useState('');
+  const [_editTags, _setEditTags] = useState(''); // 향후 태그 편집 기능에 활용
   const [editImagePrompt, setEditImagePrompt] = useState('');
   const [cardRegenRefImage, setCardRegenRefImage] = useState(''); // 참고 이미지
   const [refImageMode, setRefImageMode] = useState<'recolor' | 'copy'>('copy'); // 참고 이미지 적용 방식: recolor=복제+색상변경, copy=완전복제
@@ -119,8 +176,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   // 🖼️ 이미지 최적화 상태
   const [isOptimizingImages, setIsOptimizingImages] = useState(false);
-  const [optimizationProgress, setOptimizationProgress] = useState('');
+  const [_optimizationProgress, _setOptimizationProgress] = useState(''); // 향후 진행률 표시에 활용
   const [optimizationStats, setOptimizationStats] = useState<{ totalSaved: number; imageCount: number } | null>(null);
+  
+  // 🔍 유사도 검사 상태
+  const [isCheckingSimilarity, setIsCheckingSimilarity] = useState(false);
+  const [similarityResult, setSimilarityResult] = useState<SimilarityCheckResult | null>(null);
+  const [showSimilarityModal, setShowSimilarityModal] = useState(false);
   
   // content.seoScore가 있으면 자동으로 설정
   useEffect(() => {
@@ -230,7 +292,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else if (style === 'photo') {
         styleText = 'photorealistic real medical clinic photo, natural lighting, DSLR, shallow depth of field, NOT illustration, NOT 3D render';
       } else {
-        styleText = DEFAULT_STYLE_PROMPTS[style as keyof typeof DEFAULT_STYLE_PROMPTS] || DEFAULT_STYLE_PROMPTS.illustration;
+        styleText = STYLE_KEYWORDS[style as keyof typeof STYLE_KEYWORDS] || STYLE_KEYWORDS.illustration;
       }
       
       const newImagePrompt = `1:1 카드뉴스, ${editSubtitle ? `"${editSubtitle}"` : ''} ${editMainTitle ? `"${editMainTitle}"` : ''} ${editDescription ? `"${editDescription}"` : ''}, ${styleText}, 밝고 친근한 분위기`.trim();
@@ -251,6 +313,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   
   const editorRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const savedScrollPosition = useRef<number>(0);
 
   useEffect(() => {
     setLocalHtml(content.fullHtml);
@@ -329,34 +393,54 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </button>
         `;
         card.appendChild(overlay);
-        
-        // 버튼 클릭 이벤트
-        overlay.querySelector('.regen')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openCardRegenModal(index);
-        });
-        
-        overlay.querySelector('.download')?.addEventListener('click', (e) => {
-          e.stopPropagation();
-          handleSingleCardDownload(index);
-        });
       });
     };
     
+    // 이벤트 위임 핸들러
+    const handleOverlayClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains('card-overlay-btn')) return;
+      
+      e.stopPropagation();
+      const index = parseInt(target.dataset.index || '0', 10);
+      
+      if (target.classList.contains('regen')) {
+        openCardRegenModal(index);
+      } else if (target.classList.contains('download')) {
+        handleSingleCardDownload(index);
+      }
+    };
+    
     // DOM 업데이트 후 실행
-    const timer = setTimeout(addOverlaysToCards, 100);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      addOverlaysToCards();
+      // 이벤트 위임: 부모 요소에 이벤트 리스너 등록
+      document.addEventListener('click', handleOverlayClick);
+    }, 100);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleOverlayClick);
+    };
   }, [localHtml, content.postType]);
 
   // 단일 카드 다운로드
   const handleSingleCardDownload = async (cardIndex: number) => {
     const cards = document.querySelectorAll('.naver-preview .card-slide');
     const card = cards[cardIndex] as HTMLElement;
-    if (!card) return;
+    if (!card) {
+      alert('카드를 찾을 수 없습니다.');
+      return;
+    }
+    
+    // 다운로드 진행 표시
+    setDownloadingCard(true);
+    setCardDownloadProgress(`${cardIndex + 1}번 카드 다운로드 준비 중...`);
     
     try {
       // html2canvas 동적 로드
       if (!html2canvasModule) {
+        setCardDownloadProgress('모듈 로드 중...');
         html2canvasModule = (await import('html2canvas')).default;
       }
       
@@ -366,25 +450,63 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       if (overlay) overlay.style.display = 'none';
       if (badge) badge.style.display = 'none';
       
+      setCardDownloadProgress(`${cardIndex + 1}번 카드 이미지 생성 중...`);
+      
       const canvas = await html2canvasModule(card, {
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 15000, // 이미지 로드 타임아웃 15초
+        onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
+          // 클론된 문서에서 오버레이 제거
+          const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
+          const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
+          if (clonedOverlay) clonedOverlay.remove();
+          if (clonedBadge) clonedBadge.remove();
+          
+          // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
+          removeOklchFromClonedDoc(clonedDoc, clonedElement);
+        }
       });
       
       // 오버레이 복구
       if (overlay) overlay.style.display = '';
       if (badge) badge.style.display = '';
       
-      canvas.toBlob((blob) => {
-        if (blob) {
-          saveAs(blob, `card_${cardIndex + 1}.png`);
-        }
-      }, 'image/png');
+      // Promise로 toBlob 처리
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b: Blob | null) => resolve(b), 'image/png', 1.0);
+      });
+      
+      if (blob) {
+        saveAs(blob, `card_${cardIndex + 1}.png`);
+        setCardDownloadProgress(`✅ ${cardIndex + 1}번 카드 다운로드 완료!`);
+        setTimeout(() => setCardDownloadProgress(''), 1500);
+      } else {
+        // blob 생성 실패 시 toDataURL 방식으로 폴백
+        console.warn('toBlob 실패, toDataURL로 폴백');
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `card_${cardIndex + 1}.png`;
+        link.href = dataUrl;
+        link.click();
+        setCardDownloadProgress(`✅ ${cardIndex + 1}번 카드 다운로드 완료!`);
+        setTimeout(() => setCardDownloadProgress(''), 1500);
+      }
     } catch (error) {
       console.error('카드 다운로드 실패:', error);
-      alert('카드 다운로드에 실패했습니다.');
+      // 오버레이 복구 (에러 발생 시에도)
+      const overlay = card.querySelector('.card-overlay') as HTMLElement;
+      const badge = card.querySelector('.card-number-badge') as HTMLElement;
+      if (overlay) overlay.style.display = '';
+      if (badge) badge.style.display = '';
+      
+      setCardDownloadProgress('');
+      alert(`❌ 카드 다운로드에 실패했습니다.\n\n원인: ${error instanceof Error ? error.message : '알 수 없는 오류'}\n\n💡 팁: 카드에 외부 이미지가 포함된 경우 다운로드가 실패할 수 있습니다.\n카드를 재생성하면 해결될 수 있습니다.`);
+    } finally {
+      setDownloadingCard(false);
     }
   };
 
@@ -421,7 +543,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       localStorage.setItem(key, value);
       return true;
-    } catch (e) {
+    } catch {
       // QuotaExceededError 처리
       console.warn('localStorage 용량 초과, 오래된 데이터 정리 중...');
       return false;
@@ -431,8 +553,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   // 🔧 localStorage 용량 확인 함수
   const getLocalStorageUsage = (): { used: number; total: number; percent: number } => {
     let total = 0;
-    for (let key in localStorage) {
-      if (localStorage.hasOwnProperty(key)) {
+    for (const key in localStorage) {
+      if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
         total += localStorage[key].length * 2; // UTF-16 = 2 bytes per char
       }
     }
@@ -454,7 +576,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       localStorage.setItem(AUTOSAVE_HISTORY_KEY, JSON.stringify(history));
       console.log('🗑️ 오래된 저장본 1개 삭제, 남은 개수:', history.length);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -551,8 +673,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     alert(`"${item.title}" 불러왔습니다!`);
   };
 
-  // 임시저장 삭제
-  const clearAutoSave = () => {
+  // 임시저장 삭제 (향후 UI에서 활용 가능)
+  const _clearAutoSave = () => {
     localStorage.removeItem(AUTOSAVE_KEY);
     localStorage.removeItem(AUTOSAVE_HISTORY_KEY);
     setAutoSaveHistory([]);
@@ -661,12 +783,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       console.log('🎨 재생성 시 커스텀 스타일:', customStylePrompt);
       
       // 🎨 스타일 결정: 커스텀 > 기본 스타일 (참고 이미지는 레이아웃만!)
-      let styleText: string;
+      let _styleText: string; // 향후 스타일 텍스트 표시에 활용 가능
       if (customStylePrompt) {
-        styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
+        _styleText = customStylePrompt;  // 커스텀 스타일 있으면 무조건 사용!
       } else {
         // 기본 스타일 (3D 일러스트)
-        styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
+        _styleText = style === 'illustration' ? '3D 일러스트' : style === 'medical' ? '의학 3D' : '실사 사진';
       }
       
       // 🔧 재생성 프롬프트: 사용자가 직접 수정한 editImagePrompt 사용!
@@ -816,8 +938,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     return null;
   };
   
-  // 카드 수 가져오기
-  const getCardCount = () => {
+  // 카드 수 가져오기 (향후 UI에 카드 개수 표시 시 활용)
+  const _getCardCount = () => {
     return getCardElements()?.length || 0;
   };
   
@@ -830,39 +952,116 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
     
     setDownloadingCard(true);
+    let successCount = 0;
+    let failedCards: number[] = [];
     
     try {
       // html2canvas 동적 로드
       if (!html2canvasModule) {
+        setCardDownloadProgress('모듈 로드 중...');
         html2canvasModule = (await import('html2canvas')).default;
       }
       
       for (let i = 0; i < cardSlides.length; i++) {
         setCardDownloadProgress(`${i + 1}/${cardSlides.length}장 다운로드 중...`);
         
-        const card = cardSlides[i] as HTMLElement;
-        const canvas = await html2canvasModule(card, {
-          scale: 2,
-          backgroundColor: null,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-        });
-        
-        const link = document.createElement('a');
-        link.download = `card-news-${i + 1}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        // 각 다운로드 사이 짧은 딜레이
-        await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+          const card = cardSlides[i] as HTMLElement;
+          
+          // 오버레이 임시 숨김
+          const overlay = card.querySelector('.card-overlay') as HTMLElement;
+          const badge = card.querySelector('.card-number-badge') as HTMLElement;
+          if (overlay) overlay.style.display = 'none';
+          if (badge) badge.style.display = 'none';
+          
+          const canvas = await html2canvasModule(card, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            imageTimeout: 15000,
+            onclone: (clonedDoc: Document, clonedElement: HTMLElement) => {
+              const clonedOverlay = clonedDoc.querySelector('.card-overlay') as HTMLElement;
+              const clonedBadge = clonedDoc.querySelector('.card-number-badge') as HTMLElement;
+              if (clonedOverlay) clonedOverlay.remove();
+              if (clonedBadge) clonedBadge.remove();
+              
+              // oklch/oklab 색상을 안전한 색상으로 변환 (html2canvas 호환성)
+              removeOklchFromClonedDoc(clonedDoc, clonedElement);
+            }
+          });
+          
+          // 오버레이 복구
+          if (overlay) overlay.style.display = '';
+          if (badge) badge.style.display = '';
+          
+          // Promise로 toBlob 처리 (타임아웃 포함)
+          const blob = await Promise.race([
+            new Promise<Blob | null>((resolve) => {
+              canvas.toBlob((b: Blob | null) => resolve(b), 'image/png', 1.0);
+            }),
+            new Promise<null>((_, reject) => 
+              setTimeout(() => reject(new Error('Blob 생성 타임아웃')), 10000)
+            )
+          ]);
+          
+          if (blob) {
+            saveAs(blob, `card-news-${i + 1}.png`);
+            successCount++;
+          } else {
+            // toDataURL 폴백
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `card-news-${i + 1}.png`;
+            link.href = dataUrl;
+            link.click();
+            successCount++;
+          }
+          
+          // 각 다운로드 사이 짧은 딜레이 (브라우저 부하 방지)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (cardError) {
+          console.error(`${i + 1}번 카드 다운로드 실패:`, cardError);
+          failedCards.push(i + 1);
+          // 실패해도 다음 카드 계속 진행
+        }
       }
       
-      setCardDownloadProgress('✅ 모든 카드 다운로드 완료!');
-      setTimeout(() => setCardDownloadProgress(''), 2000);
+      // 결과 메시지
+      if (failedCards.length === 0) {
+        setCardDownloadProgress(`✅ ${successCount}장 모두 다운로드 완료!`);
+        
+        // 🆕 블로그 이력 저장 (카드뉴스 다운로드 성공 시)
+        if (content.title && localHtml) {
+          saveBlogHistory(
+            content.title,
+            localHtml.replace(/<[^>]*>/g, ' ').trim(),
+            localHtml,
+            content.keyword?.split(',').map(k => k.trim()) || [],
+            undefined,
+            content.category
+          ).catch(err => {
+            console.error('블로그 이력 저장 실패 (메인 플로우는 계속):', err);
+          });
+        }
+      } else {
+        setCardDownloadProgress(`⚠️ ${successCount}장 완료, ${failedCards.length}장 실패 (${failedCards.join(', ')}번)`);
+      }
+      setTimeout(() => setCardDownloadProgress(''), 3000);
+      
+      // 실패한 카드가 있으면 안내
+      if (failedCards.length > 0) {
+        setTimeout(() => {
+          alert(`⚠️ ${failedCards.length}장의 카드 다운로드에 실패했습니다.\n(${failedCards.join(', ')}번 카드)\n\n💡 해당 카드를 재생성한 후 다시 시도해주세요.`);
+        }, 500);
+      }
+      
     } catch (error) {
       console.error('카드 다운로드 실패:', error);
-      alert('카드 다운로드 중 오류가 발생했습니다.');
+      setCardDownloadProgress('');
+      alert(`❌ 카드 다운로드 중 오류가 발생했습니다.\n\n원인: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     } finally {
       setDownloadingCard(false);
     }
@@ -877,12 +1076,24 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     setDownloadModalOpen(true);
   };
 
-  // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트
+  // localHtml이 외부에서 변경될 때만 에디터 내용 업데이트 + 스크롤 위치 복원
   useEffect(() => {
     if (editorRef.current && !isInternalChange.current) {
+      // 현재 스크롤 위치 저장
+      if (scrollContainerRef.current) {
+        savedScrollPosition.current = scrollContainerRef.current.scrollTop;
+      }
+      
       const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
       if (editorRef.current.innerHTML !== styledHtml) {
         editorRef.current.innerHTML = styledHtml;
+        
+        // DOM 업데이트 후 스크롤 위치 복원 (더 안정적인 방법)
+        setTimeout(() => {
+          if (scrollContainerRef.current && savedScrollPosition.current > 0) {
+            scrollContainerRef.current.scrollTop = savedScrollPosition.current;
+          }
+        }, 0);
       }
     }
     isInternalChange.current = false;
@@ -895,7 +1106,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  const openRegenModal = (imgIndex: number, currentPrompt: string) => {
+  const _openRegenModal = (imgIndex: number, currentPrompt: string) => { // 향후 이미지 재생성 모달에 활용
     setRegenIndex(imgIndex);
     setRegenPrompt(currentPrompt || '전문적인 의료 일러스트');
     setRegenRefDataUrl(undefined);
@@ -930,7 +1141,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const currentStyle = content.imageStyle || 'illustration';
       const recommendedPrompt = await recommendImagePrompt(textContent, regenPrompt, currentStyle, savedCustomStylePrompt);
       setRegenPrompt(recommendedPrompt);
-    } catch (err) {
+    } catch {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
     } finally {
       setIsRecommendingPrompt(false);
@@ -955,7 +1166,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       // 🔒 AI 추천 프롬프트 적용 - 자동 연동 스킵 플래그 ON
       setIsAIPromptApplied(true);
       setEditImagePrompt(recommendedPrompt);
-    } catch (err) {
+    } catch {
       alert('프롬프트 추천 중 오류가 발생했습니다.');
     } finally {
       setIsRecommendingCardPrompt(false);
@@ -999,7 +1210,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else {
         alert('이미지를 생성하지 못했습니다. 다시 시도해주세요.');
       }
-    } catch (err) {
+    } catch {
       alert('이미지 생성 중 오류가 발생했습니다.');
     } finally {
       setIsEditingAi(false);
@@ -1035,6 +1246,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     return text
       .replace(/\s+/g, ' ')  // 연속 공백을 하나로
       .replace(/\n+/g, ' ')  // 줄바꿈을 공백으로
+      .replace(/[\u200B-\u200D\uFEFF]/g, '') // Zero-width 문자 제거
+      .replace(/[\u0332-\u0338]/g, '') // Combining 밑줄 문자 제거 (̲)
+      .replace(/[\u035C-\u0362]/g, '') // 기타 Combining 문자 제거
+      .replace(/[^\x20-\x7E\uAC00-\uD7A3\u3131-\u318E\u1100-\u11FF\u3000-\u303F\uFF00-\uFFEF]/g, (char) => {
+        // 한글, 영문, 숫자, 기본 특수문자, 한글 자모, CJK 기호 외에는 검사
+        const code = char.charCodeAt(0);
+        // 이모지 범위 확인 (U+1F300-U+1F9FF, U+2600-U+26FF, U+2700-U+27BF)
+        if ((code >= 0x1F300 && code <= 0x1F9FF) ||
+            (code >= 0x2600 && code <= 0x26FF) ||
+            (code >= 0x2700 && code <= 0x27BF)) {
+          return char; // 이모지는 유지
+        }
+        // 그 외 특수 유니코드는 제거
+        return '';
+      })
       .trim();
   };
 
@@ -1069,8 +1295,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  // 🔄 AI 냄새 재검사 함수
+  // 🔄 AI 냄새 재검사 함수 (현재 비활성화)
   const handleRecheckAiSmell = async () => {
+    // AI 냄새 점수 미출력으로 인해 검사 기능 비활성화
+    console.log('🔇 AI 냄새 재검사 기능이 비활성화되었습니다.');
+    return;
+    
+    /* 기존 코드 보존 (필요시 재활성화)
     if (isRecheckingAiSmell || content.postType === 'card_news') return;
     
     setIsRecheckingAiSmell(true);
@@ -1098,6 +1329,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     } finally {
       setIsRecheckingAiSmell(false);
     }
+    */
   };
 
   // 🖼️ 이미지 최적화 함수
@@ -1130,6 +1362,39 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       setTimeout(() => setOptimizationProgress(''), 2000);
     } finally {
       setIsOptimizingImages(false);
+    }
+  };
+
+  // 🔍 유사도 검사 함수
+  const handleCheckSimilarity = async () => {
+    if (isCheckingSimilarity) return;
+    
+    setIsCheckingSimilarity(true);
+    setSimilarityResult(null);
+    
+    try {
+      const result = await checkContentSimilarity(
+        content.htmlContent,
+        content.title,
+        (msg) => console.log('📊 유사도 검사:', msg)
+      );
+      
+      setSimilarityResult(result);
+      setShowSimilarityModal(true);
+      
+      // 결과에 따라 알림
+      if (result.status === 'HIGH_RISK') {
+        alert('⚠️ 유사한 콘텐츠가 발견되었습니다!\n재작성을 권장합니다.');
+      } else if (result.status === 'MEDIUM_RISK') {
+        alert('💡 일부 유사한 표현이 있습니다.\n확인해보세요.');
+      } else if (result.status === 'ORIGINAL') {
+        alert('✅ 독창적인 콘텐츠입니다!');
+      }
+    } catch (error) {
+      console.error('유사도 검사 실패:', error);
+      alert('유사도 검사 중 오류가 발생했습니다.\n\n💡 Google Custom Search API 키가 설정되어 있는지 확인해주세요.');
+    } finally {
+      setIsCheckingSimilarity(false);
     }
   };
 
@@ -1393,6 +1658,20 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     try {
       const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
       
+      // 🆕 블로그 이력 저장 (백그라운드에서 실행)
+      if (content.title && localHtml) {
+        saveBlogHistory(
+          content.title,
+          localHtml.replace(/<[^>]*>/g, ' ').trim(), // 텍스트만 추출
+          localHtml, // HTML 전체
+          content.keyword?.split(',').map(k => k.trim()) || [],
+          undefined, // naverUrl
+          content.category
+        ).catch(err => {
+          console.error('블로그 이력 저장 실패 (메인 플로우는 계속):', err);
+        });
+      }
+      
       // 새 창에서 프린트 다이얼로그 열기 (PDF로 저장 가능)
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -1579,7 +1858,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         </html>
       `);
       printWindow.document.close();
-    } catch (e) {
+    } catch {
       alert('PDF 생성 중 오류가 발생했습니다.');
     } finally {
       setEditProgress('');
@@ -1621,22 +1900,59 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
   const handleCopy = async () => {
     try {
-      const styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
-      const blob = new Blob([styledHtml], { type: 'text/html' });
-      const plainText = new Blob([editorRef.current?.innerText || ""], { type: 'text/plain' });
-      const item = new ClipboardItem({
-        'text/html': blob,
-        'text/plain': plainText
-      });
-      await navigator.clipboard.write([item]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
+      // HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(styledHtml, 'text/html');
+      
+      // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
+      const tempDiv = document.createElement('div');
+      tempDiv.contentEditable = 'true';
+      // doc.body.innerHTML을 사용하여 디코딩된 HTML 적용
+      tempDiv.innerHTML = doc.body.innerHTML;
+      tempDiv.style.position = 'fixed';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      document.body.appendChild(tempDiv);
+      
+      // 범위 선택
+      const range = document.createRange();
+      range.selectNodeContents(tempDiv);
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // execCommand로 복사 (권한 팝업 없음)
+        const success = document.execCommand('copy');
+        
+        // 정리
+        selection.removeAllRanges();
+        document.body.removeChild(tempDiv);
+        
+        if (success) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } else {
+          throw new Error('Copy failed');
+        }
+      }
     } catch (err) { 
-        try {
-            await navigator.clipboard.writeText(applyInlineStylesForNaver(localHtml));
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (e) { console.error(e); }
+      // Fallback: navigator.clipboard API (팝업 발생 가능)
+      try {
+        const blob = new Blob([applyInlineStylesForNaver(localHtml)], { type: 'text/html' });
+        const plainText = new Blob([editorRef.current?.innerText || ""], { type: 'text/plain' });
+        const item = new ClipboardItem({
+          'text/html': blob,
+          'text/plain': plainText
+        });
+        await navigator.clipboard.write([item]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        console.error('클립보드 복사 실패:', err);
+      }
     }
   };
 
@@ -1709,7 +2025,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                       if (newSrc) img.setAttribute('src', newSrc);
                     });
                     workingHtml = doc.body.innerHTML;
-                  } catch (e) {
+                  } catch {
                     workingHtml = workingHtml.replace(/\[IMG_\d+\]/g, '');
                   }
               }
@@ -1759,6 +2075,16 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         .card-slide:hover .card-overlay {
            opacity: 1;
         }
+        /* 모바일에서도 터치 시 오버레이 표시 */
+        .card-slide:active .card-overlay {
+           opacity: 1;
+        }
+        /* 모바일 전용: 미디어 쿼리로 항상 표시 (투명도 낮춤) */
+        @media (hover: none) and (pointer: coarse) {
+           .card-overlay {
+              opacity: 0.95;
+           }
+        }
         .card-overlay {
            position: absolute;
            inset: 0;
@@ -1771,6 +2097,8 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            opacity: 0;
            transition: opacity 0.2s;
            z-index: 10;
+           /* 모바일에서 터치 가능하도록 */
+           touch-action: manipulation;
         }
         .card-overlay-btn {
            padding: 12px 24px;
@@ -1783,9 +2111,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
            display: flex;
            align-items: center;
            gap: 8px;
+           user-select: none;
+           -webkit-user-select: none;
+           /* 모바일 터치 영역 확대 */
+           min-height: 44px;
+           touch-action: manipulation;
         }
         .card-overlay-btn:hover {
            transform: scale(1.05);
+        }
+        /* 모바일에서 터치 피드백 */
+        .card-overlay-btn:active {
+           transform: scale(0.95);
         }
         .card-overlay-btn.regen {
            background: linear-gradient(135deg, #8B5CF6, #6366F1);
@@ -2178,73 +2515,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               </div>
             </div>
             
-            {/* 🤖 AI 냄새 점수 - 블로그/보도자료에만 표시 */}
-            {content.postType !== 'card_news' && content.factCheck.ai_smell_score !== undefined && (
-              <>
-                {/* 구분선 */}
+            {/* 🤖 AI 냄새 점수 - 비활성화됨
                 <div className="w-px h-12 bg-slate-700"></div>
-                
-                <div 
-                  className={`flex flex-col cursor-pointer transition-all hover:scale-105 ${
-                    (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis)
-                      ? 'hover:bg-amber-500/10 rounded-lg px-2 py-1 -mx-2 -my-1' 
-                      : ''
-                  }`}
-                  onClick={() => {
-                    if (recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) {
-                      setShowAiSmellDetail(true);
-                    }
-                  }}
-                  title={(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) ? '클릭하여 상세 분석 확인' : ''}
-                >
-                  <span className="text-[10px] font-black opacity-50 uppercase tracking-[0.1em] mb-1">🤖 AI냄새</span>
-                  <div className="flex items-center gap-2">
-                    {recheckResult ? (
-                      <>
-                        <span className={`text-2xl font-black ${recheckResult.ai_smell_score! <= 20 ? 'text-green-400' : recheckResult.ai_smell_score! <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {recheckResult.ai_smell_score}점
-                        </span>
-                        <span className="text-[10px] opacity-70">
-                          {recheckResult.ai_smell_score! <= 20 ? '✅ 사람글' : recheckResult.ai_smell_score! <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
-                        </span>
-                        <button
-                          onClick={handleRecheckAiSmell}
-                          disabled={isRecheckingAiSmell}
-                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
-                        >
-                          🔄 재검사
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className={`text-2xl font-black ${content.factCheck.ai_smell_score <= 20 ? 'text-green-400' : content.factCheck.ai_smell_score <= 40 ? 'text-amber-400' : 'text-red-400'}`}>
-                          {content.factCheck.ai_smell_score}점
-                        </span>
-                        <span className="text-[10px] opacity-70">
-                          {content.factCheck.ai_smell_score <= 20 ? '✅ 사람글' : content.factCheck.ai_smell_score <= 40 ? '⚠️ 수정필요' : '🚨 재작성'}
-                        </span>
-                        <button
-                          onClick={handleRecheckAiSmell}
-                          disabled={isRecheckingAiSmell}
-                          className="ml-1 text-[9px] opacity-60 hover:opacity-100 underline"
-                        >
-                          {isRecheckingAiSmell ? '검사중...' : '🔄 재검사'}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {/* 상세 분석 보기 버튼 (모든 점수에서 표시) */}
-                  {(recheckResult?.ai_smell_analysis || content.factCheck?.ai_smell_analysis) && (
-                    <span className={`text-[9px] mt-0.5 animate-pulse ${
-                      (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 7 ? 'text-green-400' :
-                      (recheckResult?.ai_smell_score ?? content.factCheck.ai_smell_score) <= 15 ? 'text-amber-400' : 'text-red-400'
-                    }`}>
-                      🔍 상세 분석 보기
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
+                <div>AI 냄새 점수 UI</div>
+            */}
             
             {content.postType === 'card_news' && (
               <div className="hidden lg:block ml-4">
@@ -3321,6 +3595,27 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           </div>
           
           <div className="flex items-center gap-2">
+            {/* 유사도 검사 버튼 */}
+            <button 
+              onClick={handleCheckSimilarity}
+              disabled={isCheckingSimilarity}
+              className={`px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                isCheckingSimilarity 
+                  ? (darkMode ? 'bg-purple-900/30 text-purple-500 cursor-wait' : 'bg-purple-100/50 text-purple-400 cursor-wait')
+                  : (darkMode ? 'bg-purple-900/50 text-purple-400 hover:bg-purple-900' : 'bg-purple-100 text-purple-700 hover:bg-purple-200')
+              }`}
+              title="블로그 유사도 검사 (중복 체크)"
+            >
+              {isCheckingSimilarity ? (
+                <>
+                  <span className="animate-spin inline-block mr-1">🔄</span>
+                  검사 중...
+                </>
+              ) : (
+                <>🔍 유사도</>
+              )}
+            </button>
+            
             {/* 저장 버튼 */}
             <div className="flex items-center gap-1 relative">
               {/* 수동 저장 버튼 */}
@@ -3436,7 +3731,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
 
 
-      <div className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      <div ref={scrollContainerRef} className={`flex-1 overflow-y-auto p-8 lg:p-16 custom-scrollbar transition-colors duration-300 ${darkMode ? 'bg-slate-900' : 'bg-slate-50'}`}>
         {activeTab === 'preview' ? (
           <div className={`mx-auto bg-white shadow-lg border border-slate-100 p-12 naver-preview min-h-[800px] ${content.postType === 'card_news' ? 'max-w-xl' : 'max-w-3xl'}`}>
               <div 
@@ -3558,6 +3853,290 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
             </form>
          </div>
       </div>
+      
+      {/* 🔍 유사도 검사 결과 모달 */}
+      {showSimilarityModal && similarityResult && (
+        <div 
+          className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowSimilarityModal(false)}
+        >
+          <div 
+            className={`max-w-2xl w-full max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden ${
+              darkMode ? 'bg-slate-800 text-slate-100' : 'bg-white text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 헤더 */}
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${
+              similarityResult.status === 'HIGH_RISK' ? 'bg-red-500 text-white' :
+              similarityResult.status === 'MEDIUM_RISK' ? 'bg-yellow-500 text-white' :
+              similarityResult.status === 'LOW_RISK' ? 'bg-blue-500 text-white' :
+              'bg-green-500 text-white'
+            }`}>
+              <h3 className="font-bold text-xl">🔍 유사도 검사 결과</h3>
+              <button 
+                onClick={() => setShowSimilarityModal(false)}
+                className="text-2xl hover:opacity-70 transition-opacity"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* 본문 */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {/* 점수 */}
+              <div className="text-center mb-6">
+                <div className={`text-6xl font-black mb-2 ${
+                  similarityResult.finalScore >= 80 ? 'text-red-600' :
+                  similarityResult.finalScore >= 60 ? 'text-yellow-600' :
+                  similarityResult.finalScore >= 40 ? 'text-blue-600' :
+                  'text-green-600'
+                }`}>
+                  {similarityResult.finalScore.toFixed(1)}점
+                </div>
+                <p className="text-lg font-bold mb-2">
+                  {similarityResult.message}
+                </p>
+                <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                  검사 시간: {(similarityResult.checkDuration / 1000).toFixed(1)}초
+                </p>
+              </div>
+              
+              {/* 최다 매칭 출처 정보 (개선된 UI) */}
+              {similarityResult.topSourceInfo && similarityResult.topSourceInfo.matchCount > 0 && (
+                <div className={`mb-6 p-5 rounded-xl border-2 ${
+                  similarityResult.topSourceInfo.matchCount >= 5 
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                    : similarityResult.topSourceInfo.matchCount >= 3
+                    ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
+                    : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    {similarityResult.topSourceInfo.matchCount >= 5 ? '🚨' : 
+                     similarityResult.topSourceInfo.matchCount >= 3 ? '⚠️' : '💡'} 
+                    최다 유사 출처
+                  </h4>
+                  <div className="space-y-3">
+                    <div className={`p-4 rounded-lg ${darkMode ? 'bg-slate-700' : 'bg-white'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <a
+                          href={similarityResult.topSourceInfo.blogInfo?.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-blue-600 hover:underline flex-1"
+                        >
+                          {similarityResult.topSourceInfo.blogInfo?.title?.replace(/<[^>]*>/g, '') || '블로그'}
+                        </a>
+                        <span className={`ml-3 px-3 py-1 rounded-full text-sm font-bold ${
+                          similarityResult.topSourceInfo.matchCount >= 5 
+                            ? 'bg-red-500 text-white'
+                            : similarityResult.topSourceInfo.matchCount >= 3
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-blue-500 text-white'
+                        }`}>
+                          {similarityResult.topSourceInfo.matchCount}개 문장 일치
+                        </span>
+                      </div>
+                      <p className={`text-xs mb-2 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                        {similarityResult.topSourceInfo.blogInfo?.snippet?.substring(0, 150)}...
+                      </p>
+                      <p className={`text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                        {similarityResult.topSourceInfo.blogInfo?.displayLink || similarityResult.topSourceInfo.blogKey}
+                      </p>
+                    </div>
+                    <div className={`text-sm p-3 rounded-lg ${darkMode ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                      <p className="font-bold mb-2">📝 일치하는 문장:</p>
+                      <ul className="space-y-1 text-xs">
+                        {similarityResult.topSourceInfo.matchedPhrases?.slice(0, 5).map((phrase: string, idx: number) => (
+                          <li key={idx} className={`${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                            • "{phrase.substring(0, 80)}..."
+                          </li>
+                        ))}
+                        {similarityResult.topSourceInfo.matchedPhrases?.length > 5 && (
+                          <li className={`italic ${darkMode ? 'text-slate-500' : 'text-slate-500'}`}>
+                            외 {similarityResult.topSourceInfo.matchedPhrases.length - 5}개 문장 더...
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* 자체 블로그 매칭 */}
+              {similarityResult.ownBlogMatches.length > 0 ? (
+                <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    📚 자체 블로그 유사 글
+                  </h4>
+                  <ul className="space-y-2">
+                    {similarityResult.ownBlogMatches.map((match: any, idx: number) => {
+                      // similarity 값 안전하게 처리
+                      const similarity = typeof match.similarity === 'number' && !isNaN(match.similarity) 
+                        ? match.similarity 
+                        : 0;
+                      const percentage = (similarity * 100).toFixed(1);
+                      
+                      return (
+                        <li key={idx} className={`flex justify-between items-center p-3 rounded-lg ${
+                          darkMode ? 'bg-slate-600' : 'bg-white'
+                        }`}>
+                          <span className="truncate flex-1 text-sm">{match.blog?.title || '제목 없음'}</span>
+                          <span className={`font-bold ml-3 text-lg ${
+                            similarity >= 0.8 ? 'text-red-500' :
+                            similarity >= 0.6 ? 'text-yellow-500' :
+                            'text-blue-500'
+                          }`}>
+                            {percentage}%
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : (
+                <div className={`mb-6 p-4 rounded-xl border-2 border-dashed ${
+                  darkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-blue-50 border-blue-300'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    📚 자체 블로그 유사 글
+                  </h4>
+                  <div className={`text-center py-4 ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className="text-lg mb-2">✨ 첫 글이시네요!</p>
+                    <p className="text-sm">
+                      이 글을 <strong>PDF 다운로드</strong> 또는 <strong>카드뉴스 다운로드</strong>하면<br/>
+                      다음부터 자체 블로그와의 유사도 검사가 가능합니다.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* 웹 검색 매칭 (네이버 블로그) */}
+              {similarityResult.webSearchMatches.length > 0 ? (
+                <div className={`mb-6 p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    🌐 네이버 블로그에서 발견된 유사 문장
+                  </h4>
+                  <ul className="space-y-4">
+                    {similarityResult.webSearchMatches.map((match: any, idx: number) => (
+                      <li key={idx} className={`p-4 rounded-lg border-l-4 border-red-500 ${
+                        darkMode ? 'bg-slate-600' : 'bg-white'
+                      }`}>
+                        <p className="font-bold mb-2 text-sm text-red-600">"{match.phrase.substring(0, 100)}..."</p>
+                        <div className="mb-2 text-xs">
+                          <span className={`font-bold ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                            {match.matchCount}건의 네이버 블로그에서 발견
+                          </span>
+                        </div>
+                        {/* 매칭된 블로그 목록 */}
+                        {match.matches && match.matches.length > 0 && (
+                          <div className="space-y-2 mt-3">
+                            {match.matches.slice(0, 3).map((blog: any, blogIdx: number) => (
+                              <a
+                                key={blogIdx}
+                                href={blog.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`block p-2 rounded text-xs hover:bg-opacity-80 transition-all ${
+                                  darkMode ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-50 hover:bg-slate-100'
+                                }`}
+                              >
+                                <div className="font-bold text-blue-600 hover:underline mb-1">
+                                  {blog.title.replace(/<[^>]*>/g, '')}
+                                </div>
+                                <div className={`${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                  {blog.snippet?.substring(0, 150)}...
+                                </div>
+                                <div className={`mt-1 text-xs ${darkMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                                  {blog.displayLink || blog.link}
+                                </div>
+                              </a>
+                            ))}
+                            {match.matches.length > 3 && (
+                              <div className={`text-xs text-center pt-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                                외 {match.matches.length - 3}개 블로그 더보기...
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : similarityResult.keyPhrases && similarityResult.keyPhrases.length > 0 && (
+                <div className={`mb-6 p-4 rounded-xl border-2 border-dashed ${
+                  darkMode ? 'bg-slate-700 border-slate-600' : 'bg-yellow-50 border-yellow-300'
+                }`}>
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2">
+                    ⚠️ 웹 검색 결과 없음
+                  </h4>
+                  <p className={`text-sm mb-3 ${darkMode ? 'text-slate-300' : 'text-slate-700'}`}>
+                    네이버 블로그 검색 결과가 없습니다. 다음을 확인해주세요:
+                  </p>
+                  <ul className={`text-sm space-y-2 ml-4 list-disc ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <li>
+                      <strong>Google Custom Search API 키 설정</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        Cloudflare Dashboard &gt; Workers & Pages &gt; 프로젝트 &gt; Settings &gt; Environment variables
+                      </div>
+                    </li>
+                    <li>
+                      <strong>필요한 환경변수</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        • GOOGLE_API_KEY<br/>
+                        • GOOGLE_SEARCH_ENGINE_ID
+                      </div>
+                    </li>
+                    <li>
+                      <strong>API 할당량 확인</strong>
+                      <div className="text-xs mt-1 ml-2">
+                        무료: 100쿼리/일 | 유료: 10,000쿼리/일
+                      </div>
+                    </li>
+                  </ul>
+                  <div className={`mt-4 p-3 rounded-lg text-xs ${
+                    darkMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-600'
+                  }`}>
+                    💡 <strong>참고:</strong> 콘솔(F12)에서 상세한 에러 메시지를 확인할 수 있습니다.
+                  </div>
+                </div>
+              )}
+              
+              {/* 핵심 문장 */}
+              {similarityResult.keyPhrases.length > 0 && (
+                <div className={`p-4 rounded-xl ${darkMode ? 'bg-slate-700' : 'bg-slate-50'}`}>
+                  <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
+                    💡 검사된 핵심 문장들
+                  </h4>
+                  <ul className="space-y-1 text-xs">
+                    {similarityResult.keyPhrases.map((phrase: string, idx: number) => (
+                      <li key={idx} className={darkMode ? 'text-slate-400' : 'text-slate-600'}>
+                        {idx + 1}. "{phrase}"
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            
+            {/* 푸터 */}
+            <div className={`px-6 py-4 border-t flex justify-end gap-3 ${
+              darkMode ? 'border-slate-700' : 'border-slate-200'
+            }`}>
+              <button
+                onClick={() => setShowSimilarityModal(false)}
+                className={`px-6 py-2 rounded-lg font-bold transition-all ${
+                  darkMode 
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' 
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -122,6 +122,81 @@ export interface Database {
           status?: 'pending' | 'completed' | 'failed' | 'cancelled';
         };
       };
+      blog_history: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          title: string;
+          content: string;
+          html_content: string;
+          keywords: string[];
+          embedding: number[] | null;
+          naver_url: string | null;
+          category: string | null;
+          published_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          title: string;
+          content: string;
+          html_content: string;
+          keywords?: string[];
+          embedding?: number[] | null;
+          naver_url?: string | null;
+          category?: string | null;
+          published_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          title?: string;
+          content?: string;
+          html_content?: string;
+          keywords?: string[];
+          embedding?: number[] | null;
+          naver_url?: string | null;
+          category?: string | null;
+          published_at?: string;
+        };
+      };
+      medical_law_cache: {
+        Row: {
+          id: string;
+          source_url: string;
+          last_crawled_at: string;
+          prohibitions: any; // JSONB
+          summary: string | null;
+          raw_content: string | null;
+          version: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          source_url: string;
+          last_crawled_at?: string;
+          prohibitions?: any;
+          summary?: string | null;
+          raw_content?: string | null;
+          version?: number;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          source_url?: string;
+          last_crawled_at?: string;
+          prohibitions?: any;
+          summary?: string | null;
+          raw_content?: string | null;
+          version?: number;
+          is_active?: boolean;
+          updated_at?: string;
+        };
+      };
     };
   };
 }

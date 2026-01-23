@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 
@@ -33,26 +33,40 @@ interface AdminPageProps {
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('ADMIN_AUTHENTICATED') === 'true';
+    }
+    return false;
+  });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments'>('api');
+  const [activeTab, setActiveTab] = useState<'api' | 'users' | 'payments' | 'blogs'>('api');
   
-  const [configValues, setConfigValues] = useState({
-    geminiKey: '',
-    perplexityKey: ''
+  // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
+  const [configValues, setConfigValues] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return {
+        geminiKey: localStorage.getItem('GLOBAL_GEMINI_API_KEY') || '',
+        perplexityKey: localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY') || ''
+      };
+    }
+    return { geminiKey: '', perplexityKey: '' };
   });
   const [saved, setSaved] = useState(false);
   
   // 사용자 및 결제 데이터
   const [users, setUsers] = useState<UserData[]>([]);
   const [payments, setPayments] = useState<PaymentData[]>([]);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     paidUsers: 0,
     totalRevenue: 0,
-    todaySignups: 0
+    todaySignups: 0,
+    totalBlogs: 0
   });
   
   // SQL 힌트 모달
@@ -61,37 +75,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     sql: '',
     title: ''
   });
-
-  // 관리자 인증 확인
-  useEffect(() => {
-    const adminAuth = localStorage.getItem('ADMIN_AUTHENTICATED');
-    if (adminAuth === 'true') {
-      setIsAuthenticated(true);
-      // 이미 인증된 경우도 콜백 호출
-      onAdminVerified?.();
-    }
-  }, [onAdminVerified]);
-
-  // API 키 로드
-  useEffect(() => {
-    if (isAuthenticated) {
-      // GLOBAL_ 접두사로 전역 API 키 관리
-      const globalGemini = localStorage.getItem('GLOBAL_GEMINI_API_KEY');
-      const globalPerplexity = localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY');
-
-      setConfigValues({
-        geminiKey: globalGemini || '',
-        perplexityKey: globalPerplexity || ''
-      });
-      
-      // 데이터 로드
-      loadUsersAndPayments();
-    }
-  }, [isAuthenticated]);
+  
+  // 블로그 미리보기 모달
+  const [previewBlog, setPreviewBlog] = useState<any | null>(null);
 
   const [dataError, setDataError] = useState<string>('');
   
-  const loadUsersAndPayments = async () => {
+  // 데이터 로드 함수 (useEffect보다 먼저 선언)
+  const loadUsersAndPayments = useCallback(async () => {
     setLoadingData(true);
     setDataError('');
     
@@ -190,7 +181,119 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       setDataError(`데이터 로드 오류: ${String(err)}`);
     }
     setLoadingData(false);
+  }, []);
+
+  // 블로그 이력 로드 함수 (재시도 로직 포함)
+  const loadBlogHistory = useCallback(async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
+    setLoadingData(true);
+    setDataError('');
+    
+    try {
+      console.log('[Admin] 블로그 이력 로드 시작...', retryCount > 0 ? `(재시도 ${retryCount}/${MAX_RETRIES})` : '');
+      console.log('[Admin] Supabase 클라이언트:', supabase ? '✅ 존재' : '❌ 없음');
+      
+      const { data: blogsData, error: blogsError } = await supabase
+        .from('blog_history')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      console.log('[Admin] 블로그 쿼리 결과:', { 
+        데이터개수: blogsData?.length, 
+        에러: blogsError,
+        에러코드: blogsError?.code,
+        에러메시지: blogsError?.message
+      });
+      
+      if (blogsError) {
+        console.error('블로그 이력 로드 에러:', blogsError);
+        
+        // 네트워크 오류 시 재시도
+        if ((blogsError.message?.includes('fetch') || blogsError.message?.includes('network')) && retryCount < MAX_RETRIES) {
+          console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
+          setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+          return loadBlogHistory(retryCount + 1);
+        }
+        
+        if (blogsError.code === '42P01' || blogsError.message?.includes('does not exist')) {
+          setDataError('⚠️ blog_history 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
+        } else {
+          setDataError(`블로그 이력 로드 실패: ${blogsError.message || blogsError.code || '알 수 없는 오류'}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
+        }
+      } else {
+        console.log(`[Admin] ✅ 블로그 ${blogsData?.length || 0}개 로드 완료`);
+        setBlogs(blogsData || []);
+        setStats(prev => ({
+          ...prev,
+          totalBlogs: blogsData?.length || 0
+        }));
+      }
+    } catch (err) {
+      console.error('블로그 이력 로드 오류:', err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error('에러 상세:', {
+        message: errorMsg,
+        stack: err instanceof Error ? err.stack : undefined
+      });
+      
+      // 네트워크 오류 시 재시도
+      if (errorMsg.includes('fetch') && retryCount < MAX_RETRIES) {
+        console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
+        setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+        return loadBlogHistory(retryCount + 1);
+      }
+      
+      setDataError(`블로그 이력 로드 실패: ${errorMsg}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
+    }
+    setLoadingData(false);
+  }, []);
+
+  // 블로그 삭제 함수
+  const deleteBlog = async (blogId: string) => {
+    if (!confirm('정말로 이 블로그 글을 삭제하시겠습니까?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('blog_history')
+        .delete()
+        .eq('id', blogId);
+      
+      if (error) {
+        alert(`삭제 실패: ${error.message}`);
+      } else {
+        alert('✅ 삭제 완료!');
+        loadBlogHistory(); // 목록 새로고침
+      }
+    } catch (err) {
+      alert(`삭제 오류: ${String(err)}`);
+    }
   };
+
+  // 관리자 인증 확인 - 이미 인증된 경우 콜백만 호출
+  useEffect(() => {
+    if (isAuthenticated) {
+      onAdminVerified?.();
+    }
+  }, [isAuthenticated, onAdminVerified]);
+
+  // 데이터 로드 (인증 상태 변경 시) - 비동기 콜백 내 setState는 안전함
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadUsersAndPayments();
+  }, [isAuthenticated, loadUsersAndPayments]);
+
+  // 블로그 탭 활성화 시 블로그 이력 로드
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (activeTab === 'blogs') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadBlogHistory();
+    }
+  }, [isAuthenticated, activeTab, loadBlogHistory]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,7 +466,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
             <div className="text-3xl mb-2">👥</div>
             <div className="text-2xl font-black text-white">{stats.totalUsers}</div>
@@ -383,6 +486,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div className="text-3xl mb-2">🆕</div>
             <div className="text-2xl font-black text-white">{stats.todaySignups}</div>
             <div className="text-sm text-slate-400">오늘 가입</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+            <div className="text-3xl mb-2">📝</div>
+            <div className="text-2xl font-black text-white">{stats.totalBlogs}</div>
+            <div className="text-sm text-slate-400">저장된 글</div>
           </div>
         </div>
 
@@ -417,6 +525,16 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             }`}
           >
             💳 결제 내역
+          </button>
+          <button
+            onClick={() => setActiveTab('blogs')}
+            className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
+              activeTab === 'blogs' 
+                ? 'bg-emerald-500 text-white' 
+                : 'bg-white/10 text-slate-400 hover:text-white'
+            }`}
+          >
+            📝 블로그 관리
           </button>
         </div>
 
@@ -720,6 +838,101 @@ DELETE FROM profiles WHERE id = '${user.id}';`;
               )}
             </div>
           )}
+
+          {/* Blog History Tab */}
+          {activeTab === 'blogs' && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black text-white">블로그 관리</h2>
+                <button 
+                  onClick={loadBlogHistory}
+                  disabled={loadingData}
+                  className="px-4 py-2 bg-slate-700 text-white font-bold rounded-xl hover:bg-slate-600 transition-colors text-sm disabled:opacity-50"
+                >
+                  {loadingData ? '로딩...' : '🔄 새로고침'}
+                </button>
+              </div>
+              
+              {dataError && (
+                <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl">
+                  <p className="text-red-300 text-sm font-medium">{dataError}</p>
+                </div>
+              )}
+              
+              {blogs.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-4">📝</div>
+                  <p className="text-slate-400 font-medium">
+                    {loadingData ? '블로그 이력을 불러오는 중...' : '아직 저장된 블로그 글이 없습니다.'}
+                  </p>
+                  <p className="text-slate-500 text-sm mt-2">
+                    블로그 글을 생성하면 여기에 자동으로 저장됩니다.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-sm text-slate-400 mb-4">
+                    총 {blogs.length}개의 블로그 글이 저장되어 있습니다.
+                  </div>
+                  {blogs.map((blog) => (
+                    <div 
+                      key={blog.id} 
+                      className="bg-white/5 rounded-xl p-5 border border-slate-700 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-white mb-2 truncate">
+                            {blog.title}
+                          </h3>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mb-3">
+                            <span>📅 {formatDate(blog.created_at)}</span>
+                            {blog.category && (
+                              <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-bold">
+                                {blog.category}
+                              </span>
+                            )}
+                            {blog.keywords && blog.keywords.length > 0 && (
+                              <span className="text-xs text-slate-500">
+                                🏷️ {blog.keywords.slice(0, 3).join(', ')}
+                                {blog.keywords.length > 3 && ` +${blog.keywords.length - 3}`}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-slate-300 line-clamp-2">
+                            {blog.content?.substring(0, 150)}...
+                          </p>
+                          {blog.naver_url && (
+                            <a 
+                              href={blog.naver_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-block mt-2 text-xs text-green-400 hover:text-green-300 underline"
+                            >
+                              🔗 네이버 블로그에서 보기
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setPreviewBlog(blog)}
+                            className="px-3 py-2 bg-blue-500/20 text-blue-400 font-bold rounded-lg hover:bg-blue-500/30 transition-colors text-sm whitespace-nowrap"
+                          >
+                            👁️ 보기
+                          </button>
+                          <button
+                            onClick={() => deleteBlog(blog.id)}
+                            className="px-3 py-2 bg-red-500/20 text-red-400 font-bold rounded-lg hover:bg-red-500/30 transition-colors text-sm whitespace-nowrap"
+                          >
+                            🗑️ 삭제
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -780,6 +993,63 @@ DELETE FROM profiles WHERE id = '${user.id}';`;
                   닫기
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 블로그 미리보기 모달 */}
+      {previewBlog && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl my-8">
+            {/* 헤더 */}
+            <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6 border-b border-slate-600 flex justify-between items-start gap-4">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-2xl font-bold text-white mb-2">{previewBlog.title}</h2>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                  <span>📅 {formatDate(previewBlog.created_at)}</span>
+                  {previewBlog.category && (
+                    <span className="px-2 py-1 bg-blue-500/30 text-blue-300 rounded-full text-xs font-bold">
+                      {previewBlog.category}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewBlog(null)}
+                className="text-white hover:text-slate-300 text-3xl font-bold leading-none flex-shrink-0"
+              >
+                ×
+              </button>
+            </div>
+            
+            {/* 콘텐츠 */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-200px)] bg-slate-50">
+              <div 
+                className="prose prose-slate max-w-none"
+                dangerouslySetInnerHTML={{ __html: previewBlog.content || '<p class="text-slate-400">내용이 없습니다.</p>' }}
+              />
+            </div>
+            
+            {/* 푸터 */}
+            <div className="bg-slate-100 p-4 border-t border-slate-300 flex justify-between items-center gap-4">
+              <div className="flex gap-2 flex-wrap">
+                {previewBlog.keywords && previewBlog.keywords.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {previewBlog.keywords.map((keyword: string, idx: number) => (
+                      <span key={idx} className="px-2 py-1 bg-slate-200 text-slate-700 rounded text-xs font-medium">
+                        #{keyword}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setPreviewBlog(null)}
+                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors whitespace-nowrap"
+              >
+                닫기
+              </button>
             </div>
           </div>
         </div>

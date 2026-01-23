@@ -1,12 +1,13 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 
-export const renderer = jsxRenderer(({ children }) => {
+// @ts-expect-error - Hono JSX type compatibility
+export const renderer = jsxRenderer(({ children }: { children: unknown }) => {
   return (
     <html>
       <head>
         <link href="/static/style.css" rel="stylesheet" />
       </head>
-      <body>{children}</body>
+      <body>{children as any}</body>
     </html>
   )
 })

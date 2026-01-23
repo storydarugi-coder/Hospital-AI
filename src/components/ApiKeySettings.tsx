@@ -94,7 +94,7 @@ const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
       }
       
       setMessage({ type: 'success', text: 'API 키가 삭제되었습니다.' });
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'API 키 삭제 실패' });
     }
   };
