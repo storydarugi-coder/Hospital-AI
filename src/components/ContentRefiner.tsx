@@ -575,7 +575,17 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' 
               </div>
             ) : refinedContent ? (
               <div className="space-y-4">
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: refinedContent }} />
+                <div 
+                  className="prose prose-sm max-w-none" 
+                  dangerouslySetInnerHTML={{ 
+                    __html: (() => {
+                      // 🔥 HTML 엔티티 디코딩 (네모 문자 방지)
+                      const parser = new DOMParser();
+                      const doc = parser.parseFromString(refinedContent, 'text/html');
+                      return doc.body.innerHTML;
+                    })()
+                  }} 
+                />
                 
                 {factCheck && mode === 'auto' && (
                   <div className={`mt-4 p-4 rounded-lg ${darkMode ? 'bg-slate-800' : 'bg-white'}`}>
