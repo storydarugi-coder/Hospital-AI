@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 // Admin 비밀번호
 const ADMIN_PASSWORD = '0000';
 
-// 백엔드 API URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://3001-iizqkp3xjewhp4iqs3cdy-2b54fc91.sandbox.novita.ai';
+// 백엔드 API URL - 프로덕션에서는 상대 경로, 개발에서는 절대 경로
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface ContentData {
   id: number;
