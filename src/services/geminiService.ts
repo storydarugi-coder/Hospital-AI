@@ -3828,11 +3828,12 @@ ${medicalLawPrompt}
 
 ${gpt52Stage1}
 
-[🚨🚨🚨 글자 수 최우선 준수!]
-목표: ${targetLength}자 (공백 제외)
-✅ 허용 범위: ${Math.round(targetLength * 0.98)}자 ~ ${Math.round(targetLength * 1.02)}자 (정확히 ±2%)
-⚠️ 이 범위를 벗어나면 즉시 탈락!
-🔥 반드시 작성 후 공백 제외 글자 수를 세어서 범위 내인지 확인!
+[🚨🚨🚨 글자 수 절대 준수 - 가장 중요한 규칙!]
+목표: 정확히 ${targetLength}자 (공백 제외)
+✅ 최대 허용: ${targetLength}자 (1자도 초과 불가!)
+⚠️ 초과 시 즉시 실격! 반드시 ${targetLength}자 이하로 작성!
+🔥 작성 후 반드시 공백 제외 글자 수를 세어서 ${targetLength}자를 넘지 않았는지 확인!
+💡 팁: 목표보다 50~100자 적게 쓰는 것이 안전합니다 (${targetLength - 100}자 ~ ${targetLength}자)
 
 [작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 자연스럽게 포함 - 첫 번째 키워드 정확히 4회, 두 번째 최대 2회, 세 번째 이후 최대 1회. ⚠️ 부분 일치도 카운트: "자궁근종" 2회 + "근종" 1회 = 총 3회 위반!) / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
@@ -5091,7 +5092,9 @@ ${learnedStyleInstruction}
 - 보도 유형: ${pressTypeLabel}
 - 주제: ${request.topic}
 - SEO 키워드: ${request.keywords} ⚠️ **필수**: 본문에 자연스럽게 포함 (첫 번째 키워드 정확히 4회, 두 번째 최대 2회, 세 번째 이후 최대 1회. 부분 일치도 카운트!)
-- ⚠️ 최대 글자 수: 공백 제외 ${maxLength}자
+- 🚨🚨🚨 최대 글자 수: 공백 제외 ${maxLength}자 (절대 초과 불가!)
+  ✅ 반드시 ${maxLength}자 이하로 작성!
+  💡 안전하게 ${maxLength - 50}자 ~ ${maxLength}자로 작성 권장!
 ${hospitalInfo}
 
 [중요]
@@ -7312,7 +7315,7 @@ ${textContent}
 
 3️⃣ **반말체 절대 금지**
    ❌ "~해요", "~죠", "~네요" (반말 느낌!)
-   ✅ "~합니다", "~됩니다", "~입니다"
+   ✅ 종결어미 다양화: "~합니다", "~기도 합니다", "~경우가 있습니다", "~수 있습니다" 등 섞어서 사용
 
 4️⃣ **의료광고법 준수 (🔥 강화 버전!)**
 

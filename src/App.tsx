@@ -839,57 +839,7 @@ const App: React.FC = () => {
           </a>
           
           <div className="flex items-center gap-3">
-             <a 
-               href="#" 
-               className="p-2.5 hover:bg-slate-100 rounded-xl transition-all text-sm font-bold text-slate-500 hidden sm:flex items-center gap-2"
-             >
-                🏠 홈
-             </a>
-
-             {/* 긴급 탈출 버튼 (숨김 - 더블클릭으로 강제 로그아웃) */}
-             {isLoggedIn && (
-               <button 
-                 onDoubleClick={() => {
-                   if (confirm('🚨 긴급 탈출: 강제로 로그아웃하시겠습니까?')) {
-                     localStorage.clear();
-                     sessionStorage.clear();
-                     window.location.reload();
-                   }
-                 }}
-                 className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-100 text-slate-400'}`}
-                 title="긴급 탈출 (더블클릭)"
-               >
-                  🆘
-               </button>
-             )}
-             
-             {/* API 키 설정 버튼 */}
-             <button 
-               onClick={() => setShowApiKeyModal(true)}
-               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-slate-400 hover:text-emerald-400' : 'hover:bg-slate-100 text-slate-400 hover:text-emerald-600'}`}
-               title="API 키 설정"
-             >
-                ⚙️
-             </button>
-             
-             {/* 유사도 검사 버튼 */}
-             <button 
-               onClick={() => setShowSimilarityChecker(true)}
-               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-blue-400' : 'hover:bg-slate-100 text-blue-600'}`}
-               title="유사도 검사"
-             >
-               🔍
-             </button>
-
-             {/* 다크모드 토글 */}
-             <button 
-               onClick={toggleDarkMode}
-               className={`w-9 h-9 rounded-xl transition-all text-lg flex items-center justify-center ${darkMode ? 'hover:bg-slate-700 text-yellow-400' : 'hover:bg-slate-100 text-slate-400'}`}
-               title={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
-             >
-                {darkMode ? '☀️' : '🌙'}
-             </button>
-
+             {/* 모든 버튼 숨김 - 깔끔한 UI */}
           </div>
         </div>
       </header>
