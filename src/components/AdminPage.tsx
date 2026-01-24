@@ -76,7 +76,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const getContentTypeBadge = (type?: ContentType | string) => {
     const badges: Record<string, { bg: string; text: string; icon: string }> = {
       'blog': { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: '📝' },
-      'cardnews': { bg: 'bg-purple-500/20', text: 'text-purple-400', icon: '🎴' },
+      'cardnews': { bg: 'bg-purple-500/20', text: 'text-purple-400', icon: '🎨' },
       'press': { bg: 'bg-green-500/20', text: 'text-green-400', icon: '📰' }
     };
     const badge = badges[type || 'blog'] || badges['blog'];
