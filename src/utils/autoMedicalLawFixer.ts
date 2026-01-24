@@ -3,7 +3,7 @@
  * AI가 생성한 글을 자동으로 의료광고법에 맞게 수정
  */
 
-// 의료광고법 금지 패턴 (🔥 2025년 피드백 반영)
+// 의료광고법 금지 패턴 (🔥 2025년 피드백 반영 + 약물/치료법 추가)
 const PROHIBITED_PATTERNS = {
   // 1. 질환명 강조/반복 패턴
   diseaseEmphasis: /(\S+암|\S+증|\S+림프종)\s*(일\s*수\s*있습니다|의심됩니다|가능성)/g,
@@ -16,6 +16,10 @@ const PROHIBITED_PATTERNS = {
   
   // 4. 치료/검사 권유 (직접 + 간접)
   medicalAdvice: /확인이\s*필요한\s*시점|살펴볼\s*때|검사(받으세요|하세요)|병원(가세요|방문)/g,
+  
+  // 🆕 5. 약물/치료법 권유
+  drugAdvice: /권장합니다|선택하면\s*좋(다|습니다)|우선입니다|적합합니다|확인해보자|고려해보자|선택하자/g,
+  drugSafety: /(약물|상호작용)이?\s*(위험합니다|안전합니다)/g,
   
   // 기존 패턴 유지
   suspicion: /의심/g,
@@ -379,6 +383,62 @@ export function fixMedicalAdvice(text: string): {
 }
 
 /**
+ * 🆕 약물/치료법 권유 제거 (신규 피드백)
+ */
+export function fixDrugAdvice(text: string): {
+  fixed: string;
+  changes: FixResult['changes'];
+} {
+  let fixed = text;
+  const changes: FixResult['changes'] = [];
+
+  // 약물/치료법 권유 표현 제거
+  const adviceReplacements: [RegExp, string][] = [
+    [/권장합니다/g, '사용되는 경우가 있습니다'],
+    [/선택하면\s*좋(다|습니다)/g, '고려되는 방법 중 하나입니다'],
+    [/우선입니다/g, '알려져 있습니다'],
+    [/적합합니다/g, '사용되기도 합니다'],
+    [/확인해보자/g, '확인해볼 수 있습니다'],
+    [/고려해보자/g, '고려되는 경우가 있습니다'],
+    [/선택하자/g, '선택 사항 중 하나입니다'],
+  ];
+
+  for (const [pattern, replacement] of adviceReplacements) {
+    const matches = Array.from(fixed.matchAll(pattern));
+    for (const match of matches) {
+      fixed = fixed.replace(match[0], replacement);
+      changes.push({
+        type: 'replace',
+        original: match[0],
+        fixed: replacement,
+        reason: '의료광고법: 약물/치료법 권유 금지'
+      });
+    }
+  }
+
+  // 약물 안전성 단정 제거
+  const safetyReplacements: [RegExp, string][] = [
+    [/(약물|상호작용)이?\s*위험합니다/g, '경우에 따라 주의가 필요할 수 있습니다'],
+    [/(약물|상호작용)이?\s*안전합니다/g, '일반적으로 사용되는 경우가 있습니다'],
+  ];
+
+  for (const [pattern, replacement] of safetyReplacements) {
+    const matches = Array.from(fixed.matchAll(pattern));
+    for (const match of matches) {
+      fixed = fixed.replace(match[0], replacement);
+      changes.push({
+        type: 'replace',
+        original: match[0],
+        fixed: replacement,
+        reason: '의료광고법: 약물 안전성 단정 금지'
+      });
+    }
+  }
+
+  return { fixed, changes };
+}
+
+/**
  * 종합 자동 수정 실행 (🔥 2025 피드백 반영)
  */
 export function autoFixMedicalLaw(content: string): FixResult {
@@ -406,27 +466,32 @@ export function autoFixMedicalLaw(content: string): FixResult {
   fixedText = medicalAdviceResult.fixed;
   allChanges.push(...medicalAdviceResult.changes);
 
-  // 5. 과장 표현 수정 (기존)
+  // 🆕 5. 약물/치료법 권유 제거 (신규 피드백)
+  const drugAdviceResult = fixDrugAdvice(fixedText);
+  fixedText = drugAdviceResult.fixed;
+  allChanges.push(...drugAdviceResult.changes);
+
+  // 6. 과장 표현 수정 (기존)
   const exaggerationResult = fixExaggeration(fixedText);
   fixedText = exaggerationResult.fixed;
   allChanges.push(...exaggerationResult.changes);
 
-  // 6. 출처 추가 (기존)
+  // 7. 출처 추가 (기존)
   const sourceResult = fixMissingSource(fixedText);
   fixedText = sourceResult.fixed;
   allChanges.push(...sourceResult.changes);
 
-  // 7. 비교 광고 제거 (기존)
+  // 8. 비교 광고 제거 (기존)
   const comparisonResult = removeComparison(fixedText);
   fixedText = comparisonResult.fixed;
   allChanges.push(...comparisonResult.changes);
 
-  // 8. 환자 후기 처리 (기존)
+  // 9. 환자 후기 처리 (기존)
   const testimonialResult = handleTestimonials(fixedText);
   fixedText = testimonialResult.fixed;
   allChanges.push(...testimonialResult.changes);
 
-  // 9. AI 냄새 제거 (기존)
+  // 10. AI 냄새 제거 (기존)
   const aiSmellResult = removeAiSmell(fixedText);
   fixedText = aiSmellResult.fixed;
   allChanges.push(...aiSmellResult.changes);
