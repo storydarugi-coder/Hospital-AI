@@ -52,19 +52,11 @@ const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
       const result = await saveApiKeys(geminiToSave, openaiToSave);
 
       if (result.success) {
-        // localStorage에도 저장 (동기화)
-        if (geminiToSave) {
-          localStorage.setItem('GEMINI_API_KEY', geminiToSave);
-        }
-        if (openaiToSave) {
-          localStorage.setItem('OPENAI_API_KEY', openaiToSave);
-        }
-
         setMessage({ type: 'success', text: 'API 키가 저장되었습니다!' });
         
-        // 2초 후 자동으로 닫기
+        // 1.5초 후 자동으로 닫기 (페이지 새로고침 제거)
         setTimeout(() => {
-          window.location.reload(); // 페이지 새로고침으로 키 적용
+          onClose();
         }, 1500);
       } else {
         setMessage({ type: 'error', text: result.error || '저장 실패' });
@@ -83,7 +75,6 @@ const ApiKeySettings: React.FC<ApiKeySettingsProps> = ({ onClose }) => {
 
     try {
       await deleteApiKeys(type);
-      localStorage.removeItem(type === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY');
       
       if (type === 'gemini') {
         setGeminiKey('');
