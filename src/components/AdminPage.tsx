@@ -32,19 +32,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   });
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [activeTab, setActiveTab] = useState<'api' | 'contents'>('contents');
+  const [activeTab] = useState<'contents'>('contents');
   
-  // 초기값을 localStorage에서 직접 읽어서 설정 (useEffect 내 setState 방지)
-  const [configValues, setConfigValues] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return {
-        geminiKey: localStorage.getItem('GLOBAL_GEMINI_API_KEY') || '',
-        perplexityKey: localStorage.getItem('GLOBAL_PERPLEXITY_API_KEY') || ''
-      };
-    }
-    return { geminiKey: '', perplexityKey: '' };
-  });
-  const [saved, setSaved] = useState(false);
+  // API 설정은 서버 환경변수로 관리 (UI 제거)
   
   // 콘텐츠 데이터 (블로그, 카드뉴스, 언론보도)
   const [contents, setContents] = useState<ContentData[]>([]);
@@ -210,14 +200,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     }
   }, [isAuthenticated, onAdminVerified]);
 
-  // 콘텐츠 탭 활성화 시 콘텐츠 이력 로드
+  // 인증 후 콘텐츠 이력 로드
   useEffect(() => {
     if (!isAuthenticated) return;
-    if (activeTab === 'contents') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadContents();
-    }
-  }, [isAuthenticated, activeTab, loadContents]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadContents();
+  }, [isAuthenticated, loadContents]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,38 +225,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     localStorage.removeItem('ADMIN_AUTHENTICATED');
   };
 
-  const handleSaveConfig = () => {
-    // GLOBAL_ 접두사로 저장하여 모든 사용자가 이용하도록 함
-    localStorage.setItem('GLOBAL_GEMINI_API_KEY', configValues.geminiKey);
-    localStorage.setItem('GLOBAL_PERPLEXITY_API_KEY', configValues.perplexityKey);
-    
-    // 기존 개인용 키도 업데이트 (호환성)
-    localStorage.setItem('GEMINI_API_KEY', configValues.geminiKey);
-    localStorage.setItem('PERPLEXITY_API_KEY', configValues.perplexityKey);
-    
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleClearConfig = () => {
-    if (confirm('API 키를 삭제하시겠습니까?')) {
-      localStorage.removeItem('GLOBAL_GEMINI_API_KEY');
-      localStorage.removeItem('GLOBAL_PERPLEXITY_API_KEY');
-      localStorage.removeItem('GEMINI_API_KEY');
-      localStorage.removeItem('PERPLEXITY_API_KEY');
-      setConfigValues({
-        geminiKey: '',
-        perplexityKey: ''
-      });
-    }
-  };
-
-  const maskApiKey = (key: string) => {
-    if (!key) return '';
-    if (key.length <= 8) return '••••••••';
-    return key.substring(0, 4) + '••••••••' + key.substring(key.length - 4);
-  };
-  
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
@@ -391,114 +347,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           </div>
         </div>
 
-        {/* Tabs - API 설정과 콘텐츠 관리만 */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => setActiveTab('api')}
-            className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'api' 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-white/10 text-slate-400 hover:text-white'
-            }`}
-          >
-            🔑 API 설정
-          </button>
-          <button
-            onClick={() => setActiveTab('contents')}
-            className={`px-5 py-3 rounded-xl font-bold text-sm transition-all ${
-              activeTab === 'contents' 
-                ? 'bg-emerald-500 text-white' 
-                : 'bg-white/10 text-slate-400 hover:text-white'
-            }`}
-          >
-            📝 콘텐츠 관리
-          </button>
-        </div>
-
-        {/* Tab Content */}
+        {/* 콘텐츠 관리 */}
         <div className="bg-white/10 backdrop-blur-xl rounded-[32px] p-6 lg:p-8 shadow-2xl border border-white/10">
           
-          {/* API Settings Tab */}
-          {activeTab === 'api' && (
-            <div>
-              {/* Status Badges */}
-              <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${configValues.geminiKey ? 'bg-blue-500 animate-pulse' : 'bg-red-500'}`}></div>
-                  <span className="text-sm font-bold text-slate-300">
-                    Gemini: {configValues.geminiKey ? '✅ 활성' : '❌ 미설정'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Info Banner */}
-              <div className="mb-6 p-4 bg-blue-500/20 border border-blue-500/30 rounded-xl">
-                <p className="text-blue-300 text-sm font-medium">
-                  ℹ️ 여기서 설정한 API 키는 <strong>모든 사용자</strong>가 공유합니다.<br/>
-                  사용자들은 API 키 없이도 서비스를 이용할 수 있습니다.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Gemini API Key */}
-                <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 p-6 rounded-2xl border border-blue-500/20">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-black text-blue-300 uppercase tracking-widest">
-                      Google Gemini API
-                    </label>
-                    <span className="text-[10px] font-bold text-red-400 bg-red-500/20 px-2 py-1 rounded-full">필수</span>
-                  </div>
-                  <input 
-                    type="password" 
-                    value={configValues.geminiKey}
-                    onChange={(e) => setConfigValues({...configValues, geminiKey: e.target.value})}
-                    placeholder="AI Studio에서 발급받은 API Key"
-                    className="w-full p-4 bg-slate-900/50 border border-slate-700 rounded-xl font-mono text-sm text-white placeholder-slate-500 focus:border-blue-500 outline-none transition-colors"
-                  />
-                  {configValues.geminiKey && (
-                    <p className="text-[11px] text-blue-400 mt-2 font-mono">
-                      현재 키: {maskApiKey(configValues.geminiKey)}
-                    </p>
-                  )}
-                  <a 
-                    href="https://aistudio.google.com/app/apikey" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-blue-400 mt-2 font-bold hover:text-blue-300"
-                  >
-                    🔗 Google AI Studio에서 키 발급받기
-                  </a>
-                </div>
-
-              </div>
-
-              {/* AI 역할 분리 설정 */}
-
-              {/* Actions */}
-              <div className="flex gap-3 mt-8">
-                <button 
-                  onClick={handleClearConfig} 
-                  className="flex-1 py-4 bg-red-500/20 text-red-400 font-bold rounded-xl hover:bg-red-500/30 transition-colors border border-red-500/30"
-                >
-                  🗑️ 전체 삭제
-                </button>
-                <button 
-                  onClick={handleSaveConfig} 
-                  className={`flex-1 py-4 font-bold rounded-xl transition-all shadow-lg ${
-                    saved 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-emerald-500/30 hover:shadow-xl'
-                  }`}
-                >
-                  {saved ? '✅ 저장됨!' : '💾 저장하기'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Contents Tab - 블로그, 카드뉴스, 언론보도 통합 관리 */}
-          {activeTab === 'contents' && (
-            <div>
+          <div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                 <h2 className="text-xl font-black text-white">콘텐츠 관리</h2>
                 <div className="flex flex-wrap gap-2">
@@ -640,16 +493,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                 </div>
               )}
             </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-slate-500 text-sm font-medium">
-            ⚠️ API 키는 브라우저의 LocalStorage에 저장됩니다.
-          </p>
-          <p className="text-slate-600 text-xs mt-1">
-            Cloudflare 배포 시 환경변수로 설정하는 것을 권장합니다.
+            Hospital AI 어드민 페이지
           </p>
         </div>
       </div>
