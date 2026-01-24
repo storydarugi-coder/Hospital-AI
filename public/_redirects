@@ -1,0 +1,3 @@
+# SPA Fallback - 모든 경로를 index.html로 리디렉트
+# 404 에러 방지
+/*    /index.html   200
