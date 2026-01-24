@@ -1,7 +1,9 @@
 // API 서버에 콘텐츠 저장하는 서비스
 
-// 개발 환경에서는 로컬 서버, 프로덕션에서는 배포된 서버 URL 사용
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://3001-i7sb1xuomdisn8dq0jtnt-c07dda5e.sandbox.novita.ai';
+// 개발 환경에서는 로컬 서버, 프로덕션에서는 같은 도메인의 /api 사용
+// 프로덕션: /api (Cloudflare Pages Functions)
+// 개발: VITE_API_URL 환경 변수로 오버라이드 가능
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface SaveContentRequest {
   title: string;
