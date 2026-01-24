@@ -3,14 +3,17 @@ export async function onRequestGet(context: any) {
   const { env, request } = context;
   
   try {
-    // KV에서 콘텐츠 목록 가져오기
+    // KV가 없으면 빈 배열 반환 (에러 대신 정상 응답)
     const CONTENT_KV = env.CONTENT_STORAGE;
+    
     if (!CONTENT_KV) {
+      console.log('⚠️ CONTENT_STORAGE KV binding not found - returning empty list');
       return new Response(
         JSON.stringify({
           success: true,
           data: [],
-          pagination: { total: 0, limit: 50, offset: 0 }
+          pagination: { total: 0, limit: 50, offset: 0 },
+          message: 'KV storage not configured yet'
         }),
         {
           status: 200,

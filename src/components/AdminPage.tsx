@@ -67,6 +67,18 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setLoadingContents(true);
     try {
       const response = await fetch(`${API_BASE_URL}/content/list?limit=100`);
+      
+      // HTML 응답 체크 (404 에러)
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ API 응답이 JSON이 아닙니다:', contentType);
+        console.log('⚠️ 콘텐츠 API가 아직 설정되지 않았습니다.');
+        setContents([]);
+        setStats({ totalContents: 0, blogPosts: 0, cardNews: 0, todayCreated: 0 });
+        setLoadingContents(false);
+        return;
+      }
+      
       const data = await response.json();
       
       if (data.success && data.data) {
@@ -88,9 +100,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           cardNews: cards,
           todayCreated: todayCount
         });
+      } else {
+        console.log('⚠️ 콘텐츠 목록이 비어있습니다.');
+        setContents([]);
       }
     } catch (error) {
       console.error('콘텐츠 로드 실패:', error);
+      setContents([]);
+      setStats({ totalContents: 0, blogPosts: 0, cardNews: 0, todayCreated: 0 });
     }
     setLoadingContents(false);
   };
