@@ -5602,10 +5602,20 @@ ${JSON.stringify(searchResults, null, 2)}
       console.log('📦 blogPrompt 길이:', blogPrompt?.length || 0);
       console.log('📦 전체 프롬프트 미리보기:', `${contextData}\n\n${blogPrompt}`.substring(0, 500));
       
-      // 🎬 일반 generateContent 사용 (타임아웃 제거 - Gemini가 알아서 처리)
-      safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (잠시만 기다려주세요)');
+      // 🎬 일반 generateContent 사용 + 타임아웃 추가
+      safeProgress('✍️ AI가 콘텐츠를 작성하고 있습니다... (최대 2분 소요)');
       
-      const geminiResponse = await ai.models.generateContent({
+      console.log('🔄 Gemini API 호출 시작 (타임아웃: 2분)...');
+      
+      // 타임아웃 Promise 생성 (2분)
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('⏰ 요청 시간 초과 (2분). API가 응답하지 않습니다.'));
+        }, 120000); // 2분
+      });
+      
+      // API 호출 Promise
+      const apiPromise = ai.models.generateContent({
         model: "gemini-3-pro-preview",
         contents: `${systemPrompt}\n\n${isCardNews ? cardNewsPrompt : blogPrompt}`,
         config: {
@@ -5635,6 +5645,9 @@ ${JSON.stringify(searchResults, null, 2)}
           }
         }
       });
+      
+      // Race: API 호출 vs 타임아웃
+      const geminiResponse = await Promise.race([apiPromise, timeoutPromise]);
       
       const responseText = geminiResponse.text || '';
       const charCountNoSpaces = responseText.replace(/\s/g, '').length;
