@@ -180,7 +180,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const getPostTypeBadge = (postType: string) => {
     const badges: Record<string, { bg: string; text: string; label: string; emoji: string }> = {
       'blog': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: '블로그', emoji: '📝' },
-      'card_news': { bg: 'bg-purple-500/20', text: 'text-purple-400', label: '카드뉴스', emoji: '🎴' },
+      'card_news': { bg: 'bg-purple-500/20', text: 'text-purple-400', label: '카드뉴스', emoji: '📱' },
       'press_release': { bg: 'bg-amber-500/20', text: 'text-amber-400', label: '보도자료', emoji: '📰' },
     };
     const badge = badges[postType] || badges['blog'];
@@ -291,7 +291,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div className="text-sm text-slate-400">블로그 포스트</div>
           </div>
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
-            <div className="text-3xl mb-2">🎴</div>
+            <div className="text-3xl mb-2">📱</div>
             <div className="text-2xl font-black text-white">{stats.cardNews}</div>
             <div className="text-sm text-slate-400">카드뉴스</div>
           </div>

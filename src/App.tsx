@@ -384,7 +384,7 @@ const App: React.FC = () => {
     
     // 카드뉴스: 2단계 워크플로우 (원고 생성 → 사용자 확인 → 디자인 변환)
     if (request.postType === 'card_news') {
-      console.log('🎴 카드뉴스 모드 시작');
+      console.log('📱 카드뉴스 모드 시작');
       setIsGeneratingScript(true);
       setCardNewsScript(null);
       setPendingRequest(request);

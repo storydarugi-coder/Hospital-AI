@@ -2011,7 +2011,7 @@ ${imageStyle === 'illustration'
   }
 };
 
-// 🎴 카드뉴스 전용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
+// 📱 카드뉴스 전용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
 export const recommendCardNewsPrompt = async (
   subtitle: string,
   mainTitle: string,
@@ -2208,7 +2208,7 @@ ${promptText}
   return `data:image/svg+xml;base64,${base64Placeholder}`;
 };
 
-// 🎴 기본 프레임 이미지 URL (보라색 테두리 + 흰색 배경)
+// 📱 기본 프레임 이미지 URL (보라색 테두리 + 흰색 배경)
 const DEFAULT_FRAME_IMAGE_URL = 'https://www.genspark.ai/api/files/s/R8v4us3T';
 
 // 기본 프레임 이미지 로드 (캐싱)
@@ -2234,7 +2234,7 @@ const loadDefaultFrameImage = async (): Promise<string | null> => {
   }
 };
 
-// 🎴 카드뉴스용 이미지 생성 함수 (텍스트 포함, 보라색 프레임)
+// 📱 카드뉴스용 이미지 생성 함수 (텍스트 포함, 보라색 프레임)
 export const generateSingleImage = async (
   promptText: string,
   style: ImageStyle,

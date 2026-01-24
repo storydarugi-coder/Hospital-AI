@@ -937,13 +937,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     }
   };
 
-  // 🎴 카드뉴스용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
+  // 📱 카드뉴스용 AI 프롬프트 추천 - 부제/메인제목/설명 포함!
   const handleRecommendCardPrompt = async () => {
     setIsRecommendingCardPrompt(true);
     try {
       const currentStyle = content.imageStyle || 'illustration';
       
-      // 🎴 카드뉴스 전용 프롬프트 추천 함수 사용
+      // 📱 카드뉴스 전용 프롬프트 추천 함수 사용
       const recommendedPrompt = await recommendCardNewsPrompt(
         editSubtitle,
         editMainTitle,
@@ -976,7 +976,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       let newImageData: string;
       
       if (isCardNews) {
-        // 🎴 카드뉴스: generateSingleImage 사용 (텍스트 포함, 브라우저 프레임, 1:1)
+        // 📱 카드뉴스: generateSingleImage 사용 (텍스트 포함, 브라우저 프레임, 1:1)
         console.log('🔄 카드뉴스 이미지 재생성:', { style, customStylePrompt: customStylePrompt?.substring(0, 50) });
         newImageData = await generateSingleImage(regenPrompt.trim(), style, imgRatio, customStylePrompt);
       } else {
@@ -1675,7 +1675,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
                   console.log('🔄 AI 보정 이미지 재생성:', { targetIdx, style, isCardNews, customStylePrompt: customStylePrompt?.substring(0, 50) });
                   
                   if (isCardNews) {
-                    // 🎴 카드뉴스: generateSingleImage 사용 (텍스트 포함, 1:1)
+                    // 📱 카드뉴스: generateSingleImage 사용 (텍스트 포함, 1:1)
                     newImageMap[targetIdx] = await generateSingleImage(prompt, style, '1:1', customStylePrompt);
                   } else {
                     // 📝 블로그: generateBlogImage 사용 (텍스트 없는 순수 이미지, 16:9)
