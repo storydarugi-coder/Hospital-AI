@@ -4378,9 +4378,22 @@ ${subheadings.map((h, i) => `${i + 1}. ${h}`).join('\n')}
 - 진료과: ${request.category}
 - 주제: ${request.topic}
 - 목표 길이: ${targetLength}자 (중요!)
-🚨🚨🚨 **절대 준수:** ${targetLength}자를 초과하지 마세요! 상한선: ${Math.floor(targetLength * 1.05)}자 (5% 초과까지만 허용) 🚨🚨🚨
-📏 **글자수 검증:** 작성 완료 후 공백 제외 글자수가 ${Math.floor(targetLength * 1.05)}자를 넘으면 절대 안 됩니다!
-⚠️ **초과 시 조치:** 글자수가 많으면 마지막 문단을 줄이거나 예시를 삭제하세요!
+
+🚨🚨🚨 **글자수 절대 준수 규칙** 🚨🚨🚨
+📏 **목표**: ${targetLength}자 (공백 제외)
+📏 **절대 상한선**: ${Math.floor(targetLength * 1.15)}자 (15% 초과까지만 허용)
+⚠️ **초과 시**: 시스템이 자동으로 에러 처리합니다!
+
+**글자수 맞추는 방법:**
+1. 예시를 줄이세요 (구체적 상황 1~2개만)
+2. 소제목을 줄이세요 (핵심 3~4개만)
+3. 각 문단을 간결하게 작성하세요
+4. 반복 설명을 피하세요
+
+**절대 금지:**
+- 내용을 늘려서 채우지 마세요
+- 불필요한 예시를 추가하지 마세요
+- 같은 내용을 다르게 반복하지 마세요
 - 이미지: ${targetImageCount}장 (${imageMarkers} 마커 사용)
 ${learnedStyleInstruction ? '- 말투: 학습된 스타일 적용\n' + learnedStyleInstruction : ''}
 ${customSubheadingInstruction ? customSubheadingInstruction : ''}
@@ -5668,35 +5681,17 @@ ${JSON.stringify(searchResults, null, 2)}
       result = JSON.parse(response.text);
       console.log('✅ Gemini JSON 파싱 성공');
       
-      // 🔍 글자수 검증 및 자르기
+      // 🔍 글자수 검증 (초과 시 에러 발생 → 사용자에게 알림)
       if (result.content) {
         const contentNoSpaces = result.content.replace(/<[^>]+>/g, '').replace(/\s/g, '');
         const actualLength = contentNoSpaces.length;
-        const maxAllowed = Math.floor(targetLength * 1.1); // 10% 여유
+        const maxAllowed = Math.floor(targetLength * 1.15); // 15% 여유
         
         console.log(`📏 생성된 글자수: ${actualLength}자 (목표: ${targetLength}자, 상한: ${maxAllowed}자)`);
         
         if (actualLength > maxAllowed) {
-          console.warn(`⚠️ 글자수 초과! ${actualLength}자 → ${maxAllowed}자로 잘라냄`);
-          
-          // HTML 태그를 고려하여 자르기
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(result.content, 'text/html');
-          const textContent = doc.body.textContent || '';
-          const trimmedText = textContent.substring(0, maxAllowed);
-          
-          // 마지막 완전한 문장까지만 자르기
-          const lastPeriod = trimmedText.lastIndexOf('.');
-          const lastQuestion = trimmedText.lastIndexOf('?');
-          const lastExclamation = trimmedText.lastIndexOf('!');
-          const cutPoint = Math.max(lastPeriod, lastQuestion, lastExclamation);
-          
-          if (cutPoint > maxAllowed * 0.8) {
-            // HTML 구조는 유지하면서 텍스트만 잘라내기
-            const finalText = trimmedText.substring(0, cutPoint + 1);
-            result.content = result.content.substring(0, result.content.indexOf(finalText) + finalText.length) + '</div>';
-            console.log(`✂️ 글 자르기 완료: ${actualLength}자 → ${finalText.length}자`);
-          }
+          console.error(`❌ 글자수 초과! ${actualLength}자 > ${maxAllowed}자`);
+          throw new Error(`⚠️ AI가 요청한 글자수(${targetLength}자)를 크게 초과하여 생성했습니다 (${actualLength}자).\n다시 시도하면 더 짧게 생성될 수 있습니다.`);
         }
       }
       
