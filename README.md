@@ -101,9 +101,24 @@ GPT-5.2의 토큰 제한과 프롬프트 복잡도 문제를 해결하기 위해
 - `GET /api/stats` - 통계 조회
 
 #### 🗄️ **KV Storage**
+
+**1. CONTENT_STORAGE (콘텐츠 저장)**
 - **Namespace ID**: `5bb13721765b4a74b0ab855c92b2e9a9`
 - **Binding**: `CONTENT_STORAGE`
 - **용도**: 생성된 콘텐츠 영구 저장 및 팀 공유
+
+**2. API_KEYS (공유 API 키 저장) - 새로 추가 필요!**
+- **Binding**: `API_KEYS`
+- **용도**: 팀 공유 Gemini/OpenAI API 키 동적 저장
+- **설정 방법**:
+  1. Cloudflare Dashboard → Workers & Pages → ai-hospital
+  2. Settings → Functions → KV Namespace Bindings
+  3. **Add binding** 클릭
+  4. Variable name: `API_KEYS`
+  5. KV namespace: **Create a new namespace** → 이름: `api-keys`
+  6. **Save** 클릭
+
+> ⚠️ **중요**: `API_KEYS` KV 바인딩이 없으면 `/api/api-keys/save` API가 작동하지 않습니다!
 
 ## 배포
 - **플랫폼**: Cloudflare Pages

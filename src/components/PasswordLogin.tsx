@@ -23,7 +23,8 @@ const PasswordLogin: React.FC<PasswordLoginProps> = ({ onSuccess }) => {
     setIsLoading(true);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://3001-i7sb1xuomdisn8dq0jtnt-c07dda5e.sandbox.novita.ai';
+      // API URL: 상대 경로 우선, 환경 변수 폴백
+      const apiUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiUrl}/auth/verify`, {
         method: 'POST',
         headers: {
