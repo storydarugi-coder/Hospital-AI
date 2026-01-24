@@ -247,27 +247,34 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
+      const previousPage = currentPage; // 이전 페이지 기억
       
-      // 페이지 전환 시 스크롤을 맨 위로
-      window.scrollTo(0, 0);
+      let newPage: PageType = 'app';
       
       if (hash === '#admin') {
-        setCurrentPage('admin');
+        newPage = 'admin';
       } else if (hash === '#auth' || hash === '#login' || hash === '#register') {
-        setCurrentPage('auth');
+        newPage = 'auth';
       } else {
         // 🚀 기본적으로 앱 페이지로 (로그인 불필요)
-        setCurrentPage('app');
+        newPage = 'app';
         if (!hash || hash === '#') {
           window.location.hash = 'app';
         }
       }
+      
+      // 페이지가 실제로 바뀔 때만 스크롤 (부드럽게)
+      if (previousPage !== newPage) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      
+      setCurrentPage(newPage);
     };
 
     handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [currentPage]);
 
   // 페이지 네비게이션 헬퍼
   const handleNavigate = (page: PageType) => {
