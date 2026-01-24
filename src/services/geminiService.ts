@@ -2454,42 +2454,81 @@ ${cleanPromptText}
 };
 
 
+// 🗞️ 네이버 뉴스 검색 API 호출 함수 (서버 프록시 사용 - CORS 해결)
+const searchNaverNews = async (query: string, display: number = 10): Promise<{ title: string; description: string; pubDate: string; link: string }[]> => {
+  try {
+    console.log(`📰 [네이버 뉴스 API] 검색 시작: ${query}`);
+    
+    // 서버 프록시를 통해 네이버 API 호출 (CORS 해결)
+    const response = await fetch(`/api/naver-news?query=${encodeURIComponent(query)}&display=${display}`, {
+      method: 'GET',
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ 네이버 API 오류:', response.status, errorText);
+      return [];
+    }
+    
+    const data = await response.json();
+    const items = data.items || [];
+    console.log(`✅ 네이버 뉴스 ${items.length}개 검색 완료`);
+    
+    return items;
+    
+  } catch (error) {
+    console.error('❌ 네이버 뉴스 검색 실패:', error);
+    return [];
+  }
+};
+
 // 🗞️ 뉴스 검색 전용 함수 - 키워드 추천에만 사용! (글쓰기 검색과 분리)
-// ⚠️ 허용 도메인: 연합뉴스, 중앙일보, 조선일보, 동아일보, 한겨레, 경향신문, KBS, MBC, SBS 등 신뢰할 수 있는 언론사
+// ⚠️ 네이버 뉴스 API 사용 - 한국 뉴스에 최적화
 const searchNewsForTrends = async (category: string, month: number): Promise<string> => {
   const ai = getAiClient();
   
-  // 진료과별 뉴스 검색 키워드
+  // 진료과별 뉴스 검색 키워드 (네이버 검색에 맞게 단순화)
   const categoryNewsKeywords: Record<string, string> = {
-    '정형외과': '관절 통증 겨울 OR 허리디스크 OR 어깨 통증',
-    '피부과': '피부 건조 겨울 OR 아토피 OR 습진',
-    '내과': '독감 OR 감기 OR 당뇨 OR 고혈압 건강',
-    '치과': '치아 건강 OR 잇몸 질환 OR 구강 건조',
-    '안과': '안구건조 OR 눈 건강 OR 시력',
-    '이비인후과': '비염 OR 코막힘 OR 목감기 OR 인후통',
-    '산부인과': '여성 건강 OR 갱년기 OR 생리통',
-    '비뇨의학과': '전립선 OR 방광염 OR 비뇨기 건강',
-    '신경과': '두통 OR 어지럼증 OR 수면 OR 불면증',
-    '정신건강의학과': '우울증 OR 스트레스 OR 번아웃 OR 불안'
+    '정형외과': '관절 통증',
+    '피부과': '피부 건조',
+    '내과': '독감 감기',
+    '치과': '치아 건강',
+    '안과': '안구건조증',
+    '이비인후과': '비염',
+    '산부인과': '여성 건강',
+    '비뇨의학과': '전립선',
+    '신경과': '두통',
+    '정신건강의학과': '우울증'
   };
   
-  const searchKeyword = categoryNewsKeywords[category] || '건강 의료 뉴스';
+  const searchKeyword = categoryNewsKeywords[category] || '건강';
   
   try {
     console.log(`📰 뉴스 트렌드 검색 시작: ${category} (${searchKeyword})`);
-    console.log(`   [Google Search 도구 활성화 시도...]`);
+    console.log(`   [네이버 뉴스 API 호출...]`);
     
-    // Gemini 구글 검색 도구로 최신 뉴스 검색
+    // 네이버 뉴스 검색
+    const newsItems = await searchNaverNews(searchKeyword, 10);
+    
+    if (newsItems.length === 0) {
+      console.warn('⚠️ 네이버 뉴스 검색 결과 없음');
+      return '';
+    }
+    
+    // Gemini로 뉴스 요약 및 트렌드 분석
+    const newsTexts = newsItems.map((item, i) => 
+      `[뉴스 ${i + 1}] ${item.title.replace(/<\/?b>/g, '')}\n${item.description.replace(/<\/?b>/g, '')}`
+    ).join('\n\n');
+    
+    console.log(`✅ 네이버 뉴스 ${newsItems.length}개 수집 완료, Gemini 분석 시작...`);
+    
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `최근 1주일간 한국 뉴스에서 "${searchKeyword}" 관련 기사를 검색하고, 
-가장 많이 다뤄지는 건강/의료 이슈 3가지를 요약해주세요.
+      contents: `아래는 "${searchKeyword}" 관련 최신 네이버 뉴스입니다.
+이 뉴스들을 분석하여 현재 트렌드가 되는 건강/의료 이슈 3가지를 요약해주세요.
 
-[🚨 검색 허용 뉴스 도메인만 참고!]
-✅ 허용: yna.co.kr(연합뉴스), joongang.co.kr(중앙일보), chosun.com(조선일보), 
-   donga.com(동아일보), hani.co.kr(한겨레), khan.co.kr(경향신문),
-   kbs.co.kr, mbc.co.kr, sbs.co.kr, ytn.co.kr, jtbc.co.kr, mbn.co.kr
-❌ 제외: 블로그, 카페, 개인 사이트, 건강 정보 사이트 (하이닥, 헬스조선 등)
+[네이버 뉴스 검색 결과]
+${newsTexts}
 
 [출력 형식]
 각 이슈마다:
@@ -2497,7 +2536,6 @@ const searchNewsForTrends = async (category: string, month: number): Promise<str
 - 관련 증상/키워드: (블로그 작성에 활용할 키워드)
 - 뉴스 트렌드 이유: (왜 지금 이슈가 되는지)`,
       config: {
-        tools: [{ googleSearch: {} }],
         responseMimeType: "text/plain",
         temperature: 0.3
       }
@@ -2507,17 +2545,16 @@ const searchNewsForTrends = async (category: string, month: number): Promise<str
     
     // 🔍 검색 성공 여부 확인
     if (newsContext && newsContext.length > 50) {
-      console.log(`✅ 뉴스 트렌드 검색 성공! (${newsContext.length}자)`);
-      console.log(`📰 검색 결과 미리보기: ${newsContext.substring(0, 200)}...`);
+      console.log(`✅ 뉴스 트렌드 분석 성공! (${newsContext.length}자)`);
+      console.log(`📰 분석 결과 미리보기: ${newsContext.substring(0, 200)}...`);
     } else {
-      console.warn(`⚠️ 뉴스 검색 응답이 너무 짧음 (${newsContext.length}자) - Google Search가 작동하지 않았을 가능성`);
-      console.warn(`   응답 내용:`, newsContext);
+      console.warn(`⚠️ 뉴스 분석 응답이 너무 짧음 (${newsContext.length}자)`);
     }
     
     return newsContext;
     
   } catch (error) {
-    console.error('❌ 뉴스 검색 실패:', error);
+    console.error('❌ 뉴스 검색/분석 실패:', error);
     console.error('   에러 메시지:', (error as Error).message);
     console.warn('⚠️ 기본 트렌드로 진행 (검색 없이)');
     return '';
