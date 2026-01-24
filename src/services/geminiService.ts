@@ -6970,9 +6970,34 @@ export const modifyPostWithAI = async (currentHtml: string, userInstruction: str
     );
     
     try {
+      // 🎯 블로그 글 생성과 동일한 전체 프롬프트 적용
+      // GPT52_SYSTEM_PROMPT: 의료광고법 + 금지어 + 종결어미 + 키워드 + SEO + 자가체크 + AI 냄새 제거
+      const fullSystemPrompt = `${GPT52_SYSTEM_PROMPT}
+
+${MEDICAL_SAFETY_SYSTEM_PROMPT}
+
+[📝 채팅 보정 / 외부 글 자동보정 규칙]
+1. 원본 HTML 구조 최대한 유지 (태그, 클래스, ID 보존)
+2. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식 그대로 유지
+3. 의료광고법 위반 표현 즉시 수정
+4. AI 냄새 나는 표현 자연스럽게 개선
+5. 종결어미 다양화 적용
+6. SEO 최적화 유지/강화
+7. 사용자 요청사항 우선 반영
+
+[중요] 위 모든 규칙을 준수하면서 사용자의 수정 요청을 반영하세요.`;
+
       const response = await ai.models.generateContent({
         model: "gemini-3-pro-preview",  // 고품질 글쓰기용 pro 모델
-        contents: `${MEDICAL_SAFETY_SYSTEM_PROMPT}\n[현재 원고] ${sanitizedHtml}\n[수정 요청] ${userInstruction}\n의료법 준수 필수. 이미지 src는 __IMG_PLACEHOLDER_N__ 형식으로 유지하세요.`,
+        contents: `${fullSystemPrompt}
+
+[현재 원고]
+${sanitizedHtml}
+
+[수정 요청]
+${userInstruction}
+
+위 규칙을 모두 준수하여 수정해주세요.`,
         config: { 
           responseMimeType: "application/json", 
           responseSchema: { 
