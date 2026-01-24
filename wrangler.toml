@@ -1,0 +1,10 @@
+name = "frame-ai"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "CONTENT_STORAGE"
+id = "5bb13721765b4a74b0ab855c92b2e9a9"
+
+[[kv_namespaces]]
+binding = "API_KEYS"
+id = "de7899fa5a774c0c827a91e8d36c8360"
