@@ -15,6 +15,21 @@ app.use(cors({
   optionsSuccessStatus: 200, // 일부 브라우저를 위한 설정
   preflightContinue: false
 }));
+
+// 추가 CORS 헤더 설정 (명시적)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // OPTIONS 요청에 대한 즉시 응답
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
