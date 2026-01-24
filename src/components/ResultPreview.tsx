@@ -292,9 +292,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const text = contentText.replace(/\s+/g, '');
       setCharCount(text.length);
     } else {
-      // 블로그 포스트의 경우 전체 텍스트 계산 (공백 제외)
+      // 블로그 포스트의 경우 전체 텍스트 계산
+      // ⚠️ 공백 포함한 길이로 계산 (2700자 → 1600자로 일치시키기)
       const text = (tempDiv.textContent || '')
-        .replace(/\s+/g, '')  // 모든 공백 제거
         .trim();
       
       setCharCount(text.length);
@@ -1731,7 +1731,18 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     <div className={`rounded-[48px] shadow-2xl border h-full flex flex-col overflow-hidden relative transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
       <style>{`
         .naver-preview .main-title { font-size: 32px; font-weight: 900; margin-bottom: 30px; color: #000; line-height: 1.4; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
-        .naver-preview h3 { font-size: 24px; font-weight: bold; margin-top: 50px; margin-bottom: 20px; color: #000; }
+        .naver-preview h3 { 
+          font-size: 22px !important; 
+          font-weight: 700 !important; 
+          margin-top: 50px !important; 
+          margin-bottom: 20px !important; 
+          padding: 14px 18px !important;
+          color: #1e40af !important;
+          background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%) !important;
+          border-left: 5px solid #60a5fa !important;
+          border-radius: 0 12px 12px 0 !important;
+          line-height: 1.5 !important;
+        }
         .naver-preview p { font-size: 16px; margin-bottom: 20px; color: #333; line-height: 1.8; }
         .naver-preview .content-image-wrapper { position: relative; margin: 90px 0; }
         .naver-preview .content-image-wrapper img { width: 100%; border-radius: 48px; display: block; box-shadow: 0 30px 70px rgba(0,0,0,0.12); cursor: pointer; transition: filter 0.3s; }
