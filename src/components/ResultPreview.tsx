@@ -1463,7 +1463,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
               padding: 12px 16px;
               color: #1e40af;
               background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-              border-left: 4px solid #3b82f6;
+              border-left: 4px solid #787FFF;
               border-radius: 0 8px 8px 0;
             }
             /* 본문 */
@@ -1739,7 +1739,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
           padding: 14px 18px !important;
           color: #1e40af !important;
           background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%) !important;
-          border-left: 5px solid #60a5fa !important;
+          border-left: 5px solid #787FFF !important;
           border-radius: 0 12px 12px 0 !important;
           line-height: 1.5 !important;
         }
