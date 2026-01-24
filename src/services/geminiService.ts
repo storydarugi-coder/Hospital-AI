@@ -5855,6 +5855,26 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     body = fallbackSlides.join('\n');
   }
   
+  // 🎯 소제목 후처리: Gemini가 h3 태그를 무시하고 다른 형식으로 출력한 경우 강제 변환
+  if (request.postType === 'blog') {
+    console.log('🎯 소제목 형식 정규화 시작...');
+    
+    // 1. **소제목 텍스트** 형식을 h3로 변환 (독립된 줄에 있는 경우)
+    body = body.replace(/<p>\*\*([^*]+)\*\*<\/p>/gi, '<h3>$1</h3>');
+    
+    // 2. <p>## 소제목</p> 형식을 h3로 변환
+    body = body.replace(/<p>##\s*([^<]+)<\/p>/gi, '<h3>$1</h3>');
+    
+    // 3. <strong>소제목</strong> 단독 패턴을 h3로 변환 (독립된 p 태그 내)
+    body = body.replace(/<p>\s*<strong>([^<]+)<\/strong>\s*<\/p>/gi, '<h3>$1</h3>');
+    
+    // 4. <b>소제목</b> 단독 패턴을 h3로 변환
+    body = body.replace(/<p>\s*<b>([^<]+)<\/b>\s*<\/p>/gi, '<h3>$1</h3>');
+    
+    const h3Count = (body.match(/<h3[^>]*>/gi) || []).length;
+    console.log(`✅ 소제목 형식 정규화 완료! h3 태그 ${h3Count}개 발견`);
+  }
+  
   // 🖼️ 블로그 포스트에 [IMG_N] 마커가 없으면 자동 삽입
   if (request.postType !== 'card_news' && images.length > 0 && !body.includes('[IMG_')) {
     console.log('⚠️ 블로그에 [IMG_N] 마커가 없음! 자동 삽입 중...');
