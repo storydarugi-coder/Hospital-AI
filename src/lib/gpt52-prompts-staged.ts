@@ -738,7 +738,7 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
 [P2] ⚠️ 반드시 준수:
   ✓ 본문 분량: 공백 제외 정확히 ${textLength}자 ± 50자 (${textLength - 50}~${textLength + 50}자)
   ⚠️ 주의: 공백을 제외한 실제 글자 수를 반드시 확인하세요!
-  🔥 작성 후 공백 제외 글자 수: text.replace(/\s/g, '').length로 확인 필수
+  🔥 작성 후 공백 제외 글자 수: text.replace(/\\s/g, '').length로 확인 필수
   ✓ 소제목 개수: 4~6개 (내용에 따라 유동적 결정)
     • 짧은 내용: 4~5개
     • 보통 내용: 5~6개  
@@ -935,7 +935,7 @@ export const getStage2_AiRemovalAndCompliance = (textLength: number = 1500) => {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 7. □ 분량 확인 (공백 제외)
-   → 현재 공백 제외 글자 수: ____자 (text.replace(/\s/g, '').length로 확인)
+   → 현재 공백 제외 글자 수: ____자 (text.replace(/\\s/g, '').length로 확인)
    → 목표 범위: ${textLength - 50}~${textLength + 50}자 (공백 제외)
    → 범위 내인가? (부족/초과 시 조정)
    🚨 중요: HTML 태그 제거 + 공백 제거 후 실제 글자 수 확인!

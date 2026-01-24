@@ -184,7 +184,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   }, []);
 
   // 블로그 이력 로드 함수 (재시도 로직 포함)
-  const loadBlogHistory = useCallback(async (retryCount = 0) => {
+  const loadBlogHistory = useCallback(async (retryCount = 0): Promise<void> => {
     const MAX_RETRIES = 3;
     
     setLoadingData(true);
@@ -214,7 +214,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
           setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
           await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-          return loadBlogHistory(retryCount + 1);
+          void loadBlogHistory(retryCount + 1);
+          return;
         }
         
         if (blogsError.code === '42P01' || blogsError.message?.includes('does not exist')) {
@@ -243,7 +244,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
         console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
         setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
         await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-        return loadBlogHistory(retryCount + 1);
+        void loadBlogHistory(retryCount + 1);
+        return;
       }
       
       setDataError(`블로그 이력 로드 실패: ${errorMsg}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
