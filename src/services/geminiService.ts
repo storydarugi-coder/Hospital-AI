@@ -25,6 +25,7 @@ import {
 } from "../utils/humanWritingPrompts";
 import { autoFixMedicalLaw as _autoFixMedicalLaw } from "../utils/autoMedicalLawFixer";
 import { contentCache as _contentCache } from "../utils/contentCache";
+import { calculateOverallSimilarity } from "./similarityService";
 
 // 현재 년도 - getWritingStylePrompts()에서 동적으로 사용
 const _CURRENT_YEAR = new Date().getFullYear();
@@ -7275,129 +7276,20 @@ export const refineContentByMedicalLaw = async (
   safeProgress('📝 원본 콘텐츠 분석 중...');
   
   // SYSTEM_PROMPT + 모든 글쓰기 프롬프트 통합
-  const prompt = `당신은 10년 경력 의료 전문 작가입니다.
-"이 글 읽기 편하네!" 소리 듣는 자연스러운 글을 씁니다.
+  // Stage 2 프롬프트 사용 (자동 생성과 동일한 기준 적용)
+  const stage2Prompt = getStage2_AiRemovalAndCompliance(textContent.length);
+  
+  const prompt = `${SYSTEM_PROMPT}
 
-[원본 글]
+${stage2Prompt}
+
+[검증 및 수정할 대상 콘텐츠]
 ${textContent}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎯 작업 순서
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1단계: 핵심 메시지 파악
-2단계: AI 티 제거 (번역투, 추상어, 종결어미 반복)
-3단계: 자연스러운 표현으로 교체
-4단계: 자기 검토 후 최종 수정
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✨ 핵심 원칙
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚨 **중복 절대 금지** (최우선!)
-   ❌ 같은 내용을 다른 표현으로 반복 금지!
-   ❌ "즉", "다시 말해", "달리 표현하면" 같은 반복 연결어 금지!
-   
-   예시:
-   ❌ "혈당이 오르면 피로합니다. 다시 말해 혈당 변화로 몸이 무겁습니다."
-   ✅ "혈당이 오르면 피로합니다. 지속되면 집중력도 떨어집니다."
-   
-   **각 문단은 새로운 정보를 제공해야 함!**
-
-1️⃣ **자연스러운 문장 흐름**
-   • 짧은 문장과 긴 문장 자연스럽게 섞기
-   • 60자 초과 금지!
-   • 같은 종결어미 3번 이상 반복 금지
-
-2️⃣ **번역투 완전 제거**
-   ❌ "양상", "요소", "측면", "관련이", "영향을 미치다", "발생하다"
-   ✅ 자연스러운 한국어로
-
-3️⃣ **반말체 절대 금지**
-   ❌ "~해요", "~죠", "~네요" (반말 느낌!)
-   ✅ 종결어미 다양화: "~합니다", "~기도 합니다", "~경우가 있습니다", "~수 있습니다" 등 섞어서 사용
-
-4️⃣ **의료광고법 준수 (🔥 강화 버전!)**
-
-   🚨 **1. 질환명 사용 규칙 (최우선!)**
-   ❌ 질환명(○○암, ○○증, ○○림프종 등)을 증상과 직접 연결 금지
-   ❌ 질환명을 반복하여 강조 금지 (전체 글에서 1~2회만)
-   ❌ 독자가 스스로 질환을 의심하도록 유도 금지
-   
-   나쁜 예: "이런 증상이 나타나면 ○○암일 수 있습니다"
-   좋은 예: "의학계에서는 이를 ○○증이라고 부르기도 합니다"
-
-   🚨 **2. 질환 비교/차별 구조 금지**
-   ❌ "일반 질환과 다르게", "특별히", "놓치기 쉬운"
-   ❌ "흔한 증상과 달리", "다른 질환보다"
-   ✅ 모든 증상을 동등하게 서술
-
-   🚨 **3. 자가진단/판단 유도 금지**
-   ❌ "의심된다", "의심해봐야", "~일 수 있습니다"
-   ❌ "확인해보는 것이 좋다", "가능성이 높다"
-   ✅ "이런 변화가 나타나기도 합니다"
-   ✅ "증상이 반복되는 경우가 있습니다"
-
-   🚨 **4. 치료/검사/진료 권유 금지**
-   ❌ 직접 권유: "검사받으세요", "병원 가세요"
-   ❌ 간접 권유: "확인이 필요한 시점", "살펴볼 때"
-   ✅ "변화를 기록해두는 것도 방법입니다" (관찰만)
-
-   🚨 **5. 단정/평가/보장 표현 금지**
-   ❌ "좋다", "효과 있다", "위험하다", "반드시"
-   ❌ 수치: "90%", "3일 만에", "2주 후"
-   ❌ 출처: "보건복지부", "질병관리청"
-   ✅ "나타날 수 있습니다", "보입니다"
-
-   🆕 🚨 **6. 약물/치료법 권유 금지 (완전 신규!)**
-   ❌ "이 약을 권장합니다", "이 치료법을 선택하면 좋습니다"
-   ❌ "이 성분이 우선입니다", "이 방법이 적합합니다"
-   ❌ "확인해보자", "고려해보자", "선택하자" (독자 행동 유도)
-   ❌ "약물 간 상호작용이 위험합니다 / 안전합니다" (단정)
-   
-   ✅ 허용 표현 (중립적 정보만):
-   - "일반적으로 알려진 방법 중 하나입니다"
-   - "의학계에서 사용되는 경우가 있습니다"
-   - "보고된 경향 중 하나로 언급됩니다"
-   - "경우에 따라 고려되는 것으로 알려져 있습니다"
-   
-   ⚠️ **약물/성분명은 설명 목적에 한해 최소화, 반복 금지!**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔍 자기 검토
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-□ **중복 없음?** (같은 내용 반복 금지! 각 문단 새로운 정보!)
-□ 번역투 제거? (양상, 요소, 측면, 관련이, 영향을 미치다)
-□ 반말체 사용 안 함? (~해요, ~죠 금지!)
-□ 문장 흐름 자연스러움? (짧음-중간-긴 섞임)
-□ 의료광고법 준수? (단정 표현, 수치, 출처 없음)
-□ 원본 길이 ±20% 이내?
-
-**문제 발견 시 즉시 수정!**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 HTML 형식
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ 사용: <p>, <ul>, <li>만
-❌ 금지: h1~h6 소제목 태그
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 JSON 응답 형식
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-{
-  "content": "수정된 HTML 콘텐츠",
-  "fact_check": {
-    "fact_score": 85,
-    "safety_score": 90,
-    "ai_smell_score": 15,
-    "conversion_score": 75,
-    "verified_facts_count": 5,
-    "issues": ["발견된 문제점들"],
-    "recommendations": ["개선 제안들"]
-  }
-}`;
+[추가 지시사항]
+- 위 콘텐츠를 "2단계: AI 제거 및 최종 검증" 규칙에 따라 완벽하게 수정하세요.
+- 수정된 결과물은 <html> 태그를 포함한 완성된 HTML 형태로 반환하세요.
+- JSON 응답 형식을 반드시 준수하세요.`;
 
   try {
     safeProgress('⚖️ 의료광고법 준수 여부 검증 중...');
@@ -8081,3 +7973,137 @@ export const saveBlogHistory = async (
   }
 };
 
+
+// 구글 검색 API 호출
+const searchGoogle = async (query: string, num: number = 5): Promise<{ title: string; link: string; snippet: string }[]> => {
+  try {
+    const response = await fetch('/api/google/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: query, num }),
+    });
+
+    if (!response.ok) throw new Error('Google Search API failed');
+
+    const data = await response.json();
+    return (data.items || []).map((item: any) => ({
+      title: item.title,
+      link: item.link,
+      snippet: item.snippet,
+    }));
+  } catch (error) {
+    console.error('Google search failed:', error);
+    return [];
+  }
+};
+
+// URL 크롤링 API 호출
+const crawlUrl = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch('/api/crawler', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!response.ok) return '';
+
+    const data = await response.json();
+    return data.content || '';
+  } catch (error) {
+    console.error('Crawling failed:', error);
+    return '';
+  }
+};
+
+// 전체 텍스트 기반 유사도 검사 (웹 검색 + 크롤링 + 전체 비교)
+export const checkContentSimilarity = async (
+  content: string,
+  title: string,
+  onProgress?: (message: string) => void
+): Promise<SimilarityCheckResult> => {
+  try {
+    if (onProgress) onProgress('키워드 추출 중...');
+    
+    // 1. 키워드 추출 (제목 + 본문 앞부분 활용)
+    const keywordText = `${title}\n${content.substring(0, 500)}`;
+    const searchKeywords = await extractSearchKeywords(keywordText);
+    const query = searchKeywords.replace(/,/g, ' ').trim(); // 콤마 제거하고 공백으로 연결
+    
+    if (onProgress) onProgress(`검색 중: ${query}`);
+    
+    // 2. 구글 검색 수행
+    const searchResults = await searchGoogle(query, 5); // 상위 5개만
+    
+    if (searchResults.length === 0) {
+      return {
+        status: 'ORIGINAL',
+        finalScore: 0,
+        message: '유사한 웹 문서를 찾지 못했습니다.',
+        webSearchMatches: [],
+        ownBlogMatches: []
+      };
+    }
+    
+    const webMatches: any[] = [];
+    let maxSimilarity = 0;
+    
+    // 3. 각 검색 결과 크롤링 및 전체 유사도 비교
+    for (let i = 0; i < searchResults.length; i++) {
+      const item = searchResults[i];
+      if (onProgress) onProgress(`분석 중 (${i + 1}/${searchResults.length}): ${item.title.substring(0, 20)}...`);
+      
+      // 크롤링 수행
+      const crawledContent = await crawlUrl(item.link);
+      
+      if (!crawledContent || crawledContent.length < 100) continue;
+      
+      // 전체 텍스트 유사도 비교 (calculateOverallSimilarity 사용)
+      const similarity = calculateOverallSimilarity(content, crawledContent);
+      
+      if (similarity > 20) { // 20% 이상인 경우만 의미 있는 결과로 간주
+        webMatches.push({
+          phrase: content.substring(0, 100) + '...', // 전체 글을 대표하는 문구 (여기선 앞부분)
+          matches: [{
+            url: item.link,
+            title: item.title,
+            snippet: item.snippet,
+            similarity: similarity / 100, // 0~1 범위로 변환
+            content: crawledContent // 크롤링된 전체 내용 일부
+          }]
+        });
+        
+        maxSimilarity = Math.max(maxSimilarity, similarity);
+      }
+    }
+    
+    // 결과 정렬
+    webMatches.sort((a, b) => b.matches[0].similarity - a.matches[0].similarity);
+    
+    // 상태 결정
+    let status: 'ORIGINAL' | 'MEDIUM_RISK' | 'HIGH_RISK' = 'ORIGINAL';
+    let message = '독창적인 콘텐츠입니다.';
+    
+    if (maxSimilarity >= 60) {
+      status = 'HIGH_RISK';
+      message = '매우 유사한 콘텐츠가 발견되었습니다. 표절 위험이 높습니다.';
+    } else if (maxSimilarity >= 40) {
+      status = 'MEDIUM_RISK';
+      message = '상당히 유사한 콘텐츠가 있습니다. 수정이 권장됩니다.';
+    } else if (maxSimilarity > 0) {
+      message = '일부 유사한 내용이 발견되었습니다.';
+    }
+    
+    return {
+      status,
+      finalScore: maxSimilarity, // 0~100 점수
+      message,
+      webSearchMatches: webMatches,
+      ownBlogMatches: [] // 자체 블로그 비교는 이 함수 범위 밖 (필요시 추가)
+    };
+    
+  } catch (error) {
+    console.error('Similarity check failed:', error);
+    throw error;
+  }
+};

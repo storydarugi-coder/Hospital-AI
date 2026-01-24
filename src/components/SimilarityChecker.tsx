@@ -10,13 +10,22 @@ import { checkContentSimilarity } from '../services/geminiService';
 interface SimilarityCheckerProps {
   onClose: () => void;
   darkMode?: boolean;
+  savedContents?: any[];
+  initialContent?: string;
 }
 
-const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode = false }) => {
+const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode = false, initialContent = '' }) => {
   const [mode, setMode] = useState<'web' | 'single'>('web');
-  const [text1, setText1] = useState('');
+  const [text1, setText1] = useState(initialContent);
   const [text2, setText2] = useState('');
   const [keywords, setKeywords] = useState('');
+
+  // initialContent가 변경되면 text1 업데이트
+  useEffect(() => {
+    if (initialContent) {
+      setText1(initialContent);
+    }
+  }, [initialContent]);
   const [result, setResult] = useState<any>(null);
   const [webResults, setWebResults] = useState<any[]>([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -136,13 +145,24 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
           const matchCount = data.matchCount;
           const matchedPhrases = data.matchedPhrases;
           
-          // 실제 유사도 계산: 매칭된 문장들의 총 길이 / 원문 길이
-          const totalMatchedLength = matchedPhrases.reduce((sum, phrase) => sum + phrase.length, 0);
-          const originalLength = content.replace(/<[^>]*>/g, '').length;
-          const actualSimilarity = Math.min((totalMatchedLength / originalLength) * 100, 100);
+          // 실제 유사도 계산
+          // 1. 만약 API에서 이미 계산된 similarity가 있다면 그것을 사용 (전체 글 유사도)
+          // 2. 없다면 매칭된 문장 길이 비율로 계산 (기존 문장 단위 유사도)
+          let finalSimilarity = 0;
           
-          // 최소 유사도 보장: 매칭이 있으면 최소 20%
-          const finalSimilarity = actualSimilarity > 0 ? Math.max(actualSimilarity, 20) : 0;
+          if (blog.similarity !== undefined) {
+            // API가 반환한 similarity (0~1)를 백분율(0~100)로 변환
+            // 단, 이미 백분율이라면 그대로 사용
+            finalSimilarity = blog.similarity > 1 ? blog.similarity : blog.similarity * 100;
+          } else {
+            // 기존 로직: 매칭된 문장들의 총 길이 / 원문 길이
+            const totalMatchedLength = matchedPhrases.reduce((sum, phrase) => sum + phrase.length, 0);
+            const originalLength = text1.replace(/<[^>]*>/g, '').length;
+            const actualSimilarity = Math.min((totalMatchedLength / originalLength) * 100, 100);
+            
+            // 최소 유사도 보장: 매칭이 있으면 최소 20%
+            finalSimilarity = actualSimilarity > 0 ? Math.max(actualSimilarity, 20) : 0;
+          }
           
           allMatches.push({
             id: `web-${allMatches.length}`,
@@ -151,7 +171,7 @@ const SimilarityChecker: React.FC<SimilarityCheckerProps> = ({ onClose, darkMode
             blogger: blog.displayLink || blog.bloggername || blog.source || '출처 불명',
             similarity: Math.round(finalSimilarity),
             level: getSimilarityLevel(Math.round(finalSimilarity)),
-            snippet: `전체 유사도 ${Math.round(finalSimilarity)}% - ${matchCount}개 부분 일치`,
+            snippet: blog.content ? blog.content.substring(0, 150) + '...' : `전체 유사도 ${Math.round(finalSimilarity)}% - ${matchCount}개 부분 일치`,
           });
         });
       }

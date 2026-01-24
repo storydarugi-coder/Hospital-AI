@@ -30,6 +30,14 @@ interface UserProfile {
   name: string;
 }
 
+// HTML 태그 제거 헬퍼 함수
+const stripHtml = (html: string) => {
+  if (typeof document === 'undefined') return html;
+  const tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+};
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageType>('app');
   const [apiKeyReady, setApiKeyReady] = useState<boolean>(false);
@@ -918,7 +926,11 @@ const App: React.FC = () => {
               {contentTab === 'similarity' ? (
                 <div className={`h-full rounded-2xl shadow-lg border p-6 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
                   <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin"></div></div>}>
-                    <SimilarityChecker onClose={() => setContentTab('blog')} darkMode={darkMode} />
+                    <SimilarityChecker 
+                      onClose={() => setContentTab('blog')} 
+                      darkMode={darkMode} 
+                      initialContent={getCurrentState().data ? stripHtml(getCurrentState().data!.htmlContent) : ''}
+                    />
                   </Suspense>
                 </div>
               ) : (

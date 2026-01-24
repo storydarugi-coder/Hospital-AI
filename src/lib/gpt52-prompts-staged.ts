@@ -736,7 +736,12 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
   ✓ 🚨 적극적 관리 조언 절대 금지
 
 [P2] ⚠️ 반드시 준수:
-  ✓ 본문 분량: 공백 제외 정확히 ${textLength}자 ± 50자 (${textLength - 50}~${textLength + 50}자)
+  ✓ 본문 분량: 공백 제외 정확히 ${textLength}자 (허용 오차 ±50자)
+  🚨 [길이 제한 절대 준수]
+  - 현재 요청된 길이는 ${textLength}자입니다.
+  - 2800자를 넘기면 절대 안 됩니다! 너무 길어지면 독자가 이탈합니다.
+  - 할 말이 많아도 핵심만 요약해서 ${textLength}자 근처로 맞추세요.
+  - 작성 후 공백 제외 글자 수가 ${textLength + 100}자를 초과하면 즉시 탈락 처리됩니다.
   ⚠️ 주의: 공백을 제외한 실제 글자 수를 반드시 확인하세요!
   🔥 작성 후 공백 제외 글자 수: text.replace(/\\s/g, '').length로 확인 필수
   ✓ 소제목 개수: 4~6개 (내용에 따라 유동적 결정)

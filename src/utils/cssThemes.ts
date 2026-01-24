@@ -102,13 +102,31 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   console.log('🔍 [cssThemes] h3 태그 매칭:', h3Matches?.length || 0, '개', h3Matches);
   
   result = result.replace(
-    /<h3(\s+[^>]*)?>/g,
-    (match, attrs) => {
-      // 기존 style 속성 제거
-      const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
-      const newTag = `<h3${cleaned} style="${t.h3Style}">`;
-      console.log('✅ [cssThemes] h3 변환:', match, '→', newTag);
-      return newTag;
+    /<h3(\s+[^>]*)?>(.*?)<\/h3>/gs,
+    (match, attrs, content) => {
+      // 텍스트 내용만 추출 (태그 제거)
+      const textContent = content.replace(/<[^>]*>/g, '').trim();
+      
+      // 소제목 컨테이너 구조 생성 (인라인 스타일 적용)
+      // index.css의 .subtitle-container 스타일을 인라인으로 변환
+      // Flexbox 구조가 네이버 블로그/카페에서 깨질 수 있으므로, 
+      // 가장 안전한 border-left 방식과 테이블/Flex 방식을 하이브리드로 사용
+      
+      if (theme === 'modern' || theme === 'premium') {
+        // 모던/프리미엄: 인덱스 스타일 적용 (세로선 + 내용)
+        return `
+        <div style="display: flex; align-items: flex-start; gap: 12px; padding: 16px 0; margin: 30px 0 15px 0;">
+          <div style="width: 4px; height: 100%; min-height: 24px; background-color: #787fff; border-radius: 2px; flex-shrink: 0; align-self: stretch;"></div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+            <h3 style="margin: 0; padding: 0; font-size: 19px; font-weight: 700; color: #333; line-height: 1.5; border: none; background: none;">${textContent}</h3>
+          </div>
+        </div>
+        `.trim().replace(/\s+/g, ' '); // 공백 최소화
+      } else {
+        // 그 외 테마: 기존 방식 (심플 border-left)
+        const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
+        return `<h3${cleaned} style="${t.h3Style}">${content}</h3>`;
+      }
     }
   );
   
