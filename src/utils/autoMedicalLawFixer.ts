@@ -3,14 +3,28 @@
  * AI가 생성한 글을 자동으로 의료광고법에 맞게 수정
  */
 
-// 의료광고법 금지 패턴
+// 의료광고법 금지 패턴 (🔥 2025년 피드백 반영)
 const PROHIBITED_PATTERNS = {
-  // 기존 코드에서 사용되는 패턴 정의
+  // 1. 질환명 강조/반복 패턴
+  diseaseEmphasis: /(\S+암|\S+증|\S+림프종)\s*(일\s*수\s*있습니다|의심됩니다|가능성)/g,
+  
+  // 2. 질환 비교/차별 구조
+  diseaseComparison: ['일반 질환과 다르게', '흔한 증상과 달리', '특별히 주의', '놓치기 쉬운', '다른 질환보다'],
+  
+  // 3. 자가진단/판단 유도
+  selfDiagnosis: /의심(된다|해봐야|해보세요)|가능성이\s*(높다|있다)|확인해보는\s*것이\s*좋다/g,
+  
+  // 4. 치료/검사 권유 (직접 + 간접)
+  medicalAdvice: /확인이\s*필요한\s*시점|살펴볼\s*때|검사(받으세요|하세요)|병원(가세요|방문)/g,
+  
+  // 기존 패턴 유지
   suspicion: /의심/g,
   judgment: /판단/g,
   possibility: /가능성/g,
+  
   // 비교 광고 금지 패턴
   comparison: ['최고', '최상', '가장', '유일', '독보적', '업계 1위', '최초', '타 병원보다', '경쟁 병원'],
+  
   // 환자 후기 패턴  
   testimonial: ['치료 후기', '환자 후기', '치료 사례', '완치 사례', '성공 사례', '치료 경험담'],
 };
@@ -244,34 +258,175 @@ export function removeAiSmell(text: string): {
 }
 
 /**
- * 종합 자동 수정 실행
+ * 🆕 질환명 강조/반복 제거 (피드백 1)
+ */
+export function fixDiseaseEmphasis(text: string): {
+  fixed: string;
+  changes: FixResult['changes'];
+} {
+  let fixed = text;
+  const changes: FixResult['changes'] = [];
+
+  // "○○암일 수 있습니다" → "이런 변화가 나타나기도 합니다"
+  const matches = Array.from(fixed.matchAll(PROHIBITED_PATTERNS.diseaseEmphasis));
+  for (const match of matches) {
+    fixed = fixed.replace(match[0], '이런 변화가 나타나기도 합니다');
+    changes.push({
+      type: 'replace',
+      original: match[0],
+      fixed: '이런 변화가 나타나기도 합니다',
+      reason: '의료광고법: 질환명 직접 연결 금지'
+    });
+  }
+
+  return { fixed, changes };
+}
+
+/**
+ * 🆕 질환 비교/차별 제거 (피드백 4)
+ */
+export function fixDiseaseComparison(text: string): {
+  fixed: string;
+  changes: FixResult['changes'];
+} {
+  let fixed = text;
+  const changes: FixResult['changes'] = [];
+
+  for (const pattern of PROHIBITED_PATTERNS.diseaseComparison) {
+    if (fixed.includes(pattern)) {
+      // 해당 문장 제거
+      const sentences = fixed.split(/[.!?]\s*/);
+      const filteredSentences = sentences.filter(s => !s.includes(pattern));
+
+      if (filteredSentences.length < sentences.length) {
+        fixed = filteredSentences.join('. ') + '.';
+        changes.push({
+          type: 'remove',
+          original: pattern,
+          fixed: '(제거됨)',
+          reason: '의료광고법: 질환 비교/차별 구조 금지'
+        });
+      }
+    }
+  }
+
+  return { fixed, changes };
+}
+
+/**
+ * 🆕 자가진단 유도 제거 (피드백 2)
+ */
+export function fixSelfDiagnosis(text: string): {
+  fixed: string;
+  changes: FixResult['changes'];
+} {
+  let fixed = text;
+  const changes: FixResult['changes'] = [];
+
+  const replacements: [RegExp, string][] = [
+    [/의심(된다|됩니다|해봐야|해보세요)/g, '나타나기도 합니다'],
+    [/가능성이\s*(높다|높습니다|있다|있습니다)/g, '경우가 있습니다'],
+    [/확인해보는\s*것이\s*좋(다|습니다)/g, '기록해두는 것도 방법입니다'],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    const matches = Array.from(fixed.matchAll(pattern));
+    for (const match of matches) {
+      fixed = fixed.replace(match[0], replacement);
+      changes.push({
+        type: 'replace',
+        original: match[0],
+        fixed: replacement,
+        reason: '의료광고법: 자가진단 유도 금지'
+      });
+    }
+  }
+
+  return { fixed, changes };
+}
+
+/**
+ * 🆕 의료 권유 제거 (피드백 3)
+ */
+export function fixMedicalAdvice(text: string): {
+  fixed: string;
+  changes: FixResult['changes'];
+} {
+  let fixed = text;
+  const changes: FixResult['changes'] = [];
+
+  const replacements: [RegExp, string][] = [
+    [/확인이\s*필요한\s*시점(입니다)?/g, '변화가 나타나는 경우입니다'],
+    [/살펴볼\s*때(입니다)?/g, '관찰할 수 있습니다'],
+    [/검사(받으세요|하세요)/g, '기록해두세요'],
+    [/병원(가세요|방문하세요)/g, '변화를 관찰하세요'],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    const matches = Array.from(fixed.matchAll(pattern));
+    for (const match of matches) {
+      fixed = fixed.replace(match[0], replacement);
+      changes.push({
+        type: 'replace',
+        original: match[0],
+        fixed: replacement,
+        reason: '의료광고법: 의료 권유 금지'
+      });
+    }
+  }
+
+  return { fixed, changes };
+}
+
+/**
+ * 종합 자동 수정 실행 (🔥 2025 피드백 반영)
  */
 export function autoFixMedicalLaw(content: string): FixResult {
   const originalText = content;
   let fixedText = content;
   const allChanges: FixResult['changes'] = [];
 
-  // 1. 과장 표현 수정
+  // 🆕 1. 질환명 강조/반복 제거 (피드백 1)
+  const diseaseEmphasisResult = fixDiseaseEmphasis(fixedText);
+  fixedText = diseaseEmphasisResult.fixed;
+  allChanges.push(...diseaseEmphasisResult.changes);
+
+  // 🆕 2. 질환 비교/차별 제거 (피드백 4)
+  const diseaseComparisonResult = fixDiseaseComparison(fixedText);
+  fixedText = diseaseComparisonResult.fixed;
+  allChanges.push(...diseaseComparisonResult.changes);
+
+  // 🆕 3. 자가진단 유도 제거 (피드백 2)
+  const selfDiagnosisResult = fixSelfDiagnosis(fixedText);
+  fixedText = selfDiagnosisResult.fixed;
+  allChanges.push(...selfDiagnosisResult.changes);
+
+  // 🆕 4. 의료 권유 제거 (피드백 3)
+  const medicalAdviceResult = fixMedicalAdvice(fixedText);
+  fixedText = medicalAdviceResult.fixed;
+  allChanges.push(...medicalAdviceResult.changes);
+
+  // 5. 과장 표현 수정 (기존)
   const exaggerationResult = fixExaggeration(fixedText);
   fixedText = exaggerationResult.fixed;
   allChanges.push(...exaggerationResult.changes);
 
-  // 2. 출처 추가
+  // 6. 출처 추가 (기존)
   const sourceResult = fixMissingSource(fixedText);
   fixedText = sourceResult.fixed;
   allChanges.push(...sourceResult.changes);
 
-  // 3. 비교 광고 제거
+  // 7. 비교 광고 제거 (기존)
   const comparisonResult = removeComparison(fixedText);
   fixedText = comparisonResult.fixed;
   allChanges.push(...comparisonResult.changes);
 
-  // 4. 환자 후기 처리
+  // 8. 환자 후기 처리 (기존)
   const testimonialResult = handleTestimonials(fixedText);
   fixedText = testimonialResult.fixed;
   allChanges.push(...testimonialResult.changes);
 
-  // 5. AI 냄새 제거
+  // 9. AI 냄새 제거 (기존)
   const aiSmellResult = removeAiSmell(fixedText);
   fixedText = aiSmellResult.fixed;
   allChanges.push(...aiSmellResult.changes);
