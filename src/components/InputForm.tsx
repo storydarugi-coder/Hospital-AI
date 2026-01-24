@@ -213,7 +213,7 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, isLoading }) => {
                       type="range" 
                       min="1500" 
                       max="3500" 
-                      step="500" 
+                      step="100" 
                       value={textLength} 
                       onChange={(e) => setTextLength(parseInt(e.target.value))}
                       className="w-full accent-emerald-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
