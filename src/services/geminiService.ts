@@ -6049,6 +6049,73 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
         finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
       }
     }
+    
+    // 🎨 블로그 콘텐츠용 CSS 스타일 추가
+    const blogStyles = `
+<style>
+.naver-post-container {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  line-height: 1.8;
+  color: #333;
+}
+.naver-post-container .main-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 30px 0;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.naver-post-container h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 40px 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #7c3aed;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.naver-post-container p {
+  font-size: 16px;
+  color: #444;
+  margin: 0 0 20px 0;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+.naver-post-container ul {
+  margin: 20px 0;
+  padding-left: 24px;
+}
+.naver-post-container li {
+  font-size: 16px;
+  color: #444;
+  margin: 10px 0;
+  line-height: 1.7;
+}
+.naver-post-container strong {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.content-image-wrapper {
+  margin: 30px 0;
+  text-align: center;
+}
+.legal-box-card {
+  margin-top: 40px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+</style>
+`;
+    finalHtml = blogStyles + finalHtml;
   }
 
   // ============================================
