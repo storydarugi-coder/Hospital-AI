@@ -2477,6 +2477,7 @@ const searchNewsForTrends = async (category: string, month: number): Promise<str
   
   try {
     console.log(`📰 뉴스 트렌드 검색 시작: ${category} (${searchKeyword})`);
+    console.log(`   [Google Search 도구 활성화 시도...]`);
     
     // Gemini 구글 검색 도구로 최신 뉴스 검색
     const response = await ai.models.generateContent({
@@ -2503,11 +2504,22 @@ const searchNewsForTrends = async (category: string, month: number): Promise<str
     });
     
     const newsContext = response.text || '';
-    console.log(`📰 뉴스 트렌드 검색 완료: ${newsContext.substring(0, 200)}...`);
+    
+    // 🔍 검색 성공 여부 확인
+    if (newsContext && newsContext.length > 50) {
+      console.log(`✅ 뉴스 트렌드 검색 성공! (${newsContext.length}자)`);
+      console.log(`📰 검색 결과 미리보기: ${newsContext.substring(0, 200)}...`);
+    } else {
+      console.warn(`⚠️ 뉴스 검색 응답이 너무 짧음 (${newsContext.length}자) - Google Search가 작동하지 않았을 가능성`);
+      console.warn(`   응답 내용:`, newsContext);
+    }
+    
     return newsContext;
     
   } catch (error) {
-    console.warn('⚠️ 뉴스 검색 실패, 기본 트렌드로 진행:', error);
+    console.error('❌ 뉴스 검색 실패:', error);
+    console.error('   에러 메시지:', (error as Error).message);
+    console.warn('⚠️ 기본 트렌드로 진행 (검색 없이)');
     return '';
   }
 };
