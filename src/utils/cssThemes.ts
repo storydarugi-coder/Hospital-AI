@@ -98,12 +98,17 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   );
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
+  const h3Matches = result.match(/<h3(\s+[^>]*)?>/g);
+  console.log('🔍 [cssThemes] h3 태그 매칭:', h3Matches?.length || 0, '개', h3Matches);
+  
   result = result.replace(
     /<h3(\s+[^>]*)?>/g,
     (match, attrs) => {
       // 기존 style 속성 제거
       const cleaned = attrs ? attrs.replace(/\s*style="[^"]*"/gi, '') : '';
-      return `<h3${cleaned} style="${t.h3Style}">`;
+      const newTag = `<h3${cleaned} style="${t.h3Style}">`;
+      console.log('✅ [cssThemes] h3 변환:', match, '→', newTag);
+      return newTag;
     }
   );
   
