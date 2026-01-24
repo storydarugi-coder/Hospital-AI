@@ -12,11 +12,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
-  optionsSuccessStatus: 200 // 일부 브라우저를 위한 설정
+  optionsSuccessStatus: 200, // 일부 브라우저를 위한 설정
+  preflightContinue: false
 }));
-
-// OPTIONS 요청 명시적 처리
-app.options('*', cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
