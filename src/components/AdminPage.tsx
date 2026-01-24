@@ -380,7 +380,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div className="text-sm text-slate-400">블로그 글</div>
           </div>
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
-            <div className="text-3xl mb-2">🎴</div>
+            <div className="text-3xl mb-2">🎨</div>
             <div className="text-2xl font-black text-white">{stats.cardnewsCount}</div>
             <div className="text-sm text-slate-400">카드뉴스</div>
           </div>
@@ -532,7 +532,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      🎴 카드뉴스
+                      🎨 카드뉴스
                     </button>
                     <button
                       onClick={() => setContentFilter('press')}
