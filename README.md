@@ -59,8 +59,9 @@ GPT-5.2의 토큰 제한과 프롬프트 복잡도 문제를 해결하기 위해
 - ✅ 블로그 복사 기능 (HTML 포맷)
 
 ## URLs
-- **개발 서버**: https://3000-iiqpthosrwwxpxufn4au8-2b54fc91.sandbox.novita.ai
-- **API Health Check**: /api/health
+- **프로덕션**: https://story-darugi.com
+- **API Health Check**: https://story-darugi.com/api/health
+- **Cloudflare Pages**: https://ai-hospital.pages.dev
 
 ## 사용 방법
 1. API Key 설정
@@ -81,14 +82,106 @@ GPT-5.2의 토큰 제한과 프롬프트 복잡도 문제를 해결하기 위해
    - "티스토리 블로그로 복사" 클릭
 
 ## 데이터 아키텍처
-- **API 연동**: Google Gemini API (텍스트 생성 + 이미지 생성)
-- **저장소**: LocalStorage (API 키 저장)
-- **상태 관리**: React useState/useEffect
+- **API 서버**: Cloudflare Pages Functions (/api/*)
+- **데이터베이스**: Cloudflare KV Storage (CONTENT_STORAGE)
+- **AI API**: Google Gemini API (텍스트 생성 + 이미지 생성) + OpenAI GPT-5.2
+- **상태 관리**: React useState/useEffect + Context API
+
+### Cloudflare Pages Functions API
+
+프로젝트는 Cloudflare Pages Functions를 사용하여 서버리스 API를 제공합니다:
+
+#### 📡 **API Endpoints**
+- `GET /api/health` - 헬스 체크
+- `GET /api/api-keys/get` - API 키 조회
+- `POST /api/api-keys/save` - API 키 저장
+- `DELETE /api/api-keys/delete` - API 키 삭제
+- `GET /api/content/list` - 콘텐츠 목록
+- `POST /api/content/save` - 콘텐츠 저장
+- `GET /api/stats` - 통계 조회
+
+#### 🗄️ **KV Storage**
+- **Namespace ID**: `5bb13721765b4a74b0ab855c92b2e9a9`
+- **Binding**: `CONTENT_STORAGE`
+- **용도**: 생성된 콘텐츠 영구 저장 및 팀 공유
 
 ## 배포
 - **플랫폼**: Cloudflare Pages
-- **상태**: 개발 서버 가동 중
-- **기술 스택**: Hono 4.x + React 19 + TypeScript + TailwindCSS
+- **프로덕션**: https://story-darugi.com
+- **기술 스택**: React 19 + TypeScript + TailwindCSS + Cloudflare Pages Functions
+
+### 🚀 Cloudflare Pages 배포 가이드
+
+#### **환경 변수 설정 (필수)**
+
+Cloudflare Dashboard에서 설정:
+1. **Workers & Pages** → **ai-hospital** → **Settings** → **Environment variables**
+2. 추가할 환경 변수:
+   - `GEMINI_API_KEY`: Google Gemini API 키
+   - `OPENAI_API_KEY`: OpenAI API 키 (선택)
+
+#### **자동 배포 (GitHub Actions)**
+
+`.github/workflows/deploy.yml` 파일을 생성하여 자동 배포 설정:
+
+```yaml
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    name: Deploy to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ai-hospital
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: '3'
+```
+
+#### **GitHub Secrets 설정**
+
+Repository Settings에서 추가:
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API 토큰 (Edit Cloudflare Workers 권한)
+- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare 계정 ID
+
+#### **수동 배포**
+
+```bash
+# Wrangler CLI 사용
+npx wrangler pages deploy dist --project-name=ai-hospital
+```
 
 ## 개발 명령어
 ```bash
@@ -108,27 +201,40 @@ npm run deploy
 ## 파일 구조
 ```
 webapp/
+├── functions/                   # 🆕 Cloudflare Pages Functions
+│   └── api/
+│       ├── health.ts           # Health check API
+│       ├── stats.ts            # 통계 API
+│       ├── api-keys/
+│       │   ├── get.ts          # API 키 조회
+│       │   ├── save.ts         # API 키 저장
+│       │   └── delete.ts       # API 키 삭제
+│       └── content/
+│           ├── list.ts         # 콘텐츠 목록
+│           └── save.ts         # 콘텐츠 저장
 ├── src/
-│   ├── index.tsx           # Hono 서버 엔트리
-│   ├── client.tsx          # React 클라이언트 엔트리
-│   ├── App.tsx             # 메인 앱 컴포넌트
-│   ├── types.ts            # TypeScript 타입 정의
-│   ├── constants.ts        # 상수 (진료과, 페르소나 등)
+│   ├── client.tsx              # React 클라이언트 엔트리
+│   ├── App.tsx                 # 메인 앱 컴포넌트
+│   ├── types.ts                # TypeScript 타입 정의
+│   ├── constants.ts            # 상수 (진료과, 페르소나 등)
 │   ├── components/
-│   │   ├── InputForm.tsx   # 입력 폼 컴포넌트
-│   │   └── ResultPreview.tsx # 결과 미리보기 컴포넌트
+│   │   ├── InputForm.tsx       # 입력 폼 컴포넌트
+│   │   ├── ResultPreview.tsx   # 결과 미리보기 컴포넌트
+│   │   ├── AdminPage.tsx       # 관리자 페이지
+│   │   └── ApiKeySettings.tsx  # API 키 설정
 │   ├── lib/
-│   │   └── gpt52-prompts-staged.ts # 🆕 GPT-5.2 단계별 프롬프트
+│   │   └── gpt52-prompts-staged.ts # GPT-5.2 단계별 프롬프트
 │   ├── services/
-│   │   └── geminiService.ts # Gemini API 서비스 (단계별 처리 포함)
+│   │   ├── geminiService.ts    # Gemini API 서비스 (단계별 처리)
+│   │   └── apiService.ts       # 🆕 Backend API 서비스
 │   └── utils/
-│       └── cssThemes.ts    # CSS 테마 유틸리티
+│       └── cssThemes.ts        # CSS 테마 유틸리티
 ├── public/
-│   └── _routes.json        # Cloudflare Pages 라우팅
-├── wrangler.jsonc          # Wrangler 설정
-├── vite.config.ts          # Vite 설정
-├── tsconfig.json           # TypeScript 설정
-└── ecosystem.config.cjs    # PM2 설정
+│   └── _routes.json            # 🆕 Cloudflare Pages 라우팅 설정
+├── wrangler.jsonc              # 🆕 Wrangler 설정 (KV binding)
+├── vite.config.ts              # Vite 설정
+├── tsconfig.json               # TypeScript 설정
+└── package.json                # 의존성 관리
 ```
 
 ## 라이선스
