@@ -112,22 +112,25 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     setLoadingContents(false);
   };
 
-  // 콘텐츠 상세 조회
+  // 콘텐츠 상세 조회 (list API에서 이미 모든 데이터 포함)
   const viewContent = async (id: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/content/${id}`);
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        setSelectedContent(data.data);
+      // contents 배열에서 직접 찾기 (API 호출 불필요)
+      const content = contents.find(c => c.id === id);
+      if (content) {
+        setSelectedContent(content);
       }
     } catch (error) {
       console.error('콘텐츠 조회 실패:', error);
     }
   };
 
-  // 콘텐츠 삭제
+  // 콘텐츠 삭제 (API 미구현으로 비활성화)
   const deleteContent = async (id: number) => {
+    alert('⚠️ 삭제 기능은 현재 개발 중입니다.');
+    return;
+    
+    /* TODO: 삭제 API 구현 후 활성화
     if (!confirm('정말 이 콘텐츠를 삭제하시겠습니까?')) return;
     
     try {
@@ -144,6 +147,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
       console.error('콘텐츠 삭제 실패:', error);
       alert('❌ 삭제에 실패했습니다.');
     }
+    */
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
