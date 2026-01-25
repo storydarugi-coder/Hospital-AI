@@ -3366,6 +3366,14 @@ export const generateCardNewsWithAgents = async (
     throw new Error('스토리 기획 실패: 슬라이드가 생성되지 않았습니다.');
   }
   
+  // 🔍 슬라이드 개수 검증: 사용자가 요청한 개수와 실제 생성된 개수 비교
+  if (story.slides.length !== slideCount) {
+    console.warn(`⚠️ 슬라이드 개수 불일치: 요청=${slideCount}장, 생성=${story.slides.length}장`);
+    onProgress(`⚠️ 슬라이드 ${story.slides.length}장 생성됨 (요청: ${slideCount}장)`);
+  } else {
+    console.log(`✅ 슬라이드 개수 일치: ${slideCount}장`);
+  }
+  
   onProgress(`✅ 스토리 기획 완료 (${story.slides.length}장)`);
   
   // 2단계: HTML 조립
