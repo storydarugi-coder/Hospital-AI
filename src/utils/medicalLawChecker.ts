@@ -68,6 +68,8 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '전문적', severity: 'critical', replacement: ['(사용 금지)', '(사용 금지)'], reason: '자격 강조 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
   { word: '전문', severity: 'critical', replacement: ['(사용 금지)', '(사용 금지)'], reason: '자격 강조 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
   { word: '의료진', severity: 'critical', replacement: ['(사용 금지)', '(사용 금지)'], reason: '의료진 표현 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
+  { word: '의료 연구', severity: 'critical', replacement: ['알려진 바에 따르면', '(삭제)'], reason: '의료 연구 표현 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
+  { word: '의료연구', severity: 'critical', replacement: ['알려진 바에 따르면', '(삭제)'], reason: '의료연구 표현 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
   { word: '의료', severity: 'critical', replacement: ['(사용 금지)', '(사용 금지)'], reason: '의료 직접 표현 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
   { word: '명의', severity: 'critical', replacement: ['(사용 금지)', '(사용 금지)'], reason: '자격 강조 금지 (의료광고법) - 완전 금지', category: 'medical_law' },
   { word: '베테랑', severity: 'critical', replacement: ['경험 있는', '(삭제)'], reason: '자격 강조 금지 (의료광고법)', category: 'exaggeration' },

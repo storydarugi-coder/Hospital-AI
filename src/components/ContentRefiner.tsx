@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { refineContentByMedicalLaw } from '../services/geminiService';
 import { getAiClient } from '../services/geminiService';
+import { SYSTEM_PROMPT, getStage2_AiRemovalAndCompliance } from '../lib/gpt52-prompts-staged';
 import { applyThemeToHtml } from '../utils/cssThemes';
 import type { CssTheme } from '../types';
 
@@ -133,13 +134,15 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, onNavigate, da
         }
       }
       
-      // humanWritingPrompts import 필요
-      const { HUMAN_WRITING_RULES, MEDICAL_LAW_HUMAN_PROMPT, PARAGRAPH_STRUCTURE_GUIDE } = await import('../utils/humanWritingPrompts');
-      
       // 사용자 요청 분석: 확장 요청인지 확인
       const isExpandRequest = /자세히|자세하게|더 쓰|길게|확장|추가|더 설명|상세|구체적/.test(chatInput);
       
-      const prompt = `당신은 똑똑한 의료 콘텐츠 에디터입니다.
+      // Stage 2 프롬프트 사용 (자동 보정과 동일한 기준 적용)
+      const stage2Prompt = getStage2_AiRemovalAndCompliance(refinedContent.length);
+      
+      const prompt = `${SYSTEM_PROMPT}
+
+${stage2Prompt}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 미션: 사용자 요청 정확히 이해하고 실행
@@ -189,7 +192,7 @@ ${isExpandRequest ? `
    • 불필요한 변경 금지
 `}
 
-3️⃣ **의료광고법 준수**
+3️⃣ **의료광고법 준수 (시스템 프롬프트 참조)**
    ❌ 단정 표현: "치료", "개선", "효과"
    ❌ 수치/통계: "90%", "3일 만에"
    ❌ 출처 명시: "질병관리청에 따르면"
@@ -202,12 +205,6 @@ ${isExpandRequest ? `
 • 잘못된 의료 정보는 반드시 수정
 • 검색 결과 출처는 절대 명시 금지
 
-${HUMAN_WRITING_RULES}
-
-${MEDICAL_LAW_HUMAN_PROMPT}
-
-${PARAGRAPH_STRUCTURE_GUIDE}
-
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ 작업 체크리스트
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -216,23 +213,9 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
 □ 사용자 요청만 정확히 수행?
 ${isExpandRequest ? '□ Google Search로 정확한 정보 추가?' : '□ 원본 길이 ±20% 유지?'}
 □ 요청하지 않은 부분 수정 안 함?
-□ 의료광고법 준수?
+□ 의료광고법 준수? (시스템 프롬프트의 모든 금지어 체크!)
 □ 금지어 사용 안 함?
 □ 자연스러움 유지?
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-수정을 완료했다면, 아래를 확인하세요:
-
-□ **중복 내용 없음?** (반복 연결어: 즉, 다시 말해 금지!)
-${isExpandRequest ? '□ 요청받은 부분만 확장했는가?' : '□ 원본 길이의 ±20% 이내인가?'}
-□ 사용자가 요청한 부분만 수정했는가?
-${isExpandRequest ? '□ Google Search로 정확한 정보를 추가했는가?' : '□ 도입부/마무리를 추가하지 않았는가?'}
-□ 의료광고법을 준수했는가?
-□ 금지어를 사용하지 않았는가?
-  - 양상, 문제, 고려, 관련이, 해결, 해결책
-  - ~죠, ~요 (반말 느낌)
-  - 연관성, 영향을 미치다, 발생하다
 
 수정된 HTML 콘텐츠만 반환해주세요 (설명 없이).`;
 
