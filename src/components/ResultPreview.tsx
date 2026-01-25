@@ -332,6 +332,14 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = localHtml;
     
+    // 🔧 CSS <style> 태그 제거 (글자수에 CSS가 포함되지 않도록)
+    const styleTags = tempDiv.querySelectorAll('style');
+    styleTags.forEach(el => el.remove());
+    
+    // 🔧 <script> 태그도 제거
+    const scriptTags = tempDiv.querySelectorAll('script');
+    scriptTags.forEach(el => el.remove());
+    
     // 카드 수 계산
     const cards = tempDiv.querySelectorAll('.card-slide');
     setCardCount(cards.length);
@@ -380,9 +388,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         .trim();
       
       // 🔍 디버깅: 글자수 계산 상세 로그
-      console.log('📊 UI 글자수 계산:');
-      console.log('   - tempDiv.innerHTML 길이:', tempDiv.innerHTML.length);
-      console.log('   - tempDiv.textContent 길이:', (tempDiv.textContent || '').length);
+      console.log('📊 UI 글자수 계산 (CSS 제외):');
       console.log('   - 공백 제외 후:', text.length);
       console.log('   - 처음 100자:', text.substring(0, 100));
       
