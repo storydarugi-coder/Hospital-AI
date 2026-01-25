@@ -356,8 +356,25 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const text = contentText.replace(/\s+/g, '');
       setCharCount(text.length);
     } else {
-      // 블로그 포스트의 경우 전체 텍스트 계산 (공백 제외)
+      // 블로그 포스트의 경우 본문 텍스트만 계산 (공백 제외)
+      
+      // 해시태그 문단 제거 (#으로 시작하는 내용)
+      const hashtagElements = tempDiv.querySelectorAll('p');
+      hashtagElements.forEach(el => {
+        const text = el.textContent || '';
+        // #태그 패턴이 2개 이상 있으면 해시태그 문단으로 판단
+        if ((text.match(/#/g) || []).length >= 2) {
+          el.remove();
+        }
+      });
+      
+      // 이미지 마커 제거 ([IMG_1], [IMG_2] 등)
+      // main-title 클래스 제거 (제목은 본문 글자수에서 제외)
+      const mainTitleElements = tempDiv.querySelectorAll('.main-title');
+      mainTitleElements.forEach(el => el.remove());
+      
       const text = (tempDiv.textContent || '')
+        .replace(/\[IMG_\d+\]/g, '')  // 이미지 마커 제거
         .replace(/\s+/g, '')  // 모든 공백 제거
         .trim();
       
