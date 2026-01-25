@@ -373,6 +373,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const mainTitleElements = tempDiv.querySelectorAll('.main-title');
       mainTitleElements.forEach(el => el.remove());
       
+      // ✅ 공백 제외 글자수 계산 (실제 콘텐츠 양 측정)
       const text = (tempDiv.textContent || '')
         .replace(/\[IMG_\d+\]/g, '')  // 이미지 마커 제거
         .replace(/\s+/g, '')  // 모든 공백 제거
