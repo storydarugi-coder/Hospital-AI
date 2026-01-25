@@ -419,7 +419,25 @@ export interface SeoAnalysisResult {
  * SEO 실시간 분석
  */
 export function analyzeSeo(html: string, title: string, keyword: string): SeoAnalysisResult {
-  const plainText = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  // 본문 글자 수 계산을 위한 전처리 (제목, 해시태그, 이미지 마커 제외)
+  let processedHtml = html;
+  
+  // 1. 제목 제거 (main-title 클래스, h1 태그)
+  processedHtml = processedHtml.replace(/<[^>]*class="[^"]*main-title[^"]*"[^>]*>.*?<\/[^>]+>/gi, '');
+  processedHtml = processedHtml.replace(/<h1[^>]*>.*?<\/h1>/gi, '');
+  
+  // 2. 해시태그 문단 제거 (#태그가 2개 이상 포함된 p 태그)
+  processedHtml = processedHtml.replace(/<p[^>]*>([^<]*#[^<]*#[^<]*)<\/p>/gi, '');
+  
+  // 3. 이미지 마커 제거
+  processedHtml = processedHtml.replace(/\[IMG_\d+\]/g, '');
+  
+  // 본문 텍스트 추출 (공백 제거 전)
+  const plainText = processedHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // 본문 글자 수 (공백 제외)
+  const bodyCharCount = plainText.replace(/\s/g, '').length;
+  
   const suggestions: string[] = [];
   
   // 1. 제목 분석
@@ -445,10 +463,10 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
   }
   
   // 2. 키워드 밀도 분석 (3~4회 자연스러운 포함 기준)
-  const totalChars = plainText.replace(/\s/g, '').length;
+  // bodyCharCount는 위에서 이미 계산됨 (제목, 해시태그, 이미지 마커 제외)
   const keywordCount = keyword ? (plainText.match(new RegExp(escapeRegex(keyword), 'gi')) || []).length : 0;
-  const keywordDensity = keyword && totalChars > 0 
-    ? (keywordCount * keyword.length / totalChars) * 100 
+  const keywordDensity = keyword && bodyCharCount > 0 
+    ? (keywordCount * keyword.length / bodyCharCount) * 100 
     : 0;
   
   let keywordDensityScore = 100;
@@ -484,10 +502,10 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
   const subheadingCount = subheadingMatches.length;
   let subheadingScore = 100;
   
-  if (totalChars > 1500 && subheadingCount < 3) {
+  if (bodyCharCount > 1500 && subheadingCount < 3) {
     subheadingScore -= 30;
     suggestions.push(`소제목이 부족합니다 (${subheadingCount}개). 최소 3~4개의 소제목을 권장합니다.`);
-  } else if (subheadingCount < 2 && totalChars > 800) {
+  } else if (subheadingCount < 2 && bodyCharCount > 800) {
     subheadingScore -= 20;
   }
   
@@ -595,7 +613,7 @@ export function analyzeSeo(html: string, title: string, keyword: string): SeoAna
       firstParagraphHasKeyword,
       subheadingCount,
       avgSentenceLength,
-      totalCharCount: totalChars,
+      totalCharCount: bodyCharCount,
       diseasePatternCount, // 추가
       checklistCount, // 추가
       shortSentenceRatio // 추가
