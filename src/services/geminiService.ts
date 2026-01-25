@@ -3866,7 +3866,15 @@ ${gpt52Stage1}
 □ ${targetLength + 50}자 초과 시 → 문장 삭제해서 줄이기
 □ ${targetLength - 50}자 미만 시 → 구체적 설명 추가
 
-[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 자연스럽게 포함 - 첫 번째 키워드 정확히 4회, 두 번째 최대 2회, 세 번째 이후 최대 1회. ⚠️ 부분 일치도 카운트: "자궁근종" 2회 + "근종" 1회 = 총 3회 위반!) / 이미지: ${targetImageCount}장
+[작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} / 이미지: ${targetImageCount}장
+
+🚨🚨🚨 [키워드 사용 규칙 - 절대 준수!] 🚨🚨🚨
+✅ 사용할 키워드: "${request.keywords || request.topic}" (이것만 사용!)
+❌ 관련 질환/키워드 추가 금지!
+   - 예: "월경통"이 키워드면 → "자궁근종", "난소낭종" 등 다른 질환 언급 금지!
+   - 예: "어깨통증"이 키워드면 → "오십견", "회전근개" 등 다른 질환 언급 금지!
+⚠️ 검색으로 관련 정보를 찾아도, 입력된 키워드 주제에만 집중!
+⚠️ 다른 질환명이 1개라도 들어가면 글 전체가 불합격!
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
 
 ${HUMAN_WRITING_RULES}
