@@ -1,5 +1,11 @@
 /**
- * GPT-5.2 프롬프트 시스템 v6.6
+ * GPT-5.2 프롬프트 시스템 v6.7
+ * 
+ * v6.7 동적 금지어 테이블 & 실전 예시 학습 추가:
+ * - 의료광고법 크롤링 결과를 프롬프트에 자동 반영
+ * - 금지어 DB 업데이트 시 프롬프트도 자동 동기화
+ * - Before/After 실전 예시로 AI 학습 강화
+ * - 감정 톤 & 리듬 가이드로 자연스러운 글쓰기 향상
  * 
  * v6.6 단정형 표현 완전 금지 강화:
  * - "~입니다", "~합니다", "~됩니다" 단정형 종결어미 엄격 제한
@@ -38,6 +44,32 @@
  */
 
 import MEDICAL_ADVERTISING_LAW_FULL from '../data/medicalAdvertisingLawFull';
+
+/**
+ * 동적으로 금지어 테이블을 생성하는 함수
+ * - 의료광고법 크롤링 결과를 기반으로 프롬프트 생성
+ * - 실시간 동기화로 최신 규칙 반영
+ */
+async function loadDynamicForbiddenWords(): Promise<string> {
+  try {
+    const { generateForbiddenWordPrompt, generateBeforeAfterExamples, generateToneAndRhythmGuide } = await import('../services/medicalLawService');
+    const { getMedicalLawRules } = await import('../services/medicalLawCrawler');
+    
+    // 최신 의료광고법 규칙 가져오기
+    const prohibitions = await getMedicalLawRules();
+    
+    // 동적 프롬프트 생성
+    const forbiddenWordTable = generateForbiddenWordPrompt(prohibitions);
+    const beforeAfterExamples = generateBeforeAfterExamples();
+    const toneGuide = generateToneAndRhythmGuide();
+    
+    return `${forbiddenWordTable}\n${beforeAfterExamples}\n${toneGuide}`;
+  } catch (error) {
+    console.warn('동적 금지어 로딩 실패, 기본 테이블 사용:', error);
+    // 실패 시 기본 테이블 반환 (아래 하드코딩된 버전)
+    return '';
+  }
+}
 
 /**
  * 시스템 프롬프트 (불변 - 캐시 가능)
@@ -115,6 +147,50 @@ export const SYSTEM_PROMPT = `
 "호전된다" → "변화를 확인할 수 있습니다"
 
 🔥 핵심: 위 표를 머릿속에 넣고, 자동으로 치환하면서 글을 쓰세요!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 실전 예시 기반 학습 (Before → After)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚫 나쁜 예시 (의료광고법 위반)와 ✅ 좋은 예시 (안전)를 비교하며 학습하세요.
+
+[예시 1] 단정형 표현 → 가능성 표현
+❌ "무릎 통증은 관절 연골 손상으로 나타납니다."
+✅ "무릎 통증은 관절 연골 손상과 관련이 있을 수 있습니다."
+
+[예시 2] 원인-결과 단정 → 관찰 표현
+❌ "스트레스가 두통을 유발합니다."
+✅ "스트레스와 두통이 함께 나타나는 경우가 있습니다."
+
+[예시 3] 치료 효과 암시 → 중립적 표현
+❌ "물리치료를 받으면 증상이 개선됩니다."
+✅ "물리치료 후 변화를 살펴보는 것도 방법일 수 있습니다."
+
+[예시 4] 불안 자극 → 중립 관찰
+❌ "방치하면 악화될 수 있으니 주의하세요."
+✅ "증상이 지속되는 경우도 있습니다."
+
+[예시 5] 행동 유도 → 선택적 안내
+❌ "지금 바로 병원을 방문하세요."
+✅ "개인차가 있을 수 있습니다."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎭 감정 톤 & 리듬 가이드 (자연스러운 글쓰기)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[1] 공감의 시작 (도입부)
+✅ "아침에 일어났을 때 목이 뻐근하다면"
+✅ "며칠째 비슷한 느낌이 반복된다면"
+❌ "오늘은 ~에 대해 알아보겠습니다"
+
+[2] 문장 리듬 조절
+✅ 짧은 문장 + 긴 문장 교차
+❌ 모든 문장이 긴 만연체
+
+[3] 감각 표현 (AI 냄새 제거)
+✅ "묵직하다", "당긴다", "찌릿하다", "뻐근하다"
+✅ "아침에 일어났을 때", "저녁이면", "며칠째"
+❌ "증상이 나타난다" (이것만 반복)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1472,6 +1548,38 @@ export const getStage3_SeoOptimization = () => getStage1_ContentGeneration();
 export const getStage4_FinalCheck = () => getStage2_AiRemovalAndCompliance();
 
 /**
+ * 동적 시스템 프롬프트 생성 (의료광고법 자동 업데이트 반영)
+ * - 기존 SYSTEM_PROMPT에 최신 의료광고법 규칙 추가
+ * - 금지어 테이블, 실전 예시, 감정 가이드 자동 주입
+ */
+export async function getDynamicSystemPrompt(): Promise<string> {
+  try {
+    const dynamicContent = await loadDynamicForbiddenWords();
+    
+    // 동적 콘텐츠가 있으면 기존 SYSTEM_PROMPT의 금지어 섹션 교체
+    if (dynamicContent) {
+      // ⚡ 금지어 자동 치환 테이블 섹션을 찾아서 교체
+      const staticPromptBeforeForbiddenWords = SYSTEM_PROMPT.substring(
+        0,
+        SYSTEM_PROMPT.indexOf('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚡ 금지어 자동 치환 테이블')
+      );
+      
+      const staticPromptAfterForbiddenWords = SYSTEM_PROMPT.substring(
+        SYSTEM_PROMPT.indexOf('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n당신은 네이버 병원 블로그 콘텐츠 에디터입니다.')
+      );
+      
+      return `${staticPromptBeforeForbiddenWords}${dynamicContent}\n${staticPromptAfterForbiddenWords}`;
+    }
+    
+    // 실패 시 기존 SYSTEM_PROMPT 반환
+    return SYSTEM_PROMPT;
+  } catch (error) {
+    console.warn('동적 시스템 프롬프트 생성 실패, 기본 프롬프트 사용:', error);
+    return SYSTEM_PROMPT;
+  }
+}
+
+/**
  * 프롬프트 가져오기
  */
 export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 1500): string => {
@@ -1490,15 +1598,21 @@ export const getStagePrompt = (stageNumber: 1 | 2 | 3 | 4, textLength: number = 
 };
 
 /**
- * 전체 프롬프트 (시스템 + 단계별)
+ * 전체 프롬프트 (시스템 + 단계별) - 동적 생성 지원
  */
-export const getFullPrompt = (stageNumber: 1 | 2, textLength: number = 1500) => ({
-  system: SYSTEM_PROMPT,
-  user: getStagePrompt(stageNumber, textLength)
-});
+export const getFullPrompt = async (stageNumber: 1 | 2, textLength: number = 1500) => {
+  const systemPrompt = await getDynamicSystemPrompt();
+  return {
+    system: systemPrompt,
+    user: getStagePrompt(stageNumber, textLength)
+  };
+};
 
-export const getAllStages = (textLength: number = 1500) => ({
-  system: SYSTEM_PROMPT,
-  stage1: getStage1_ContentGeneration(textLength),
-  stage2: getStage2_AiRemovalAndCompliance(textLength)
-});
+export const getAllStages = async (textLength: number = 1500) => {
+  const systemPrompt = await getDynamicSystemPrompt();
+  return {
+    system: systemPrompt,
+    stage1: getStage1_ContentGeneration(textLength),
+    stage2: getStage2_AiRemovalAndCompliance(textLength)
+  };
+};
