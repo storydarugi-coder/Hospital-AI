@@ -1039,8 +1039,8 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
 🎯 1단계: 콘텐츠 생성 - 즉시 실행
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 [ 분량 목표: ${textLength}자 ] - 짧게 쓰면 탈락!
-📐 소제목 ${Math.max(5, Math.round(textLength / 280))}개 | 문단 ${Math.max(10, Math.round(textLength / 130))}개 | 문단당 문장 3개 | 문장당 40~45자
+🎯 [ 분량 목표: ${textLength}자 ]
+📐 소제목 ${Math.max(4, Math.round(textLength / 350))}개 | 문단 ${Math.max(8, Math.round(textLength / 160))}개 | 문단당 문장 3개 | 문장당 40~45자
 
 👤 [역할 리마인더] 
 당신은 10년 경력 병의원 마케터입니다. 의료광고법 위반으로 과태료 맞은 경험이 있어서, 
@@ -1085,30 +1085,22 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
   
   🎯 **목표: ${textLength}자** (순수 텍스트 기준, HTML 태그 제외)
   
-  📐 **필수 구조** (이 공식대로 쓰면 정확히 ${textLength}자 나옴!):
+  📐 **필수 구조**:
   ┌─────────────────────────────────────────┐
-  │ ✅ 소제목(<h2>): ${Math.max(5, Math.round(textLength / 280))}개                        │
-  │ ✅ 총 문단(<p>): ${Math.max(10, Math.round(textLength / 130))}개                       │
+  │ ✅ 소제목(<h2>): ${Math.max(4, Math.round(textLength / 350))}개                        │
+  │ ✅ 총 문단(<p>): ${Math.max(8, Math.round(textLength / 160))}개                        │
   │ ✅ 문단당 문장: 3개씩                         │
   │ ✅ 문장 길이: 40~45자                         │
-  │ ─────────────────────────────────────── │
-  │ 📊 계산: ${Math.max(10, Math.round(textLength / 130))}문단 × 3문장 × 43자 = 약 ${Math.max(10, Math.round(textLength / 130)) * 3 * 43}자  │
   └─────────────────────────────────────────┘
   
-  📊 **분량별 정확한 구조**:
-  • 1500자 → 소제목 5개, 문단 12개, 문장 36개
-  • 1600자 → 소제목 6개, 문단 12개, 문장 36개
-  • 2000자 → 소제목 7개, 문단 15개, 문장 45개
-  • 2500자 → 소제목 9개, 문단 19개, 문장 57개
+  📊 **분량별 구조**:
+  • 1500자 → 소제목 4개, 문단 9개
+  • 1600자 → 소제목 5개, 문단 10개
+  • 2000자 → 소제목 6개, 문단 13개
+  • 2500자 → 소제목 7개, 문단 16개
   
-  🚨 **문장 길이 기준** (반드시 이 길이로!):
-  
-  ❌ 탈락 (20자): "목이 뻣뻣할 수 있습니다."
-  ❌ 탈락 (25자): "어깨가 무거운 느낌이 들 수 있습니다."
-  ✅ 합격 (43자): "하루 종일 컴퓨터 앞에 앉아 있다 보면 목 뒤쪽이 뻣뻣해지는 느낌이 들 수 있습니다."
-  
-  ✓ 소제목: ${Math.max(5, Math.round(textLength / 280))}개
-  ✓ 문단: ${Math.max(10, Math.round(textLength / 130))}개  
+  ✓ 소제목: ${Math.max(4, Math.round(textLength / 350))}개
+  ✓ 문단: ${Math.max(8, Math.round(textLength / 160))}개  
   ✓ 문장: 문단당 3개, 각 40~45자
   ✓ 소제목은 반드시 생활 장면형 (시스템 프롬프트 참조)
   
@@ -1356,29 +1348,18 @@ STEP 4. 최종 출력
 [P2 단계] ⚠️ 필수 수정 사항
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-7. □ 🚨🚨🚨 분량 확인 - 부족하면 보강!
+7. □ 🚨 분량 확인:
    
    🎯 목표: ${textLength}자 (순수 텍스트, HTML 제외)
    
    📐 **체크리스트**:
-   □ 소제목(<h2>) 개수: ${Math.max(5, Math.round(textLength / 280))}개인가? (부족하면 추가!)
-   □ 총 문단(<p>) 개수: ${Math.max(10, Math.round(textLength / 130))}개인가? (부족하면 추가!)
-   □ 각 문단에 문장이 3개씩 있는가? (2개면 1개 추가!)
-   □ 각 문장이 40~45자인가? (짧으면 구체적 상황 추가!)
-   
-   📊 **${textLength}자 필요 구조**:
-   - 소제목: ${Math.max(5, Math.round(textLength / 280))}개
-   - 문단: ${Math.max(10, Math.round(textLength / 130))}개
-   - 문장: ${Math.max(10, Math.round(textLength / 130)) * 3}개 (문단×3)
-   
-   🚨 **분량 부족 시 보강 방법**:
-   - 소제목 부족 → 새로운 생활 장면 소제목 추가!
-   - 문단 부족 → 각 소제목 아래 문단 추가!
-   - 문장 짧음 → "특히 ~하는 경우", "예를 들어" 추가!
+   □ 소제목(<h2>) 개수: ${Math.max(4, Math.round(textLength / 350))}개
+   □ 총 문단(<p>) 개수: ${Math.max(8, Math.round(textLength / 160))}개
+   □ 각 문단에 문장이 3개씩 있는가?
+   □ 각 문장이 40~45자인가?
 
 8. □ 소제목 개수 및 형태
-   → <h2> 태그 개수: ${Math.max(5, Math.round(textLength / 280))}개 (필수)
-   → 부족하면 소제목 추가!
+   → <h2> 태그 개수: ${Math.max(4, Math.round(textLength / 350))}개
    
    → 각 소제목이 생활 장면형인가?
    □ "밤에", "아침마다", "며칠째" 등의 시간/상황 표현 사용
