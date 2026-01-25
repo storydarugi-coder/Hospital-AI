@@ -379,6 +379,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         .replace(/\s+/g, '')  // 모든 공백 제거
         .trim();
       
+      // 🔍 디버깅: 글자수 계산 상세 로그
+      console.log('📊 UI 글자수 계산:');
+      console.log('   - tempDiv.innerHTML 길이:', tempDiv.innerHTML.length);
+      console.log('   - tempDiv.textContent 길이:', (tempDiv.textContent || '').length);
+      console.log('   - 공백 제외 후:', text.length);
+      console.log('   - 처음 100자:', text.substring(0, 100));
+      
       setCharCount(text.length);
     }
   }, [localHtml, content.postType]);
