@@ -7389,9 +7389,9 @@ export const refineContentByMedicalLaw = async (
   
   safeProgress('📝 원본 콘텐츠 분석 중...');
   
-  // SYSTEM_PROMPT + 모든 글쓰기 프롬프트 통합
-  // Stage 2 프롬프트 사용 (자동 생성과 동일한 기준 적용)
-  const stage2Prompt = getStage2_AiRemovalAndCompliance(textContent.length);
+  // SYSTEM_PROMPT + 보정용 프롬프트 (글자 수 제한 없이 품질 개선에 집중)
+  // 참고: 보정 시에는 원본 글자 수를 유지하면서 품질만 개선
+  const stage2Prompt = getStage2_AiRemovalAndCompliance();
   
   const prompt = `${SYSTEM_PROMPT}
 
@@ -7404,6 +7404,7 @@ ${textContent}
 - 위 콘텐츠를 "2단계: AI 제거 및 최종 검증" 규칙에 따라 완벽하게 수정하세요.
 - 수정된 결과물은 <html> 태그를 포함한 완성된 HTML 형태로 반환하세요.
 - JSON 응답 형식을 반드시 준수하세요.
+- 🚨 글자 수는 원본과 비슷하게 유지! 늘리거나 줄이지 마세요.
 
 [🚨 P0 최우선 - 너는 의사가 아니다!]
 ❌ 의학적 원인/병태/질환 설명 금지 - "왜 아픈지" 밝히지 말 것!

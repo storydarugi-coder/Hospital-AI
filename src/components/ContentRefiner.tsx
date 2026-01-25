@@ -137,8 +137,8 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, onNavigate, da
       // 사용자 요청 분석: 확장 요청인지 확인
       const isExpandRequest = /자세히|자세하게|더 쓰|길게|확장|추가|더 설명|상세|구체적/.test(chatInput);
       
-      // Stage 2 프롬프트 사용 (자동 보정과 동일한 기준 적용)
-      const stage2Prompt = getStage2_AiRemovalAndCompliance(refinedContent.length);
+      // Stage 2 프롬프트 사용 (보정 시 글자 수 변경 없이 품질 개선에 집중)
+      const stage2Prompt = getStage2_AiRemovalAndCompliance();
       
       const prompt = `${SYSTEM_PROMPT}
 
