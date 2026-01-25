@@ -1039,6 +1039,11 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
 🎯 1단계: 콘텐츠 생성 - 즉시 실행
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+🚨🚨🚨 [ 글자수 목표: ${textLength}자 ] 🚨🚨🚨
+⚠️ 절대 ${textLength + 100}자 초과 금지!
+⚠️ 소제목 ${Math.floor(textLength / 350)}~${Math.ceil(textLength / 300)}개로 조절!
+⚠️ HTML 태그는 글자수에 포함 안됨!
+
 👤 [역할 리마인더] 
 당신은 10년 경력 병의원 마케터입니다. 의료광고법 위반으로 과태료 맞은 경험이 있어서, 
 이제는 절대로 위반하지 않습니다. 글을 쓰기 전에 3초만 투자하세요:
@@ -1115,6 +1120,23 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
   
   🎯 **목표 글자 수**: 정확히 ${textLength}자
   📏 **허용 범위**: ${textLength - 50}자 ~ ${textLength + 50}자
+  
+  🚨🚨🚨 절대 엄수 규칙 🚨🚨🚨
+  
+  ❌ ${textLength + 100}자 이상 작성 = 즉시 탈락! 너무 김!
+  ❌ 2100자 써놓고 1600자라고 착각하지 마세요!
+  ❌ 목표보다 500자 초과하면 안 됩니다!
+  
+  ✅ 올바른 작성법:
+  - 소제목 개수 조절: ${Math.floor(textLength / 350)}~${Math.ceil(textLength / 300)}개 (목표에 따라)
+  - 소제목당 문단 2개
+  - 문단당 문장 2~3개
+  - 문장당 35~45자
+  
+  💡 ${textLength}자 예시:
+  - 1500자 → 소제목 4개, 문단 8개
+  - 2000자 → 소제목 5개, 문단 10개
+  - 2500자 → 소제목 6개, 문단 12개
   
   ⚠️ 중요: ${textLength}자는 "순수 텍스트 공백제외" 기준입니다!
   ⚠️ HTML 포함하면 안 됩니다! 공백 포함하면 안 됩니다!
