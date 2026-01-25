@@ -4768,8 +4768,15 @@ ${JSON.stringify(searchResults, null, 2)}
         
         // content가 있는지 확인
         const contentText = geminiResponse.content || geminiResponse.text || JSON.stringify(geminiResponse);
-        const charCountNoSpaces = contentText.replace(/\s/g, '').length;
-        console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${contentText.length}자 (공백포함)`);
+        
+        // 🔍 정확한 글자수 계산: HTML 태그 제거 → 공백 제거
+        const textWithoutHtml = contentText.replace(/<[^>]+>/g, ''); // HTML 태그 제거
+        const charCountNoSpaces = textWithoutHtml.replace(/\s/g, '').length; // 공백 제거
+        
+        console.log(`📊 글자수 계산:`);
+        console.log(`   - HTML 포함: ${contentText.length}자`);
+        console.log(`   - HTML 제거: ${textWithoutHtml.length}자 (공백 포함)`);
+        console.log(`   - 순수 텍스트: ${charCountNoSpaces}자 (공백 제외) ✅`);
         
         // 🔍 글자수 목표 대비 검증
         const targetMin = targetLength - 50;
