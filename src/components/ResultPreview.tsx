@@ -293,9 +293,10 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       setCharCount(text.length);
     } else {
       // 블로그 포스트의 경우 전체 텍스트 계산
-      // ⚠️ 공백 포함한 길이로 계산 (2700자 → 1600자로 일치시키기)
+      // ✅ 공백 제외 글자수 계산 (실제 콘텐츠 양 측정)
       const text = (tempDiv.textContent || '')
-        .trim();
+        .trim()
+        .replace(/\s+/g, ''); // 모든 공백 제거
       
       setCharCount(text.length);
     }
