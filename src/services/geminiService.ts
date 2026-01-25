@@ -4770,7 +4770,23 @@ ${JSON.stringify(searchResults, null, 2)}
         const contentText = geminiResponse.content || geminiResponse.text || JSON.stringify(geminiResponse);
         const charCountNoSpaces = contentText.replace(/\s/g, '').length;
         console.log(`✅ 생성 완료: ${charCountNoSpaces}자 (공백제외) / ${contentText.length}자 (공백포함)`);
-        safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자`);
+        
+        // 🔍 글자수 목표 대비 검증
+        const targetMin = targetLength - 50;
+        const targetMax = targetLength + 50;
+        const deviation = charCountNoSpaces - targetLength;
+        const deviationPercent = ((deviation / targetLength) * 100).toFixed(1);
+        
+        if (charCountNoSpaces < targetMin) {
+          console.warn(`⚠️ 글자수 부족: 목표=${targetLength}자, 실제=${charCountNoSpaces}자 (${deviation}자 부족, ${deviationPercent}%)`);
+          safeProgress(`⚠️ 생성 완료: ${charCountNoSpaces}자 (목표보다 ${Math.abs(deviation)}자 짧음)`);
+        } else if (charCountNoSpaces > targetMax) {
+          console.warn(`⚠️ 글자수 초과: 목표=${targetLength}자, 실제=${charCountNoSpaces}자 (${deviation}자 초과, +${deviationPercent}%)`);
+          safeProgress(`⚠️ 생성 완료: ${charCountNoSpaces}자 (목표보다 ${deviation}자 길음)`);
+        } else {
+          console.log(`✅ 글자수 적정 범위: 목표=${targetLength}자, 실제=${charCountNoSpaces}자 (오차: ${deviation > 0 ? '+' : ''}${deviation}자, ${deviationPercent}%)`);
+          safeProgress(`✅ 생성 완료: ${charCountNoSpaces}자 (목표 ${targetLength}자 달성)`);
+        }
 
         console.log('✅ Gemini 응답 수신:', contentText.length || 0, 'chars');
 
