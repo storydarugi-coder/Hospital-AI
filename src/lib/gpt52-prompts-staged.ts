@@ -1039,8 +1039,12 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
 🎯 1단계: 콘텐츠 생성 - 즉시 실행
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 [ 분량 목표: ${textLength}자 ]
-📐 소제목 ${Math.max(4, Math.round(textLength / 350))}개 | 문단 ${Math.max(8, Math.round(textLength / 160))}개 | 문단당 문장 3개 | 문장당 40~45자
+🎯 [ 분량 목표: ${textLength}자 ] ⚠️ 절대 초과 금지!
+📐 소제목 ${Math.max(3, Math.round(textLength / 450))}개 | 문단 ${Math.max(6, Math.round(textLength / 200))}개 | 문단당 문장 2~3개 | 문장당 35~40자
+
+🚨🚨🚨 글자수 초과 시 즉시 탈락! 목표의 ±10% 이내 필수!
+   • ${textLength}자 목표 → ${Math.round(textLength * 0.9)}자 ~ ${Math.round(textLength * 1.1)}자 허용
+   • 초과하면 문단/문장 삭제하여 맞추기
 
 👤 [역할 리마인더] 
 당신은 10년 경력 병의원 마케터입니다. 의료광고법 위반으로 과태료 맞은 경험이 있어서, 
@@ -1083,25 +1087,31 @@ export const getStage1_ContentGeneration = (textLength: number = 1500) => {
 
 [P2] ⚠️ 반드시 준수 - 분량 규칙:
   
-  🎯 **목표: ${textLength}자** (순수 텍스트 기준, HTML 태그 제외)
+  🎯 **목표: 정확히 ${textLength}자** (순수 텍스트 기준, HTML 태그 제외)
   
-  📐 **필수 구조**:
+  🚨🚨🚨 **글자수 엄격 제한** (초과 시 즉시 탈락!):
   ┌─────────────────────────────────────────┐
-  │ ✅ 소제목(<h2>): ${Math.max(4, Math.round(textLength / 350))}개                        │
-  │ ✅ 총 문단(<p>): ${Math.max(8, Math.round(textLength / 160))}개                        │
-  │ ✅ 문단당 문장: 3개씩                         │
-  │ ✅ 문장 길이: 40~45자                         │
+  │ ⚠️ 허용 범위: ${Math.round(textLength * 0.9)}자 ~ ${Math.round(textLength * 1.1)}자    │
+  │ ❌ ${Math.round(textLength * 1.1)}자 초과 = 즉시 탈락!              │
   └─────────────────────────────────────────┘
   
-  📊 **분량별 구조**:
-  • 1500자 → 소제목 4개, 문단 9개
-  • 1600자 → 소제목 5개, 문단 10개
-  • 2000자 → 소제목 6개, 문단 13개
-  • 2500자 → 소제목 7개, 문단 16개
+  📐 **필수 구조** (글자수에 맞게 조절!):
+  ┌─────────────────────────────────────────┐
+  │ ✅ 소제목(<h2>): ${Math.max(3, Math.round(textLength / 450))}개                        │
+  │ ✅ 총 문단(<p>): ${Math.max(6, Math.round(textLength / 200))}개                        │
+  │ ✅ 문단당 문장: 2~3개 (짧게!)                  │
+  │ ✅ 문장 길이: 35~40자 (간결하게!)              │
+  └─────────────────────────────────────────┘
   
-  ✓ 소제목: ${Math.max(4, Math.round(textLength / 350))}개
-  ✓ 문단: ${Math.max(8, Math.round(textLength / 160))}개  
-  ✓ 문장: 문단당 3개, 각 40~45자
+  📊 **분량별 구조** (엄격히 준수!):
+  • 1500자 → 소제목 3개, 문단 7~8개, 문장 2~3개씩
+  • 1600자 → 소제목 3~4개, 문단 8개, 문장 2~3개씩
+  • 2000자 → 소제목 4개, 문단 10개, 문장 2~3개씩
+  • 2500자 → 소제목 5개, 문단 12~13개, 문장 2~3개씩
+  
+  ✓ 소제목: ${Math.max(3, Math.round(textLength / 450))}개
+  ✓ 문단: ${Math.max(6, Math.round(textLength / 200))}개  
+  ✓ 문장: 문단당 2~3개, 각 35~40자 (간결하게!)
   ✓ 소제목은 반드시 생활 장면형 (시스템 프롬프트 참조)
   
   🚨🚨🚨 마지막 소제목 문단 제한 (CRITICAL - 최우선 준수!):
@@ -1348,15 +1358,25 @@ STEP 4. 최종 출력
 [P2 단계] ⚠️ 필수 수정 사항
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-7. □ 🚨 분량 확인:
+7. □ 🚨🚨🚨 분량 확인 (최우선!):
    
    🎯 목표: ${textLength}자 (순수 텍스트, HTML 제외)
+   ⚠️ 허용 범위: ${Math.round(textLength * 0.9)}자 ~ ${Math.round(textLength * 1.1)}자
+   ❌ ${Math.round(textLength * 1.1)}자 초과 = 즉시 탈락!
    
    📐 **체크리스트**:
-   □ 소제목(<h2>) 개수: ${Math.max(4, Math.round(textLength / 350))}개
-   □ 총 문단(<p>) 개수: ${Math.max(8, Math.round(textLength / 160))}개
-   □ 각 문단에 문장이 3개씩 있는가?
-   □ 각 문장이 40~45자인가?
+   □ 현재 글자수: ___자 (HTML 태그 제외하고 계산!)
+   □ 허용 범위 내인가? (${Math.round(textLength * 0.9)}~${Math.round(textLength * 1.1)}자)
+   □ 소제목(<h2>) 개수: ${Math.max(3, Math.round(textLength / 450))}개
+   □ 총 문단(<p>) 개수: ${Math.max(6, Math.round(textLength / 200))}개
+   □ 각 문단에 문장이 2~3개씩 있는가? (3개 초과 금지!)
+   □ 각 문장이 35~40자인가? (40자 초과 문장은 나누기!)
+   
+   🔧 글자수 초과 시 수정 방법:
+   1. 긴 문장 → 짧게 다듬기 (40자 이하로)
+   2. 불필요한 수식어 삭제
+   3. 문단당 문장 수 줄이기 (3개→2개)
+   4. 중복되는 내용의 문단 삭제
 
 8. □ 소제목 개수 및 형태
    → <h2> 태그 개수: ${Math.max(4, Math.round(textLength / 350))}개
