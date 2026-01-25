@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
-import { SYSTEM_PROMPT, getStage1_ContentGeneration, getStage2_AiRemovalAndCompliance } from "../lib/gpt52-prompts-staged";
+import { SYSTEM_PROMPT, getStage1_ContentGeneration, getStage2_AiRemovalAndCompliance, getDynamicSystemPrompt } from "../lib/gpt52-prompts-staged";
 import { loadMedicalLawForGeneration } from "./medicalLawService";
 // API 키 매니저 (다중 키 로드 밸런싱 + 폴백)
 import {
@@ -3818,8 +3818,11 @@ ${crawlData.content.substring(0, 3000)}
   const medicalLawPrompt = await loadMedicalLawForGeneration();
   safeProgress('✅ Step 0 완료: 의료광고법 정보 준비 완료');
   
-  // 🚀 GPT-5.2 프롬프트 연결 (Stage 1)
+  // 🚀 GPT-5.2 동적 프롬프트 연결 (Stage 1) - v6.7 업데이트
+  safeProgress('🔄 동적 금지어 테이블 로딩 중...');
   const gpt52Stage1 = getStage1_ContentGeneration(targetLength);
+  const dynamicSystemPrompt = await getDynamicSystemPrompt();
+  safeProgress('✅ 동적 프롬프트 준비 완료 (최신 의료광고법 반영)');
   
   // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts + GPT-5.2 통합
   const blogPrompt = `
@@ -4632,9 +4635,9 @@ ${hospitalInfo}
       safeProgress('✍️ Step 2: 의료광고법 준수하며 자연스러운 글 작성 중...');
     }
     
-    // Gemini 전용 프롬프트 사용 - v5.3 프롬프트 적용
-    // SYSTEM_PROMPT: 의료광고법 + 금지어 사전 + 종결어미 + 키워드 + SEO + 출처검증
-    const geminiSystemPrompt = SYSTEM_PROMPT;
+    // Gemini 전용 동적 프롬프트 사용 - v6.7 업데이트 (최신 의료광고법 자동 반영)
+    const geminiSystemPrompt = await getDynamicSystemPrompt();
+    safeProgress('✅ 최신 의료광고법 규칙 적용 완료');
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
     // crossCheckGuide 제거 (GPT 없으므로 불필요)
@@ -7389,11 +7392,14 @@ export const refineContentByMedicalLaw = async (
   
   safeProgress('📝 원본 콘텐츠 분석 중...');
   
-  // SYSTEM_PROMPT + 보정용 프롬프트 (글자 수 제한 없이 품질 개선에 집중)
+  // 동적 시스템 프롬프트 + 보정용 프롬프트 (v6.7 업데이트 - 최신 의료광고법 자동 반영)
   // 참고: 보정 시에는 원본 글자 수를 유지하면서 품질만 개선
+  safeProgress('🔄 최신 의료광고법 규칙 로딩 중...');
+  const dynamicSystemPrompt = await getDynamicSystemPrompt();
   const stage2Prompt = getStage2_AiRemovalAndCompliance();
+  safeProgress('✅ 동적 프롬프트 준비 완료 (금지어 테이블 + 실전 예시 + 감정 가이드)');
   
-  const prompt = `${SYSTEM_PROMPT}
+  const prompt = `${dynamicSystemPrompt}
 
 ${stage2Prompt}
 

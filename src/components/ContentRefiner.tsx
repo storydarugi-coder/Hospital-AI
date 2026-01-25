@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { refineContentByMedicalLaw } from '../services/geminiService';
 import { getAiClient } from '../services/geminiService';
-import { SYSTEM_PROMPT, getStage2_AiRemovalAndCompliance } from '../lib/gpt52-prompts-staged';
+import { SYSTEM_PROMPT, getStage2_AiRemovalAndCompliance, getDynamicSystemPrompt } from '../lib/gpt52-prompts-staged';
 import { applyThemeToHtml } from '../utils/cssThemes';
 import type { CssTheme } from '../types';
 
@@ -137,10 +137,12 @@ const ContentRefiner: React.FC<ContentRefinerProps> = ({ onClose, onNavigate, da
       // 사용자 요청 분석: 확장 요청인지 확인
       const isExpandRequest = /자세히|자세하게|더 쓰|길게|확장|추가|더 설명|상세|구체적/.test(chatInput);
       
-      // Stage 2 프롬프트 사용 (보정 시 글자 수 변경 없이 품질 개선에 집중)
+      // 동적 시스템 프롬프트 + Stage 2 프롬프트 사용 (v6.7 업데이트 - 최신 의료광고법 자동 반영)
+      // 보정 시 글자 수 변경 없이 품질 개선에 집중
+      const dynamicSystemPrompt = await getDynamicSystemPrompt();
       const stage2Prompt = getStage2_AiRemovalAndCompliance();
       
-      const prompt = `${SYSTEM_PROMPT}
+      const prompt = `${dynamicSystemPrompt}
 
 ${stage2Prompt}
 
