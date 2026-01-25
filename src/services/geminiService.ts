@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationRequest, GeneratedContent, TrendingItem, FactCheckReport, SeoScoreReport, SeoTitleItem, ImageStyle, WritingStyle, CardPromptData, CardNewsScript, SimilarityCheckResult, BlogHistory, OwnBlogMatch, WebSearchMatch } from "../types";
-import { SYSTEM_PROMPT, getStage1_ContentGeneration, getStage2_AiRemovalAndCompliance } from "../lib/gpt52-prompts-staged";
+import { SYSTEM_PROMPT, getStage1_ContentGeneration, getStage2_AiRemovalAndCompliance, getDynamicSystemPrompt } from "../lib/gpt52-prompts-staged";
 import { loadMedicalLawForGeneration } from "./medicalLawService";
 // API 키 매니저 (다중 키 로드 밸런싱 + 폴백)
 import {
@@ -3782,7 +3782,7 @@ ${crawlData.content.substring(0, 3000)}
 4. **포함할 정보** (크롤링된 내용에 있는 경우에만!):
    - 야간 진료 여부 (예: "평일 저녁 8시까지 야간 진료")
    - 공휴일 진료 여부 (예: "토요일/일요일에도 진료")
-   - 의료진 학력/경력 (예: "○○대학교 의과대학 졸업, ○○병원 전문의 과정 수료")
+   - 담당 선생님 학력/경력 (예: "○○대학교 졸업") ⚠️ "의료진", "전문의", "전문가" 단어 사용 금지!
    - 전문 분야 및 특징
    ⚠️ **중요: 크롤링 데이터에 없는 정보는 절대 지어내지 말 것! 없으면 생략!**
 5. 과도한 홍보 느낌 없이 정보 제공 형식으로
@@ -3818,8 +3818,11 @@ ${crawlData.content.substring(0, 3000)}
   const medicalLawPrompt = await loadMedicalLawForGeneration();
   safeProgress('✅ Step 0 완료: 의료광고법 정보 준비 완료');
   
-  // 🚀 GPT-5.2 프롬프트 연결 (Stage 1)
+  // 🚀 GPT-5.2 동적 프롬프트 연결 (Stage 1) - v6.7 업데이트
+  safeProgress('🔄 동적 금지어 테이블 로딩 중...');
   const gpt52Stage1 = getStage1_ContentGeneration(targetLength);
+  const dynamicSystemPrompt = await getDynamicSystemPrompt();
+  safeProgress('✅ 동적 프롬프트 준비 완료 (최신 의료광고법 반영)');
   
   // 🚀 v8.5 의료광고법 준수 + humanWritingPrompts + GPT-5.2 통합
   const blogPrompt = `
@@ -3829,12 +3832,31 @@ ${medicalLawPrompt}
 
 ${gpt52Stage1}
 
-[🚨🚨🚨 글자 수 절대 준수 - 가장 중요한 규칙!]
-목표: 정확히 ${targetLength}자 (공백 제외)
-✅ 최대 허용: ${targetLength}자 (1자도 초과 불가!)
-⚠️ 초과 시 즉시 실격! 반드시 ${targetLength}자 이하로 작성!
-🔥 작성 후 반드시 공백 제외 글자 수를 세어서 ${targetLength}자를 넘지 않았는지 확인!
-💡 팁: 목표보다 50~100자 적게 쓰는 것이 안전합니다 (${targetLength - 100}자 ~ ${targetLength}자)
+[🚨🚨🚨 글자 수 제한 - 최우선 규칙! 반드시 지켜야 함! 🚨🚨🚨]
+
+🎯 목표 글자 수: **정확히 ${targetLength}자** (공백 제외)
+📏 허용 범위: ${targetLength - 50}자 ~ ${targetLength + 50}자 (이 범위 내에서만!)
+
+🔴 절대 금지:
+- ${targetLength + 100}자 이상 = 즉시 실격! 글이 너무 김!
+- ${targetLength * 2}자 (2배 길이) = 완전 탈락! 분량 조절 실패!
+
+💡 왜 분량을 지켜야 하나요?
+- 사용자가 ${targetLength}자를 요청했으면 그 근처로 맞춰야 합니다
+- 1600자 요청했는데 3000자 쓰면 독자가 이탈합니다
+- 할 말이 많아도 핵심만 골라서 요청 분량에 맞추세요!
+
+✍️ 분량 맞추는 방법:
+- 소제목 4~5개, 소제목당 문단 2개
+- 문단당 문장 2~3개, 문장당 30~40자
+- 이렇게 하면 약 1500~1800자 나옵니다
+- 중복 설명, 뻔한 내용은 과감히 삭제!
+
+📐 작성 후 체크:
+□ HTML 태그 제외하고 순수 텍스트만 추출
+□ 공백 제외 후 글자 수 세기
+□ ${targetLength + 50}자 초과 시 → 문장 삭제해서 줄이기
+□ ${targetLength - 50}자 미만 시 → 구체적 설명 추가
 
 [작성 요청] 진료과: ${request.category} / 주제: ${request.topic} / SEO 키워드: ${request.keywords || '없음'} (본문에 자연스럽게 포함 - 첫 번째 키워드 정확히 4회, 두 번째 최대 2회, 세 번째 이후 최대 1회. ⚠️ 부분 일치도 카운트: "자궁근종" 2회 + "근종" 1회 = 총 3회 위반!) / 이미지: ${targetImageCount}장
 ${learnedStyleInstruction || ''}${customSubheadingInstruction || ''}
@@ -3884,6 +3906,14 @@ ${PARAGRAPH_STRUCTURE_GUIDE}
 - 보고서체, 설명서체, 번역투 ❌
 - 의료/의료진/전문/전문가/전문적인 ❌ (완전 금지!)
 - 언급/관련/연관 ❌ (완전 금지!)
+
+🚨🚨🚨 [최우선 금지어 - 1회도 사용 불가!] 🚨🚨🚨
+❌ "의료진" - 절대 금지! ("담당 선생님", "병원"으로 대체)
+❌ "전문가" - 절대 금지! (삭제하거나 "병원"으로 대체)
+❌ "전문의" - 절대 금지! (삭제)
+❌ "전문" - 절대 금지! (삭제)
+❌ "의료 연구" - 절대 금지! ("알려진 바에 따르면"으로 대체)
+⚠️ 위 단어가 1회라도 포함되면 글 전체가 불합격!
 
 ✅ [대체 표현 - 자연스럽게!]
 - "~할 수 있습니다", "~는 편입니다", "~다고 합니다"
@@ -4605,9 +4635,9 @@ ${hospitalInfo}
       safeProgress('✍️ Step 2: 의료광고법 준수하며 자연스러운 글 작성 중...');
     }
     
-    // Gemini 전용 프롬프트 사용 - v5.3 프롬프트 적용
-    // SYSTEM_PROMPT: 의료광고법 + 금지어 사전 + 종결어미 + 키워드 + SEO + 출처검증
-    const geminiSystemPrompt = SYSTEM_PROMPT;
+    // Gemini 전용 동적 프롬프트 사용 - v6.7 업데이트 (최신 의료광고법 자동 반영)
+    const geminiSystemPrompt = await getDynamicSystemPrompt();
+    safeProgress('✅ 최신 의료광고법 규칙 적용 완료');
     
     // 크로스체크 상태에 따른 신뢰도 안내 (둘 다 실패는 이미 위에서 throw됨)
     // crossCheckGuide 제거 (GPT 없으므로 불필요)
@@ -5855,6 +5885,26 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     body = fallbackSlides.join('\n');
   }
   
+  // 🎯 소제목 후처리: Gemini가 h3 태그를 무시하고 다른 형식으로 출력한 경우 강제 변환
+  if (request.postType === 'blog') {
+    console.log('🎯 소제목 형식 정규화 시작...');
+    
+    // 1. **소제목 텍스트** 형식을 h3로 변환 (독립된 줄에 있는 경우)
+    body = body.replace(/<p>\*\*([^*]+)\*\*<\/p>/gi, '<h3>$1</h3>');
+    
+    // 2. <p>## 소제목</p> 형식을 h3로 변환
+    body = body.replace(/<p>##\s*([^<]+)<\/p>/gi, '<h3>$1</h3>');
+    
+    // 3. <strong>소제목</strong> 단독 패턴을 h3로 변환 (독립된 p 태그 내)
+    body = body.replace(/<p>\s*<strong>([^<]+)<\/strong>\s*<\/p>/gi, '<h3>$1</h3>');
+    
+    // 4. <b>소제목</b> 단독 패턴을 h3로 변환
+    body = body.replace(/<p>\s*<b>([^<]+)<\/b>\s*<\/p>/gi, '<h3>$1</h3>');
+    
+    const h3Count = (body.match(/<h3[^>]*>/gi) || []).length;
+    console.log(`✅ 소제목 형식 정규화 완료! h3 태그 ${h3Count}개 발견`);
+  }
+  
   // 🖼️ 블로그 포스트에 [IMG_N] 마커가 없으면 자동 삽입
   if (request.postType !== 'card_news' && images.length > 0 && !body.includes('[IMG_')) {
     console.log('⚠️ 블로그에 [IMG_N] 마커가 없음! 자동 삽입 중...');
@@ -6029,6 +6079,73 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
         finalHtml = `<div class="naver-post-container"><h2 class="main-title">${mainTitle}</h2>${body}</div>`;
       }
     }
+    
+    // 🎨 블로그 콘텐츠용 CSS 스타일 추가
+    const blogStyles = `
+<style>
+.naver-post-container {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  line-height: 1.8;
+  color: #333;
+}
+.naver-post-container .main-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 30px 0;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.naver-post-container h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 40px 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #7c3aed;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+.naver-post-container p {
+  font-size: 16px;
+  color: #444;
+  margin: 0 0 20px 0;
+  line-height: 1.8;
+  word-break: keep-all;
+}
+.naver-post-container ul {
+  margin: 20px 0;
+  padding-left: 24px;
+}
+.naver-post-container li {
+  font-size: 16px;
+  color: #444;
+  margin: 10px 0;
+  line-height: 1.7;
+}
+.naver-post-container strong {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.content-image-wrapper {
+  margin: 30px 0;
+  text-align: center;
+}
+.legal-box-card {
+  margin-top: 40px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+}
+</style>
+`;
+    finalHtml = blogStyles + finalHtml;
   }
 
   // ============================================
@@ -7275,11 +7392,14 @@ export const refineContentByMedicalLaw = async (
   
   safeProgress('📝 원본 콘텐츠 분석 중...');
   
-  // SYSTEM_PROMPT + 모든 글쓰기 프롬프트 통합
-  // Stage 2 프롬프트 사용 (자동 생성과 동일한 기준 적용)
-  const stage2Prompt = getStage2_AiRemovalAndCompliance(textContent.length);
+  // 동적 시스템 프롬프트 + 보정용 프롬프트 (v6.7 업데이트 - 최신 의료광고법 자동 반영)
+  // 참고: 보정 시에는 원본 글자 수를 유지하면서 품질만 개선
+  safeProgress('🔄 최신 의료광고법 규칙 로딩 중...');
+  const dynamicSystemPrompt = await getDynamicSystemPrompt();
+  const stage2Prompt = getStage2_AiRemovalAndCompliance();
+  safeProgress('✅ 동적 프롬프트 준비 완료 (금지어 테이블 + 실전 예시 + 감정 가이드)');
   
-  const prompt = `${SYSTEM_PROMPT}
+  const prompt = `${dynamicSystemPrompt}
 
 ${stage2Prompt}
 
@@ -7289,7 +7409,16 @@ ${textContent}
 [추가 지시사항]
 - 위 콘텐츠를 "2단계: AI 제거 및 최종 검증" 규칙에 따라 완벽하게 수정하세요.
 - 수정된 결과물은 <html> 태그를 포함한 완성된 HTML 형태로 반환하세요.
-- JSON 응답 형식을 반드시 준수하세요.`;
+- JSON 응답 형식을 반드시 준수하세요.
+- 🚨 글자 수는 원본과 비슷하게 유지! 늘리거나 줄이지 마세요.
+
+[🚨 P0 최우선 - 너는 의사가 아니다!]
+❌ 의학적 원인/병태/질환 설명 금지 - "왜 아픈지" 밝히지 말 것!
+❌ 질환명/의학용어 추가 금지 (기존에 있는 첫 번째 키워드만 유지)
+❌ 인체 구조/기전/호르몬/염증/유착 설명 금지
+❌ "~때문에", "~로 인해", "이는 ○○일 수 있다" 문장 구조 금지
+❌ 해결책/대처법/방향 제시 금지
+✅ 느낌과 변화만 서술: "묵직하다", "당긴다", "뻐근하다", "반복된다"`;
 
   try {
     safeProgress('⚖️ 의료광고법 준수 여부 검증 중...');

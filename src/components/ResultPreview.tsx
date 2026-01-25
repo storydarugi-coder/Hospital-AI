@@ -356,8 +356,26 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const text = contentText.replace(/\s+/g, '');
       setCharCount(text.length);
     } else {
-      // 블로그 포스트의 경우 전체 텍스트 계산 (공백 제외)
+      // 블로그 포스트의 경우 본문 텍스트만 계산 (공백 제외)
+      
+      // 해시태그 문단 제거 (#으로 시작하는 내용)
+      const hashtagElements = tempDiv.querySelectorAll('p');
+      hashtagElements.forEach(el => {
+        const text = el.textContent || '';
+        // #태그 패턴이 2개 이상 있으면 해시태그 문단으로 판단
+        if ((text.match(/#/g) || []).length >= 2) {
+          el.remove();
+        }
+      });
+      
+      // 이미지 마커 제거 ([IMG_1], [IMG_2] 등)
+      // main-title 클래스 제거 (제목은 본문 글자수에서 제외)
+      const mainTitleElements = tempDiv.querySelectorAll('.main-title');
+      mainTitleElements.forEach(el => el.remove());
+      
+      // ✅ 공백 제외 글자수 계산 (실제 콘텐츠 양 측정)
       const text = (tempDiv.textContent || '')
+        .replace(/\[IMG_\d+\]/g, '')  // 이미지 마커 제거
         .replace(/\s+/g, '')  // 모든 공백 제거
         .trim();
       
@@ -2047,7 +2065,7 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     <div className={`rounded-[48px] shadow-2xl border h-full flex flex-col overflow-hidden relative transition-colors duration-300 ${darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
       <style>{`
         .naver-preview .main-title { font-size: 32px; font-weight: 900; margin-bottom: 30px; color: #000; line-height: 1.4; border-bottom: 3px solid #10b981; padding-bottom: 20px; }
-        .naver-preview h3 { font-size: 24px; font-weight: bold; margin-top: 50px; margin-bottom: 20px; color: #000; padding-left: 15px; border-left: 4px solid #787fff; }
+        .naver-preview h2:not(.main-title):not(.hidden-title):not(.press-subtitle), .naver-preview h3 { font-size: 24px; font-weight: bold; margin-top: 50px; margin-bottom: 20px; color: #000; padding-left: 15px; border-left: 4px solid #787fff; }
         .naver-preview p { font-size: 16px; margin-bottom: 20px; color: #333; line-height: 1.8; }
         .naver-preview .content-image-wrapper { position: relative; margin: 90px 0; }
         .naver-preview .content-image-wrapper img { width: 100%; border-radius: 48px; display: block; box-shadow: 0 30px 70px rgba(0,0,0,0.12); cursor: pointer; transition: filter 0.3s; }

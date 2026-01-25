@@ -550,3 +550,210 @@ function getDefaultMedicalLawPrompt(): string {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `;
 }
+
+/**
+ * 금지어 자동 치환 테이블 생성 (동적)
+ * - 크롤링된 의료광고법 규칙 기반으로 자동 생성
+ * - 프롬프트에 삽입하여 AI가 자동 치환하도록 안내
+ */
+export function generateForbiddenWordPrompt(prohibitions: any[]): string {
+  const replacementMap: Record<string, { safe: string; category: string }> = {};
+
+  // 금지어별 안전한 대체 표현 매핑
+  prohibitions.forEach((rule: any) => {
+    if (!rule.examples || rule.examples.length === 0) return;
+
+    rule.examples.forEach((forbidden: string) => {
+      // 치환 규칙 정의
+      let safeAlternative = '';
+      
+      if (rule.category === 'treatment_experience') {
+        safeAlternative = '삭제 (치료 경험담 금지)';
+      } else if (rule.category === 'comparison') {
+        safeAlternative = '삭제 (비교 광고 금지)';
+      } else if (rule.category === 'exaggeration') {
+        if (forbidden.includes('완치') || forbidden.includes('100%')) {
+          safeAlternative = '"~할 수 있습니다" (가능성 표현)';
+        } else if (forbidden.includes('효과') || forbidden.includes('개선')) {
+          safeAlternative = '"변화를 살펴볼 수 있습니다"';
+        } else {
+          safeAlternative = '"~경우가 있습니다"';
+        }
+      } else if (rule.category === 'guarantee') {
+        safeAlternative = '"~도움될 수 있습니다"';
+      } else if (rule.category === 'urgency') {
+        safeAlternative = '삭제 (긴급성 조장 금지)';
+      } else {
+        safeAlternative = '"~경우가 있습니다"';
+      }
+
+      replacementMap[forbidden] = {
+        safe: safeAlternative,
+        category: rule.category
+      };
+    });
+  });
+
+  // 프롬프트 생성
+  let prompt = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ 금지어 자동 치환 테이블 (최신 의료광고법 기반)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔥 글을 쓸 때 아래 표를 참고하여 자동으로 치환하세요!
+
+[의료법 위반 표현 → 안전 표현 자동 치환]
+`;
+
+  // 카테고리별로 그룹화
+  const categories: Record<string, string[]> = {};
+  Object.entries(replacementMap).forEach(([forbidden, { safe, category }]) => {
+    if (!categories[category]) {
+      categories[category] = [];
+    }
+    categories[category].push(`"${forbidden}" → ${safe}`);
+  });
+
+  // 카테고리별 출력
+  const categoryNames: Record<string, string> = {
+    'treatment_experience': '🚨 치료경험담 금지',
+    'comparison': '🚨 비교 광고 금지',
+    'exaggeration': '🚨 과장 표현 금지',
+    'guarantee': '🚨 보장 표현 금지',
+    'urgency': '⚠️ 긴급성 조장 금지',
+    'false_info': '🚨 허위 정보 금지',
+    'medical_law': '🚨 의료법 위반 표현',
+    'other': '⚠️ 기타 주의 표현'
+  };
+
+  Object.entries(categories).forEach(([category, replacements]) => {
+    const categoryName = categoryNames[category] || category;
+    prompt += `\n${categoryName}:\n`;
+    replacements.slice(0, 8).forEach(replacement => {
+      prompt += `  ${replacement}\n`;
+    });
+  });
+
+  prompt += `\n🔥 핵심: 위 표를 머릿속에 넣고, 자동으로 치환하면서 글을 쓰세요!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+
+  return prompt;
+}
+
+/**
+ * 실전 예시 기반 학습 섹션 생성
+ * - Before (위반) vs After (안전) 비교
+ * - AI가 구체적인 패턴을 학습하도록 도움
+ */
+export function generateBeforeAfterExamples(): string {
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📚 실전 예시 기반 학습 (Before → After)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚫 나쁜 예시 (의료광고법 위반)와 ✅ 좋은 예시 (안전)를 비교하며 학습하세요.
+
+[예시 1] 단정형 표현 → 가능성 표현
+❌ "무릎 통증은 관절 연골 손상으로 나타납니다."
+✅ "무릎 통증은 관절 연골 손상과 관련이 있을 수 있습니다."
+
+[예시 2] 원인-결과 단정 → 관찰 표현
+❌ "스트레스가 두통을 유발합니다."
+✅ "스트레스와 두통이 함께 나타나는 경우가 있습니다."
+
+[예시 3] 치료 효과 암시 → 중립적 표현
+❌ "물리치료를 받으면 증상이 개선됩니다."
+✅ "물리치료 후 변화를 살펴보는 것도 방법일 수 있습니다."
+
+[예시 4] 불안 자극 → 중립 관찰
+❌ "방치하면 악화될 수 있으니 주의하세요."
+✅ "증상이 지속되는 경우도 있습니다."
+
+[예시 5] 행동 유도 → 선택적 안내
+❌ "지금 바로 병원을 방문하세요."
+✅ "개인차가 있을 수 있습니다."
+
+[예시 6] 의학적 해석 → 느낌 중심
+❌ "진행성 질환으로 조직 손상이 심해질 수 있습니다."
+✅ "이런 느낌이 반복되는 경우도 있습니다."
+
+[예시 7] 가치 판단 → 중립 표현
+❌ "병원을 찾아보는 것이 좋은 방법입니다."
+✅ "변화를 살펴보는 것도 한 가지입니다."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 핵심 학습 포인트:
+1. 단정 금지 → 항상 "~수 있습니다/경우가 있습니다" 붙이기
+2. 원인 단정 금지 → "~와 관련이 있을 수 있다" 정도만
+3. 치료/효과 금지 → "변화 살피기/확인" 정도만
+4. 불안 자극 금지 → 중립적 관찰만
+5. 행동 유도 금지 → "개인차가 있을 수 있습니다"
+6. 의학 해석 금지 → 느낌과 변화만
+7. 가치 판단 금지 → 중립 표현만
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+}
+
+/**
+ * 감정 톤 & 리듬 가이드 생성
+ * - 자연스러운 글쓰기를 위한 감정 표현 가이드
+ */
+export function generateToneAndRhythmGuide(): string {
+  return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎭 감정 톤 & 리듬 가이드 (자연스러운 글쓰기)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 독자의 감정을 이해하고 공감하는 글을 쓰세요.
+
+[1] 공감의 시작 (도입부)
+✅ "아침에 일어났을 때 목이 뻐근하다면"
+✅ "며칠째 비슷한 느낌이 반복된다면"
+✅ "저녁이 되면 유독 더 불편하게 느껴질 때"
+
+❌ 피해야 할 도입: "오늘은 ~에 대해 알아보겠습니다"
+
+[2] 공감의 깊이 (본문)
+✅ "이런 느낌이 낯설지 않으신 분들이 계실 수 있습니다"
+✅ "예전과 다르게 느껴지는 순간"
+✅ "평소와 달리 신경 쓰이는 부분"
+
+❌ 피해야 할 표현: "흔한 증상입니다", "많은 사람들이"
+
+[3] 문장 리듬 조절
+✅ 짧은 문장 + 긴 문장 교차:
+   "목이 뻐근하다. 며칠째 계속되는 느낌이라면 일상에서 조금 불편하게 느껴질 수 있습니다."
+
+❌ 모든 문장이 긴 만연체:
+   "목이 뻐근하고 며칠째 계속되는 느낌이라면 일상에서 조금 불편하게 느껴질 수 있으며..."
+
+[4] 감각 표현 (AI 냄새 제거)
+✅ 구체적 감각: "묵직하다", "당긴다", "찌릿하다", "뻐근하다", "욱신거리다"
+✅ 시간 감각: "아침에 일어났을 때", "저녁이면", "며칠째", "한동안"
+✅ 상황 감각: "계단을 오를 때", "몸을 숙일 때", "오래 앉아 있으면"
+
+❌ 추상적 표현: "증상이 나타난다", "불편함을 느낀다" (이것만 반복)
+
+[5] 자연스러운 연결 (구어체 1~2회 허용)
+✅ 전체 글에서 1~2회만: "~하지 않나요?", "~할 때가 있잖아요", "~해요"
+✅ 나머지는 문어체: "~경우가 있습니다", "~할 수 있습니다"
+
+❌ 과도한 구어체: "~하죠?", "~잖아요" 3회 이상 (전문성 저하)
+
+[6] 마무리 톤 (중립적 종결)
+✅ "개인차가 있을 수 있습니다"
+✅ "상황에 따라 다를 수 있습니다"
+✅ "비슷한 경험을 하는 분들이 있습니다"
+
+❌ "병원을 찾아보세요" (행동 유도)
+❌ "좋은 방법입니다" (가치 판단)
+❌ "확인이 도움될 수 있습니다" (반복 사용 금지 - 1회만!)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 자연스러운 글의 비밀:
+1. 독자의 감정을 먼저 이해하고 공감하기
+2. 구체적인 상황과 감각 표현 사용하기
+3. 문장 길이를 다양하게 조절하기
+4. 구어체는 1~2회만 자연스럽게 배치하기
+5. 마무리는 중립적으로 열어두기
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+}
