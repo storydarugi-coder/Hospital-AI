@@ -1999,6 +1999,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       
       try {
           const result = await modifyPostWithAI(localHtml, editorInput);
+          
+          // 🚨 방어 코드: newHtml 검증
+          if (!result || !result.newHtml) {
+            console.error('❌ AI 정밀보정 결과 없음:', result);
+            throw new Error('AI가 수정된 콘텐츠를 반환하지 않았습니다. 다시 시도해주세요.');
+          }
+          
           let workingHtml = result.newHtml;
 
           // 🖼️ 이미지가 0장인 경우 이미지 재생성 건너뛰기

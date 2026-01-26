@@ -6656,7 +6656,32 @@ ${FEW_SHOT_EXAMPLES}
         }
       });
       
-      const result = JSON.parse(response.text || "{}");
+      const responseText = response.text || "{}";
+      console.log('🔄 AI 정밀보정 응답:', responseText.substring(0, 500));
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ AI 정밀보정 JSON 파싱 실패:', parseError);
+        console.error('   - 원본 응답:', responseText.substring(0, 1000));
+        throw new Error('AI 응답을 파싱할 수 없습니다. 다시 시도해주세요.');
+      }
+      
+      // 🚨 방어 코드: newHtml이 없으면 에러 발생
+      if (!result.newHtml) {
+        console.error('❌ 수정된 콘텐츠를 찾을 수 없음:', result);
+        console.error('   - 응답 필드들:', Object.keys(result));
+        
+        // content 또는 html 필드가 있으면 대체 시도
+        const alternativeHtml = result.content || result.html || result.modifiedHtml;
+        if (alternativeHtml) {
+          console.log('✅ 대체 필드에서 콘텐츠 발견:', Object.keys(result).find(k => result[k] === alternativeHtml));
+          result.newHtml = alternativeHtml;
+        } else {
+          throw new Error('수정된 콘텐츠가 반환되지 않았습니다.');
+        }
+      }
       
       // 플레이스홀더를 원래 이미지 URL로 복원
       let restoredHtml = result.newHtml;
@@ -6689,7 +6714,7 @@ ${FEW_SHOT_EXAMPLES}
         aiSmellCheck // AI 냄새 검사 결과도 반환
       };
     } catch (error) { 
-      console.error('❌ modifyPostWithAI 에러:', error);
+      console.error('❌ AI 정밀보정 실패:', error);
       throw error; 
     }
 };
