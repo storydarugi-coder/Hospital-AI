@@ -237,7 +237,12 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보 추가?' : '□ 원�
 □ 의료광고법 준수?
 □ 금지어 사용 안 함?
 
-🚨 응답 형식: 수정된 HTML 콘텐츠만 (설명 없이)
+🚨🚨🚨 응답 형식 - 매우 중요!!! 🚨🚨🚨
+✅ 수정된 HTML 콘텐츠만 응답하세요!
+❌ JSON 형식 절대 금지! ({"t":..., "c":...} 같은 형식 금지!)
+❌ 코드블록 금지! (\`\`\`html 같은 형식 금지!)
+❌ 설명이나 주석 금지!
+✅ 순수 HTML 태그만! (<p>, <h2>, <h3> 등)
 🚨 요청 안 한 부분은 원본 HTML 그대로 복사해서 붙여넣기!`;
 
       const result = await ai.models.generateContent({
@@ -248,7 +253,37 @@ ${isExpandRequest ? '□ Google Search로 정확한 정보 추가?' : '□ 원�
         }
       });
 
-      const response = result.text || '';
+      let response = result.text || '';
+      
+      // 🔧 JSON 형식으로 응답한 경우 처리 (Gemini가 지시를 무시하고 JSON으로 응답할 때)
+      if (response.trim().startsWith('{') || response.trim().startsWith('```json')) {
+        console.warn('⚠️ Gemini가 JSON 형식으로 응답함 - HTML 추출 시도');
+        try {
+          // 코드블록 제거
+          const cleanJson = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+          const parsed = JSON.parse(cleanJson);
+          
+          // 가능한 키들에서 HTML 추출
+          if (parsed.content) {
+            response = parsed.content;
+          } else if (parsed.c) {
+            response = parsed.t ? `<h1>${parsed.t}</h1>\n${parsed.c}` : parsed.c;
+          } else if (parsed.html) {
+            response = parsed.html;
+          } else if (parsed.text) {
+            response = parsed.text;
+          } else {
+            // 가장 긴 문자열 값 추출
+            const values = Object.values(parsed).filter(v => typeof v === 'string') as string[];
+            if (values.length > 0) {
+              response = values.reduce((a, b) => a.length > b.length ? a : b);
+            }
+          }
+          console.log('✅ JSON에서 HTML 추출 성공:', response.substring(0, 100));
+        } catch (parseError) {
+          console.error('❌ JSON 파싱 실패, 원본 사용:', parseError);
+        }
+      }
       
       // 크롤링 성공 메시지 생성
       let responseMessage = '수정 완료! 오른쪽 콘텐츠를 확인해주세요.';

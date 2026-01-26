@@ -7482,17 +7482,24 @@ ${textContent}
 ❌ 해결책/대처법/방향 제시 금지
 ✅ 느낌과 변화만 서술: "묵직하다", "당긴다", "뻐근하다", "반복된다"
 
-[⚠️ 반드시 아래 JSON 형식으로만 응답!]
+[🚨🚨🚨 응답 형식 - 매우 중요!!! 🚨🚨🚨]
+⚠️ 반드시 아래 JSON 형식으로만 응답하세요!
+⚠️ 키 이름은 반드시 "content"와 "fact_check"을 사용하세요!
+❌ "t", "c", "title", "text" 같은 다른 키 사용 금지!
+❌ JSON 코드블록 없이 순수 JSON만!
+
 {
-  "content": "<p>수정된 HTML 콘텐츠 전체</p>",
+  "content": "<전체 HTML 콘텐츠를 여기에 작성>",
   "fact_check": {
     "fact_score": 85,
     "safety_score": 90,
     "ai_smell_score": 15,
-    "issues": ["발견된 문제 1", "발견된 문제 2"],
+    "issues": ["발견된 문제 1"],
     "recommendations": ["개선 권장사항"]
   }
-}`;
+}
+
+🚨 content 키에는 전체 HTML을 넣으세요! 제목만 넣지 마세요!`;
 
   try {
     safeProgress('⚖️ 의료광고법 준수 여부 검증 중...');
@@ -7509,7 +7516,7 @@ ${textContent}
     console.log('📦 result 타입:', typeof result);
     console.log('📦 result 키:', Object.keys(result || {}));
     
-    // 다양한 응답 형식 처리
+    // 다양한 응답 형식 처리 (Gemini가 예상치 못한 키를 사용할 수 있음)
     let refinedContent = '';
     let factCheck = null;
     
@@ -7517,8 +7524,18 @@ ${textContent}
       // 문자열로 반환된 경우 (HTML 직접 반환)
       refinedContent = result;
     } else if (result?.content) {
-      // { content: "..." } 형식
+      // { content: "..." } 형식 (정상)
       refinedContent = result.content;
+      factCheck = result.fact_check;
+    } else if (result?.c) {
+      // { c: "..." } 형식 (Gemini가 키를 줄인 경우)
+      console.warn('⚠️ Gemini가 "c" 키를 사용함 (예상: "content")');
+      refinedContent = result.c;
+      factCheck = result.fact_check || result.f;
+    } else if (result?.t && result?.c) {
+      // { t: "제목", c: "내용" } 형식 (Gemini가 잘못 응답)
+      console.warn('⚠️ Gemini가 t/c 형식으로 응답 - 변환 시도');
+      refinedContent = `<h1>${result.t}</h1>\n${result.c}`;
       factCheck = result.fact_check;
     } else if (result?.refinedContent) {
       // { refinedContent: "..." } 형식
@@ -7531,6 +7548,14 @@ ${textContent}
     } else if (result?.text) {
       // { text: "..." } 형식
       refinedContent = result.text;
+    } else {
+      // 마지막 시도: 객체에서 가장 긴 문자열 값을 찾기
+      console.warn('⚠️ 예상치 못한 응답 형식, 가장 긴 값 추출 시도:', Object.keys(result || {}));
+      const values = Object.values(result || {}).filter(v => typeof v === 'string') as string[];
+      if (values.length > 0) {
+        refinedContent = values.reduce((a, b) => a.length > b.length ? a : b);
+        console.log('📝 추출된 콘텐츠 길이:', refinedContent.length);
+      }
     }
     
     if (!refinedContent) {
