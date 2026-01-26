@@ -1929,9 +1929,43 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     return styled;
   };
 
+  // Word 2016 호환을 위한 HTML 변환 함수
+  const convertToWordCompatibleHtml = (html: string): string => {
+    let result = html;
+    
+    // 1. linear-gradient를 단색 배경으로 변환
+    result = result.replace(/background:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');
+    result = result.replace(/background-image:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');
+    
+    // 2. font-weight: 700/800/900 등을 bold로 통일 (Word 호환성)
+    result = result.replace(/font-weight:\s*[6-9]00/gi, 'font-weight: bold');
+    
+    // 3. rgba 색상을 hex로 변환 (Word 2016에서 rgba 지원 불안정)
+    result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.1\)/gi, '#e5e5e5');
+    result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.06\)/gi, '#f0f0f0');
+    result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.08\)/gi, '#ebebeb');
+    
+    // 4. box-shadow 제거 (Word에서 지원 안 함)
+    result = result.replace(/box-shadow:\s*[^;]+;/gi, '');
+    
+    // 5. border-radius 간소화 (Word 2016에서 복잡한 값 지원 안 함)
+    result = result.replace(/border-radius:\s*\d+px\s+\d+px\s+\d+px\s+\d+px/gi, 'border-radius: 8px');
+    
+    // 6. aspect-ratio 제거 (Word에서 지원 안 함)
+    result = result.replace(/aspect-ratio:\s*[^;]+;/gi, '');
+    
+    // 7. 웹폰트를 시스템 폰트로 변경 (Word 호환)
+    result = result.replace(/font-family:\s*[^;]+;/gi, 'font-family: "맑은 고딕", Malgun Gothic, sans-serif;');
+    
+    return result;
+  };
+
   const handleCopy = async () => {
     try {
       let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
+      // 🎯 Word 2016 호환 변환 적용
+      styledHtml = convertToWordCompatibleHtml(styledHtml);
       
       // HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
       const parser = new DOMParser();
@@ -1972,7 +2006,9 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     } catch (err) { 
       // Fallback: navigator.clipboard API (팝업 발생 가능)
       try {
-        const blob = new Blob([applyInlineStylesForNaver(localHtml)], { type: 'text/html' });
+        let styledHtml = applyInlineStylesForNaver(localHtml);
+        styledHtml = convertToWordCompatibleHtml(styledHtml);
+        const blob = new Blob([styledHtml], { type: 'text/html' });
         const plainText = new Blob([editorRef.current?.innerText || ""], { type: 'text/plain' });
         const item = new ClipboardItem({
           'text/html': blob,

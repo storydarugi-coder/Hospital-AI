@@ -99,15 +99,18 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
   // ⚠️ 워드/네이버 블로그 호환성: Flexbox 대신 간단한 border-left + padding 사용
+  // ⚠️ Word 2016 호환: linear-gradient 사용 안 함, 단색 배경만 사용
   result = result.replace(
     /<h3(\s+[^>]*)?>(.*?)<\/h3>/gs,
     (match, attrs, content) => {
       // 텍스트 내용만 추출 (태그 제거)
       const textContent = content.replace(/<[^>]*>/g, '').trim();
       
-      // 🎯 워드 호환 스타일: Flexbox 사용 안 함, 단순 border-left + padding
-      // 네이버 블로그에서 복사 → 워드 붙여넣기 시에도 제대로 표시됨
-      return `<h3 style="margin: 30px 0 15px 0; padding: 12px 0 12px 16px; font-size: 19px; font-weight: 700; color: #1e40af; line-height: 1.5; border-left: 4px solid #787fff; background: linear-gradient(to right, #f8fafc, transparent);">${textContent}</h3>`;
+      // 🎯 워드 2016 완벽 호환 스타일: 
+      // - linear-gradient 제거 (Word에서 지원 안 함)
+      // - 단색 배경 사용
+      // - border-left로 포인트 컬러 표시
+      return `<h3 style="margin: 30px 0 15px 0; padding: 12px 0 12px 16px; font-size: 19px; font-weight: bold; color: #1e40af; line-height: 1.5; border-left: 4px solid #787fff; background-color: #f8fafc;">${textContent}</h3>`;
     }
   );
   
