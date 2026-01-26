@@ -4312,7 +4312,7 @@ JSON 형식으로 응답:
         console.log('🔵 Gemini 검색 시작... (타임아웃: 15초)');
         const ai = getAiClient();
         const searchResponse = await ai.models.generateContent({
-          model: "gemini-2.0-flash",  // 더 빠른 모델 사용
+          model: "gemini-3-pro-preview",  // 검색+JSON 지원 모델
           contents: searchPrompt,
           config: {
             tools: [{ googleSearch: {} }],
