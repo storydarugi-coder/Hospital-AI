@@ -4311,16 +4311,18 @@ JSON 형식으로 응답:
       try {
         console.log('🔵 Gemini 검색 시작... (타임아웃: 15초)');
         const ai = getAiClient();
+        // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
+        // 텍스트로 받고 후처리로 JSON 파싱
         const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",  // 검색+JSON 지원 모델
+          model: "gemini-2.0-flash",  // 검색용 빠른 모델 (JSON 모드 없이)
           contents: searchPrompt,
           config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json"
+            tools: [{ googleSearch: {} }]
+            // responseMimeType 제거 - Search tool과 호환 안 됨
           }
         });
         
-        // 안전한 JSON 파싱
+        // 안전한 JSON 파싱 (텍스트 응답에서 추출)
         let result;
         const rawText = searchResponse.text || "{}";
         
@@ -4328,9 +4330,14 @@ JSON 형식으로 응답:
           // JSON 블록 추출 시도 (```json ... ``` 형태일 수 있음)
           const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || 
                            rawText.match(/```\s*([\s\S]*?)\s*```/) ||
-                           [null, rawText];
+                           rawText.match(/\{[\s\S]*"collected_facts"[\s\S]*\}/);
           
-          const cleanedText = jsonMatch[1].trim();
+          let cleanedText = '';
+          if (jsonMatch) {
+            cleanedText = (jsonMatch[1] || jsonMatch[0]).trim();
+          } else {
+            cleanedText = rawText.trim();
+          }
           result = JSON.parse(cleanedText);
         } catch {
           console.warn('⚠️ JSON 파싱 실패, 원본 텍스트 일부:', rawText.substring(0, 200));
