@@ -192,7 +192,7 @@ export const FORBIDDEN_WORDS_DATABASE: ForbiddenWord[] = [
   { word: '개선율', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
   { word: '호전율', severity: 'critical', replacement: ['(삭제)', '경과 확인'], reason: '통계 제시 문장 구조 금지 (의료광고법)', category: 'guarantee' },
   { word: '대부분의 환자', severity: 'critical', replacement: ['많은 분들', '내원하시는 분들 중'], reason: '통계 제시 + 환자 표현 금지 (의료광고법)', category: 'guarantee' },
-  { word: '거의 모든', severity: 'critical', replacement: ['많은', '적지 않은'], reason: '통계 과장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
+  { word: '거의 모든', severity: 'critical', replacement: ['많은', '흔한'], reason: '통계 과장 문장 구조 금지 (의료광고법)', category: 'guarantee' },
   
   // ===== P1: 구체적 표현 강화 =====
   // "확인이 필요", "점검해볼 필요" 문장 패턴
@@ -770,7 +770,7 @@ export function analyzeAiSmell(html: string): AiSmellAnalysisResult {
       description: `강조 부사 과다 (${emphasisMatches.length}회) - 과장된 느낌`,
       examples: emphasisMatches.slice(0, 3),
       severity: 'medium',
-      fixSuggestion: '강조 부사 줄이고 구체적 상황으로 표현 (예: "매우 많다" → "적지 않은 분들이", "상당히 높다" → "드물지 않게")'
+      fixSuggestion: '강조 부사 줄이고 구체적 상황으로 표현 (예: "매우 많다" → "흔히 있는 경우", "상당히 높다" → "드물지 않게")'
     });
   }
 
