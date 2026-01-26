@@ -7447,8 +7447,6 @@ ${textContent}
 
 [추가 지시사항]
 - 위 콘텐츠를 "2단계: AI 제거 및 최종 검증" 규칙에 따라 완벽하게 수정하세요.
-- 수정된 결과물은 <html> 태그를 포함한 완성된 HTML 형태로 반환하세요.
-- JSON 응답 형식을 반드시 준수하세요.
 - 🚨 글자 수는 원본과 비슷하게 유지! 늘리거나 줄이지 마세요.
 
 [🚨 P0 최우선 - 너는 의사가 아니다!]
@@ -7457,7 +7455,19 @@ ${textContent}
 ❌ 인체 구조/기전/호르몬/염증/유착 설명 금지
 ❌ "~때문에", "~로 인해", "이는 ○○일 수 있다" 문장 구조 금지
 ❌ 해결책/대처법/방향 제시 금지
-✅ 느낌과 변화만 서술: "묵직하다", "당긴다", "뻐근하다", "반복된다"`;
+✅ 느낌과 변화만 서술: "묵직하다", "당긴다", "뻐근하다", "반복된다"
+
+[⚠️ 반드시 아래 JSON 형식으로만 응답!]
+{
+  "content": "<p>수정된 HTML 콘텐츠 전체</p>",
+  "fact_check": {
+    "fact_score": 85,
+    "safety_score": 90,
+    "ai_smell_score": 15,
+    "issues": ["발견된 문제 1", "발견된 문제 2"],
+    "recommendations": ["개선 권장사항"]
+  }
+}`;
 
   try {
     safeProgress('⚖️ 의료광고법 준수 여부 검증 중...');
@@ -7471,16 +7481,43 @@ ${textContent}
     });
     
     console.log('✅ 수정 완료:', result);
+    console.log('📦 result 타입:', typeof result);
+    console.log('📦 result 키:', Object.keys(result || {}));
     
-    if (!result || !result.content) {
+    // 다양한 응답 형식 처리
+    let refinedContent = '';
+    let factCheck = null;
+    
+    if (typeof result === 'string') {
+      // 문자열로 반환된 경우 (HTML 직접 반환)
+      refinedContent = result;
+    } else if (result?.content) {
+      // { content: "..." } 형식
+      refinedContent = result.content;
+      factCheck = result.fact_check;
+    } else if (result?.refinedContent) {
+      // { refinedContent: "..." } 형식
+      refinedContent = result.refinedContent;
+      factCheck = result.fact_check;
+    } else if (result?.html) {
+      // { html: "..." } 형식
+      refinedContent = result.html;
+      factCheck = result.fact_check;
+    } else if (result?.text) {
+      // { text: "..." } 형식
+      refinedContent = result.text;
+    }
+    
+    if (!refinedContent) {
+      console.error('❌ 수정된 콘텐츠를 찾을 수 없음:', result);
       throw new Error('수정된 콘텐츠가 반환되지 않았습니다.');
     }
     
     safeProgress('✅ AI 정밀보정 완료!');
     
     return {
-      refinedContent: result.content,
-      fact_check: result.fact_check || {
+      refinedContent,
+      fact_check: factCheck || {
         fact_score: 0,
         safety_score: 0,
         ai_smell_score: 0,
