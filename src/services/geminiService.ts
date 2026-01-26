@@ -4304,12 +4304,12 @@ JSON 형식으로 응답:
     let geminiResults: any = null;
     let searchResults: any = {};
     
-    // 🔵 Gemini 검색 실행 (타임아웃 15초)
-    const SEARCH_TIMEOUT = 15000; // 15초 타임아웃
+    // 🔵 Gemini 검색 실행 (타임아웃 30초)
+    const SEARCH_TIMEOUT = 30000; // 30초 타임아웃
     
     const geminiSearchPromise = (async () => {
       try {
-        console.log('🔵 Gemini 검색 시작... (타임아웃: 15초)');
+        console.log('🔵 Gemini 검색 시작... (타임아웃: 30초)');
         const ai = getAiClient();
         // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
         // 텍스트로 받고 후처리로 JSON 파싱
@@ -4362,7 +4362,7 @@ JSON 형식으로 응답:
     // 타임아웃과 함께 검색 실행
     const timeoutPromise = new Promise<{ success: false; data: null; source: 'timeout' }>((resolve) => {
       setTimeout(() => {
-        console.warn('⚠️ 검색 타임아웃 (15초) - 검색 건너뛰기');
+        console.warn('⚠️ 검색 타임아웃 (30초) - 검색 건너뛰기');
         resolve({ success: false, data: null, source: 'timeout' });
       }, SEARCH_TIMEOUT);
     });
