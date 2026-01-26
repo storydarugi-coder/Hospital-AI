@@ -5,6 +5,47 @@ import { SYSTEM_PROMPT, getStage2_AiRemovalAndCompliance, getDynamicSystemPrompt
 import { applyThemeToHtml } from '../utils/cssThemes';
 import type { CssTheme } from '../types';
 
+// 🚨🚨🚨 AI 금지어 후처리 함수 - "양상/양태" 등 AI스러운 표현 제거 🚨🚨🚨
+const BANNED_WORDS_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
+  { pattern: /다양한\s*양상/g, replacement: '여러 모습' },
+  { pattern: /복잡한\s*양상/g, replacement: '복잡한 모습' },
+  { pattern: /특이한\s*양상/g, replacement: '독특한 모습' },
+  { pattern: /비슷한\s*양상/g, replacement: '비슷한 모습' },
+  { pattern: /다른\s*양상/g, replacement: '다른 모습' },
+  { pattern: /새로운\s*양상/g, replacement: '새로운 모습' },
+  { pattern: /이러한\s*양상/g, replacement: '이런 모습' },
+  { pattern: /그러한\s*양상/g, replacement: '그런 모습' },
+  { pattern: /양상을\s*보이/g, replacement: '모습을 보이' },
+  { pattern: /양상이\s*나타나/g, replacement: '모습이 나타나' },
+  { pattern: /양상으로\s*나타나/g, replacement: '형태로 나타나' },
+  { pattern: /양상을\s*띠/g, replacement: '모습을 띠' },
+  { pattern: /양상이\s*있/g, replacement: '모습이 있' },
+  { pattern: /양상에\s*따라/g, replacement: '상태에 따라' },
+  { pattern: /양상의\s*변화/g, replacement: '모습의 변화' },
+  { pattern: /양상과\s*/g, replacement: '모습과 ' },
+  { pattern: /양태를\s*보이/g, replacement: '모습을 보이' },
+  { pattern: /양태가\s*/g, replacement: '모습이 ' },
+  { pattern: /(\s)양상(\s)/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양상([을를이가])/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양태(\s)/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양태([을를이가])/g, replacement: '$1모습$2' },
+  { pattern: /양상/g, replacement: '모습' },
+  { pattern: /양태/g, replacement: '형태' },
+];
+
+function removeBannedWords(content: string): string {
+  if (!content) return content;
+  let result = content;
+  let count = 0;
+  for (const { pattern, replacement } of BANNED_WORDS_REPLACEMENTS) {
+    const before = result;
+    result = result.replace(pattern, replacement);
+    if (before !== result) count++;
+  }
+  if (count > 0) console.log(`🚨 채팅 보정 금지어 후처리: ${count}개 패턴 교체됨`);
+  return result;
+}
+
 interface ContentRefinerProps {
   onClose: () => void;
   onNavigate?: (tab: 'blog' | 'card_news' | 'press') => void;
@@ -322,7 +363,10 @@ ${wantsHumanize ? `
       };
 
       setChatMessages(prev => [...prev, assistantMessage]);
-      setRefinedContent(response);
+      
+      // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+      const cleanedResponse = removeBannedWords(response);
+      setRefinedContent(cleanedResponse);
       
     } catch (error) {
       console.error('❌ 채팅 수정 실패:', error);

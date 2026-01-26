@@ -129,6 +129,64 @@ const TIMEOUTS = {
   QUICK_OPERATION: 60000,   // 60초 (임베딩 API 타임아웃 대응)
 } as const;
 
+// 🚨🚨🚨 AI 금지어 후처리 함수 - 생성된 모든 콘텐츠에 적용 🚨🚨🚨
+// "양상", "양태" 등 AI스러운 표현을 자연스러운 표현으로 강제 교체
+const BANNED_WORDS_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
+  // 양상/양태 계열 - 완전 금지!
+  { pattern: /다양한\s*양상/g, replacement: '여러 모습' },
+  { pattern: /복잡한\s*양상/g, replacement: '복잡한 모습' },
+  { pattern: /특이한\s*양상/g, replacement: '독특한 모습' },
+  { pattern: /비슷한\s*양상/g, replacement: '비슷한 모습' },
+  { pattern: /다른\s*양상/g, replacement: '다른 모습' },
+  { pattern: /새로운\s*양상/g, replacement: '새로운 모습' },
+  { pattern: /이러한\s*양상/g, replacement: '이런 모습' },
+  { pattern: /그러한\s*양상/g, replacement: '그런 모습' },
+  { pattern: /양상을\s*보이/g, replacement: '모습을 보이' },
+  { pattern: /양상이\s*나타나/g, replacement: '모습이 나타나' },
+  { pattern: /양상으로\s*나타나/g, replacement: '형태로 나타나' },
+  { pattern: /양상을\s*띠/g, replacement: '모습을 띠' },
+  { pattern: /양상이\s*있/g, replacement: '모습이 있' },
+  { pattern: /양상에\s*따라/g, replacement: '상태에 따라' },
+  { pattern: /양상의\s*변화/g, replacement: '모습의 변화' },
+  { pattern: /양상과\s*/g, replacement: '모습과 ' },
+  { pattern: /양태를\s*보이/g, replacement: '모습을 보이' },
+  { pattern: /양태가\s*/g, replacement: '모습이 ' },
+  { pattern: /(\s)양상(\s)/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양상([을를이가])/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양태(\s)/g, replacement: '$1모습$2' },
+  { pattern: /(\s)양태([을를이가])/g, replacement: '$1모습$2' },
+  // 남은 양상/양태 (앞뒤 문맥 없이 단독)
+  { pattern: /양상/g, replacement: '모습' },
+  { pattern: /양태/g, replacement: '형태' },
+];
+
+/**
+ * 🚨 AI 금지어 후처리 - 생성된 콘텐츠에서 금지어 제거
+ * @param content 원본 콘텐츠 (HTML 또는 텍스트)
+ * @returns 금지어가 제거된 콘텐츠
+ */
+function removeBannedWords(content: string): string {
+  if (!content) return content;
+  
+  let result = content;
+  let replacementCount = 0;
+  
+  for (const { pattern, replacement } of BANNED_WORDS_REPLACEMENTS) {
+    const before = result;
+    result = result.replace(pattern, replacement);
+    if (before !== result) {
+      const matches = before.match(pattern);
+      replacementCount += matches ? matches.length : 0;
+    }
+  }
+  
+  if (replacementCount > 0) {
+    console.log(`🚨 금지어 후처리 완료: ${replacementCount}개 표현 교체됨 (양상/양태 → 모습/형태)`);
+  }
+  
+  return result;
+}
+
 // 🚀 Gemini API 호출 래퍼 함수
 interface GeminiCallConfig {
   prompt: string;
@@ -4981,6 +5039,15 @@ ${JSON.stringify(searchResults, null, 2)}
     result.title = request.topic;
     console.log('✅ 사용자 입력 제목 사용:', request.topic);
 
+    // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+    if (result.content) {
+      result.content = removeBannedWords(result.content);
+    }
+    if (result.contentHtml) {
+      result.contentHtml = removeBannedWords(result.contentHtml);
+    }
+    console.log('✅ 금지어 후처리 완료');
+
     return result;
   } catch (error) {
     errorOccurred = true;
@@ -5552,10 +5619,13 @@ ${hospitalInfo}
 </style>
 `;
 
-  const finalHtml = pressStyles + pressContent;
+  // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+  const cleanedPressContent = removeBannedWords(pressContent);
+  const finalHtml = pressStyles + cleanedPressContent;
+  console.log('✅ 보도자료 금지어 후처리 완료');
   
   // 제목 추출
-  const titleMatch = pressContent.match(/<h1[^>]*class="press-title"[^>]*>([^<]+)/);
+  const titleMatch = cleanedPressContent.match(/<h1[^>]*class="press-title"[^>]*>([^<]+)/);
   const title = titleMatch ? titleMatch[1].trim() : `${hospitalName} ${pressTypeLabel} 보도자료`;
   
   onProgress('✅ 보도자료 작성 완료!');
@@ -6644,6 +6714,10 @@ ${FEW_SHOT_EXAMPLES}
         restoredHtml = restoredHtml.replace(new RegExp(placeholder, 'g'), originalSrc);
       });
       
+      // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+      restoredHtml = removeBannedWords(restoredHtml);
+      console.log('✅ AI 정밀보정 금지어 후처리 완료');
+      
       // 🔍 수정된 글 AI 냄새 검사
       const aiSmellCheck = runAiSmellCheck(restoredHtml);
       
@@ -7567,6 +7641,10 @@ ${textContent}
       console.error('❌ 수정된 콘텐츠를 찾을 수 없음:', result);
       throw new Error('수정된 콘텐츠가 반환되지 않았습니다.');
     }
+    
+    // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+    refinedContent = removeBannedWords(refinedContent);
+    console.log('✅ AI 정밀보정 (자동) 금지어 후처리 완료');
     
     safeProgress('✅ AI 정밀보정 완료!');
     
