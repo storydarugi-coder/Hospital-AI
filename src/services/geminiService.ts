@@ -4279,85 +4279,24 @@ ${hospitalInfo}
     }
     console.log('📍 onProgress 호출 완료, searchPrompt 생성 시작...');
     
-    const searchPrompt = `
-당신은 의료 정보 검색 전문가입니다.
-아래 주제에 대해 공신력 있는 최신 정보를 수집해주세요.
+    // 간소화된 검색 프롬프트 (속도 개선)
+    const searchPrompt = `"${request.topic}" 관련 최신 의료 정보 검색.
 
-[검색 주제]
-- 진료과: ${request.category}
-- 주제: ${request.topic}
-- 키워드: ${request.keywords}
+검색 우선순위:
+1. health.kdca.go.kr (질병관리청 건강정보)
+2. kdca.go.kr (질병관리청)
+3. mohw.go.kr, nhis.or.kr (정부기관)
 
-🚨🚨🚨 **[최우선 검색 - health.kdca.go.kr 필수!]** 🚨🚨🚨
+❌ 블로그/카페/유튜브 정보 금지
 
-**1순위 (최우선! 반드시 가장 먼저 검색!)**: 
-   🔴 검색어: "${request.topic} site:health.kdca.go.kr"
-   🔴 URL: https://health.kdca.go.kr/healthinfo/
-   → 질병관리청 건강정보포털 (일반인 대상 건강정보)
-   → ⚠️ 이 사이트에서 반드시 최소 2개 이상의 정보를 수집하세요!
-   → ⚠️ 이 사이트에서 충분한 자료를 찾았다면 해외 사이트 검색 생략!
-   → 예시 URL: https://health.kdca.go.kr/healthinfo/biz/health/...
-
-**2순위**: 
-   검색어: "${request.topic} site:kdca.go.kr"
-   → 질병관리청 공식 사이트 (보도자료, 통계, 감염병 정보)
-
-**3순위**: 
-   검색어: "${request.topic} site:mohw.go.kr OR site:nhis.or.kr OR site:hira.or.kr"
-   → 보건복지부, 국민건강보험공단, 건강보험심사평가원
-
-**4순위**: 
-   검색어: "${request.topic} 대한${request.category}학회 가이드라인 ${getCurrentYear()}"
-   → 국내 학회 최신 지침 확인
-
-**5순위 (선택적 - 국내 자료 부족 시에만!)**: 
-   검색어: "${request.topic} site:pubmed.ncbi.nlm.nih.gov ${getCurrentYear()}"
-   → ⚠️ 1~4순위에서 충분한 자료를 찾았다면 이 단계는 생략!
-
-📋 **검색 전략 (health.kdca.go.kr 최우선!):**
-🔴 1순위: health.kdca.go.kr에서 반드시 먼저 검색! (최소 2개 이상 수집 목표)
-✅ health.kdca.go.kr에서 관련 정보를 충분히 찾았다면 → 해외 논문 검색 생략!
-✅ 국내 공신력 있는 자료가 부족할 때만 → PubMed 등 해외 자료 참고
-✅ 항상 한국 실정에 맞는 정보를 우선으로!
-
-[금지] **절대 검색 금지 도메인:**
-- blog.naver.com, tistory.com, brunch.co.kr (블로그)
-- cafe.naver.com (카페)
-- youtube.com (유튜브)
-- health.chosun.com, hidoc.co.kr, kormedi.com (건강 매체)
-- storybongbong.co.kr, keyzard.cc (절대 금지!)
-
-[검색 지시]
-- 🔴 health.kdca.go.kr 결과를 가장 먼저, 가장 많이 수집 (최우선!)
-- 현재 ${getCurrentYear()}년 기준 최신 자료 우선
-- 블로그, 카페, SNS, 유튜브 정보는 절대 수집 금지
-- 통계는 반드시 출처와 연도 포함
-
-[JSON 응답 형식]
+JSON 형식으로 응답:
 {
-  "collected_facts": [
-    {
-      "fact": "수집한 사실 정보",
-      "source": "출처 (학회/기관명)",
-      "year": ${getCurrentYear()},
-      "url": "참고 URL (health.kdca.go.kr URL 최우선!)"
-    }
-  ],
-  "key_statistics": [
-    {
-      "stat": "통계 내용",
-      "source": "출처",
-      "year": ${getCurrentYear()}
-    }
-  ],
-  "latest_guidelines": [
-    {
-      "guideline": "가이드라인 내용",
-      "organization": "발표 기관",
-      "year": ${getCurrentYear()}
-    }
-  ]
-}`;
+  "collected_facts": [{"fact": "정보", "source": "출처", "url": "URL"}],
+  "key_statistics": [{"stat": "통계", "source": "출처"}],
+  "latest_guidelines": [{"guideline": "가이드라인", "organization": "기관"}]
+}
+
+최대 5개 팩트, 3개 통계만 수집. 빠르게 응답.`;
 
     // • Gemini 웹 검색으로 최신 정보 수집
     console.log('• 질병관리청 최신 정보 검색 시작');
@@ -4365,13 +4304,15 @@ ${hospitalInfo}
     let geminiResults: any = null;
     let searchResults: any = {};
     
-    // 🔵 Gemini 검색 실행
+    // 🔵 Gemini 검색 실행 (타임아웃 15초)
+    const SEARCH_TIMEOUT = 15000; // 15초 타임아웃
+    
     const geminiSearchPromise = (async () => {
       try {
-        console.log('🔵 Gemini 검색 시작...');
+        console.log('🔵 Gemini 검색 시작... (타임아웃: 15초)');
         const ai = getAiClient();
         const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
+          model: "gemini-2.0-flash",  // 더 빠른 모델 사용
           contents: searchPrompt,
           config: {
             tools: [{ googleSearch: {} }],
@@ -4411,8 +4352,15 @@ ${hospitalInfo}
       }
     })();
     
-    // Gemini 검색 실행
-    const geminiResult = await geminiSearchPromise;
+    // 타임아웃과 함께 검색 실행
+    const timeoutPromise = new Promise<{ success: false; data: null; source: 'timeout' }>((resolve) => {
+      setTimeout(() => {
+        console.warn('⚠️ 검색 타임아웃 (15초) - 검색 건너뛰기');
+        resolve({ success: false, data: null, source: 'timeout' });
+      }, SEARCH_TIMEOUT);
+    });
+    
+    const geminiResult = await Promise.race([geminiSearchPromise, timeoutPromise]);
     
     geminiResults = geminiResult.success ? geminiResult.data : null;
     
