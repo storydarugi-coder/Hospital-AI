@@ -1933,6 +1933,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const convertToWordCompatibleHtml = (html: string): string => {
     let result = html;
     
+    // 🎯 0. h3 소제목을 테이블로 변환 (Word 2016에서 border-left 안 먹음)
+    // 네이버 블로그에서는 border-left로 보이지만, 워드 복사용으로 테이블 변환
+    result = result.replace(
+      /<h3[^>]*>(.*?)<\/h3>/gi,
+      (match, content) => {
+        const textContent = content.replace(/<[^>]*>/g, '').trim();
+        return `<table style="width: 100%; border-collapse: collapse; margin: 25px 0 15px 0;">
+          <tr>
+            <td style="width: 4px; background-color: #787fff;"></td>
+            <td style="padding: 12px 16px; font-size: 18px; font-weight: bold; color: #1e40af; font-family: '맑은 고딕', Malgun Gothic, sans-serif;">${textContent}</td>
+          </tr>
+        </table>`;
+      }
+    );
+    
     // 1. linear-gradient를 단색 배경으로 변환
     result = result.replace(/background:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');
     result = result.replace(/background-image:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');

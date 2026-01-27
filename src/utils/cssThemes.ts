@@ -98,22 +98,16 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   );
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
-  // ⚠️ Word 2016 + 네이버 블로그 완벽 호환: 테이블 기반 소제목
+  // ✅ 네이버 블로그용: border-left 스타일 (깔끔한 왼쪽 세로줄)
+  // ⚠️ Word 복사는 ResultPreview.tsx의 handleCopy에서 별도 처리
   result = result.replace(
     /<h3(\s+[^>]*)?>(.*?)<\/h3>/gs,
     (match, attrs, content) => {
       // 텍스트 내용만 추출 (태그 제거)
       const textContent = content.replace(/<[^>]*>/g, '').trim();
       
-      // 🎯 Word 2016 + 네이버 블로그 완벽 호환
-      // border-left는 워드에서 무시되므로 테이블 셀로 대체
-      // 배경색: #eef2ff (연한 파란색) - 눈에 잘 보이면서 깔끔함
-      return `<table style="width: 100%; border-collapse: collapse; margin: 30px 0 15px 0; border: none;">
-        <tr>
-          <td style="width: 5px; background-color: #787fff; padding: 0; border: none;"></td>
-          <td style="padding: 14px 18px; background-color: #eef2ff; font-size: 19px; font-weight: bold; color: #1e3a8a; line-height: 1.5; font-family: '맑은 고딕', Malgun Gothic, sans-serif; border: none;">${textContent}</td>
-        </tr>
-      </table>`;
+      // 🎯 네이버 블로그 최적화: 심플한 border-left 스타일
+      return `<h3 style="margin: 30px 0 15px 0; padding: 12px 0 12px 16px; font-size: 19px; font-weight: bold; color: #1e40af; line-height: 1.5; border-left: 4px solid #787fff; font-family: '맑은 고딕', Malgun Gothic, sans-serif;">${textContent}</h3>`;
     }
   );
   
