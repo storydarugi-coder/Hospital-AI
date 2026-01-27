@@ -5726,24 +5726,29 @@ ${hospitalInfo}
 [반드시 포함]
 - 병원명: ${hospitalName}
 - 의료진: ${doctorName} ${doctorTitle}
-- 직접 인용 인터뷰 (" " 사용, 인터뷰에서도 평가 표현 금지)
+- 전문의 인용 2회 이상 (본문에 자연스럽게 녹여서, 기사체로)
 - 검진/상담 정보 (명령형 아님, "확인하는 과정이 있다" 수준으로)
+
+[전문의 인용 형식 - 기사체로 본문에 자연스럽게!]
+⚠️ blockquote 태그 사용 금지! 일반 <p> 태그 안에서 기사체로 인용!
+✅ 올바른 예시:
+<p>${hospitalName} ${request.category} ${doctorName} ${doctorTitle}은 "척추 통증은 개인마다 발생하는 원인과 민감도가 다르게 나타난다"라고 설명했다.</p>
+<p>${doctorName} ${doctorTitle}은 "목디스크 및 허리디스크 등으로 인한 통증이 지속될 경우, 구조적 문제를 파악하고 그에 맞는 비수술적 계획을 수립하는 것이 일반적인 의학적 절차"라고 덧붙였다.</p>
+
+❌ 잘못된 예시 (금지):
+<blockquote class="press-quote"><p>"인용문"</p><cite>- 출처</cite></blockquote>
 
 [HTML 출력]
 <div class="press-release-container">
   <h1 class="press-title">[제목 - 자극 키워드 1개 이내, 평가 표현 금지]</h1>
   <h2 class="press-subtitle">[부제 - 70자 이내, 사실 전달만]</h2>
   <div class="press-body">
-    <p>[공감 형성 - 독자 상황, 현상 설명만]</p>
-    <p>[의학적 맥락 - 완충 표현, 가치 판단 없이]</p>
-    <p>[증가 추세 - 완충 표현, 출처 있으면 명시]</p>
-    <p>[질환 특성 - "확인 과정", "파악 단계" 등 중립적 표현]</p>
-    <p>[검진·관리 - "확인하는 과정이 있다", "살펴보는 경우가 있다" 수준]</p>
-    <blockquote class="press-quote">
-      <p>"[인터뷰 - 평가 표현 금지, 공포 조장 금지, 사실·절차만]"</p>
-      <cite>- ${hospitalName} ${request.category} ${doctorName} ${doctorTitle}</cite>
-    </blockquote>
-    <p>[병원 정보 - 2~3문장, 70자 이내, 환자 편의/진료 환경만]</p>
+    <p>[도입 - 계절/사회적 변화/생활 환경 등 일반적인 상황으로 시작]</p>
+    <p>[의학적 맥락 - 질환/증상의 의학적 설명]</p>
+    <p>[전문의 인용 1 - 본문에 자연스럽게 기사체로: ${doctorName} ${doctorTitle}은 "..."라고 말했다.]</p>
+    <p>[추가 설명 - 치료/관리를 의학적으로 설명되는 방식으로 서술]</p>
+    <p>[전문의 인용 2 - 본문에 자연스럽게 기사체로: ${doctorName} ${doctorTitle}은 "..."라고 덧붙였다.]</p>
+    <p>[마무리 - 일반적인 주의 문구]</p>
   </div>
   <div class="press-footer">
     <div class="press-disclaimer">
@@ -5754,11 +5759,10 @@ ${hospitalInfo}
 
 [중요]
 - 위 HTML 구조 준수
+- blockquote 태그 사용 금지! 인용은 <p> 태그 안에서 기사체로!
 - 마크다운 금지 (###, **굵게** 등)
 - 모든 텍스트는 HTML 태그로 감싸기
-- 문장 리듬 다양화: 종결어미 반복 금지, 구체적 맥락 추가
-- 현장감 살리기: 시간/계절/상황 맥락, 전문가 코멘트에 현장감
-- 템플릿 느낌 제거: 전환어 사용, 독자 체크 포인트 추가
+- 전문의 인용은 "~라고 말했다", "~라고 설명했다", "~라고 덧붙였다" 기사체 사용
 - **작성 후 반드시 검수 체크리스트로 전체 검토!**
 `;
 
@@ -5861,24 +5865,23 @@ ${hospitalInfo}
   margin: 8px 0;
 }
 .press-quote {
-  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-  padding: 24px 28px;
-  border-radius: 12px;
-  margin: 20px 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin: 0;
   border: none;
+  display: inline;
 }
 .press-quote p {
-  font-size: 16px;
-  font-style: italic;
-  color: #4c1d95;
-  margin: 0 0 12px 0;
-  font-weight: 500;
+  font-size: 15px;
+  font-style: normal;
+  color: #444;
+  margin: 0;
+  font-weight: normal;
+  display: inline;
 }
 .press-quote cite {
-  font-size: 14px;
-  color: #6b7280;
-  font-style: normal;
-  font-weight: 600;
+  display: none;
 }
 .press-footer {
   margin-top: 40px;
