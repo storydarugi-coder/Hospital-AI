@@ -530,8 +530,8 @@ async function searchKDCA(query: string): Promise<string> {
         tools: [{ googleSearch: {} }],
         responseMimeType: "text/plain",
         temperature: 0.3,
-        // thinking 비활성화로 속도 개선 (Gemini 2.5+ 모델)
-        thinkingConfig: { thinkingBudget: 0 }
+        // Gemini 3 Pro: thinkingLevel "low"로 속도 개선
+        thinkingConfig: { thinkingLevel: "low" }
       }
     });
     
@@ -591,8 +591,8 @@ async function searchHospitalSites(query: string, category: string): Promise<str
         tools: [{ googleSearch: {} }],
         responseMimeType: "text/plain",
         temperature: 0.3,
-        // thinking 비활성화로 속도 개선 (Gemini 2.5+ 모델)
-        thinkingConfig: { thinkingBudget: 0 }
+        // Gemini 3 Pro: thinkingLevel "low"로 속도 개선
+        thinkingConfig: { thinkingLevel: "low" }
       }
     });
     
