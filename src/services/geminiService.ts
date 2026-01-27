@@ -5739,9 +5739,10 @@ ${hospitalInfo}
 <blockquote class="press-quote"><p>"인용문"</p><cite>- 출처</cite></blockquote>
 
 [HTML 출력]
+⚠️ 제목은 사용자가 입력한 주제를 그대로 사용!
 <div class="press-release-container">
-  <h1 class="press-title">[제목 - 자극 키워드 1개 이내, 평가 표현 금지]</h1>
-  <h2 class="press-subtitle">[부제 - 70자 이내, 사실 전달만]</h2>
+  <h1 class="press-title">${request.topic}</h1>
+  <h2 class="press-subtitle">[부제 - 70자 이내, 주제를 보완하는 사실 전달]</h2>
   <div class="press-body">
     <p>[도입 - 계절/사회적 변화/생활 환경 등 일반적인 상황으로 시작]</p>
     <p>[의학적 맥락 - 질환/증상의 의학적 설명]</p>
