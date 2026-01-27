@@ -494,7 +494,7 @@ function needsGoogleSearch(request: GenerationRequest): boolean {
   return true;
 }
 
-// 🏥 질병관리청 검색 함수 (1차 검색) - 타임아웃 60초
+// 🏥 질병관리청 검색 함수 (1차 검색) - 타임아웃 120초
 async function searchKDCA(query: string): Promise<string> {
   try {
     console.log('🔍 [1차 검색] 질병관리청에서 검색 중...', query);
@@ -508,9 +508,9 @@ async function searchKDCA(query: string): Promise<string> {
     
     const ai = getAiClient();
     
-    // 타임아웃 60초 설정
+    // 타임아웃 120초 설정 (googleSearch + thinking 시간 고려)
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('질병관리청 검색 타임아웃 (60초)')), 60000);
+      setTimeout(() => reject(new Error('질병관리청 검색 타임아웃 (120초)')), 120000);
     });
     
     const searchPromise = ai.models.generateContent({
@@ -529,7 +529,9 @@ async function searchKDCA(query: string): Promise<string> {
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "text/plain",
-        temperature: 0.3
+        temperature: 0.3,
+        // thinking 비활성화로 속도 개선 (Gemini 2.5+ 모델)
+        thinkingConfig: { thinkingBudget: 0 }
       }
     });
     
@@ -545,7 +547,7 @@ async function searchKDCA(query: string): Promise<string> {
   }
 }
 
-// 🏥 병원 사이트 크롤링 함수 (2차 검색) - 타임아웃 60초
+// 🏥 병원 사이트 크롤링 함수 (2차 검색) - 타임아웃 120초
 async function searchHospitalSites(query: string, category: string): Promise<string> {
   try {
     console.log('🔍 [2차 검색] 병원 사이트에서 크롤링 중...', query);
@@ -562,9 +564,9 @@ async function searchHospitalSites(query: string, category: string): Promise<str
     
     const ai = getAiClient();
     
-    // 타임아웃 60초 설정
+    // 타임아웃 120초 설정 (googleSearch + thinking 시간 고려)
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('병원 사이트 검색 타임아웃 (60초)')), 60000);
+      setTimeout(() => reject(new Error('병원 사이트 검색 타임아웃 (120초)')), 120000);
     });
     
     const searchPromise = ai.models.generateContent({
@@ -588,7 +590,9 @@ async function searchHospitalSites(query: string, category: string): Promise<str
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "text/plain",
-        temperature: 0.3
+        temperature: 0.3,
+        // thinking 비활성화로 속도 개선 (Gemini 2.5+ 모델)
+        thinkingConfig: { thinkingBudget: 0 }
       }
     });
     
