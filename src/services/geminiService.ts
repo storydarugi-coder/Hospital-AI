@@ -131,34 +131,39 @@ const TIMEOUTS = {
 
 // 🚨🚨🚨 AI 금지어 후처리 함수 - 생성된 모든 콘텐츠에 적용 🚨🚨🚨
 // "양상", "양태" 등 AI스러운 표현을 자연스러운 표현으로 강제 교체
+// ⚠️ 대체어 분산: 모습/상태/경우/느낌/변화 등 다양하게!
 const BANNED_WORDS_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
-  // 양상/양태 계열 - 완전 금지!
-  { pattern: /다양한\s*양상/g, replacement: '여러 모습' },
-  { pattern: /복잡한\s*양상/g, replacement: '복잡한 모습' },
-  { pattern: /특이한\s*양상/g, replacement: '독특한 모습' },
-  { pattern: /비슷한\s*양상/g, replacement: '비슷한 모습' },
-  { pattern: /다른\s*양상/g, replacement: '다른 모습' },
-  { pattern: /새로운\s*양상/g, replacement: '새로운 모습' },
-  { pattern: /이러한\s*양상/g, replacement: '이런 모습' },
-  { pattern: /그러한\s*양상/g, replacement: '그런 모습' },
-  { pattern: /양상을\s*보이/g, replacement: '모습을 보이' },
-  { pattern: /양상이\s*나타나/g, replacement: '모습이 나타나' },
+  // 양상/양태 계열 - 문맥에 맞는 다양한 대체어 사용!
+  { pattern: /다양한\s*양상/g, replacement: '여러 경우' },
+  { pattern: /복잡한\s*양상/g, replacement: '복잡한 상태' },
+  { pattern: /특이한\s*양상/g, replacement: '독특한 느낌' },
+  { pattern: /비슷한\s*양상/g, replacement: '비슷한 상태' },
+  { pattern: /다른\s*양상/g, replacement: '다른 경우' },
+  { pattern: /새로운\s*양상/g, replacement: '새로운 변화' },
+  { pattern: /이러한\s*양상/g, replacement: '이런 상태' },
+  { pattern: /그러한\s*양상/g, replacement: '그런 경우' },
+  { pattern: /양상을\s*보이/g, replacement: '변화를 보이' },
+  { pattern: /양상이\s*나타나/g, replacement: '변화가 나타나' },
   { pattern: /양상으로\s*나타나/g, replacement: '형태로 나타나' },
-  { pattern: /양상을\s*띠/g, replacement: '모습을 띠' },
-  { pattern: /양상이\s*있/g, replacement: '모습이 있' },
+  { pattern: /양상을\s*띠/g, replacement: '상태를 보이' },
+  { pattern: /양상이\s*있/g, replacement: '경우가 있' },
   { pattern: /양상에\s*따라/g, replacement: '상태에 따라' },
-  { pattern: /양상의\s*변화/g, replacement: '모습의 변화' },
-  { pattern: /양상과\s*/g, replacement: '모습과 ' },
-  { pattern: /양태를\s*보이/g, replacement: '모습을 보이' },
-  { pattern: /양태가\s*/g, replacement: '모습이 ' },
-  { pattern: /(\s)양상(\s)/g, replacement: '$1모습$2' },
-  { pattern: /(\s)양상([을를이가])/g, replacement: '$1모습$2' },
-  { pattern: /(\s)양태(\s)/g, replacement: '$1모습$2' },
-  { pattern: /(\s)양태([을를이가])/g, replacement: '$1모습$2' },
-  // 남은 양상/양태 (앞뒤 문맥 없이 단독)
-  { pattern: /양상/g, replacement: '모습' },
-  { pattern: /양태/g, replacement: '형태' },
+  { pattern: /양상의\s*변화/g, replacement: '상태 변화' },
+  { pattern: /양상과\s*/g, replacement: '상태와 ' },
+  { pattern: /양태를\s*보이/g, replacement: '상태를 보이' },
+  { pattern: /양태가\s*/g, replacement: '상태가 ' },
+  { pattern: /(\s)양상(\s)/g, replacement: '$1상태$2' },
+  { pattern: /(\s)양상([을를])/g, replacement: '$1변화$2' },
+  { pattern: /(\s)양상([이가])/g, replacement: '$1상태$2' },
+  { pattern: /(\s)양태(\s)/g, replacement: '$1상태$2' },
+  { pattern: /(\s)양태([을를이가])/g, replacement: '$1상태$2' },
+  // 남은 양상/양태 (앞뒤 문맥 없이 단독) - 랜덤하게 분산
+  // 마지막 폴백은 removeBannedWords 함수에서 순환 대체
 ];
+
+// 폴백용 대체어 목록 (순환 사용)
+const YANGSNAG_ALTERNATIVES = ['상태', '경우', '변화', '느낌'];
+let yangSangIndex = 0;
 
 /**
  * 🚨 AI 금지어 후처리 - 생성된 콘텐츠에서 금지어 제거
@@ -171,6 +176,7 @@ function removeBannedWords(content: string): string {
   let result = content;
   let replacementCount = 0;
   
+  // 1. 패턴 기반 대체 (문맥에 맞는 대체어)
   for (const { pattern, replacement } of BANNED_WORDS_REPLACEMENTS) {
     const before = result;
     result = result.replace(pattern, replacement);
@@ -180,8 +186,24 @@ function removeBannedWords(content: string): string {
     }
   }
   
+  // 2. 남은 "양상" 순환 대체 (모습/상태/경우/변화 분산)
+  result = result.replace(/양상/g, () => {
+    const alt = YANGSNAG_ALTERNATIVES[yangSangIndex % YANGSNAG_ALTERNATIVES.length];
+    yangSangIndex++;
+    replacementCount++;
+    return alt;
+  });
+  
+  // 3. 남은 "양태" 순환 대체
+  result = result.replace(/양태/g, () => {
+    const alt = YANGSNAG_ALTERNATIVES[yangSangIndex % YANGSNAG_ALTERNATIVES.length];
+    yangSangIndex++;
+    replacementCount++;
+    return alt;
+  });
+  
   if (replacementCount > 0) {
-    console.log(`🚨 금지어 후처리 완료: ${replacementCount}개 표현 교체됨 (양상/양태 → 모습/형태)`);
+    console.log(`🚨 금지어 후처리 완료: ${replacementCount}개 표현 교체됨 (양상/양태 → 상태/경우/변화/느낌 분산)`);
   }
   
   return result;
