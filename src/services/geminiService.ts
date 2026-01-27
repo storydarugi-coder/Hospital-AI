@@ -187,6 +187,129 @@ function removeBannedWords(content: string): string {
   return result;
 }
 
+/**
+ * 🔄 중복 문장/표현 제거 후처리 함수
+ * - 도입부에서 사용한 문장이 본문에서 반복되면 제거
+ * - 연속된 문단에서 같은 의미의 문장이 반복되면 제거
+ * - 7글자 이상 동일 구절이 2번 이상 나오면 두 번째부터 제거
+ */
+function removeDuplicateContent(content: string): string {
+  if (!content) return content;
+  
+  let result = content;
+  let duplicateCount = 0;
+  
+  // 1. HTML 태그 제외하고 텍스트만 추출하여 문장 분석
+  const textOnly = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  
+  // 2. 7글자 이상의 구절 중복 검사 (공백 제외)
+  // 예: "허리 통증으로 고생하시는 분들" 같은 구절이 도입부와 본문에 중복
+  const phrases: Map<string, number> = new Map();
+  
+  // 7~30글자 구절 추출 (너무 짧으면 오탐, 너무 길면 미탐)
+  for (let len = 12; len >= 7; len--) {
+    const words = textOnly.replace(/[.,!?;:'"()]/g, '').split(/\s+/);
+    
+    for (let i = 0; i <= words.length - 3; i++) {
+      // 3~5단어로 구성된 구절 추출
+      for (let wordCount = 3; wordCount <= 5 && i + wordCount <= words.length; wordCount++) {
+        const phrase = words.slice(i, i + wordCount).join(' ');
+        
+        // 7글자 미만이거나 30글자 초과면 스킵
+        if (phrase.length < 7 || phrase.length > 30) continue;
+        
+        // 의미없는 구절 제외 (조사로만 이루어진 경우 등)
+        if (/^(이|그|저|것|수|등|때|중|후|전|내|외)\s/.test(phrase)) continue;
+        if (/\s(입니다|합니다|됩니다|있습니다)$/.test(phrase)) continue;
+        
+        const count = (phrases.get(phrase) || 0) + 1;
+        phrases.set(phrase, count);
+      }
+    }
+  }
+  
+  // 3. 2번 이상 등장하는 구절 찾기
+  const duplicatePhrases: string[] = [];
+  phrases.forEach((count, phrase) => {
+    if (count >= 2) {
+      duplicatePhrases.push(phrase);
+    }
+  });
+  
+  // 4. 중복 구절이 포함된 문장 중 두 번째 이후 등장 문장 제거
+  // (첫 번째는 유지, 두 번째부터 삭제하거나 다른 표현으로 대체)
+  if (duplicatePhrases.length > 0) {
+    // 긴 구절부터 처리 (짧은 구절이 긴 구절에 포함될 수 있으므로)
+    duplicatePhrases.sort((a, b) => b.length - a.length);
+    
+    for (const phrase of duplicatePhrases) {
+      // 정규식 특수문자 이스케이프
+      const escapedPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedPhrase, 'g');
+      
+      let matchIndex = 0;
+      result = result.replace(regex, (match) => {
+        matchIndex++;
+        if (matchIndex > 1) {
+          duplicateCount++;
+          // 두 번째 이후는 빈 문자열로 대체 (문장 자체를 제거하지 않고 구절만 제거)
+          // 문맥이 깨질 수 있으므로 "이런 경우" 같은 대체어로 변경
+          return '이런 경우';
+        }
+        return match;
+      });
+    }
+  }
+  
+  // 5. 연속된 동일/유사 문장 패턴 제거
+  // 예: "~이 중요합니다. ~이 중요합니다." 같은 반복
+  const sentencePatterns = [
+    // 동일 종결어미 연속 3회 이상
+    /([가-힣]+습니다[.!])\s*\1/g,
+    /([가-힣]+니다[.!])\s*\1/g,
+    // "~할 수 있습니다" 패턴 연속
+    /(할 수 있습니다[.!?])\s*(할 수 있습니다[.!?])/g,
+    // "~것이 좋습니다" 패턴 연속  
+    /(것이 좋습니다[.!?])\s*(것이 좋습니다[.!?])/g,
+  ];
+  
+  for (const pattern of sentencePatterns) {
+    const before = result;
+    result = result.replace(pattern, '$1');
+    if (before !== result) duplicateCount++;
+  }
+  
+  // 6. 같은 p 태그 내용이 2번 이상 등장하면 두 번째 제거
+  const pTagRegex = /<p[^>]*>(.*?)<\/p>/gs;
+  const pContents: Map<string, number> = new Map();
+  
+  result = result.replace(pTagRegex, (match, content) => {
+    const normalizedContent = content.replace(/\s+/g, ' ').trim();
+    
+    // 10글자 미만 문단은 스킵 (의미있는 중복이 아님)
+    if (normalizedContent.length < 10) return match;
+    
+    const count = (pContents.get(normalizedContent) || 0) + 1;
+    pContents.set(normalizedContent, count);
+    
+    if (count > 1) {
+      duplicateCount++;
+      console.log(`🔄 중복 문단 제거: "${normalizedContent.substring(0, 30)}..."`);
+      return ''; // 두 번째 이후 동일 문단은 삭제
+    }
+    return match;
+  });
+  
+  // 7. 빈 p 태그 정리
+  result = result.replace(/<p[^>]*>\s*<\/p>/g, '');
+  
+  if (duplicateCount > 0) {
+    console.log(`🔄 중복 내용 후처리 완료: ${duplicateCount}개 중복 제거됨`);
+  }
+  
+  return result;
+}
+
 // 🚀 Gemini API 호출 래퍼 함수
 interface GeminiCallConfig {
   prompt: string;
@@ -5042,11 +5165,13 @@ ${JSON.stringify(searchResults, null, 2)}
     // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
     if (result.content) {
       result.content = removeBannedWords(result.content);
+      result.content = removeDuplicateContent(result.content);
     }
     if (result.contentHtml) {
       result.contentHtml = removeBannedWords(result.contentHtml);
+      result.contentHtml = removeDuplicateContent(result.contentHtml);
     }
-    console.log('✅ 금지어 후처리 완료');
+    console.log('✅ 금지어 + 중복 내용 후처리 완료');
 
     return result;
   } catch (error) {
@@ -5619,10 +5744,11 @@ ${hospitalInfo}
 </style>
 `;
 
-  // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
-  const cleanedPressContent = removeBannedWords(pressContent);
+  // 🚨🚨🚨 금지어 + 중복 내용 후처리
+  let cleanedPressContent = removeBannedWords(pressContent);
+  cleanedPressContent = removeDuplicateContent(cleanedPressContent);
   const finalHtml = pressStyles + cleanedPressContent;
-  console.log('✅ 보도자료 금지어 후처리 완료');
+  console.log('✅ 보도자료 금지어 + 중복 내용 후처리 완료');
   
   // 제목 추출
   const titleMatch = cleanedPressContent.match(/<h1[^>]*class="press-title"[^>]*>([^<]+)/);
@@ -6714,9 +6840,10 @@ ${FEW_SHOT_EXAMPLES}
         restoredHtml = restoredHtml.replace(new RegExp(placeholder, 'g'), originalSrc);
       });
       
-      // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+      // 🚨🚨🚨 금지어 + 중복 내용 후처리
       restoredHtml = removeBannedWords(restoredHtml);
-      console.log('✅ AI 정밀보정 금지어 후처리 완료');
+      restoredHtml = removeDuplicateContent(restoredHtml);
+      console.log('✅ AI 정밀보정 금지어 + 중복 내용 후처리 완료');
       
       // 🔍 수정된 글 AI 냄새 검사
       const aiSmellCheck = runAiSmellCheck(restoredHtml);
@@ -7642,9 +7769,10 @@ ${textContent}
       throw new Error('수정된 콘텐츠가 반환되지 않았습니다.');
     }
     
-    // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
+    // 🚨🚨🚨 금지어 + 중복 내용 후처리
     refinedContent = removeBannedWords(refinedContent);
-    console.log('✅ AI 정밀보정 (자동) 금지어 후처리 완료');
+    refinedContent = removeDuplicateContent(refinedContent);
+    console.log('✅ AI 정밀보정 (자동) 금지어 + 중복 내용 후처리 완료');
     
     safeProgress('✅ AI 정밀보정 완료!');
     

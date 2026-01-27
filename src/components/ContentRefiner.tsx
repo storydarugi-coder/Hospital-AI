@@ -46,6 +46,74 @@ function removeBannedWords(content: string): string {
   return result;
 }
 
+// 🔄 중복 내용 제거 함수 - 도입부와 본문에서 같은 문장 반복 방지
+function removeDuplicateContent(content: string): string {
+  if (!content) return content;
+  let result = content;
+  let duplicateCount = 0;
+  
+  // 1. 같은 p 태그 내용이 2번 이상 등장하면 두 번째 제거
+  const pTagRegex = /<p[^>]*>(.*?)<\/p>/gs;
+  const pContents: Map<string, number> = new Map();
+  
+  result = result.replace(pTagRegex, (match, innerContent) => {
+    const normalized = innerContent.replace(/\s+/g, ' ').trim();
+    if (normalized.length < 10) return match;
+    
+    const count = (pContents.get(normalized) || 0) + 1;
+    pContents.set(normalized, count);
+    
+    if (count > 1) {
+      duplicateCount++;
+      console.log(`🔄 중복 문단 제거: "${normalized.substring(0, 30)}..."`);
+      return '';
+    }
+    return match;
+  });
+  
+  // 2. 7글자 이상 구절 중복 검사
+  const textOnly = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  const phrases: Map<string, number> = new Map();
+  const words = textOnly.replace(/[.,!?;:'"()]/g, '').split(/\s+/);
+  
+  for (let i = 0; i <= words.length - 3; i++) {
+    for (let wordCount = 3; wordCount <= 5 && i + wordCount <= words.length; wordCount++) {
+      const phrase = words.slice(i, i + wordCount).join(' ');
+      if (phrase.length < 7 || phrase.length > 30) continue;
+      if (/^(이|그|저|것|수|등|때|중|후|전|내|외)\s/.test(phrase)) continue;
+      
+      const count = (phrases.get(phrase) || 0) + 1;
+      phrases.set(phrase, count);
+    }
+  }
+  
+  // 3. 2번 이상 등장하는 구절 처리
+  phrases.forEach((count, phrase) => {
+    if (count >= 2) {
+      const escapedPhrase = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedPhrase, 'g');
+      let matchIndex = 0;
+      result = result.replace(regex, (match) => {
+        matchIndex++;
+        if (matchIndex > 1) {
+          duplicateCount++;
+          return '이런 경우';
+        }
+        return match;
+      });
+    }
+  });
+  
+  // 4. 빈 p 태그 정리
+  result = result.replace(/<p[^>]*>\s*<\/p>/g, '');
+  
+  if (duplicateCount > 0) {
+    console.log(`🔄 채팅 보정 중복 내용 후처리: ${duplicateCount}개 중복 제거됨`);
+  }
+  
+  return result;
+}
+
 interface ContentRefinerProps {
   onClose: () => void;
   onNavigate?: (tab: 'blog' | 'card_news' | 'press') => void;
@@ -364,8 +432,9 @@ ${wantsHumanize ? `
 
       setChatMessages(prev => [...prev, assistantMessage]);
       
-      // 🚨🚨🚨 금지어 후처리 - "양상/양태" 등 AI스러운 표현 제거
-      const cleanedResponse = removeBannedWords(response);
+      // 🚨🚨🚨 금지어 + 중복 내용 후처리
+      let cleanedResponse = removeBannedWords(response);
+      cleanedResponse = removeDuplicateContent(cleanedResponse);
       setRefinedContent(cleanedResponse);
       
     } catch (error) {
