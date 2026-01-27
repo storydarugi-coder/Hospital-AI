@@ -5474,7 +5474,6 @@ ${learnedStyleInstruction}
 - 전체 톤은 차분하고 사실 중심으로 유지
 
 [기본 정보]
-- 작성일: ${formattedDate}
 - 병원명: ${hospitalName}
 - 진료과: ${request.category}
 - 의료진: ${doctorName} ${doctorTitle}
