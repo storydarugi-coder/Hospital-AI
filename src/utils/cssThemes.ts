@@ -98,19 +98,20 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   );
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
-  // ⚠️ Word 2016 완벽 호환: 테이블 기반 소제목 (border-left가 워드에서 안 먹음)
+  // ⚠️ Word 2016 + 네이버 블로그 완벽 호환: 테이블 기반 소제목
   result = result.replace(
     /<h3(\s+[^>]*)?>(.*?)<\/h3>/gs,
     (match, attrs, content) => {
       // 텍스트 내용만 추출 (태그 제거)
       const textContent = content.replace(/<[^>]*>/g, '').trim();
       
-      // 🎯 Word 2016 완벽 호환: 테이블로 왼쪽 컬러바 구현
+      // 🎯 Word 2016 + 네이버 블로그 완벽 호환
       // border-left는 워드에서 무시되므로 테이블 셀로 대체
-      return `<table style="width: 100%; border-collapse: collapse; margin: 30px 0 15px 0;">
+      // 배경색: #eef2ff (연한 파란색) - 눈에 잘 보이면서 깔끔함
+      return `<table style="width: 100%; border-collapse: collapse; margin: 30px 0 15px 0; border: none;">
         <tr>
-          <td style="width: 4px; background-color: #787fff; padding: 0;"></td>
-          <td style="padding: 12px 16px; background-color: #f8fafc; font-size: 19px; font-weight: bold; color: #1e40af; line-height: 1.5; font-family: '맑은 고딕', Malgun Gothic, sans-serif;">${textContent}</td>
+          <td style="width: 5px; background-color: #787fff; padding: 0; border: none;"></td>
+          <td style="padding: 14px 18px; background-color: #eef2ff; font-size: 19px; font-weight: bold; color: #1e3a8a; line-height: 1.5; font-family: '맑은 고딕', Malgun Gothic, sans-serif; border: none;">${textContent}</td>
         </tr>
       </table>`;
     }
