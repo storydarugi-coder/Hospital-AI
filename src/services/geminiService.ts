@@ -5739,10 +5739,13 @@ ${hospitalInfo}
 <blockquote class="press-quote"><p>"인용문"</p><cite>- 출처</cite></blockquote>
 
 [HTML 출력]
-⚠️ 제목은 사용자가 입력한 주제를 그대로 사용!
+🚨🚨🚨 제목 규칙 - 절대 변경 금지! 🚨🚨🚨
+- h1 제목: "${request.topic}" ← 이 텍스트를 한 글자도 바꾸지 말고 그대로 출력!
+- h2 부제: 생성하지 마! h2 태그 자체를 출력하지 마!
+- 제목을 다른 말로 바꾸거나, 부제를 추가하면 실패!
+
 <div class="press-release-container">
   <h1 class="press-title">${request.topic}</h1>
-  <h2 class="press-subtitle">[부제 - 70자 이내, 주제를 보완하는 사실 전달]</h2>
   <div class="press-body">
     <p>[도입 - 계절/사회적 변화/생활 환경 등 일반적인 상황으로 시작]</p>
     <p>[의학적 맥락 - 질환/증상의 의학적 설명]</p>
@@ -5759,12 +5762,12 @@ ${hospitalInfo}
 </div>
 
 [중요]
-- 위 HTML 구조 준수
+- 🚨 h1 제목은 "${request.topic}" 그대로! 절대 변경 금지!
+- 🚨 h2 부제 태그 출력 금지! 부제 없음!
 - blockquote 태그 사용 금지! 인용은 <p> 태그 안에서 기사체로!
 - 마크다운 금지 (###, **굵게** 등)
 - 모든 텍스트는 HTML 태그로 감싸기
 - 전문의 인용은 "~라고 말했다", "~라고 설명했다", "~라고 덧붙였다" 기사체 사용
-- **작성 후 반드시 검수 체크리스트로 전체 검토!**
 `;
 
   // 🔍 Google Search 연결 - 언론 보도용 최신 정보 수집
