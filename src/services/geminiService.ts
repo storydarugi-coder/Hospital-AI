@@ -202,8 +202,30 @@ function removeBannedWords(content: string): string {
     return alt;
   });
   
+  // 4. 🚨 출처/인용 표현 제거 (질병관리청에서는~, ~라고 합니다 등)
+  const sourcePatterns = [
+    /질병관리청에서는\s*/g,
+    /질병관리청에\s*따르면[,\s]*/g,
+    /질병관리청은\s*/g,
+    /[가-힣]+에서는\s+[^.]*라고\s+(합니다|했습니다|밝혔습니다|전했습니다)[.]/g,
+    /[가-힣]+에\s*따르면[,\s]*/g,
+    /연구에\s*따르면[,\s]*/g,
+    /전문가들은\s*/g,
+    /전문가에\s*따르면[,\s]*/g,
+    /라고\s+(합니다|알려져\s*있습니다|전해집니다|밝혔습니다)/g,
+    /[가-힣]+에서\s+발표한\s+[^에]*에\s*따르면[,\s]*/g,
+    /통계에\s*따르면[,\s]*/g,
+    /자료에\s*따르면[,\s]*/g,
+  ];
+  
+  for (const pattern of sourcePatterns) {
+    const before = result;
+    result = result.replace(pattern, '');
+    if (before !== result) replacementCount++;
+  }
+  
   if (replacementCount > 0) {
-    console.log(`🚨 금지어 후처리 완료: ${replacementCount}개 표현 교체됨 (양상/양태 → 상태/경우/변화/느낌 분산)`);
+    console.log(`🚨 금지어 후처리 완료: ${replacementCount}개 표현 교체됨 (양상/양태/출처 표현 제거)`);
   }
   
   return result;
