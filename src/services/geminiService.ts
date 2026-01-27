@@ -635,6 +635,7 @@ ${hospitalInfo || '(검색 결과 없음)'}
 - 구체적 수치는 출처와 함께 제시`;
     
     // Gemini API 호출
+    console.log('🚀 보도자료 Gemini API 호출 시작...');
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL.PRO,
       contents: enrichedPrompt,
@@ -645,7 +646,19 @@ ${hospitalInfo || '(검색 결과 없음)'}
       }
     });
     
-    return response;
+    console.log('✅ 보도자료 Gemini API 응답 수신');
+    
+    // 응답에서 텍스트 추출
+    let text = '';
+    if (response?.text) {
+      text = response.text;
+    } else if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+      text = response.candidates[0].content.parts[0].text;
+    }
+    
+    console.log('📝 보도자료 텍스트 길이:', text?.length || 0);
+    
+    return { text, response };
     
   } catch (error) {
     console.error('❌ callGeminiWithSearch 실패:', error);
