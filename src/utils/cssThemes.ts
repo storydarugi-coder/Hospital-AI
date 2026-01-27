@@ -98,19 +98,21 @@ export function applyThemeToHtml(html: string, theme: CssTheme): string {
   );
   
   // h3 태그 스타일 적용 (기존 style 속성 제거 후 새로 적용)
-  // ⚠️ 워드/네이버 블로그 호환성: Flexbox 대신 간단한 border-left + padding 사용
-  // ⚠️ Word 2016 호환: linear-gradient 사용 안 함, 단색 배경만 사용
+  // ⚠️ Word 2016 완벽 호환: 테이블 기반 소제목 (border-left가 워드에서 안 먹음)
   result = result.replace(
     /<h3(\s+[^>]*)?>(.*?)<\/h3>/gs,
     (match, attrs, content) => {
       // 텍스트 내용만 추출 (태그 제거)
       const textContent = content.replace(/<[^>]*>/g, '').trim();
       
-      // 🎯 워드 2016 완벽 호환 스타일: 
-      // - linear-gradient 제거 (Word에서 지원 안 함)
-      // - 단색 배경 사용
-      // - border-left로 포인트 컬러 표시
-      return `<h3 style="margin: 30px 0 15px 0; padding: 12px 0 12px 16px; font-size: 19px; font-weight: bold; color: #1e40af; line-height: 1.5; border-left: 4px solid #787fff; background-color: #f8fafc;">${textContent}</h3>`;
+      // 🎯 Word 2016 완벽 호환: 테이블로 왼쪽 컬러바 구현
+      // border-left는 워드에서 무시되므로 테이블 셀로 대체
+      return `<table style="width: 100%; border-collapse: collapse; margin: 30px 0 15px 0;">
+        <tr>
+          <td style="width: 4px; background-color: #787fff; padding: 0;"></td>
+          <td style="padding: 12px 16px; background-color: #f8fafc; font-size: 19px; font-weight: bold; color: #1e40af; line-height: 1.5; font-family: '맑은 고딕', Malgun Gothic, sans-serif;">${textContent}</td>
+        </tr>
+      </table>`;
     }
   );
   
