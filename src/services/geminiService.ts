@@ -494,7 +494,7 @@ function needsGoogleSearch(request: GenerationRequest): boolean {
   return true;
 }
 
-// 🏥 질병관리청 검색 함수 (1차 검색)
+// 🏥 질병관리청 검색 함수 (1차 검색) - 타임아웃 60초
 async function searchKDCA(query: string): Promise<string> {
   try {
     console.log('🔍 [1차 검색] 질병관리청에서 검색 중...', query);
@@ -507,9 +507,13 @@ async function searchKDCA(query: string): Promise<string> {
     ];
     
     const ai = getAiClient();
-    const searchQuery = `site:${kdcaDomains.join(' OR site:')} ${query}`;
     
-    const response = await ai.models.generateContent({
+    // 타임아웃 60초 설정
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('질병관리청 검색 타임아웃 (60초)')), 60000);
+    });
+    
+    const searchPromise = ai.models.generateContent({
       model: GEMINI_MODEL.PRO,
       contents: `질병관리청(KDCA) 공식 웹사이트에서 "${query}"에 대한 정보를 검색하고 요약해주세요.
       
@@ -529,6 +533,8 @@ async function searchKDCA(query: string): Promise<string> {
       }
     });
     
+    const response = await Promise.race([searchPromise, timeoutPromise]);
+    
     const result = response.text || '';
     console.log('✅ 질병관리청 검색 완료');
     return result;
@@ -539,7 +545,7 @@ async function searchKDCA(query: string): Promise<string> {
   }
 }
 
-// 🏥 병원 사이트 크롤링 함수 (2차 검색)
+// 🏥 병원 사이트 크롤링 함수 (2차 검색) - 타임아웃 60초
 async function searchHospitalSites(query: string, category: string): Promise<string> {
   try {
     console.log('🔍 [2차 검색] 병원 사이트에서 크롤링 중...', query);
@@ -555,9 +561,13 @@ async function searchHospitalSites(query: string, category: string): Promise<str
     ];
     
     const ai = getAiClient();
-    const searchQuery = `site:${hospitalDomains.join(' OR site:')} ${query} ${category}`;
     
-    const response = await ai.models.generateContent({
+    // 타임아웃 60초 설정
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('병원 사이트 검색 타임아웃 (60초)')), 60000);
+    });
+    
+    const searchPromise = ai.models.generateContent({
       model: GEMINI_MODEL.PRO,
       contents: `대학병원 공식 웹사이트에서 "${query}" (${category})에 대한 전문 의료 정보를 검색하고 요약해주세요.
 
@@ -581,6 +591,8 @@ async function searchHospitalSites(query: string, category: string): Promise<str
         temperature: 0.3
       }
     });
+    
+    const response = await Promise.race([searchPromise, timeoutPromise]);
     
     const result = response.text || '';
     console.log('✅ 병원 사이트 크롤링 완료');
