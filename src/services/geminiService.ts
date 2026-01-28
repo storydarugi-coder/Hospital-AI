@@ -4691,7 +4691,7 @@ JSON 형식으로 응답:
     // 타임아웃과 함께 검색 실행
     const timeoutPromise = new Promise<{ success: false; data: null; source: 'timeout' }>((resolve) => {
       setTimeout(() => {
-        console.warn('⚠️ 검색 타임아웃 (30초) - 검색 건너뛰기');
+        console.warn('⚠️ 검색 타임아웃 (90초) - 검색 건너뛰기');
         resolve({ success: false, data: null, source: 'timeout' });
       }, SEARCH_TIMEOUT);
     });
