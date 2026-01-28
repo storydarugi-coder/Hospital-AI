@@ -4633,12 +4633,12 @@ JSON 형식으로 응답:
     let geminiResults: any = null;
     let searchResults: any = {};
     
-    // 🔵 Gemini 검색 실행 (타임아웃 30초)
-    const SEARCH_TIMEOUT = 30000; // 30초 타임아웃
+    // 🔵 Gemini 검색 실행 (타임아웃 90초)
+    const SEARCH_TIMEOUT = 90000; // 90초 타임아웃
     
     const geminiSearchPromise = (async () => {
       try {
-        console.log('🔵 Gemini 검색 시작... (타임아웃: 30초)');
+        console.log('🔵 Gemini 검색 시작... (타임아웃: 90초)');
         const ai = getAiClient();
         // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
         // 텍스트로 받고 후처리로 JSON 파싱
