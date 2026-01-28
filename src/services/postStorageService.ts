@@ -1,0 +1,273 @@
+/**
+ * Post Storage Service
+ * 생성된 글을 Supabase에 저장하는 서비스
+ */
+
+import { supabase, getUserIP, hashIP } from '../lib/supabase';
+
+// 글 타입 정의
+export type PostType = 'blog' | 'card_news' | 'press_release';
+
+// 저장할 글 데이터 인터페이스
+export interface SavePostData {
+  hospitalName?: string;
+  category?: string;
+  doctorName?: string;
+  doctorTitle?: string;
+  postType: PostType;
+  title: string;
+  content: string; // HTML 본문
+  keywords?: string[];
+  topic?: string;
+  imageStyle?: string;
+  slideCount?: number;
+}
+
+// HTML에서 순수 텍스트 추출
+const extractPlainText = (html: string): string => {
+  // 브라우저 환경에서만 DOMParser 사용
+  if (typeof window !== 'undefined' && window.DOMParser) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    return doc.body.textContent?.trim() || '';
+  }
+  // 서버 환경: 간단한 정규식으로 태그 제거
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// 글자수 계산 (공백 제외)
+const countChars = (text: string): number => {
+  return text.replace(/\s/g, '').length;
+};
+
+// 단어수 계산
+const countWords = (text: string): number => {
+  return text.split(/\s+/).filter(word => word.length > 0).length;
+};
+
+/**
+ * 생성된 글을 Supabase에 저장
+ */
+export const saveGeneratedPost = async (data: SavePostData): Promise<{
+  success: boolean;
+  postId?: string;
+  error?: string;
+}> => {
+  try {
+    console.log('[PostStorage] 글 저장 시작:', {
+      postType: data.postType,
+      title: data.title?.substring(0, 50)
+    });
+
+    // 현재 사용자 정보 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // IP 해시 (비로그인 사용자 식별용)
+    let ipHash: string | null = null;
+    if (!user) {
+      const ip = await getUserIP();
+      ipHash = await hashIP(ip);
+    }
+
+    // 순수 텍스트 추출
+    const plainText = extractPlainText(data.content);
+    const charCount = countChars(plainText);
+    const wordCount = countWords(plainText);
+
+    // 저장 데이터 구성
+    const insertData = {
+      user_id: user?.id || null,
+      user_email: user?.email || null,
+      ip_hash: ipHash,
+      hospital_name: data.hospitalName || null,
+      category: data.category || null,
+      doctor_name: data.doctorName || null,
+      doctor_title: data.doctorTitle || null,
+      post_type: data.postType,
+      title: data.title,
+      content: data.content,
+      plain_text: plainText,
+      keywords: data.keywords || null,
+      topic: data.topic || null,
+      image_style: data.imageStyle || null,
+      slide_count: data.slideCount || null,
+      char_count: charCount,
+      word_count: wordCount
+    };
+
+    // Supabase에 저장
+    const { data: result, error } = await supabase
+      .from('generated_posts')
+      .insert(insertData)
+      .select('id')
+      .single();
+
+    if (error) {
+      // 테이블이 없는 경우 안내
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        console.warn('[PostStorage] generated_posts 테이블이 없습니다. SQL 마이그레이션을 실행해주세요.');
+        return {
+          success: false,
+          error: 'generated_posts 테이블이 없습니다. Supabase에서 마이그레이션을 실행해주세요.'
+        };
+      }
+      
+      console.error('[PostStorage] 저장 실패:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    console.log('[PostStorage] ✅ 글 저장 완료:', result.id);
+    return {
+      success: true,
+      postId: result.id
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[PostStorage] 예외 발생:', errorMsg);
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+};
+
+// Admin용: 모든 글 조회 (RPC 함수 호출)
+export const getAllGeneratedPosts = async (
+  adminPassword: string,
+  options?: {
+    filterPostType?: PostType;
+    filterHospital?: string;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<{
+  success: boolean;
+  data?: any[];
+  error?: string;
+}> => {
+  try {
+    const { data, error } = await supabase.rpc('get_all_generated_posts', {
+      admin_password: adminPassword,
+      filter_post_type: options?.filterPostType || null,
+      filter_hospital: options?.filterHospital || null,
+      limit_count: options?.limit || 100,
+      offset_count: options?.offset || 0
+    });
+
+    if (error) {
+      console.error('[PostStorage] Admin 조회 실패:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: true,
+      data: data || []
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[PostStorage] Admin 조회 예외:', errorMsg);
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+};
+
+// Admin용: 통계 조회
+export const getAdminStats = async (adminPassword: string): Promise<{
+  success: boolean;
+  stats?: {
+    totalPosts: number;
+    blogCount: number;
+    cardNewsCount: number;
+    pressReleaseCount: number;
+    uniqueHospitals: number;
+    uniqueUsers: number;
+    postsToday: number;
+    postsThisWeek: number;
+    postsThisMonth: number;
+  };
+  error?: string;
+}> => {
+  try {
+    const { data, error } = await supabase.rpc('get_admin_stats', {
+      admin_password: adminPassword
+    });
+
+    if (error) {
+      console.error('[PostStorage] Admin 통계 조회 실패:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    const stats = data?.[0] || {};
+    return {
+      success: true,
+      stats: {
+        totalPosts: Number(stats.total_posts) || 0,
+        blogCount: Number(stats.blog_count) || 0,
+        cardNewsCount: Number(stats.card_news_count) || 0,
+        pressReleaseCount: Number(stats.press_release_count) || 0,
+        uniqueHospitals: Number(stats.unique_hospitals) || 0,
+        uniqueUsers: Number(stats.unique_users) || 0,
+        postsToday: Number(stats.posts_today) || 0,
+        postsThisWeek: Number(stats.posts_this_week) || 0,
+        postsThisMonth: Number(stats.posts_this_month) || 0
+      }
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[PostStorage] Admin 통계 예외:', errorMsg);
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+};
+
+// Admin용: 글 삭제
+export const deleteGeneratedPost = async (
+  adminPassword: string,
+  postId: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> => {
+  try {
+    const { data, error } = await supabase.rpc('delete_generated_post', {
+      admin_password: adminPassword,
+      post_id: postId
+    });
+
+    if (error) {
+      console.error('[PostStorage] Admin 삭제 실패:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    return {
+      success: data === true,
+      error: data === false ? '삭제할 글을 찾을 수 없습니다.' : undefined
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[PostStorage] Admin 삭제 예외:', errorMsg);
+    return {
+      success: false,
+      error: errorMsg
+    };
+  }
+};

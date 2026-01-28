@@ -10,6 +10,8 @@ import {
   handleApiSuccess,
   logApiKeyStatus,
 } from "./apiKeyManager";
+// 📦 글 저장 서비스 (Supabase)
+import { saveGeneratedPost } from "./postStorageService";
 // 🚀 콘텐츠 최적화 시스템
 // 프롬프트 최적화 (향후 활용 가능성 있음)
 import { optimizePrompt as _optimizePrompt, estimateTokens as _estimateTokens } from "../utils/promptOptimizer";
@@ -5934,6 +5936,27 @@ ${hospitalInfo}
   
   onProgress('✅ 보도자료 작성 완료!');
   
+  // 📦 생성된 보도자료 Supabase에 저장 (비동기, 실패해도 무시)
+  saveGeneratedPost({
+    hospitalName: hospitalName,
+    category: request.category,
+    doctorName: doctorName,
+    doctorTitle: doctorTitle,
+    postType: 'press_release',
+    title: title,
+    content: finalHtml,
+    keywords: request.keywords?.split(',').map(k => k.trim()),
+    topic: request.topic
+  }).then(result => {
+    if (result.success) {
+      console.log('✅ 보도자료 저장 완료:', result.postId);
+    } else {
+      console.warn('⚠️ 보도자료 저장 실패:', result.error);
+    }
+  }).catch(err => {
+    console.warn('⚠️ 보도자료 저장 예외:', err);
+  });
+  
   return {
     title,
     htmlContent: finalHtml,
@@ -6072,6 +6095,29 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     } else {
       safeProgress('✅ 카드뉴스 생성 완료!');
     }
+    
+    // 📦 생성된 카드뉴스 Supabase에 저장 (비동기, 실패해도 무시)
+    saveGeneratedPost({
+      hospitalName: request.hospitalName,
+      category: request.category,
+      doctorName: request.doctorName,
+      doctorTitle: request.doctorTitle,
+      postType: 'card_news',
+      title: agentResult.title,
+      content: finalHtml,
+      keywords: request.keywords?.split(',').map(k => k.trim()),
+      topic: request.topic,
+      imageStyle: request.imageStyle,
+      slideCount: images.length
+    }).then(result => {
+      if (result.success) {
+        console.log('✅ 카드뉴스 저장 완료:', result.postId);
+      } else {
+        console.warn('⚠️ 카드뉴스 저장 실패:', result.error);
+      }
+    }).catch(err => {
+      console.warn('⚠️ 카드뉴스 저장 예외:', err);
+    });
     
     return {
       title: agentResult.title,
@@ -6627,6 +6673,28 @@ export const generateFullPost = async (request: GenerationRequest, onProgress?: 
     request.category
   ).catch(error => {
     console.warn('⚠️ 블로그 이력 저장 실패 (무시):', error);
+  });
+  
+  // 📦 생성된 블로그 포스트 Supabase에 저장 (비동기, 실패해도 무시)
+  saveGeneratedPost({
+    hospitalName: request.hospitalName,
+    category: request.category,
+    doctorName: request.doctorName,
+    doctorTitle: request.doctorTitle,
+    postType: 'blog',
+    title: textData.title,
+    content: finalHtml,
+    keywords: request.keywords?.split(',').map(k => k.trim()),
+    topic: request.topic,
+    imageStyle: request.imageStyle
+  }).then(result => {
+    if (result.success) {
+      console.log('✅ 블로그 포스트 저장 완료:', result.postId);
+    } else {
+      console.warn('⚠️ 블로그 포스트 저장 실패:', result.error);
+    }
+  }).catch(err => {
+    console.warn('⚠️ 블로그 포스트 저장 예외:', err);
   });
   
   // 최종 완료 메시지

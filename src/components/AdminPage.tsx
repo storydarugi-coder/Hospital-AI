@@ -1,11 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { getAllGeneratedPosts, getAdminStats, deleteGeneratedPost, PostType } from '../services/postStorageService';
 
 // Admin 비밀번호 - 실제로는 환경변수나 Supabase로 관리해야 함
 const ADMIN_PASSWORD = 'rosmrtl718';
 
-// 콘텐츠 타입 정의
-type ContentType = 'blog' | 'cardnews' | 'press';
+// 콘텐츠 타입 정의 (database와 호환)
+type ContentType = 'blog' | 'card_news' | 'press_release';
+
+// 화면 표시용 타입 매핑
+const displayTypeMap: Record<ContentType, string> = {
+  'blog': 'blog',
+  'card_news': 'cardnews',
+  'press_release': 'press'
+};
+
+// DB 타입 -> 화면 타입 변환
+const toDisplayType = (dbType: ContentType | string): string => {
+  return displayTypeMap[dbType as ContentType] || 'blog';
+};
 
 interface ContentData {
   id: string;
@@ -15,7 +28,12 @@ interface ContentData {
   content_type?: ContentType;
   keywords?: string[];
   created_at: string;
-  naver_url?: string;
+  hospital_name?: string;
+  doctor_name?: string;
+  doctor_title?: string;
+  topic?: string;
+  user_email?: string;
+  char_count?: number;
 }
 
 interface AdminPageProps {
@@ -44,7 +62,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     totalContents: 0,
     blogCount: 0,
     cardnewsCount: 0,
-    pressCount: 0
+    pressCount: 0,
+    uniqueHospitals: 0,
+    uniqueUsers: 0,
+    postsToday: 0,
+    postsThisWeek: 0,
+    postsThisMonth: 0
   });
   
   // 콘텐츠 미리보기 모달
@@ -56,6 +79,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const getContentTypeLabel = (type?: ContentType | string): string => {
     const labels: Record<string, string> = {
       'blog': '블로그',
+      'card_news': '카드뉴스',
+      'press_release': '언론보도',
+      // 화면 표시용 타입도 지원
       'cardnews': '카드뉴스',
       'press': '언론보도'
     };
@@ -66,6 +92,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
   const getContentTypeBadge = (type?: ContentType | string) => {
     const badges: Record<string, { bg: string; text: string; icon: string }> = {
       'blog': { bg: 'bg-blue-500/20', text: 'text-blue-400', icon: '📝' },
+      'card_news': { bg: 'bg-purple-500/20', text: 'text-purple-400', icon: '🎨' },
+      'press_release': { bg: 'bg-green-500/20', text: 'text-green-400', icon: '📰' },
+      // 화면 표시용 타입도 지원
       'cardnews': { bg: 'bg-purple-500/20', text: 'text-purple-400', icon: '🎨' },
       'press': { bg: 'bg-green-500/20', text: 'text-green-400', icon: '📰' }
     };
@@ -77,7 +106,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     );
   };
 
-  // 콘텐츠 이력 로드 함수 (재시도 로직 포함)
+  // 콘텐츠 이력 로드 함수 (generated_posts 테이블 사용)
   const loadContentsInternal = async (retryCount = 0): Promise<void> => {
     const MAX_RETRIES = 3;
     
@@ -86,69 +115,68 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     
     try {
       console.log('[Admin] 콘텐츠 이력 로드 시작...', retryCount > 0 ? `(재시도 ${retryCount}/${MAX_RETRIES})` : '');
-      console.log('[Admin] Supabase 클라이언트:', supabase ? '✅ 존재' : '❌ 없음');
       
-      const { data: contentsData, error: contentsError } = await supabase
-        .from('blog_history')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // 1. 통계 먼저 로드
+      const statsResult = await getAdminStats(ADMIN_PASSWORD);
+      if (statsResult.success && statsResult.stats) {
+        setStats({
+          totalContents: statsResult.stats.totalPosts,
+          blogCount: statsResult.stats.blogCount,
+          cardnewsCount: statsResult.stats.cardNewsCount,
+          pressCount: statsResult.stats.pressReleaseCount,
+          uniqueHospitals: statsResult.stats.uniqueHospitals,
+          uniqueUsers: statsResult.stats.uniqueUsers,
+          postsToday: statsResult.stats.postsToday,
+          postsThisWeek: statsResult.stats.postsThisWeek,
+          postsThisMonth: statsResult.stats.postsThisMonth
+        });
+        console.log('[Admin] ✅ 통계 로드 완료:', statsResult.stats);
+      }
       
-      console.log('[Admin] 콘텐츠 쿼리 결과:', { 
-        데이터개수: contentsData?.length, 
-        에러: contentsError,
-        에러코드: contentsError?.code,
-        에러메시지: contentsError?.message
-      });
+      // 2. 콘텐츠 목록 로드
+      const contentsResult = await getAllGeneratedPosts(ADMIN_PASSWORD, { limit: 100 });
       
-      if (contentsError) {
-        console.error('콘텐츠 이력 로드 에러:', contentsError);
+      if (!contentsResult.success) {
+        console.error('콘텐츠 이력 로드 에러:', contentsResult.error);
+        
+        // 테이블이 없는 경우 안내
+        if (contentsResult.error?.includes('does not exist') || contentsResult.error?.includes('42P01')) {
+          setDataError('⚠️ generated_posts 테이블이 없습니다. Supabase에서 마이그레이션을 실행해주세요.');
+        } else if (contentsResult.error?.includes('Unauthorized')) {
+          setDataError('🔒 Admin 인증 실패. 비밀번호를 확인해주세요.');
+        } else {
+          setDataError(`콘텐츠 이력 로드 실패: ${contentsResult.error || '알 수 없는 오류'}`);
+        }
         
         // 네트워크 오류 시 재시도
-        if ((contentsError.message?.includes('fetch') || contentsError.message?.includes('network')) && retryCount < MAX_RETRIES) {
+        if ((contentsResult.error?.includes('fetch') || contentsResult.error?.includes('network')) && retryCount < MAX_RETRIES) {
           console.log(`⏳ 네트워크 오류 감지, ${retryCount + 1}초 후 재시도...`);
           setDataError(`네트워크 연결 재시도 중... (${retryCount + 1}/${MAX_RETRIES})`);
           await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
           return loadContentsInternal(retryCount + 1);
         }
-        
-        if (contentsError.code === '42P01' || contentsError.message?.includes('does not exist')) {
-          setDataError('⚠️ blog_history 테이블이 없습니다. Supabase에서 테이블을 생성해주세요.');
-        } else {
-          setDataError(`콘텐츠 이력 로드 실패: ${contentsError.message || contentsError.code || '알 수 없는 오류'}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
-        }
       } else {
-        console.log(`[Admin] ✅ 콘텐츠 ${contentsData?.length || 0}개 로드 완료`);
-        const mappedContents: ContentData[] = (contentsData || []).map(item => ({
+        console.log(`[Admin] ✅ 콘텐츠 ${contentsResult.data?.length || 0}개 로드 완료`);
+        const mappedContents: ContentData[] = (contentsResult.data || []).map((item: any) => ({
           id: item.id,
           title: item.title || '제목 없음',
           content: item.content || '',
           category: item.category,
-          content_type: item.content_type || 'blog',
+          content_type: item.post_type as ContentType,
           keywords: item.keywords,
           created_at: item.created_at,
-          naver_url: item.naver_url
+          hospital_name: item.hospital_name,
+          doctor_name: item.doctor_name,
+          doctor_title: item.doctor_title,
+          topic: item.topic,
+          user_email: item.user_email,
+          char_count: item.char_count
         }));
         setContents(mappedContents);
-        
-        // 통계 계산
-        const blogCount = mappedContents.filter(c => !c.content_type || c.content_type === 'blog').length;
-        const cardnewsCount = mappedContents.filter(c => c.content_type === 'cardnews').length;
-        const pressCount = mappedContents.filter(c => c.content_type === 'press').length;
-        
-        setStats({
-          totalContents: mappedContents.length,
-          blogCount,
-          cardnewsCount,
-          pressCount
-        });
       }
     } catch (err) {
       console.error('콘텐츠 이력 로드 오류:', err);
       const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error('에러 상세:', {
-        message: errorMsg,
-        stack: err instanceof Error ? err.stack : undefined
-      });
       
       // 네트워크 오류 시 재시도
       if (errorMsg.includes('fetch') && retryCount < MAX_RETRIES) {
@@ -158,7 +186,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
         return loadContentsInternal(retryCount + 1);
       }
       
-      setDataError(`콘텐츠 이력 로드 실패: ${errorMsg}${retryCount >= MAX_RETRIES ? ' (재시도 실패)' : ''}`);
+      setDataError(`콘텐츠 이력 로드 실패: ${errorMsg}`);
     }
     setLoadingData(false);
   };
@@ -172,13 +200,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
     if (!confirm('정말로 이 콘텐츠를 삭제하시겠습니까?')) return;
     
     try {
-      const { error } = await supabase
-        .from('blog_history')
-        .delete()
-        .eq('id', contentId);
+      const result = await deleteGeneratedPost(ADMIN_PASSWORD, contentId);
       
-      if (error) {
-        alert(`삭제 실패: ${error.message}`);
+      if (!result.success) {
+        alert(`삭제 실패: ${result.error}`);
       } else {
         alert('✅ 삭제 완료!');
         loadContents(); // 목록 새로고침
@@ -323,8 +348,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
           </div>
         </div>
 
-        {/* Stats Cards - 콘텐츠 통계만 표시 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Stats Cards - 콘텐츠 및 사용 통계 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
             <div className="text-3xl mb-2">📚</div>
             <div className="text-2xl font-black text-white">{stats.totalContents}</div>
@@ -344,6 +369,35 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
             <div className="text-3xl mb-2">📰</div>
             <div className="text-2xl font-black text-white">{stats.pressCount}</div>
             <div className="text-sm text-slate-400">언론보도</div>
+          </div>
+        </div>
+        
+        {/* 사용 통계 카드 */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-emerald-500/20 to-green-600/20 backdrop-blur-xl rounded-2xl p-4 border border-emerald-500/30">
+            <div className="text-xl mb-1">🏥</div>
+            <div className="text-xl font-black text-emerald-400">{stats.uniqueHospitals}</div>
+            <div className="text-xs text-slate-400">병원 수</div>
+          </div>
+          <div className="bg-gradient-to-br from-blue-500/20 to-indigo-600/20 backdrop-blur-xl rounded-2xl p-4 border border-blue-500/30">
+            <div className="text-xl mb-1">👤</div>
+            <div className="text-xl font-black text-blue-400">{stats.uniqueUsers}</div>
+            <div className="text-xs text-slate-400">사용자 수</div>
+          </div>
+          <div className="bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-xl rounded-2xl p-4 border border-yellow-500/30">
+            <div className="text-xl mb-1">📅</div>
+            <div className="text-xl font-black text-yellow-400">{stats.postsToday}</div>
+            <div className="text-xs text-slate-400">오늘</div>
+          </div>
+          <div className="bg-gradient-to-br from-purple-500/20 to-pink-600/20 backdrop-blur-xl rounded-2xl p-4 border border-purple-500/30">
+            <div className="text-xl mb-1">📊</div>
+            <div className="text-xl font-black text-purple-400">{stats.postsThisWeek}</div>
+            <div className="text-xs text-slate-400">이번 주</div>
+          </div>
+          <div className="bg-gradient-to-br from-cyan-500/20 to-teal-600/20 backdrop-blur-xl rounded-2xl p-4 border border-cyan-500/30">
+            <div className="text-xl mb-1">📈</div>
+            <div className="text-xl font-black text-cyan-400">{stats.postsThisMonth}</div>
+            <div className="text-xs text-slate-400">이번 달</div>
           </div>
         </div>
 
@@ -378,9 +432,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                       📝 블로그
                     </button>
                     <button
-                      onClick={() => setContentFilter('cardnews')}
+                      onClick={() => setContentFilter('card_news')}
                       className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                        contentFilter === 'cardnews' 
+                        contentFilter === 'card_news' 
                           ? 'bg-purple-500 text-white' 
                           : 'text-slate-400 hover:text-white'
                       }`}
@@ -388,9 +442,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                       🎨 카드뉴스
                     </button>
                     <button
-                      onClick={() => setContentFilter('press')}
+                      onClick={() => setContentFilter('press_release')}
                       className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                        contentFilter === 'press' 
+                        contentFilter === 'press_release' 
                           ? 'bg-green-500 text-white' 
                           : 'text-slate-400 hover:text-white'
                       }`}
@@ -447,31 +501,43 @@ const AdminPage: React.FC<AdminPageProps> = ({ onAdminVerified }) => {
                           </div>
                           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400 mb-3">
                             <span>📅 {formatDate(content.created_at)}</span>
+                            {content.hospital_name && (
+                              <span className="px-2 py-1 bg-emerald-600/50 text-emerald-300 rounded-full text-xs font-bold">
+                                🏥 {content.hospital_name}
+                              </span>
+                            )}
                             {content.category && (
                               <span className="px-2 py-1 bg-slate-600/50 text-slate-300 rounded-full text-xs font-bold">
                                 {content.category}
                               </span>
                             )}
+                            {content.doctor_name && (
+                              <span className="text-xs text-slate-400">
+                                👨‍⚕️ {content.doctor_name} {content.doctor_title || ''}
+                              </span>
+                            )}
+                            {content.char_count && (
+                              <span className="text-xs text-slate-500">
+                                📝 {content.char_count.toLocaleString()}자
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             {content.keywords && content.keywords.length > 0 && (
                               <span className="text-xs text-slate-500">
                                 🏷️ {content.keywords.slice(0, 3).join(', ')}
                                 {content.keywords.length > 3 && ` +${content.keywords.length - 3}`}
                               </span>
                             )}
+                            {content.user_email && (
+                              <span className="text-xs text-blue-400">
+                                ✉️ {content.user_email}
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-slate-300 line-clamp-2">
-                            {content.content?.substring(0, 150)}...
+                            {content.topic || content.content?.replace(/<[^>]*>/g, '').substring(0, 150)}...
                           </p>
-                          {content.naver_url && (
-                            <a 
-                              href={content.naver_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block mt-2 text-xs text-green-400 hover:text-green-300 underline"
-                            >
-                              🔗 네이버 블로그에서 보기
-                            </a>
-                          )}
                         </div>
                         <div className="flex gap-2">
                           <button
