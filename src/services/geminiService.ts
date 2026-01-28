@@ -492,8 +492,24 @@ async function callGemini(config: GeminiCallConfig): Promise<any> {
 
 // 🔍 Google Search 필요 여부 판단
 function needsGoogleSearch(request: GenerationRequest): boolean {
-  // 모든 콘텐츠 타입에서 항상 Google Search 사용 (최신 정보 반영)
-  return true;
+  // 🔧 검색 최적화: 병원 웹사이트가 있거나 의료 정보가 필요한 경우만 검색
+  // 검색 없이도 글 생성 가능 - 속도 우선
+  
+  // 1. 병원 웹사이트가 입력된 경우 검색 활성화
+  if (request.hospitalWebsite && request.hospitalWebsite.trim()) {
+    console.log('🔍 병원 웹사이트 입력됨 - Google Search 활성화');
+    return true;
+  }
+  
+  // 2. 보도자료는 검색 필요
+  if (request.postType === 'press_release') {
+    console.log('🔍 보도자료 - Google Search 활성화');
+    return true;
+  }
+  
+  // 3. 그 외에는 검색 비활성화 (속도 우선)
+  console.log('⚡ 검색 비활성화 - 빠른 생성 모드');
+  return false;
 }
 
 // 🏥 질병관리청 검색 함수 (1차 검색) - 타임아웃 120초
@@ -4591,15 +4607,23 @@ ${hospitalInfo}
     // Gemini 사용
     console.log('🔵 Using Gemini for text generation');
     
+    // 🔧 검색 필요 여부 확인 (병원 웹사이트 입력 시에만 검색)
+    const shouldSearch = needsGoogleSearch(request);
+    
     // 로그 출력 (generateContent 호출 전에 실행)
-    console.log('🔄 Gemini 웹 검색 및 콘텐츠 생성 시작');
+    console.log('🔄 Gemini 콘텐츠 생성 시작');
+    console.log(`🔍 검색 모드: ${shouldSearch ? '활성화 (병원 웹사이트 입력됨)' : '비활성화 (빠른 생성)'}`);
     console.log('📍 Step 1 시작 준비...');
     
-    // 📍 Step 1: Gemini 웹 검색으로 최신 정보 수집
+    // 📍 Step 1: 검색이 필요한 경우에만 Gemini 웹 검색 실행
     console.log('📍 onProgress 호출 직전...');
     try {
       if (typeof onProgress === 'function') {
-        safeProgress('🔍 [1/3] 질병관리청 최신 정보 검색 중... (~10초)');
+        if (shouldSearch) {
+          safeProgress('🔍 [1/3] 질병관리청 최신 정보 검색 중... (~10초)');
+        } else {
+          safeProgress('⚡ [1/3] 빠른 생성 모드 - 검색 건너뛰기');
+        }
       } else {
         console.warn('⚠️ onProgress가 함수가 아님:', typeof onProgress);
       }
@@ -4627,90 +4651,97 @@ JSON 형식으로 응답:
 
 최대 5개 팩트, 3개 통계만 수집. 빠르게 응답.`;
 
-    // • Gemini 웹 검색으로 최신 정보 수집
-    console.log('• 질병관리청 최신 정보 검색 시작');
-    
+    // • Gemini 웹 검색으로 최신 정보 수집 (검색 필요 시에만)
     let geminiResults: any = null;
     let searchResults: any = {};
+    let geminiResult: { success: boolean; data: any; source: string } = { success: false, data: null, source: 'skipped' };
     
-    // 🔵 Gemini 검색 실행 (타임아웃 90초)
-    const SEARCH_TIMEOUT = 90000; // 90초 타임아웃
-    
-    const geminiSearchPromise = (async () => {
-      try {
-        console.log('🔵 Gemini 검색 시작... (타임아웃: 90초)');
-        const ai = getAiClient();
-        // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
-        // 텍스트로 받고 후처리로 JSON 파싱
-        const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",  // 검색용 모델 (빠름)
-          contents: searchPrompt,
-          config: {
-            tools: [{ googleSearch: {} }]
-            // responseMimeType 제거 - Search tool과 호환 안 됨
-          }
-        });
-        
-        // 안전한 JSON 파싱 (텍스트 응답에서 추출)
-        let result;
-        const rawText = searchResponse.text || "{}";
-        
+    // 🔧 검색이 필요한 경우에만 실행 (병원 웹사이트 입력 또는 보도자료)
+    if (shouldSearch) {
+      console.log('• 질병관리청 최신 정보 검색 시작');
+      
+      // 🔵 Gemini 검색 실행 (타임아웃 90초)
+      const SEARCH_TIMEOUT = 90000; // 90초 타임아웃
+      
+      const geminiSearchPromise = (async () => {
         try {
-          // JSON 블록 추출 시도 (```json ... ``` 형태일 수 있음)
-          const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || 
-                           rawText.match(/```\s*([\s\S]*?)\s*```/) ||
-                           rawText.match(/\{[\s\S]*"collected_facts"[\s\S]*\}/);
+          console.log('🔵 Gemini 검색 시작... (타임아웃: 90초)');
+          const ai = getAiClient();
+          // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
+          // 텍스트로 받고 후처리로 JSON 파싱
+          const searchResponse = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",  // 검색용 모델 (빠름)
+            contents: searchPrompt,
+            config: {
+              tools: [{ googleSearch: {} }]
+              // responseMimeType 제거 - Search tool과 호환 안 됨
+            }
+          });
           
-          let cleanedText = '';
-          if (jsonMatch) {
-            cleanedText = (jsonMatch[1] || jsonMatch[0]).trim();
-          } else {
-            cleanedText = rawText.trim();
+          // 안전한 JSON 파싱 (텍스트 응답에서 추출)
+          let result;
+          const rawText = searchResponse.text || "{}";
+          
+          try {
+            // JSON 블록 추출 시도 (```json ... ``` 형태일 수 있음)
+            const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                             rawText.match(/```\s*([\s\S]*?)\s*```/) ||
+                             rawText.match(/\{[\s\S]*"collected_facts"[\s\S]*\}/);
+            
+            let cleanedText = '';
+            if (jsonMatch) {
+              cleanedText = (jsonMatch[1] || jsonMatch[0]).trim();
+            } else {
+              cleanedText = rawText.trim();
+            }
+            result = JSON.parse(cleanedText);
+          } catch {
+            console.warn('⚠️ JSON 파싱 실패, 원본 텍스트 일부:', rawText.substring(0, 200));
+            // 빈 객체로 폴백
+            result = {
+              collected_facts: [],
+              key_statistics: [],
+              latest_guidelines: []
+            };
           }
-          result = JSON.parse(cleanedText);
-        } catch {
-          console.warn('⚠️ JSON 파싱 실패, 원본 텍스트 일부:', rawText.substring(0, 200));
-          // 빈 객체로 폴백
-          result = {
-            collected_facts: [],
-            key_statistics: [],
-            latest_guidelines: []
-          };
+          
+          const factCount = result.collected_facts?.length || 0;
+          const statCount = result.key_statistics?.length || 0;
+          console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
+          return { success: true, data: result, source: 'gemini' };
+        } catch (error) {
+          console.error('⚠️ Gemini 검색 실패:', error);
+          return { success: false, data: null, source: 'gemini', error };
         }
-        
-        const factCount = result.collected_facts?.length || 0;
-        const statCount = result.key_statistics?.length || 0;
-        console.log(`✅ Gemini 검색 완료 - 팩트 ${factCount}개, 통계 ${statCount}개`);
-        return { success: true, data: result, source: 'gemini' };
-      } catch (error) {
-        console.error('⚠️ Gemini 검색 실패:', error);
-        return { success: false, data: null, source: 'gemini', error };
-      }
-    })();
-    
-    // 타임아웃과 함께 검색 실행
-    const timeoutPromise = new Promise<{ success: false; data: null; source: 'timeout' }>((resolve) => {
-      setTimeout(() => {
-        console.warn('⚠️ 검색 타임아웃 (90초) - 검색 건너뛰기');
-        resolve({ success: false, data: null, source: 'timeout' });
-      }, SEARCH_TIMEOUT);
-    });
-    
-    const geminiResult = await Promise.race([geminiSearchPromise, timeoutPromise]);
-    
-    geminiResults = geminiResult.success ? geminiResult.data : null;
+      })();
+      
+      // 타임아웃과 함께 검색 실행
+      const timeoutPromise = new Promise<{ success: false; data: null; source: 'timeout' }>((resolve) => {
+        setTimeout(() => {
+          console.warn('⚠️ 검색 타임아웃 (90초) - 검색 건너뛰기');
+          resolve({ success: false, data: null, source: 'timeout' });
+        }, SEARCH_TIMEOUT);
+      });
+      
+      geminiResult = await Promise.race([geminiSearchPromise, timeoutPromise]);
+      geminiResults = geminiResult.success ? geminiResult.data : null;
+      
+      // 상세 로그
+      const geminiFactCount = geminiResults?.collected_facts?.length || 0;
+      const geminiStatCount = geminiResults?.key_statistics?.length || 0;
+      
+      console.log('📊 검색 결과 상세:');
+      console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
+    } else {
+      // 검색 건너뛰기 - 빠른 생성 모드
+      console.log('⚡ 검색 건너뛰기 - 빠른 생성 모드 (병원 웹사이트 미입력)');
+      geminiResult = { success: false, data: null, source: 'skipped' };
+    }
     
     // GPT 검색 비활성화 (Gemini만 사용)
     const gptResults: any = null;
     const gptFactCount = 0;
     const gptStatCount = 0;
-    
-    // 상세 로그
-    const geminiFactCount = geminiResults?.collected_facts?.length || 0;
-    const geminiStatCount = geminiResults?.key_statistics?.length || 0;
-    
-    console.log('📊 검색 결과 상세:');
-    console.log(`   🔵 Gemini: ${geminiResult.success ? '성공' : '실패'} - 팩트 ${geminiFactCount}개, 통계 ${geminiStatCount}개`);
     
     // 🔀 크로스체크: 두 결과 병합 및 검증
     
