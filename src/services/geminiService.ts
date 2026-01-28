@@ -4643,7 +4643,7 @@ JSON 형식으로 응답:
         // ⚠️ Google Search와 responseMimeType: "application/json"은 동시 사용 불가!
         // 텍스트로 받고 후처리로 JSON 파싱
         const searchResponse = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",  // 검색용 모델
+          model: "gemini-3-flash-preview",  // 검색용 모델 (빠름)
           contents: searchPrompt,
           config: {
             tools: [{ googleSearch: {} }]
