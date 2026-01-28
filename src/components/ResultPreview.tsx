@@ -1971,11 +1971,13 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
     // 6. border-radius 제거 (Word 2016에서 지원 안 함 - 네모 박스 문제 원인!)
     result = result.replace(/border-radius:\s*[^;]+;/gi, '');
     
-    // 7. border 속성 제거 (컨테이너 테두리 문제!)
-    // 단, 테이블 소제목의 border는 유지해야 하므로 선택적으로 제거
-    result = result.replace(/border:\s*1px\s+solid\s+#[a-fA-F0-9]+;/gi, '');
-    result = result.replace(/border-top:\s*[^;]+;/gi, '');
-    result = result.replace(/border-bottom:\s*1px\s+solid\s+#[a-fA-F0-9]+;/gi, '');
+    // 7. border 속성 완전 제거 (Word 네모 박스 문제 완전 해결!)
+    // 테이블 소제목의 border는 background-color로 대체됨
+    result = result.replace(/border\s*:\s*[^;]+;/gi, '');
+    result = result.replace(/border-top\s*:\s*[^;]+;/gi, '');
+    result = result.replace(/border-bottom\s*:\s*[^;]+;/gi, '');
+    result = result.replace(/border-left\s*:\s*[^;]+;/gi, '');
+    result = result.replace(/border-right\s*:\s*[^;]+;/gi, '');
     
     // 8. aspect-ratio 제거 (Word에서 지원 안 함)
     result = result.replace(/aspect-ratio:\s*[^;]+;/gi, '');
@@ -2020,10 +2022,19 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
         finalHtml = doc.body.innerHTML;
       }
       
-      // 🎯 추가: 모든 border 문자열 제거 (혹시 남아있을 경우)
-      finalHtml = finalHtml.replace(/border[^:]*:[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/box-shadow:[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-radius:[^;]+;/gi, '');
+      // 🎯 추가: 모든 border 문자열 완전 제거 (Word 네모 박스 방지!)
+      // border 관련 모든 CSS 속성 제거
+      finalHtml = finalHtml.replace(/border\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-top\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-bottom\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-left\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-right\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-width\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-style\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-color\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-radius\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/box-shadow\s*:\s*[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/outline\s*:\s*[^;]+;/gi, '');
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
