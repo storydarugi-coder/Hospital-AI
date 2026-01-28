@@ -1990,56 +1990,72 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
   const handleCopy = async () => {
     try {
-      let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
-      
-      // 🎯 Word 2016 호환 변환 적용
-      styledHtml = convertToWordCompatibleHtml(styledHtml);
-      
-      // HTML 엔티티 디코딩 (네모 문자 방지) - DOMParser 사용
+      // 🎯🎯🎯 Word 복사용: 모든 박스/테두리 요소 완전 제거! 🎯🎯🎯
       const parser = new DOMParser();
-      const doc = parser.parseFromString(styledHtml, 'text/html');
+      const doc = parser.parseFromString(localHtml, 'text/html');
       
-      // 🎯🎯🎯 모든 div에서 border 관련 스타일 완전 제거! 🎯🎯🎯
+      // 1. 모든 div를 내용만 남기고 제거 (div 자체가 Word에서 박스로 됨)
       doc.querySelectorAll('div').forEach(div => {
-        // border 관련 모든 스타일 제거
-        div.style.border = 'none';
-        div.style.borderTop = 'none';
-        div.style.borderBottom = 'none';
-        div.style.borderLeft = 'none';
-        div.style.borderRight = 'none';
-        div.style.borderRadius = '0';
-        div.style.boxShadow = 'none';
-        div.style.outline = 'none';
+        const parent = div.parentNode;
+        while (div.firstChild) {
+          parent?.insertBefore(div.firstChild, div);
+        }
+        div.remove();
       });
       
-      // 🎯 컨테이너 div 내용만 추출 (border 박스 문제 해결!)
-      const container = doc.querySelector('.naver-post-container');
-      let finalHtml = '';
-      if (container) {
-        // 컨테이너 내부 내용만 가져옴 (컨테이너 div 자체는 제외)
-        finalHtml = container.innerHTML;
-      } else {
-        finalHtml = doc.body.innerHTML;
-      }
+      // 2. 테이블 제거 (h3 소제목이 테이블로 변환된 경우)
+      doc.querySelectorAll('table').forEach(table => {
+        const text = table.textContent || '';
+        const p = document.createElement('p');
+        p.innerHTML = `<strong style="font-size:18px; color:#1e40af;">${text}</strong>`;
+        table.replaceWith(p);
+      });
       
-      // 🎯 추가: 모든 border 문자열 완전 제거 (Word 네모 박스 방지!)
-      // border 관련 모든 CSS 속성 제거
-      finalHtml = finalHtml.replace(/border\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-top\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-bottom\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-left\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-right\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-width\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-style\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-color\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/border-radius\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/box-shadow\s*:\s*[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/outline\s*:\s*[^;]+;/gi, '');
+      // 3. h3 태그를 굵은 텍스트로 변환 (border-left가 Word에서 박스로 됨)
+      doc.querySelectorAll('h3').forEach(h3 => {
+        const text = h3.textContent || '';
+        const p = document.createElement('p');
+        p.innerHTML = `<br><strong style="font-size:18px; color:#1e40af;">■ ${text}</strong>`;
+        h3.replaceWith(p);
+      });
+      
+      // 4. h2 태그도 단순화
+      doc.querySelectorAll('h2').forEach(h2 => {
+        const text = h2.textContent || '';
+        const p = document.createElement('p');
+        p.innerHTML = `<strong style="font-size:22px; color:#1a1a1a;">${text}</strong><br>`;
+        h2.replaceWith(p);
+      });
+      
+      // 5. 이미지 제거 (Word에서 깨질 수 있음)
+      doc.querySelectorAll('img').forEach(img => img.remove());
+      
+      // 6. 모든 style 속성에서 border 관련 제거
+      doc.querySelectorAll('[style]').forEach(el => {
+        const style = el.getAttribute('style') || '';
+        const cleanStyle = style
+          .replace(/border[^:]*:[^;]+;?/gi, '')
+          .replace(/box-shadow:[^;]+;?/gi, '')
+          .replace(/outline:[^;]+;?/gi, '')
+          .replace(/background:[^;]+;?/gi, '')
+          .replace(/background-color:[^;]+;?/gi, '');
+        if (cleanStyle.trim()) {
+          el.setAttribute('style', cleanStyle);
+        } else {
+          el.removeAttribute('style');
+        }
+      });
+      
+      let finalHtml = doc.body.innerHTML;
+      
+      // 7. 남은 style 문자열에서도 제거
+      finalHtml = finalHtml.replace(/border[^:]*:[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/box-shadow:[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/background:[^;]+;/gi, '');
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
       tempDiv.contentEditable = 'true';
-      // 컨테이너 내용만 적용 (border 없음!)
       tempDiv.innerHTML = finalHtml;
       tempDiv.style.position = 'fixed';
       tempDiv.style.left = '-9999px';
