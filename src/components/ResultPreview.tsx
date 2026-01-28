@@ -1990,68 +1990,43 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
 
   const handleCopy = async () => {
     try {
-      // 🎯🎯🎯 Word 복사용: 모든 박스/테두리 요소 완전 제거! 🎯🎯🎯
+      // 🎯 미리보기 CSS 그대로 복사 (Word 호환 버전)
+      let styledHtml = applyInlineStylesForNaver(localHtml, currentTheme);
+      
       const parser = new DOMParser();
-      const doc = parser.parseFromString(localHtml, 'text/html');
+      const doc = parser.parseFromString(styledHtml, 'text/html');
       
-      // 1. 모든 div를 내용만 남기고 제거 (div 자체가 Word에서 박스로 됨)
-      doc.querySelectorAll('div').forEach(div => {
-        const parent = div.parentNode;
-        while (div.firstChild) {
-          parent?.insertBefore(div.firstChild, div);
-        }
-        div.remove();
-      });
-      
-      // 2. 테이블 제거 (h3 소제목이 테이블로 변환된 경우)
-      doc.querySelectorAll('table').forEach(table => {
-        const text = table.textContent || '';
-        const p = document.createElement('p');
-        p.innerHTML = `<strong style="font-size:18px; color:#1e40af;">${text}</strong>`;
-        table.replaceWith(p);
-      });
-      
-      // 3. h3 태그를 굵은 텍스트로 변환 (border-left가 Word에서 박스로 됨)
-      doc.querySelectorAll('h3').forEach(h3 => {
-        const text = h3.textContent || '';
-        const p = document.createElement('p');
-        p.innerHTML = `<br><strong style="font-size:18px; color:#1e40af;">■ ${text}</strong>`;
-        h3.replaceWith(p);
-      });
-      
-      // 4. h2 태그도 단순화
-      doc.querySelectorAll('h2').forEach(h2 => {
-        const text = h2.textContent || '';
-        const p = document.createElement('p');
-        p.innerHTML = `<strong style="font-size:22px; color:#1a1a1a;">${text}</strong><br>`;
-        h2.replaceWith(p);
-      });
-      
-      // 5. 이미지 제거 (Word에서 깨질 수 있음)
-      doc.querySelectorAll('img').forEach(img => img.remove());
-      
-      // 6. 모든 style 속성에서 border 관련 제거
+      // 🎯 Word에서 박스로 보이는 CSS만 선택적 제거
       doc.querySelectorAll('[style]').forEach(el => {
         const style = el.getAttribute('style') || '';
+        // border-radius, box-shadow만 제거 (이것들이 Word에서 박스 원인)
+        // border-left는 유지 (h3 소제목 스타일)
         const cleanStyle = style
-          .replace(/border[^:]*:[^;]+;?/gi, '')
-          .replace(/box-shadow:[^;]+;?/gi, '')
-          .replace(/outline:[^;]+;?/gi, '')
-          .replace(/background:[^;]+;?/gi, '')
-          .replace(/background-color:[^;]+;?/gi, '');
-        if (cleanStyle.trim()) {
-          el.setAttribute('style', cleanStyle);
-        } else {
-          el.removeAttribute('style');
-        }
+          .replace(/border-radius\s*:[^;]+;?/gi, '')
+          .replace(/box-shadow\s*:[^;]+;?/gi, '')
+          .replace(/outline\s*:[^;]+;?/gi, '');
+        el.setAttribute('style', cleanStyle);
+      });
+      
+      // 🎯 컨테이너의 border만 제거 (전체 박스 테두리)
+      const container = doc.querySelector('.naver-post-container');
+      if (container) {
+        const style = container.getAttribute('style') || '';
+        const cleanStyle = style
+          .replace(/border\s*:[^;]+;?/gi, '')
+          .replace(/border-top\s*:[^;]+;?/gi, '')
+          .replace(/border-bottom\s*:[^;]+;?/gi, '');
+        container.setAttribute('style', cleanStyle);
+      }
+      
+      // 🎯 h2 메인 제목의 border-bottom 제거 (밑줄이 박스로 보임)
+      doc.querySelectorAll('h2').forEach(h2 => {
+        const style = h2.getAttribute('style') || '';
+        const cleanStyle = style.replace(/border-bottom\s*:[^;]+;?/gi, '');
+        h2.setAttribute('style', cleanStyle);
       });
       
       let finalHtml = doc.body.innerHTML;
-      
-      // 7. 남은 style 문자열에서도 제거
-      finalHtml = finalHtml.replace(/border[^:]*:[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/box-shadow:[^;]+;/gi, '');
-      finalHtml = finalHtml.replace(/background:[^;]+;/gi, '');
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
