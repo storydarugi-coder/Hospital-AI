@@ -1997,6 +1997,19 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const parser = new DOMParser();
       const doc = parser.parseFromString(styledHtml, 'text/html');
       
+      // 🎯🎯🎯 모든 div에서 border 관련 스타일 완전 제거! 🎯🎯🎯
+      doc.querySelectorAll('div').forEach(div => {
+        // border 관련 모든 스타일 제거
+        div.style.border = 'none';
+        div.style.borderTop = 'none';
+        div.style.borderBottom = 'none';
+        div.style.borderLeft = 'none';
+        div.style.borderRight = 'none';
+        div.style.borderRadius = '0';
+        div.style.boxShadow = 'none';
+        div.style.outline = 'none';
+      });
+      
       // 🎯 컨테이너 div 내용만 추출 (border 박스 문제 해결!)
       const container = doc.querySelector('.naver-post-container');
       let finalHtml = '';
@@ -2006,6 +2019,11 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       } else {
         finalHtml = doc.body.innerHTML;
       }
+      
+      // 🎯 추가: 모든 border 문자열 제거 (혹시 남아있을 경우)
+      finalHtml = finalHtml.replace(/border[^:]*:[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/box-shadow:[^;]+;/gi, '');
+      finalHtml = finalHtml.replace(/border-radius:[^;]+;/gi, '');
       
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
