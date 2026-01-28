@@ -1997,11 +1997,21 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       const parser = new DOMParser();
       const doc = parser.parseFromString(styledHtml, 'text/html');
       
+      // 🎯 컨테이너 div 내용만 추출 (border 박스 문제 해결!)
+      const container = doc.querySelector('.naver-post-container');
+      let finalHtml = '';
+      if (container) {
+        // 컨테이너 내부 내용만 가져옴 (컨테이너 div 자체는 제외)
+        finalHtml = container.innerHTML;
+      } else {
+        finalHtml = doc.body.innerHTML;
+      }
+      
       // 임시 div 생성하여 HTML 복사 (팝업 없이 복사)
       const tempDiv = document.createElement('div');
       tempDiv.contentEditable = 'true';
-      // doc.body.innerHTML을 사용하여 디코딩된 HTML 적용
-      tempDiv.innerHTML = doc.body.innerHTML;
+      // 컨테이너 내용만 적용 (border 없음!)
+      tempDiv.innerHTML = finalHtml;
       tempDiv.style.position = 'fixed';
       tempDiv.style.left = '-9999px';
       tempDiv.style.top = '0';
