@@ -1933,7 +1933,12 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
   const convertToWordCompatibleHtml = (html: string): string => {
     let result = html;
     
-    // 🎯 0. h3 소제목을 테이블로 변환 (Word 2016에서 border-left 안 먹음)
+    // 🎯 0. naver-post-container div 제거 (border 박스 방지!)
+    // 컨테이너 div의 border가 워드에서 네모 박스로 나타나는 문제 해결
+    result = result.replace(/<div[^>]*class="naver-post-container"[^>]*>/gi, '');
+    result = result.replace(/<\/div>\s*$/gi, ''); // 마지막 닫는 태그 제거
+    
+    // 🎯 1. h3 소제목을 테이블로 변환 (Word 2016에서 border-left 안 먹음)
     // 네이버 블로그에서는 border-left로 보이지만, 워드 복사용으로 테이블 변환
     result = result.replace(
       /<h3[^>]*>(.*?)<\/h3>/gi,
@@ -1948,28 +1953,34 @@ const ResultPreview: React.FC<ResultPreviewProps> = ({ content, darkMode = false
       }
     );
     
-    // 1. linear-gradient를 단색 배경으로 변환
+    // 2. linear-gradient를 단색 배경으로 변환
     result = result.replace(/background:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');
     result = result.replace(/background-image:\s*linear-gradient\([^)]+\)/gi, 'background-color: #f8fafc');
     
-    // 2. font-weight: 700/800/900 등을 bold로 통일 (Word 호환성)
+    // 3. font-weight: 700/800/900 등을 bold로 통일 (Word 호환성)
     result = result.replace(/font-weight:\s*[6-9]00/gi, 'font-weight: bold');
     
-    // 3. rgba 색상을 hex로 변환 (Word 2016에서 rgba 지원 불안정)
+    // 4. rgba 색상을 hex로 변환 (Word 2016에서 rgba 지원 불안정)
     result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.1\)/gi, '#e5e5e5');
     result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.06\)/gi, '#f0f0f0');
     result = result.replace(/rgba\(0,\s*0,\s*0,\s*0\.08\)/gi, '#ebebeb');
     
-    // 4. box-shadow 제거 (Word에서 지원 안 함)
+    // 5. box-shadow 제거 (Word에서 지원 안 함)
     result = result.replace(/box-shadow:\s*[^;]+;/gi, '');
     
-    // 5. border-radius 간소화 (Word 2016에서 복잡한 값 지원 안 함)
-    result = result.replace(/border-radius:\s*\d+px\s+\d+px\s+\d+px\s+\d+px/gi, 'border-radius: 8px');
+    // 6. border-radius 제거 (Word 2016에서 지원 안 함 - 네모 박스 문제 원인!)
+    result = result.replace(/border-radius:\s*[^;]+;/gi, '');
     
-    // 6. aspect-ratio 제거 (Word에서 지원 안 함)
+    // 7. border 속성 제거 (컨테이너 테두리 문제!)
+    // 단, 테이블 소제목의 border는 유지해야 하므로 선택적으로 제거
+    result = result.replace(/border:\s*1px\s+solid\s+#[a-fA-F0-9]+;/gi, '');
+    result = result.replace(/border-top:\s*[^;]+;/gi, '');
+    result = result.replace(/border-bottom:\s*1px\s+solid\s+#[a-fA-F0-9]+;/gi, '');
+    
+    // 8. aspect-ratio 제거 (Word에서 지원 안 함)
     result = result.replace(/aspect-ratio:\s*[^;]+;/gi, '');
     
-    // 7. 웹폰트를 시스템 폰트로 변경 (Word 호환)
+    // 9. 웹폰트를 시스템 폰트로 변경 (Word 호환)
     result = result.replace(/font-family:\s*[^;]+;/gi, 'font-family: "맑은 고딕", Malgun Gothic, sans-serif;');
     
     return result;
