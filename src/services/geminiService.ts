@@ -135,7 +135,79 @@ const TIMEOUTS = {
 // "양상", "양태" 등 AI스러운 표현을 자연스러운 표현으로 강제 교체
 // ⚠️ 대체어 분산: 모습/상태/경우/느낌/변화 등 다양하게!
 const BANNED_WORDS_REPLACEMENTS: Array<{ pattern: RegExp; replacement: string }> = [
-  // 양상/양태 계열 - 문맥에 맞는 다양한 대체어 사용!
+  // ===== 1. AI 냄새나는 도입/마무리 표현 (삭제) =====
+  { pattern: /오늘은\s*[^.]*에\s*대해\s*알아보겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /[^.]*에\s*대해\s*알아보겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /[^.]*에\s*대해\s*살펴보겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /이번\s*글에서는\s*[^.]*살펴보겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /지금부터\s*[^.]*알아보겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /결론적으로[,\s]*/g, replacement: '' },
+  { pattern: /종합하면[,\s]*/g, replacement: '' },
+  { pattern: /마무리하며[,\s]*/g, replacement: '' },
+  { pattern: /이상으로\s*[^.]*마치겠습니다\.?\s*/g, replacement: '' },
+  { pattern: /지금까지\s*[^.]*알아보았습니다\.?\s*/g, replacement: '' },
+  
+  // ===== 2. 번역투/딱딱한 표현 → 자연스러운 표현 =====
+  { pattern: /해당\s*증상/g, replacement: '이런 증상' },
+  { pattern: /해당\s*질환/g, replacement: '이 질환' },
+  { pattern: /해당\s*부위/g, replacement: '그 부위' },
+  { pattern: /해당\s*/g, replacement: '이 ' },
+  { pattern: /본\s*질환/g, replacement: '이 질환' },
+  { pattern: /적절한\s*관리가\s*필요합니다/g, replacement: '신경 써야 합니다' },
+  { pattern: /불편감이\s*발생합니다/g, replacement: '불편해집니다' },
+  { pattern: /불편감을\s*느끼/g, replacement: '불편함을 느끼' },
+  { pattern: /불편감/g, replacement: '불편함' },
+  { pattern: /증상이\s*나타날\s*수\s*있습니다/g, replacement: '이런 느낌이 생길 수 있습니다' },
+  { pattern: /권장드립니다/g, replacement: '좋습니다' },
+  { pattern: /추천드립니다/g, replacement: '좋습니다' },
+  { pattern: /유의해야\s*합니다/g, replacement: '조심해야 합니다' },
+  { pattern: /하시는\s*것이\s*좋습니다/g, replacement: '하면 좋습니다' },
+  { pattern: /하시는\s*것이\s*바람직합니다/g, replacement: '하면 좋습니다' },
+  { pattern: /요인/g, replacement: '이유' },
+  { pattern: /요소/g, replacement: '부분' },
+  { pattern: /발생하다/g, replacement: '생기다' },
+  { pattern: /발생합니다/g, replacement: '생깁니다' },
+  { pattern: /발생할\s*수/g, replacement: '생길 수' },
+  { pattern: /진행하다/g, replacement: '하다' },
+  { pattern: /수행하다/g, replacement: '하다' },
+  { pattern: /활용하다/g, replacement: '쓰다' },
+  { pattern: /활용합니다/g, replacement: '씁니다' },
+  { pattern: /~에\s*있어서/g, replacement: '~에서' },
+  { pattern: /~함에\s*따라/g, replacement: '~하면서' },
+  { pattern: /~로\s*인하여/g, replacement: '~ 때문에' },
+  { pattern: /~측면에서/g, replacement: '~쪽에서 보면' },
+  { pattern: /영향을\s*미치다/g, replacement: '~하게 만들다' },
+  { pattern: /영향을\s*미칩니다/g, replacement: '~하게 됩니다' },
+  
+  // ===== 3. 과장/신뢰도 하락 표현 (삭제 또는 완화) =====
+  { pattern: /놀라운\s*/g, replacement: '' },
+  { pattern: /놀랍게도\s*/g, replacement: '' },
+  { pattern: /획기적인\s*/g, replacement: '' },
+  { pattern: /혁신적인\s*/g, replacement: '' },
+  { pattern: /드라마틱한\s*/g, replacement: '' },
+  { pattern: /극적인\s*/g, replacement: '' },
+  { pattern: /마법같은\s*/g, replacement: '' },
+  { pattern: /기적같은\s*/g, replacement: '' },
+  { pattern: /즉각적인\s*/g, replacement: '빠른 ' },
+  { pattern: /즉시\s*/g, replacement: '바로 ' },
+  
+  // ===== 4. 의료광고법 위반 표현 → 완화 =====
+  { pattern: /확실히\s*효과가\s*있습니다/g, replacement: '도움이 될 수 있습니다' },
+  { pattern: /반드시\s*효과가/g, replacement: '도움이 될 수' },
+  { pattern: /무조건\s*/g, replacement: '' },
+  { pattern: /최고의\s*/g, replacement: '' },
+  { pattern: /최상의\s*/g, replacement: '' },
+  { pattern: /가장\s*좋은\s*방법/g, replacement: '좋은 방법' },
+  { pattern: /부작용\s*없이/g, replacement: '' },
+  { pattern: /완전히\s*안전하게/g, replacement: '' },
+  
+  // ===== 5. 감정 과잉 표현 (완화) =====
+  { pattern: /정말\s*정말/g, replacement: '정말' },
+  { pattern: /너무\s*너무/g, replacement: '너무' },
+  { pattern: /!!+/g, replacement: '!' },
+  { pattern: /\?!+/g, replacement: '?' },
+  
+  // ===== 6. 양상/양태 계열 - 문맥에 맞는 다양한 대체어 사용! =====
   { pattern: /다양한\s*양상/g, replacement: '여러 경우' },
   { pattern: /복잡한\s*양상/g, replacement: '복잡한 상태' },
   { pattern: /특이한\s*양상/g, replacement: '독특한 느낌' },
